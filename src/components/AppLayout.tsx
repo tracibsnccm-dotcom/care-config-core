@@ -13,6 +13,8 @@ import {
   ClipboardEdit,
   Route as RouteIcon,
   HeartPulse,
+  FolderKanban,
+  Shield,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -33,9 +35,11 @@ const navigation = [
   { name: "Attorney", href: "/attorney", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Management", href: "/management", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Providers", href: "/providers", icon: Stethoscope, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Router", href: "/router", icon: RouteIcon, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Check-ins", href: "/checkins", icon: HeartPulse, roles: [ROLES.CLIENT, ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Admin", href: "/admin", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];

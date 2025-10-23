@@ -113,7 +113,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Expose for manual testing
   useEffect(() => {
     (window as any).revokeConsent = revokeConsent;
-  }, [cases]);
+    (window as any).setCases = setCases;
+    (window as any).setProviders = setProviders;
+    (window as any).setCurrentTier = setCurrentTier;
+  }, [cases, providers]);
 
   const value: AppContextType = {
     role,

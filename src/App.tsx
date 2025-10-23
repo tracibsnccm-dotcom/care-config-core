@@ -8,11 +8,13 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
+import CaseManagement from "./pages/CaseManagement";
 import Providers from "./pages/Providers";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientCheckins from "./pages/ClientCheckins";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,9 +33,11 @@ const App = () => (
             <Route path="/intake" element={<IntakeWizard />} />
             <Route path="/cases" element={<Cases />} />
             <Route path="/cases/:caseId" element={<CaseDetail />} />
+            <Route path="/management" element={<CaseManagement />} />
             <Route path="/providers" element={<Providers />} />
             <Route path="/router" element={<ProviderRouter />} />
             <Route path="/checkins" element={<ClientCheckins />} />
+            <Route path="/admin" element={<AdminPanel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
