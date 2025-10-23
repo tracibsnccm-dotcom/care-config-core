@@ -7,7 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { RCMS_CONFIG } from "@/config/rcms";
 import { Case } from "@/config/rcms";
-import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock } from "lucide-react";
+import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3 } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
 
 export default function AttorneyLanding() {
@@ -108,6 +108,10 @@ export default function AttorneyLanding() {
             <Button onClick={inviteClient} aria-label="Invite client">
               <UserPlus className="w-4 h-4 mr-2" />
               Invite Client
+            </Button>
+            <Button onClick={() => navigate("/reports")} variant="outline">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              View Reports
             </Button>
             <Button
               onClick={() => navigate("/providers")}
