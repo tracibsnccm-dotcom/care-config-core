@@ -34,15 +34,15 @@ function getStatusColor(status: CaseStatus): {
       };
     case "IN_PROGRESS":
       return {
-        bg: "bg-blue-500/10",
-        text: "text-blue-500",
-        border: "border-blue-500/50",
+        bg: "bg-green-500/10",
+        text: "text-green-500",
+        border: "border-green-500/50",
       };
     case "ROUTED":
       return {
-        bg: "bg-purple-500/10",
-        text: "text-purple-500",
-        border: "border-purple-500/50",
+        bg: "bg-blue-500/10",
+        text: "text-blue-500",
+        border: "border-blue-500/50",
       };
     case "NEW":
       return {

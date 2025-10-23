@@ -40,15 +40,15 @@ function getStatusColor(status: CaseStatus): {
       };
     case "IN_PROGRESS":
       return {
-        bg: "bg-blue-500/10",
-        text: "text-blue-500",
-        border: "border-blue-500/50",
+        bg: "bg-green-500/10",
+        text: "text-green-500",
+        border: "border-green-500/50",
       };
     case "ROUTED":
       return {
-        bg: "bg-purple-500/10",
-        text: "text-purple-500",
-        border: "border-purple-500/50",
+        bg: "bg-blue-500/10",
+        text: "text-blue-500",
+        border: "border-blue-500/50",
       };
     case "NEW":
       return {
@@ -405,10 +405,16 @@ export default function Reports() {
                 <span className="text-muted-foreground">— Needs action</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/50">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/50">
                   IN PROGRESS
                 </span>
-                <span className="text-muted-foreground">— Active workflow</span>
+                <span className="text-muted-foreground">— Active & compliant</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/50">
+                  ROUTED
+                </span>
+                <span className="text-muted-foreground">— Routed to provider</span>
               </div>
             </div>
           </Card>
