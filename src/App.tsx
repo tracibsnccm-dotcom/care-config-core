@@ -14,6 +14,7 @@ import AttorneyLanding from "./pages/AttorneyLanding";
 import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientCheckins from "./pages/ClientCheckins";
+import ClientJournal from "./pages/ClientJournal";
 import AdminPanel from "./pages/AdminPanel";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/providers" element={<Providers />} />
             <Route path="/router" element={<ProviderRouter />} />
             <Route path="/checkins" element={<ClientCheckins />} />
+            <Route path="/journal" element={<ClientJournal />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/reports" element={<Reports />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

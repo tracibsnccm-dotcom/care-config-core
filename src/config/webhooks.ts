@@ -6,5 +6,5 @@ export const WEBHOOK_CONFIG = {
   PROVIDER_CONFIRMATION_URL: "https://script.google.com/macros/s/AKfycbwgEBv05s0ELS5Cyz8-p3IFCe3cSUJcFcNIuOgCXctY_4dyHPvrvTIQa6X_jmRo2ekbAA/exec",
   
   // Security token - matches SHARED_SECRET in Apps Script CONFIG
-  SECURITY_TOKEN: "RCMS2025_secure_key_001",
+  SECURITY_TOKEN: "RCMS_25$k3y_7fQ4w9Zp",
 } as const;
