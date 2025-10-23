@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/store";
-import { Clock, AlertCircle, CheckCircle, User, ShieldAlert } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/accessControl";
 import { ConsentBlockedBanner } from "./ConsentBlockedBanner";
@@ -34,17 +34,44 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
 
   return (
     <Card
-      className="p-5 hover:shadow-lg transition-all cursor-pointer border-border"
+      className={cn(
+        "p-5 hover:shadow-lg transition-all cursor-pointer border-border relative",
+        blockStatus.blocked && "border-destructive/50 bg-destructive/5"
+      )}
       onClick={onClick}
     >
+      {/* Red Circle with Line Through - No Access Indicator */}
+      {blockStatus.blocked && (
+        <div className="absolute top-4 right-4">
+          <div className="relative">
+            <Ban className="w-12 h-12 text-destructive" strokeWidth={2.5} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-[10px] font-bold text-destructive leading-tight text-center">
+                NO<br/>ACCESS
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Consent Blocked Banner */}
       {blockStatus.blocked && blockStatus.reason && (
         <ConsentBlockedBanner reason={blockStatus.reason} />
       )}
       
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-4 pr-14">
         <div>
-          <h3 className="font-semibold text-lg text-foreground">{caseData.id}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className={cn(
+              "font-semibold text-lg",
+              blockStatus.blocked ? "text-destructive line-through" : "text-foreground"
+            )}>
+              {caseData.id}
+            </h3>
+            {blockStatus.blocked && (
+              <Ban className="w-5 h-5 text-destructive flex-shrink-0" />
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Client: {allowIdentity ? (
               <span className="select-none relative inline-block">
@@ -67,28 +94,49 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-sm">
           <span className="text-muted-foreground w-32">Incident Type:</span>
-          <span className="font-medium text-foreground">
+          <span className={cn(
+            "font-medium",
+            blockStatus.blocked ? "text-muted-foreground/50" : "text-foreground"
+          )}>
             {allowClinical ? caseData.intake.incidentType : "Hidden"}
           </span>
         </div>
         <div className="flex items-center text-sm">
           <span className="text-muted-foreground w-32">Incident Date:</span>
-          <span className="font-medium text-foreground">
+          <span className={cn(
+            "font-medium",
+            blockStatus.blocked ? "text-muted-foreground/50" : "text-foreground"
+          )}>
             {allowClinical ? fmtDate(caseData.intake.incidentDate) : "Hidden"}
           </span>
         </div>
         <div className="flex items-center text-sm">
           <span className="text-muted-foreground w-32">Severity:</span>
-          <span className="font-medium text-foreground">
+          <span className={cn(
+            "font-medium",
+            blockStatus.blocked ? "text-muted-foreground/50" : "text-foreground"
+          )}>
             {allowClinical ? `${caseData.intake.severitySelfScore}/10` : "Hidden"}
           </span>
         </div>
         <div className="flex items-center text-sm">
           <span className="text-muted-foreground w-32">Consent:</span>
-          <span className="font-medium text-foreground">
-            {caseData.consent.signed ? "✓ Signed" : "Pending"}
+          <span className={cn(
+            "font-medium",
+            caseData.consent.signed ? "text-green-600" : "text-destructive"
+          )}>
+            {caseData.consent.signed ? "✓ Signed" : "✗ Not Signed"}
           </span>
         </div>
+        {blockStatus.blocked && (
+          <div className="flex items-center text-sm">
+            <span className="text-muted-foreground w-32">Attorney Access:</span>
+            <span className="font-medium text-destructive flex items-center gap-1">
+              <Ban className="w-3 h-3" />
+              Blocked
+            </span>
+          </div>
+        )}
       </div>
 
       {allowClinical && caseData.flags.length > 0 && (

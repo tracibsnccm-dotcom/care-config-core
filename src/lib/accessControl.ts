@@ -132,16 +132,20 @@ export function exportAllowed(
 }
 
 /**
- * Checks if case is blocked for attorney due to consent issues
+ * Checks if case is blocked for attorney or staff due to consent issues
  */
 export function isBlockedForAttorney(
   role: Role,
   theCase: Case
 ): { blocked: boolean; reason?: string } {
-  if (role !== ROLES.ATTORNEY) return { blocked: false };
+  // Only check for attorney and staff roles
+  if (role !== ROLES.ATTORNEY && role !== ROLES.STAFF) {
+    return { blocked: false };
+  }
   
   const signed = !!theCase?.consent?.signed;
   const shareWithAttorney = !!theCase?.consent?.scope?.shareWithAttorney;
+  const shareWithProviders = !!theCase?.consent?.scope?.shareWithProviders;
   
   if (!signed) {
     return { 
@@ -150,10 +154,17 @@ export function isBlockedForAttorney(
     };
   }
   
-  if (!shareWithAttorney) {
+  if (role === ROLES.ATTORNEY && !shareWithAttorney) {
     return { 
       blocked: true, 
       reason: "Consent signed but does not authorize sharing with attorneys" 
+    };
+  }
+  
+  if (role === ROLES.STAFF && !shareWithProviders) {
+    return {
+      blocked: true,
+      reason: "Consent signed but does not authorize provider/staff access"
     };
   }
   
