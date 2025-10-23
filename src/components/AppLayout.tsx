@@ -11,6 +11,8 @@ import {
   Activity,
   UserCircle,
   ClipboardEdit,
+  Route as RouteIcon,
+  HeartPulse,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -32,7 +34,8 @@ const navigation = [
   { name: "Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Providers", href: "/providers", icon: Stethoscope, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  { name: "Clients", href: "/clients", icon: Users, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Router", href: "/router", icon: RouteIcon, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Check-ins", href: "/checkins", icon: HeartPulse, roles: [ROLES.CLIENT, ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];

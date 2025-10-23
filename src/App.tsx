@@ -11,6 +11,8 @@ import CaseDetail from "./pages/CaseDetail";
 import Providers from "./pages/Providers";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import IntakeWizard from "./pages/IntakeWizard";
+import ProviderRouter from "./pages/ProviderRouter";
+import ClientCheckins from "./pages/ClientCheckins";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/cases" element={<Cases />} />
             <Route path="/cases/:caseId" element={<CaseDetail />} />
             <Route path="/providers" element={<Providers />} />
+            <Route path="/router" element={<ProviderRouter />} />
+            <Route path="/checkins" element={<ClientCheckins />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -88,7 +88,17 @@ export default function AttorneyLanding() {
               variant="outline"
             >
               <Stethoscope className="w-4 h-4 mr-2" />
-              Manage Providers
+              View Providers
+            </Button>
+            <Button
+              onClick={() => navigate("/router")}
+              disabled={!routerEnabled}
+              aria-disabled={!routerEnabled}
+              title={!routerEnabled ? "Provider router not included in this tier" : ""}
+              variant="outline"
+            >
+              <Stethoscope className="w-4 h-4 mr-2" />
+              Route Cases
             </Button>
             <Button onClick={() => navigate("/cases")} variant="outline">
               <FolderOpen className="w-4 h-4 mr-2" />
