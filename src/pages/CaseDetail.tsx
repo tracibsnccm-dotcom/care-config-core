@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { canSeeSensitive } from "@/lib/accessControl";
 import { exportCSV, exportPDFStub } from "@/lib/export";
+import { ProviderConfirmationButton } from "@/components/ProviderConfirmationButton";
 import { 
   ArrowLeft, 
   User, 
@@ -18,7 +19,8 @@ import {
   Download,
   FileDown,
   ShieldAlert,
-  XCircle
+  XCircle,
+  Stethoscope
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,7 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function CaseDetail() {
   const { caseId } = useParams();
   const navigate = useNavigate();
-  const { cases, role, exportAllowed, log, revokeConsent } = useApp();
+  const { cases, role, exportAllowed, log, revokeConsent, providers } = useApp();
   const caseData = cases.find((c) => c.id === caseId);
 
   if (!caseData) {
@@ -41,6 +43,11 @@ export default function CaseDetail() {
 
   const canView = canSeeSensitive(caseData, role);
   const canExport = exportAllowed && caseData.status !== "HOLD_SENSITIVE";
+  
+  // Find assigned provider if exists
+  const assignedProvider = caseData.assignedProviderId 
+    ? providers.find(p => p.id === caseData.assignedProviderId)
+    : undefined;
 
   const handleExportCSV = () => {
     exportCSV(caseData);
@@ -274,6 +281,43 @@ export default function CaseDetail() {
                       </Badge>
                     </div>
                   ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Assigned Provider */}
+            {assignedProvider && (
+              <Card className="p-6 border-border lg:col-span-3">
+                <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Stethoscope className="w-5 h-5 text-primary" />
+                  Assigned Provider
+                </h2>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Provider Name</p>
+                      <p className="font-medium text-foreground text-lg">{assignedProvider.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Specialty</p>
+                      <Badge variant="outline">{assignedProvider.specialty}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Location</p>
+                      <p className="font-medium text-foreground">
+                        {assignedProvider.city}, {assignedProvider.state}
+                        {assignedProvider.distanceMiles && ` (${assignedProvider.distanceMiles} mi)`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <ProviderConfirmationButton
+                      caseData={caseData}
+                      provider={assignedProvider}
+                      confirmationType="appointment_confirmed"
+                      onSuccess={() => log("PROVIDER_CONFIRMED", caseData.id)}
+                    />
+                  </div>
                 </div>
               </Card>
             )}
