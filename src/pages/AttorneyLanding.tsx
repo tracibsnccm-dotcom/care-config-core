@@ -6,9 +6,64 @@ import { KPI } from "@/components/KPI";
 import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { RCMS_CONFIG } from "@/config/rcms";
-import { Case } from "@/config/rcms";
-import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3 } from "lucide-react";
+import { Case, CaseStatus } from "@/config/rcms";
+import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
+
+// Status color coding helper
+function getStatusColor(status: CaseStatus): {
+  bg: string;
+  text: string;
+  border: string;
+  icon?: React.ReactNode;
+} {
+  switch (status) {
+    case "HOLD_SENSITIVE":
+      return {
+        bg: "bg-destructive/10",
+        text: "text-destructive",
+        border: "border-destructive/50",
+        icon: <Shield className="w-3 h-3" />,
+      };
+    case "AWAITING_CONSENT":
+      return {
+        bg: "bg-orange-500/10",
+        text: "text-orange-500",
+        border: "border-orange-500/50",
+        icon: <AlertTriangle className="w-3 h-3" />,
+      };
+    case "IN_PROGRESS":
+      return {
+        bg: "bg-blue-500/10",
+        text: "text-blue-500",
+        border: "border-blue-500/50",
+      };
+    case "ROUTED":
+      return {
+        bg: "bg-purple-500/10",
+        text: "text-purple-500",
+        border: "border-purple-500/50",
+      };
+    case "NEW":
+      return {
+        bg: "bg-yellow-500/10",
+        text: "text-yellow-500",
+        border: "border-yellow-500/50",
+      };
+    case "CLOSED":
+      return {
+        bg: "bg-muted",
+        text: "text-muted-foreground",
+        border: "border-border",
+      };
+    default:
+      return {
+        bg: "bg-muted",
+        text: "text-muted-foreground",
+        border: "border-border",
+      };
+  }
+}
 
 export default function AttorneyLanding() {
   const navigate = useNavigate();
@@ -317,20 +372,25 @@ function CaseListItem({
     ? differenceInDays(new Date(), new Date(lastCheckin.ts))
     : differenceInDays(new Date(), new Date(c.createdAt));
 
+  const statusColors = getStatusColor(c.status);
+
   return (
     <div
       className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
         urgent
           ? "border-destructive/50 bg-destructive/10 hover:bg-destructive/20"
-          : "border-border hover:bg-muted/50"
+          : `${statusColors.border} ${statusColors.bg} hover:opacity-80`
       }`}
       onClick={() => navigate(`/case/${c.id}`)}
     >
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{c.client.rcmsId}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            {c.status}
+          <span
+            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}
+          >
+            {statusColors.icon}
+            {c.status.replace(/_/g, " ")}
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">

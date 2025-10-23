@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
-import { Case } from "@/config/rcms";
+import { Case, CaseStatus } from "@/config/rcms";
 import { fmtDate } from "@/lib/store";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,63 @@ import {
   Download,
   Calendar,
   TrendingUp,
+  Shield,
 } from "lucide-react";
+
+// Status color coding helper
+function getStatusColor(status: CaseStatus): {
+  bg: string;
+  text: string;
+  border: string;
+  icon?: React.ReactNode;
+} {
+  switch (status) {
+    case "HOLD_SENSITIVE":
+      return {
+        bg: "bg-destructive/10",
+        text: "text-destructive",
+        border: "border-destructive/50",
+        icon: <Shield className="w-3 h-3" />,
+      };
+    case "AWAITING_CONSENT":
+      return {
+        bg: "bg-orange-500/10",
+        text: "text-orange-500",
+        border: "border-orange-500/50",
+        icon: <AlertTriangle className="w-3 h-3" />,
+      };
+    case "IN_PROGRESS":
+      return {
+        bg: "bg-blue-500/10",
+        text: "text-blue-500",
+        border: "border-blue-500/50",
+      };
+    case "ROUTED":
+      return {
+        bg: "bg-purple-500/10",
+        text: "text-purple-500",
+        border: "border-purple-500/50",
+      };
+    case "NEW":
+      return {
+        bg: "bg-yellow-500/10",
+        text: "text-yellow-500",
+        border: "border-yellow-500/50",
+      };
+    case "CLOSED":
+      return {
+        bg: "bg-muted",
+        text: "text-muted-foreground",
+        border: "border-border",
+      };
+    default:
+      return {
+        bg: "bg-muted",
+        text: "text-muted-foreground",
+        border: "border-border",
+      };
+  }
+}
 
 export default function Reports() {
   const navigate = useNavigate();
@@ -170,6 +226,7 @@ export default function Reports() {
                 <tbody>
                   {atRiskCases.map((c) => {
                     const level = getWarningLevel(c.hoursRemaining);
+                    const statusColors = getStatusColor(c.status);
                     return (
                       <tr key={c.id} className="border-b border-border/50">
                         <td className="py-3 font-medium text-foreground">{c.client.rcmsId}</td>
@@ -231,28 +288,34 @@ export default function Reports() {
               <p className="text-sm text-muted-foreground">No new clients in the last 30 days</p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {newClients.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/cases/${c.id}`)}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{c.client.rcmsId}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {c.status}
-                        </span>
+                {newClients.map((c) => {
+                  const statusColors = getStatusColor(c.status);
+                  return (
+                    <div
+                      key={c.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${statusColors.border} ${statusColors.bg} hover:opacity-80 cursor-pointer transition-colors`}
+                      onClick={() => navigate(`/cases/${c.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{c.client.rcmsId}</span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}
+                          >
+                            {statusColors.icon}
+                            {c.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {c.intake.incidentType} • {c.intake.injuries.slice(0, 2).join(", ")}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {c.intake.incidentType} • {c.intake.injuries.slice(0, 2).join(", ")}
-                      </p>
+                      <div className="text-right text-sm text-muted-foreground">
+                        {fmtDate(c.createdAt)}
+                      </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      {fmtDate(c.createdAt)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -275,17 +338,21 @@ export default function Reports() {
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {unprocessedCases.map((c) => {
                   const daysOld = differenceInDays(now, new Date(c.createdAt));
+                  const statusColors = getStatusColor(c.status);
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-orange-500/50 bg-orange-500/10 hover:bg-orange-500/20 cursor-pointer transition-colors"
+                      className={`flex items-center justify-between p-3 rounded-lg border ${statusColors.border} ${statusColors.bg} hover:opacity-80 cursor-pointer transition-colors`}
                       onClick={() => navigate(`/cases/${c.id}`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{c.client.rcmsId}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-500">
-                            {c.status}
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}
+                          >
+                            {statusColors.icon}
+                            {c.status.replace(/_/g, " ")}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -304,18 +371,48 @@ export default function Reports() {
           </Card>
         </div>
 
-        {/* Info Box */}
-        <Card className="mt-6 p-4 bg-muted border-border">
-          <h3 className="text-sm font-semibold text-foreground mb-2">
-            Deletion Policy
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Cases without attorney intervention are automatically deleted after{" "}
-            <b className="text-foreground">144 hours (6 days)</b> and tagged as "attorney
-            refusal/denial". Automated warnings are sent at{" "}
-            <b className="text-foreground">48h, 24h, and 8h</b> remaining.
-          </p>
-        </Card>
+        {/* Info Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <Card className="p-4 bg-muted border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
+              Deletion Policy
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Cases without attorney intervention are automatically deleted after{" "}
+              <b className="text-foreground">144 hours (6 days)</b> and tagged as "attorney
+              refusal/denial". Automated warnings are sent at{" "}
+              <b className="text-foreground">48h, 24h, and 8h</b> remaining.
+            </p>
+          </Card>
+
+          <Card className="p-4 bg-muted border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
+              Status Color Guide
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/50">
+                  <Shield className="w-3 h-3" />
+                  HOLD SENSITIVE
+                </span>
+                <span className="text-muted-foreground">— Highest priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-500 border border-orange-500/50">
+                  <AlertTriangle className="w-3 h-3" />
+                  AWAITING CONSENT
+                </span>
+                <span className="text-muted-foreground">— Needs action</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/50">
+                  IN PROGRESS
+                </span>
+                <span className="text-muted-foreground">— Active workflow</span>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </AppLayout>
   );
