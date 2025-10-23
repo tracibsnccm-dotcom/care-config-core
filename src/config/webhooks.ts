@@ -1,12 +1,10 @@
 // Webhook Configuration for Provider Confirmations
-// Replace with your Google Apps Script Web App URL
+// Connected to Google Apps Script for RCMS Journal tracking
 
 export const WEBHOOK_CONFIG = {
   // Google Apps Script Web App URL
-  // Get this from: Extensions > Apps Script > Deploy > New deployment > Web app
-  PROVIDER_CONFIRMATION_URL: "https://script.google.com/macros/s/PASTE_YOUR_WEB_APP_URL/exec",
+  PROVIDER_CONFIRMATION_URL: "https://script.google.com/macros/s/AKfycbwgEBv05s0ELS5Cyz8-p3IFCe3cSUJcFcNIuOgCXctY_4dyHPvrvTIQa6X_jmRo2ekbAA/exec",
   
-  // Security token - must match the SHARED_SECRET in your Apps Script CONFIG
-  // Generate a long random string for production
-  SECURITY_TOKEN: "CHANGE_ME_TO_A_LONG_RANDOM_STRING",
+  // Security token - matches SHARED_SECRET in Apps Script CONFIG
+  SECURITY_TOKEN: "RCMS2025_secure_key_001",
 } as const;
