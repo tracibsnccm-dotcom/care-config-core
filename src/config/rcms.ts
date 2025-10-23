@@ -69,6 +69,8 @@ export interface Client {
   dobMasked: string;
   gender?: Gender;
   state?: string;
+  fullName?: string;            // stored but RBAC-gated in UI
+  displayNameMasked?: string;   // masked fallback (e.g., "A*** B***")
 }
 
 export interface Intake {
@@ -123,10 +125,12 @@ export interface Checkin {
 
 export interface Case {
   id: string;
+  onsetOfService?: string;
   client: Client;
   intake: Intake;
   fourPs?: FourPs;
   sdoh?: SDOH;
+  demographics?: Demographics;
   consent: Consent;
   flags: string[];
   assignedProviderId?: string;
@@ -135,6 +139,16 @@ export interface Case {
   checkins?: Checkin[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Demographics {
+  zip3?: string;
+  ageBand?: string;
+  gender?: string;
+  raceEthnicity?: string[];
+  education?: string;
+  incomeBand?: string;
+  consentForDeidentifiedUse?: boolean;
 }
 
 export interface AuditEntry {

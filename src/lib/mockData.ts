@@ -3,12 +3,15 @@ import { Case, Provider, ROLES } from "@/config/rcms";
 export const mockCases: Case[] = [
   {
     id: "CASE-2024-001",
+    onsetOfService: "2024-01-15",
     client: {
       rcmsId: "RC-89234",
       attyRef: "ATT-2024-045",
       dobMasked: "01/XX/1985",
       gender: "female",
       state: "CA",
+      fullName: "Alice Barnes",
+      displayNameMasked: "A*** B***",
     },
     intake: {
       incidentType: "MVA",
@@ -28,6 +31,15 @@ export const mockCases: Case[] = [
       food: false,
       transport: true,
       insuranceGap: true,
+    },
+    demographics: {
+      zip3: "900",
+      ageBand: "35-44",
+      gender: "female",
+      raceEthnicity: ["White"],
+      education: "bachelor",
+      incomeBand: "75-99k",
+      consentForDeidentifiedUse: true,
     },
     consent: {
       signed: true,
@@ -59,12 +71,15 @@ export const mockCases: Case[] = [
   },
   {
     id: "CASE-2024-002",
+    onsetOfService: "2024-02-01",
     client: {
       rcmsId: "RC-89235",
       attyRef: "ATT-2024-046",
       dobMasked: "05/XX/1992",
       gender: "male",
       state: "TX",
+      fullName: "Sam Rivera",
+      displayNameMasked: "S*** R***",
     },
     intake: {
       incidentType: "WorkComp",
@@ -72,6 +87,15 @@ export const mockCases: Case[] = [
       initialTreatment: "UrgentCare",
       injuries: ["Rotator cuff tear", "Elbow tendonitis"],
       severitySelfScore: 8,
+    },
+    demographics: {
+      zip3: "770",
+      ageBand: "25-34",
+      gender: "male",
+      raceEthnicity: ["Hispanic or Latino"],
+      education: "some_college",
+      incomeBand: "50-74k",
+      consentForDeidentifiedUse: true,
     },
     consent: {
       signed: false,
@@ -87,12 +111,15 @@ export const mockCases: Case[] = [
   },
   {
     id: "CASE-2024-003",
+    onsetOfService: "2024-01-10",
     client: {
       rcmsId: "RC-89236",
       attyRef: "ATT-2024-047",
       dobMasked: "11/XX/1978",
       gender: "nonbinary",
       state: "NY",
+      fullName: "Jordan Lee",
+      displayNameMasked: "J*** L***",
     },
     intake: {
       incidentType: "Other",
@@ -112,6 +139,15 @@ export const mockCases: Case[] = [
       food: true,
       transport: false,
       insuranceGap: false,
+    },
+    demographics: {
+      zip3: "100",
+      ageBand: "45-54",
+      gender: "prefer_not_to_say",
+      raceEthnicity: ["Prefer not to say"],
+      education: "prefer_not_to_say",
+      incomeBand: "prefer_not_to_say",
+      consentForDeidentifiedUse: false,
     },
     consent: {
       signed: true,
