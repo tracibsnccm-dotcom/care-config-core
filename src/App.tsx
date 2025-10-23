@@ -15,6 +15,7 @@ import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientCheckins from "./pages/ClientCheckins";
 import ClientJournal from "./pages/ClientJournal";
+import ClientJournalDashboard from "./pages/ClientJournalDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/router" element={<ProviderRouter />} />
             <Route path="/checkins" element={<ClientCheckins />} />
             <Route path="/journal" element={<ClientJournal />} />
+            <Route path="/journal-analytics" element={<ClientJournalDashboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/reports" element={<Reports />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
