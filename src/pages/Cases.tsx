@@ -4,21 +4,21 @@ import { AppLayout } from "@/components/AppLayout";
 import { CaseCard } from "@/components/CaseCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockCases } from "@/lib/mockData";
-import { ROLES } from "@/config/rcms";
+import { useApp } from "@/context/AppContext";
 import { Plus, Search } from "lucide-react";
 
 export default function Cases() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { cases } = useApp();
 
-  const filteredCases = mockCases.filter((c) =>
+  const filteredCases = cases.filter((c) =>
     c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.client.rcmsId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <AppLayout currentRole={ROLES.ATTORNEY}>
+    <AppLayout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>

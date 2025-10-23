@@ -3,14 +3,14 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProviderCard } from "@/components/ProviderCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockProviders } from "@/lib/mockData";
-import { ROLES } from "@/config/rcms";
+import { useApp } from "@/context/AppContext";
 import { Plus, Search } from "lucide-react";
 
 export default function Providers() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { providers } = useApp();
 
-  const filteredProviders = mockProviders.filter(
+  const filteredProviders = providers.filter(
     (p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -18,7 +18,7 @@ export default function Providers() {
   );
 
   return (
-    <AppLayout currentRole={ROLES.ATTORNEY}>
+    <AppLayout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>

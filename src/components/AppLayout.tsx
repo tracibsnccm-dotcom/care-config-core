@@ -9,12 +9,20 @@ import {
   Settings,
   LogOut,
   Activity,
+  UserCircle,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
+import { useApp } from "@/context/AppContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AppLayoutProps {
   children: ReactNode;
-  currentRole?: Role;
 }
 
 const navigation = [
@@ -26,12 +34,13 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];
 
-export function AppLayout({ children, currentRole = ROLES.ATTORNEY }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const { role, setRole, currentTier, setCurrentTier } = useApp();
 
   const canAccessRoute = (routeRoles: string | Role[]) => {
     if (routeRoles === "all") return true;
-    return (routeRoles as Role[]).includes(currentRole);
+    return (routeRoles as Role[]).includes(role);
   };
 
   const filteredNav = navigation.filter((item) => canAccessRoute(item.roles));
@@ -69,11 +78,33 @@ export function AppLayout({ children, currentRole = ROLES.ATTORNEY }: AppLayoutP
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-xs font-medium text-sidebar-foreground/60">Current Role</p>
-            <p className="text-sm font-semibold text-sidebar-foreground mt-0.5">{currentRole}</p>
+        <div className="p-4 border-t border-sidebar-border space-y-3">
+          {/* Role Switcher */}
+          <div>
+            <label className="text-xs font-medium text-sidebar-foreground/60 mb-2 block">
+              Current Role
+            </label>
+            <Select value={role} onValueChange={(value) => setRole(value as Role)}>
+              <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
+                <UserCircle className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(ROLES).map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Tier Display */}
+          <div className="px-3 py-2 bg-sidebar-accent/50 rounded-lg">
+            <p className="text-xs font-medium text-sidebar-foreground/60">Tier</p>
+            <p className="text-sm font-semibold text-sidebar-foreground">{currentTier}</p>
+          </div>
+
           <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-all w-full">
             <LogOut className="w-5 h-5" />
             Sign Out

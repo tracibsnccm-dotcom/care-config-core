@@ -1,14 +1,15 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
-import { mockCases } from "@/lib/mockData";
-import { ROLES } from "@/config/rcms";
+import { useApp } from "@/context/AppContext";
 import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock } from "lucide-react";
 
 export default function Dashboard() {
+  const { cases } = useApp();
+
   const stats = [
     {
       name: "Total Cases",
-      value: mockCases.length.toString(),
+      value: cases.length.toString(),
       change: "+12%",
       icon: FileText,
       color: "text-primary",
@@ -16,7 +17,7 @@ export default function Dashboard() {
     },
     {
       name: "Active Cases",
-      value: mockCases.filter((c) => c.status === "IN_PROGRESS").length.toString(),
+      value: cases.filter((c) => c.status === "IN_PROGRESS").length.toString(),
       change: "+8%",
       icon: TrendingUp,
       color: "text-status-active",
@@ -24,7 +25,7 @@ export default function Dashboard() {
     },
     {
       name: "Awaiting Consent",
-      value: mockCases.filter((c) => c.status === "AWAITING_CONSENT").length.toString(),
+      value: cases.filter((c) => c.status === "AWAITING_CONSENT").length.toString(),
       change: "-2%",
       icon: AlertCircle,
       color: "text-warning",
@@ -32,7 +33,7 @@ export default function Dashboard() {
     },
     {
       name: "Sensitive Cases",
-      value: mockCases.filter((c) => c.status === "HOLD_SENSITIVE").length.toString(),
+      value: cases.filter((c) => c.status === "HOLD_SENSITIVE").length.toString(),
       change: "0%",
       icon: Clock,
       color: "text-destructive",
@@ -65,7 +66,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <AppLayout currentRole={ROLES.ATTORNEY}>
+    <AppLayout>
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
