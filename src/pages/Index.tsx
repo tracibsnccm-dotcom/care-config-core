@@ -14,7 +14,7 @@ const Index = () => {
             Reconcile <span className="text-accent">C.A.R.E.</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            Comprehensive case management for legal and medical coordination
+            Comprehensive care management for legal and medical coordination
           </p>
         </div>
 
