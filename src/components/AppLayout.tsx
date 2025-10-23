@@ -10,6 +10,7 @@ import {
   LogOut,
   Activity,
   UserCircle,
+  ClipboardEdit,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -27,6 +28,8 @@ interface AppLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: "all" },
+  { name: "Attorney", href: "/attorney", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Providers", href: "/providers", icon: Stethoscope, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Clients", href: "/clients", icon: Users, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },

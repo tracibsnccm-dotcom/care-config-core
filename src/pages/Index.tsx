@@ -53,10 +53,18 @@ const Index = () => {
         <div className="text-center">
           <Button
             size="lg"
-            className="bg-accent hover:bg-accent-light text-accent-foreground px-8 py-6 text-lg"
-            onClick={() => navigate("/dashboard")}
+            className="bg-accent hover:bg-accent-light text-accent-foreground px-8 py-6 text-lg mr-4"
+            onClick={() => navigate("/attorney")}
           >
-            Enter Dashboard
+            Attorney Portal
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="px-8 py-6 text-lg"
+            onClick={() => navigate("/intake")}
+          >
+            Client Intake
           </Button>
           <p className="text-white/60 text-sm mt-4">Demo Mode • No Authentication Required</p>
         </div>
