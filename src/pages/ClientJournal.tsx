@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { sendProviderConfirmation } from "@/lib/webhooks";
 import { WEBHOOK_CONFIG } from "@/config/webhooks";
-import { Pill, Activity, Brain, AlertCircle, Save, Trash2 } from "lucide-react";
+import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText } from "lucide-react";
 
 interface MedRow {
   name: string;
@@ -31,7 +32,21 @@ interface TreatmentRow {
   notes: string;
 }
 
-type TabType = "meds" | "symptoms" | "stress" | "review";
+type TabType = "meds" | "symptoms" | "stress" | "sdoh" | "care" | "review";
+
+const SDOH_OPTIONS = [
+  "Transportation",
+  "Money/Cost",
+  "Childcare/Eldercare",
+  "Housing Instability",
+  "Food Insecurity",
+  "Work Schedule/Employer",
+  "Language/Literacy",
+  "Technology/Access",
+  "Safety/Domestic Violence",
+  "Mental Health Access",
+  "Insurance/Benefits",
+];
 
 export default function ClientJournal() {
   const { toast } = useToast();
@@ -58,6 +73,13 @@ export default function ClientJournal() {
   // Stress
   const [stressTotal, setStressTotal] = useState("");
   const [stressNotes, setStressNotes] = useState("");
+
+  // SDOH
+  const [sdohFlags, setSdohFlags] = useState<string[]>([]);
+  const [sdohOther, setSdohOther] = useState("");
+
+  // Care Plan
+  const [carePlan, setCarePlan] = useState("");
 
   const getCaseId = () => {
     if ((window as any).RCMS_CASE_ID) return (window as any).RCMS_CASE_ID;
@@ -86,6 +108,9 @@ export default function ClientJournal() {
           symptoms: symptomNotes || null,
           stress: stressNotes || null,
         },
+        sdoh_flags: sdohFlags,
+        sdoh_other: sdohOther || null,
+        care_plan: carePlan || null,
       };
 
       const response = await fetch(WEBHOOK_CONFIG.PROVIDER_CONFIRMATION_URL, {
@@ -128,6 +153,9 @@ export default function ClientJournal() {
     setSymptomNotes("");
     setStressTotal("");
     setStressNotes("");
+    setSdohFlags([]);
+    setSdohOther("");
+    setCarePlan("");
     toast({ title: "Cleared", description: "All entries have been reset." });
   };
 
@@ -135,6 +163,8 @@ export default function ClientJournal() {
     { id: "meds" as TabType, label: "Medications", icon: Pill },
     { id: "symptoms" as TabType, label: "Pain • Depression • Anxiety", icon: Activity },
     { id: "stress" as TabType, label: "Stress Checklist", icon: Brain },
+    { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home },
+    { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText },
     { id: "review" as TabType, label: "Review & Save", icon: Save },
   ];
 
@@ -147,7 +177,7 @@ export default function ClientJournal() {
               Reconcile <span className="text-accent font-extrabold">C.A.R.E.</span> — Client Journal & Medications
             </CardTitle>
             <CardDescription className="text-primary-foreground/90">
-              Enter medications, symptoms, and stress. Your entries are saved securely to your case.
+              Enter medications, symptoms, SDOH, and a preliminary care plan. Entries are saved securely to your case.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -425,6 +455,80 @@ export default function ClientJournal() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* SDOH Tab */}
+        {activeTab === "sdoh" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="w-5 h-5" />
+                Social Determinants of Health (SDOH) Survey
+              </CardTitle>
+              <CardDescription>
+                Select anything that may affect appointments, recovery, or daily life.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {SDOH_OPTIONS.map((option) => (
+                  <div key={option} className="flex items-center space-x-2 p-2 border rounded-lg">
+                    <Checkbox
+                      id={`sdoh-${option}`}
+                      checked={sdohFlags.includes(option)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSdohFlags([...sdohFlags, option]);
+                        } else {
+                          setSdohFlags(sdohFlags.filter((f) => f !== option));
+                        }
+                      }}
+                    />
+                    <Label
+                      htmlFor={`sdoh-${option}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sdohOther">Other / Details (optional)</Label>
+                <Textarea
+                  id="sdohOther"
+                  placeholder="Add context or barriers not listed…"
+                  value={sdohOther}
+                  onChange={(e) => setSdohOther(e.target.value)}
+                  rows={4}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Care Plan Tab */}
+        {activeTab === "care" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Preliminary Care Plan (ODG / MCG)
+              </CardTitle>
+              <CardDescription>
+                Outline the expected pathway based on client-reported symptoms and guideline references (e.g., PT duration, imaging triggers, referral criteria). Mark as preliminary until records are reviewed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="carePlan"
+                placeholder="Example: 4–6 weeks of conservative care (PT, NSAIDs). If no improvement, consider MRI and ortho referral. Estimated TTD 2–4 weeks pending job demands…"
+                value={carePlan}
+                onChange={(e) => setCarePlan(e.target.value)}
+                rows={8}
+              />
             </CardContent>
           </Card>
         )}
