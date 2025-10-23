@@ -98,7 +98,7 @@ export const mockCases: Case[] = [
       consentForDeidentifiedUse: true,
     },
     consent: {
-      signed: false,
+      signed: false, // NOT SIGNED - hard block for attorneys
       scope: {
         shareWithAttorney: false,
         shareWithProviders: false,
@@ -153,7 +153,7 @@ export const mockCases: Case[] = [
       signed: true,
       signedAt: "2024-01-12T11:00:00Z",
       scope: {
-        shareWithAttorney: true,
+        shareWithAttorney: false, // Signed but attorney sharing disabled
         shareWithProviders: true,
       },
       restrictedAccess: true,
