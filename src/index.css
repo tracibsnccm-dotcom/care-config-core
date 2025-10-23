@@ -145,3 +145,15 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Pulse animation for at-risk and critical cases */
+  @keyframes care-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .animate-care-pulse {
+    animation: care-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}

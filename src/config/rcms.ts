@@ -62,6 +62,18 @@ export type Gender = "female" | "male" | "nonbinary" | "prefer_not_to_say";
 export type IncidentType = "MVA" | "WorkComp" | "Other";
 export type InitialTreatment = "ED" | "UrgentCare" | "PCP" | "Chiro" | "None";
 export type CaseStatus = "NEW" | "AWAITING_CONSENT" | "ROUTED" | "IN_PROGRESS" | "HOLD_SENSITIVE" | "CLOSED";
+export type RiskLevel = "stable" | "at_risk" | "critical";
+export type SDOHFlag = 
+  | "Transportation"
+  | "Money/Cost"
+  | "Child/Elder Care"
+  | "Work Schedule"
+  | "Illness"
+  | "Housing Instability"
+  | "Language/Interpreter"
+  | "Technology/Access"
+  | "Safety/Violence"
+  | "Other";
 
 export interface Client {
   rcmsId: string;
@@ -133,6 +145,8 @@ export interface Case {
   demographics?: Demographics;
   consent: Consent;
   flags: string[];
+  sdohFlags?: SDOHFlag[];
+  riskLevel?: RiskLevel;
   assignedProviderId?: string;
   status: CaseStatus;
   designatedAttorneyId?: string;

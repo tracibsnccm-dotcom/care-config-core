@@ -2,9 +2,13 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
 import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
+import { mockNotifications } from "@/lib/mockData";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { cases } = useApp();
+  const [notifications, setNotifications] = useState(mockNotifications);
 
   const stats = [
     {
@@ -65,12 +69,22 @@ export default function Dashboard() {
     },
   ];
 
+  const handleMarkAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
   return (
     <AppLayout>
       <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back! Here's your overview.</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Welcome back! Here's your overview.</p>
+          </div>
+          <NotificationBell 
+            notifications={notifications} 
+            onMarkAllRead={handleMarkAllRead}
+          />
         </div>
 
         {/* Stats Grid */}

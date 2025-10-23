@@ -7,6 +7,8 @@ import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban } from "lucide-
 import { useApp } from "@/context/AppContext";
 import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/accessControl";
 import { ConsentBlockedBanner } from "./ConsentBlockedBanner";
+import { SDOHChip } from "./SDOHChip";
+import { RiskIndicator } from "./RiskIndicator";
 
 interface CaseCardProps {
   case: Case;
@@ -63,11 +65,15 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
         <div>
           <div className="flex items-center gap-2">
             <h3 className={cn(
-              "font-semibold text-lg",
-              blockStatus.blocked ? "text-destructive line-through" : "text-foreground"
+              "font-semibold text-lg transition-opacity",
+              blockStatus.blocked ? "text-destructive line-through" : "text-foreground",
+              caseData.riskLevel && caseData.riskLevel !== "stable" && !blockStatus.blocked && "animate-care-pulse"
             )}>
               {caseData.id}
             </h3>
+            {caseData.riskLevel && !blockStatus.blocked && (
+              <RiskIndicator level={caseData.riskLevel} size="md" />
+            )}
             {blockStatus.blocked && (
               <Ban className="w-5 h-5 text-destructive flex-shrink-0" />
             )}
@@ -138,6 +144,17 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
           </div>
         )}
       </div>
+
+      {allowClinical && caseData.sdohFlags && caseData.sdohFlags.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-muted-foreground mb-2 font-medium">SDOH Barriers:</div>
+          <div className="flex flex-wrap gap-2">
+            {caseData.sdohFlags.map((flag) => (
+              <SDOHChip key={flag} flag={flag} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {allowClinical && caseData.flags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
