@@ -65,7 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <h1 className="text-xl font-bold text-sidebar-foreground">
             Reconcile <span className="text-sidebar-primary">C.A.R.E.</span>
           </h1>
-          <p className="text-xs text-sidebar-foreground/60 mt-1">Case Management System</p>
+          <p className="text-xs text-sidebar-foreground/60 mt-1">Care Management System</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
