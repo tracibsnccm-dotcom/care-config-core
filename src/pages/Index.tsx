@@ -33,9 +33,9 @@ const Index = () => {
             <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
               <Activity className="w-6 h-6 text-accent" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">4 P's Assessment</h3>
+            <h3 className="text-xl font-semibold text-foreground mb-2">The 4Ps of Wellness Care Management Tool</h3>
             <p className="text-muted-foreground">
-              Track physical, psychological, psychosocial, and professional metrics
+              Tracks Physical, Psychological, Psychosocial and Professional dynamics that impacts overall health and wellness.
             </p>
           </Card>
 
