@@ -23,6 +23,8 @@ interface AppContextType {
   setSwapsUsed: React.Dispatch<React.SetStateAction<number>>;
   extraProviderBlocks: number;
   setExtraProviderBlocks: React.Dispatch<React.SetStateAction<number>>;
+  policyAck: boolean;
+  setPolicyAck: React.Dispatch<React.SetStateAction<boolean>>;
   
   // Computed values
   tierCaps: typeof RCMS_CONFIG.tiers[keyof typeof RCMS_CONFIG.tiers] | null;
@@ -75,6 +77,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [extraProviderBlocks, setExtraProviderBlocks] = useState<number>(
     store.get("extraProviderBlocks", 0)
   );
+  const [policyAck, setPolicyAck] = useState<boolean>(store.get("policyAck_user-001", false));
 
   // Persist on change
   useEffect(() => store.set("currentRole", role), [role]);
@@ -85,6 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => store.set("audit", audit), [audit]);
   useEffect(() => store.set("swapsUsed", swapsUsed), [swapsUsed]);
   useEffect(() => store.set("extraProviderBlocks", extraProviderBlocks), [extraProviderBlocks]);
+  useEffect(() => store.set("policyAck_user-001", policyAck), [policyAck]);
 
   // Check trial expiration and update tier status
   useEffect(() => {
@@ -167,6 +171,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSwapsUsed,
     extraProviderBlocks,
     setExtraProviderBlocks,
+    policyAck,
+    setPolicyAck,
     tierCaps,
     providerSlots,
     routerEnabled,

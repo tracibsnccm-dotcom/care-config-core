@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
-import { canSeeSensitive } from "@/lib/accessControl";
+import { canSeeSensitive, isBlockedForAttorney, getDisplayName, FEATURE, canAccess, exportAllowed as checkExportAllowed } from "@/lib/access";
 import { exportCSV, exportPDFStub } from "@/lib/export";
 import { ProviderConfirmationButton } from "@/components/ProviderConfirmationButton";
 import { 
@@ -28,7 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function CaseDetail() {
   const { caseId } = useParams();
   const navigate = useNavigate();
-  const { cases, role, exportAllowed, log, revokeConsent, providers } = useApp();
+  const { cases, role, log, revokeConsent, providers } = useApp();
   const caseData = cases.find((c) => c.id === caseId);
 
   if (!caseData) {
@@ -42,7 +42,11 @@ export default function CaseDetail() {
   }
 
   const canView = canSeeSensitive(caseData, role);
-  const canExport = exportAllowed && caseData.status !== "HOLD_SENSITIVE";
+  const canExport = checkExportAllowed(role, caseData);
+  const canViewIdentity = canAccess(role, caseData, FEATURE.VIEW_IDENTITY);
+  const canViewClinical = canAccess(role, caseData, FEATURE.VIEW_CLINICAL);
+  const { blocked, reason } = isBlockedForAttorney(role, caseData);
+  const displayName = getDisplayName(role, caseData);
   
   // Find assigned provider if exists
   const assignedProvider = caseData.assignedProviderId 
@@ -73,6 +77,16 @@ export default function CaseDetail() {
           Back to Cases
         </Button>
 
+        {/* Consent Blocked Banner for Attorneys */}
+        {blocked && (
+          <Alert variant="destructive" className="mb-6">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Access Blocked:</strong> {reason}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Sensitive Access Warning */}
         {!canView && (
           <Alert variant="destructive" className="mb-6">
@@ -96,7 +110,10 @@ export default function CaseDetail() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">{caseData.id}</h1>
-            <p className="text-muted-foreground mt-1">Client: {caseData.client.rcmsId}</p>
+            <p className="text-muted-foreground mt-1">
+              Client: {canViewIdentity ? displayName : caseData.client.rcmsId}
+              {!canViewIdentity && <span className="text-xs ml-2">(Identity restricted)</span>}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Badge className="text-sm px-3 py-1">

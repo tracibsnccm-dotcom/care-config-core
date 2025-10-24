@@ -8,10 +8,20 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { mockNotifications } from "@/lib/mockData";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
+import { PolicyModal } from "@/components/PolicyModal";
 
 export default function Dashboard() {
-  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialEndDate } = useApp();
+  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialEndDate, policyAck, setPolicyAck, log } = useApp();
   const [notifications, setNotifications] = useState(mockNotifications);
+
+  const handlePolicyAgree = () => {
+    setPolicyAck(true);
+    log("ACK_MINIMUM_DATA_POLICY");
+  };
+
+  const handleLearnMore = () => {
+    alert("We do not store full DOB, street address, or precise identifiers. Retrieve/manage those in the firm's system.");
+  };
 
   const stats = [
     {
@@ -82,6 +92,13 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
+      {!policyAck && (
+        <PolicyModal
+          open={!policyAck}
+          onAgree={handlePolicyAgree}
+          onLearnMore={handleLearnMore}
+        />
+      )}
       <div className="p-8">
         <div className="mb-8 flex items-start justify-between">
           <div>

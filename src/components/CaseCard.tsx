@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/store";
 import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/accessControl";
+import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/access";
 import { ConsentBlockedBanner } from "./ConsentBlockedBanner";
 import { SDOHChip } from "./SDOHChip";
 import { RiskIndicator } from "./RiskIndicator";

@@ -27,6 +27,7 @@ import {
 } from "@/config/rcms";
 import { AlertCircle, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { maskName } from "@/lib/access";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -80,9 +81,10 @@ export default function IntakeWizard() {
   };
 
   function submit() {
+    const masked = maskName(client.fullName || "");
     const newCase: Case = {
       id: "C-" + Math.random().toString(36).slice(2, 7).toUpperCase(),
-      client,
+      client: { ...client, displayNameMasked: masked },
       intake,
       fourPs,
       sdoh,
@@ -124,6 +126,15 @@ export default function IntakeWizard() {
               You must consent for us to share information with your attorney and providers.
             </p>
             
+            <div className="mb-6">
+              <LabeledInput
+                label="Client full name (stored, gated)"
+                value={client.fullName || ""}
+                onChange={(v) => setClient((c) => ({ ...c, fullName: v }))}
+                placeholder="e.g., Sue Smith"
+              />
+            </div>
+
             <div className="space-y-4 mb-6">
               <div className="flex items-center space-x-3">
                 <Checkbox
@@ -137,7 +148,7 @@ export default function IntakeWizard() {
                   }
                 />
                 <Label htmlFor="consent-attorney" className="text-sm font-medium cursor-pointer">
-                  Share with attorney
+                  Authorize sharing with attorney
                 </Label>
               </div>
 
@@ -153,7 +164,7 @@ export default function IntakeWizard() {
                   }
                 />
                 <Label htmlFor="consent-providers" className="text-sm font-medium cursor-pointer">
-                  Share with providers
+                  Authorize sharing with providers
                 </Label>
               </div>
             </div>

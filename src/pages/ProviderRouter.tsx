@@ -17,6 +17,7 @@ import { fmtDate } from "@/lib/store";
 import { AlertCircle, MapPin, MoreHorizontal } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { canAccess, FEATURE } from "@/lib/access";
 
 export default function ProviderRouter() {
   const {
@@ -29,6 +30,7 @@ export default function ProviderRouter() {
     swapsCap,
     nextReset,
     log,
+    role,
   } = useApp();
 
   const [specialtyFilter, setSpecialtyFilter] = useState("All Specialties");
@@ -47,6 +49,16 @@ export default function ProviderRouter() {
     );
 
   function routeCaseToProvider(caseId: string, providerId: string) {
+    const theCase = cases.find((c) => c.id === caseId);
+    if (!theCase) return;
+
+    // Check if routing is allowed based on consent
+    if (!canAccess(role, theCase, FEATURE.ROUTE_PROVIDER)) {
+      toast.error("Routing disabled — client consent must allow provider sharing.");
+      log("ACCESS_BLOCKED_ROUTE", caseId);
+      return;
+    }
+
     setCases((arr) =>
       arr.map((c) =>
         c.id === caseId
