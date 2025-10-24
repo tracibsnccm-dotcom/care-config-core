@@ -3,6 +3,7 @@ import { Case, Provider, AuditEntry, Role, ROLES, RCMS_CONFIG } from "@/config/r
 import { store, nextQuarterReset } from "@/lib/store";
 import { mockCases, mockProviders } from "@/lib/mockData";
 import { logAudit } from "@/lib/auditLog";
+import { isTrialActive, trialDaysRemaining, coerceTrialStartDate, TRIAL_DAYS } from "@/utils/trial";
 
 type TierName = "Trial" | "Basic" | "Solo" | "Mid-Sized" | "Enterprise" | "Expired (Trial)" | "Inactive";
 
@@ -11,7 +12,9 @@ interface AppContextType {
   setRole: (role: Role) => void;
   currentTier: TierName;
   setCurrentTier: (tier: TierName) => void;
-  trialEndDate: string | null;
+  trialStartDate: string | null;
+  setTrialStartDate: React.Dispatch<React.SetStateAction<string | null>>;
+  trialEndDate: string | null; // deprecated, kept for back-compat
   setTrialEndDate: React.Dispatch<React.SetStateAction<string | null>>;
   providers: Provider[];
   setProviders: React.Dispatch<React.SetStateAction<Provider[]>>;
@@ -69,6 +72,7 @@ function seedAudit(): AuditEntry[] {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>(store.get("currentRole", ROLES.ATTORNEY));
   const [currentTier, setCurrentTier] = useState<TierName>(store.get("currentTier", "Solo"));
+  const [trialStartDate, setTrialStartDate] = useState<string | null>(store.get("trialStartDate", null));
   const [trialEndDate, setTrialEndDate] = useState<string | null>(store.get("trialEndDate", null));
   const [providers, setProviders] = useState<Provider[]>(seedProviders);
   const [cases, setCases] = useState<Case[]>(seedCases);
@@ -82,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persist on change
   useEffect(() => store.set("currentRole", role), [role]);
   useEffect(() => store.set("currentTier", currentTier), [currentTier]);
+  useEffect(() => store.set("trialStartDate", trialStartDate), [trialStartDate]);
   useEffect(() => store.set("trialEndDate", trialEndDate), [trialEndDate]);
   useEffect(() => store.set("providers", providers), [providers]);
   useEffect(() => store.set("cases", cases), [cases]);
@@ -90,25 +95,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => store.set("extraProviderBlocks", extraProviderBlocks), [extraProviderBlocks]);
   useEffect(() => store.set("policyAck_user-001", policyAck), [policyAck]);
 
-  // Check trial expiration and update tier status
+  // Data migration: coerce trialStartDate from trialEndDate if needed
   useEffect(() => {
-    if (currentTier === "Trial" && trialEndDate) {
-      const today = new Date();
-      const endDate = new Date(trialEndDate);
-      if (today > endDate) {
+    if (!trialStartDate && trialEndDate) {
+      const derivedStart = coerceTrialStartDate({ trialEndDate });
+      if (derivedStart) {
+        setTrialStartDate(derivedStart);
+        store.set("trialStartDate", derivedStart);
+      }
+    }
+  }, [trialStartDate, trialEndDate]);
+
+  // Check trial expiration and update tier status using new helpers
+  useEffect(() => {
+    const trialData = { trialStartDate, trialEndDate };
+    
+    if (currentTier === "Trial") {
+      const active = isTrialActive(trialData);
+      if (!active) {
         setCurrentTier("Expired (Trial)");
         log("TRIAL_EXPIRED");
       }
-    } else if (currentTier === "Expired (Trial)" && trialEndDate) {
-      const today = new Date();
-      const endDate = new Date(trialEndDate);
-      const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceEnd > 30) {
-        setCurrentTier("Inactive");
-        log("TRIAL_INACTIVE");
+    } else if (currentTier === "Expired (Trial)") {
+      const daysRemaining = trialDaysRemaining(trialData);
+      // Trial expired, check if over 30 days since expiration
+      // If daysRemaining is 0, trial ended. Check how long ago.
+      if (daysRemaining === 0 && trialStartDate) {
+        const start = new Date(trialStartDate);
+        const trialEnd = new Date(start);
+        trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+        const today = new Date();
+        const daysSinceEnd = Math.floor((today.getTime() - trialEnd.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceEnd > 30) {
+          setCurrentTier("Inactive");
+          log("TRIAL_INACTIVE");
+        }
       }
     }
-  }, [currentTier, trialEndDate]);
+  }, [currentTier, trialStartDate, trialEndDate]);
 
   const baseTier = currentTier === "Expired (Trial)" || currentTier === "Inactive" ? "Trial" : currentTier;
   const tierCaps = RCMS_CONFIG.tiers[baseTier as keyof typeof RCMS_CONFIG.tiers] || null;
@@ -120,8 +145,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const exportAllowed = (RCMS_CONFIG.featureFlags.exportAllowedForRoles as readonly Role[]).includes(role);
 
   const isTrialExpired = currentTier === "Expired (Trial)" || currentTier === "Inactive";
-  const daysUntilInactive = currentTier === "Expired (Trial)" && trialEndDate
-    ? Math.max(0, 30 - Math.floor((new Date().getTime() - new Date(trialEndDate).getTime()) / (1000 * 60 * 60 * 24)))
+  
+  // Calculate days until inactive (30 days after trial ends)
+  const daysUntilInactive = currentTier === "Expired (Trial)" && trialStartDate
+    ? (() => {
+        const start = new Date(trialStartDate);
+        const trialEnd = new Date(start);
+        trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+        const inactiveDate = new Date(trialEnd);
+        inactiveDate.setDate(inactiveDate.getDate() + 30);
+        const today = new Date();
+        const daysLeft = Math.floor((inactiveDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.max(0, daysLeft);
+      })()
     : null;
 
   function log(action: string, caseId: string = "n/a") {
@@ -159,6 +195,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRole,
     currentTier,
     setCurrentTier,
+    trialStartDate,
+    setTrialStartDate,
     trialEndDate,
     setTrialEndDate,
     providers,

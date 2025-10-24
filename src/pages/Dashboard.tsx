@@ -9,9 +9,10 @@ import { mockNotifications } from "@/lib/mockData";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
 import { PolicyModal } from "@/components/PolicyModal";
+import { trialDaysRemaining, getTrialEndDate } from "@/utils/trial";
 
 export default function Dashboard() {
-  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialEndDate, policyAck, setPolicyAck, log } = useApp();
+  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialStartDate, trialEndDate, policyAck, setPolicyAck, log } = useApp();
   const [notifications, setNotifications] = useState(mockNotifications);
 
   const handlePolicyAgree = () => {
@@ -86,9 +87,9 @@ export default function Dashboard() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const daysRemaining = trialEndDate 
-    ? Math.ceil((new Date(trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+  // Use new trial helper for days remaining
+  const daysRemaining = trialDaysRemaining({ trialStartDate, trialEndDate });
+  const trialEnd = getTrialEndDate({ trialStartDate, trialEndDate });
 
   return (
     <AppLayout>
@@ -143,7 +144,7 @@ export default function Dashboard() {
             <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertTitle className="text-warning">Trial Ending Soon</AlertTitle>
             <AlertDescription className="text-warning">
-              Your trial ends in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} ({trialEndDate && fmtDate(trialEndDate)}). Upgrade to continue.
+              Your trial ends in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} ({trialEnd && fmtDate(trialEnd)}). Upgrade to continue.
               <Button variant="outline" size="sm" className="ml-4">
                 View Plans
               </Button>

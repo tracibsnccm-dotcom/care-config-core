@@ -15,6 +15,8 @@ export default function AdminPanel() {
     tierCaps,
     currentTier,
     setCurrentTier,
+    trialStartDate,
+    setTrialStartDate,
     trialEndDate,
     setTrialEndDate,
     isTrialExpired,
@@ -91,24 +93,31 @@ export default function AdminPanel() {
   }
 
   function startTrial() {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14); // 14 day trial
+    // New trials use trialStartDate (single source of truth)
+    const startDate = new Date();
     setCurrentTier("Trial");
+    setTrialStartDate(startDate.toISOString());
+    // Also set trialEndDate for backward compat (optional, can be removed in future)
+    const trialEnd = new Date(startDate);
+    trialEnd.setDate(trialEnd.getDate() + 30); // 30 day trial
     setTrialEndDate(trialEnd.toISOString());
     log("TRIAL_STARTED");
     toast.success("Trial started", {
-      description: `14-day trial ends ${fmtDate(trialEnd)}`,
+      description: `30-day trial ends ${fmtDate(trialEnd)}`,
     });
   }
 
   function expireTrialNow() {
-    if (trialEndDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      setTrialEndDate(yesterday.toISOString());
-      log("TRIAL_EXPIRED_MANUALLY");
-      toast.warning("Trial end date set to yesterday");
-    }
+    // Set trialStartDate to 31 days ago (expired)
+    const expiredStart = new Date();
+    expiredStart.setDate(expiredStart.getDate() - 31);
+    setTrialStartDate(expiredStart.toISOString());
+    // Also update trialEndDate for backward compat
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    setTrialEndDate(yesterday.toISOString());
+    log("TRIAL_EXPIRED_MANUALLY");
+    toast.warning("Trial expired (set to 31 days ago)");
   }
 
   return (
@@ -138,9 +147,17 @@ export default function AdminPanel() {
                   {currentTier}
                 </p>
               </div>
+              {trialStartDate && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Trial Start Date</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {fmtDate(trialStartDate)}
+                  </p>
+                </div>
+              )}
               {trialEndDate && (
                 <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Trial End Date</p>
+                  <p className="text-sm text-muted-foreground mb-1">Trial End Date (computed)</p>
                   <p className="text-lg font-semibold text-foreground">
                     {fmtDate(trialEndDate)}
                   </p>
@@ -163,7 +180,7 @@ export default function AdminPanel() {
             </div>
             <div className="flex gap-2">
               <Button onClick={startTrial} variant="outline">
-                Start 14-Day Trial
+                Start 30-Day Trial
               </Button>
               {currentTier === "Trial" && (
                 <Button onClick={expireTrialNow} variant="destructive">
