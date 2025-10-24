@@ -4,13 +4,15 @@ import { store, nextQuarterReset } from "@/lib/store";
 import { mockCases, mockProviders } from "@/lib/mockData";
 import { logAudit } from "@/lib/auditLog";
 
-type TierName = "Basic" | "Solo" | "Mid-Sized" | "Enterprise";
+type TierName = "Trial" | "Basic" | "Solo" | "Mid-Sized" | "Enterprise" | "Expired (Trial)" | "Inactive";
 
 interface AppContextType {
   role: Role;
   setRole: (role: Role) => void;
   currentTier: TierName;
   setCurrentTier: (tier: TierName) => void;
+  trialEndDate: string | null;
+  setTrialEndDate: React.Dispatch<React.SetStateAction<string | null>>;
   providers: Provider[];
   setProviders: React.Dispatch<React.SetStateAction<Provider[]>>;
   cases: Case[];
@@ -23,13 +25,15 @@ interface AppContextType {
   setExtraProviderBlocks: React.Dispatch<React.SetStateAction<number>>;
   
   // Computed values
-  tierCaps: typeof RCMS_CONFIG.tiers[TierName];
+  tierCaps: typeof RCMS_CONFIG.tiers[keyof typeof RCMS_CONFIG.tiers] | null;
   providerSlots: number;
   routerEnabled: boolean;
   nextReset: Date;
   swapsCap: number;
   swapsRemaining: number;
   exportAllowed: boolean;
+  isTrialExpired: boolean;
+  daysUntilInactive: number | null;
   
   // Helper functions
   log: (action: string, caseId?: string) => void;
@@ -63,6 +67,7 @@ function seedAudit(): AuditEntry[] {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>(store.get("currentRole", ROLES.ATTORNEY));
   const [currentTier, setCurrentTier] = useState<TierName>(store.get("currentTier", "Solo"));
+  const [trialEndDate, setTrialEndDate] = useState<string | null>(store.get("trialEndDate", null));
   const [providers, setProviders] = useState<Provider[]>(seedProviders);
   const [cases, setCases] = useState<Case[]>(seedCases);
   const [audit, setAudit] = useState<AuditEntry[]>(seedAudit);
@@ -74,19 +79,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persist on change
   useEffect(() => store.set("currentRole", role), [role]);
   useEffect(() => store.set("currentTier", currentTier), [currentTier]);
+  useEffect(() => store.set("trialEndDate", trialEndDate), [trialEndDate]);
   useEffect(() => store.set("providers", providers), [providers]);
   useEffect(() => store.set("cases", cases), [cases]);
   useEffect(() => store.set("audit", audit), [audit]);
   useEffect(() => store.set("swapsUsed", swapsUsed), [swapsUsed]);
   useEffect(() => store.set("extraProviderBlocks", extraProviderBlocks), [extraProviderBlocks]);
 
-  const tierCaps = RCMS_CONFIG.tiers[currentTier];
-  const providerSlots = tierCaps.providers.slots + extraProviderBlocks * 10;
-  const routerEnabled = tierCaps.routerEnabled;
+  // Check trial expiration and update tier status
+  useEffect(() => {
+    if (currentTier === "Trial" && trialEndDate) {
+      const today = new Date();
+      const endDate = new Date(trialEndDate);
+      if (today > endDate) {
+        setCurrentTier("Expired (Trial)");
+        log("TRIAL_EXPIRED");
+      }
+    } else if (currentTier === "Expired (Trial)" && trialEndDate) {
+      const today = new Date();
+      const endDate = new Date(trialEndDate);
+      const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceEnd > 30) {
+        setCurrentTier("Inactive");
+        log("TRIAL_INACTIVE");
+      }
+    }
+  }, [currentTier, trialEndDate]);
+
+  const baseTier = currentTier === "Expired (Trial)" || currentTier === "Inactive" ? "Trial" : currentTier;
+  const tierCaps = RCMS_CONFIG.tiers[baseTier as keyof typeof RCMS_CONFIG.tiers] || null;
+  const providerSlots = tierCaps ? tierCaps.providers.slots + extraProviderBlocks * 10 : 0;
+  const routerEnabled = tierCaps ? tierCaps.routerEnabled : false;
   const nextReset = nextQuarterReset();
-  const swapsCap = tierCaps.providers.swapsPerQuarter || 0;
+  const swapsCap = tierCaps ? tierCaps.providers.swapsPerQuarter || 0 : 0;
   const swapsRemaining = Math.max(0, swapsCap - swapsUsed);
   const exportAllowed = (RCMS_CONFIG.featureFlags.exportAllowedForRoles as readonly Role[]).includes(role);
+
+  const isTrialExpired = currentTier === "Expired (Trial)" || currentTier === "Inactive";
+  const daysUntilInactive = currentTier === "Expired (Trial)" && trialEndDate
+    ? Math.max(0, 30 - Math.floor((new Date().getTime() - new Date(trialEndDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   function log(action: string, caseId: string = "n/a") {
     setAudit((prevAudit) => logAudit(prevAudit, action, caseId, role));
@@ -123,6 +155,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRole,
     currentTier,
     setCurrentTier,
+    trialEndDate,
+    setTrialEndDate,
     providers,
     setProviders,
     cases,
@@ -140,6 +174,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     swapsCap,
     swapsRemaining,
     exportAllowed,
+    isTrialExpired,
+    daysUntilInactive,
     log,
     revokeConsent,
   };

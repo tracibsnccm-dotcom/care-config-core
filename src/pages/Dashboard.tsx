@@ -1,13 +1,16 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
-import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock } from "lucide-react";
+import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { mockNotifications } from "@/lib/mockData";
 import { useState } from "react";
+import { fmtDate } from "@/lib/store";
 
 export default function Dashboard() {
-  const { cases } = useApp();
+  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialEndDate } = useApp();
   const [notifications, setNotifications] = useState(mockNotifications);
 
   const stats = [
@@ -73,6 +76,10 @@ export default function Dashboard() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+  const daysRemaining = trialEndDate 
+    ? Math.ceil((new Date(trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
   return (
     <AppLayout>
       <div className="p-8">
@@ -86,6 +93,46 @@ export default function Dashboard() {
             onMarkAllRead={handleMarkAllRead}
           />
         </div>
+
+        {/* Trial Warning Banners */}
+        {currentTier === "Inactive" && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Account Inactive</AlertTitle>
+            <AlertDescription>
+              Your trial expired over 30 days ago. Please upgrade to continue using RCMS C.A.R.E.
+              <Button variant="outline" size="sm" className="ml-4">
+                Upgrade Now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {currentTier === "Expired (Trial)" && daysUntilInactive !== null && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Trial Expired</AlertTitle>
+            <AlertDescription>
+              Your trial has ended. Account will become inactive in {daysUntilInactive} days.
+              <Button variant="outline" size="sm" className="ml-4">
+                Upgrade Now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {currentTier === "Trial" && daysRemaining <= 3 && daysRemaining > 0 && (
+          <Alert className="mb-6 border-warning bg-warning/10">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertTitle className="text-warning">Trial Ending Soon</AlertTitle>
+            <AlertDescription className="text-warning">
+              Your trial ends in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} ({trialEndDate && fmtDate(trialEndDate)}). Upgrade to continue.
+              <Button variant="outline" size="sm" className="ml-4">
+                View Plans
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -13,6 +13,12 @@ import { TestActions } from "@/components/TestActions";
 export default function AdminPanel() {
   const {
     tierCaps,
+    currentTier,
+    setCurrentTier,
+    trialEndDate,
+    setTrialEndDate,
+    isTrialExpired,
+    daysUntilInactive,
     providers,
     setProviders,
     providerSlots,
@@ -84,6 +90,27 @@ export default function AdminPanel() {
     });
   }
 
+  function startTrial() {
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14); // 14 day trial
+    setCurrentTier("Trial");
+    setTrialEndDate(trialEnd.toISOString());
+    log("TRIAL_STARTED");
+    toast.success("Trial started", {
+      description: `14-day trial ends ${fmtDate(trialEnd)}`,
+    });
+  }
+
+  function expireTrialNow() {
+    if (trialEndDate) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      setTrialEndDate(yesterday.toISOString());
+      log("TRIAL_EXPIRED_MANUALLY");
+      toast.warning("Trial end date set to yesterday");
+    }
+  }
+
   return (
     <AppLayout>
       <div className="p-8 max-w-7xl mx-auto">
@@ -96,26 +123,80 @@ export default function AdminPanel() {
           {/* Test Actions */}
           <TestActions />
 
+          {/* Trial Status */}
+          <Card className="p-6 border-border">
+            <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Trial & Subscription Status
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Current Tier</p>
+                <p className={`text-2xl font-bold ${
+                  isTrialExpired ? "text-destructive" : "text-foreground"
+                }`}>
+                  {currentTier}
+                </p>
+              </div>
+              {trialEndDate && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Trial End Date</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {fmtDate(trialEndDate)}
+                  </p>
+                </div>
+              )}
+              {currentTier === "Expired (Trial)" && daysUntilInactive !== null && (
+                <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-sm text-destructive mb-1">Days Until Inactive</p>
+                  <p className="text-2xl font-bold text-destructive">{daysUntilInactive}</p>
+                </div>
+              )}
+              {currentTier === "Inactive" && (
+                <div className="p-4 bg-muted rounded-lg col-span-2">
+                  <p className="text-sm text-muted-foreground mb-2">Account Status</p>
+                  <p className="text-sm text-destructive font-medium">
+                    Trial expired over 30 days ago. Upgrade required to continue.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={startTrial} variant="outline">
+                Start 14-Day Trial
+              </Button>
+              {currentTier === "Trial" && (
+                <Button onClick={expireTrialNow} variant="destructive">
+                  Expire Trial Now (Test)
+                </Button>
+              )}
+            </div>
+          </Card>
+
           {/* Roles & Seats */}
           <Card className="p-6 border-border">
             <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
               Roles & Seats (Tier Configuration)
             </h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Attorney Seats</p>
-                <p className="text-2xl font-bold text-foreground">{tierCaps.seats.attorneys}</p>
+            {tierCaps ? (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Attorney Seats</p>
+                  <p className="text-2xl font-bold text-foreground">{tierCaps.seats.attorneys}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Staff Seats</p>
+                  <p className="text-2xl font-bold text-foreground">{tierCaps.seats.staff}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">RN-CCM Seats</p>
+                  <p className="text-2xl font-bold text-foreground">{tierCaps.seats.rnCcm}</p>
+                </div>
               </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Staff Seats</p>
-                <p className="text-2xl font-bold text-foreground">{tierCaps.seats.staff}</p>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">RN-CCM Seats</p>
-                <p className="text-2xl font-bold text-foreground">{tierCaps.seats.rnCcm}</p>
-              </div>
-            </div>
+            ) : (
+              <p className="text-muted-foreground">No tier configuration available</p>
+            )}
           </Card>
 
           {/* Provider Management */}

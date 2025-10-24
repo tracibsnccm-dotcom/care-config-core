@@ -20,6 +20,12 @@ export const RCMS_CONFIG = {
   },
   quarterResets: ["01-01", "04-01", "07-01", "10-01"],
   tiers: {
+    Trial: {
+      price: 0,
+      seats: { attorneys: 1, staff: 1, rnCcm: 0 },
+      providers: { slots: 5, swapsPerQuarter: 2 },
+      routerEnabled: false,
+    },
     Basic: {
       price: 9500,
       seats: { attorneys: 2, staff: 0, rnCcm: 0 },
