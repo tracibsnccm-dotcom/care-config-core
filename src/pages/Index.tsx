@@ -10,8 +10,9 @@ const Index = () => {
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
             Reconcile <span className="text-[#d97706] font-bold">C.A.R.E.</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            Comprehensive <span className="text-[#d97706]">Nursing</span> Care Management for Legal and Medical Coordination
+          <p className="text-3xl md:text-4xl font-extrabold text-white max-w-2xl mx-auto">
+            Comprehensive <span className="text-[#d97706]">Nursing</span> Care Management<br />
+            for Legal and Medical Coordination
           </p>
         </div>
 
@@ -19,10 +20,11 @@ const Index = () => {
         <section id="get-started" className="py-10 text-center">
           <h2 className="mb-2 text-3xl md:text-4xl font-extrabold">
             <span className="text-[#0f2a6a]">Get Started with </span>
-            <span className="text-white">Reconcile C.A.R.E.</span>
+            <span className="text-[#d97706]">Reconcile C.A.R.E.</span>
           </h2>
-          <p className="text-white text-base md:text-lg mb-8">
-            Choose your path below to begin — secure, compliant, and built to simplify collaboration between clients, attorneys, and nurse care managers.
+          <p className="text-white text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
+            Pick the button below that matches who you are. Start here to connect with your team. 
+            Our secure platform brings together clients, attorneys, and nurse care managers to keep everyone informed.
           </p>
 
           <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
@@ -56,7 +58,7 @@ const Index = () => {
             <div>
               <NavLink
                 to="/attorney-portal"
-                className="block w-full bg-[#b85c00] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#b85c00]"
+                className="block w-full bg-[#128f8b] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#128f8b]"
               >
                 Attorney Portal
               </NavLink>
@@ -67,7 +69,7 @@ const Index = () => {
           </div>
 
           {/* Divider before feature cards */}
-          <div className="mt-10 mx-auto w-24 h-px bg-gray-300 rounded-full" />
+          <div className="mt-10 mx-auto w-24 h-px bg-[#128f8b] rounded-full" />
         </section>
 
         {/* ─────────────── Cards Section Heading (adds context above cards) ─────────────── */}
@@ -76,7 +78,7 @@ const Index = () => {
             Platform Highlights
           </h3>
           <p className="text-white/90 text-base md:text-lg mt-1">
-            Built for privacy, clinical insight, and dependable provider routing.
+            Designed for privacy, clinical insight, and dependable provider coordination.
           </p>
         </section>
 
