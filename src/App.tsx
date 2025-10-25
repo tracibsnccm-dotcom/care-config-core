@@ -19,6 +19,7 @@ import ClientJournalDashboard from "./pages/ClientJournalDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
+import { ClientPortalRoute } from "./modules/rcms-client-portal-tab";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/management" element={<CaseManagement />} />
             <Route path="/providers" element={<Providers />} />
             <Route path="/router" element={<ProviderRouter />} />
+            <Route path="/client-portal" element={<ClientPortalRoute />} />
             <Route path="/checkins" element={<ClientCheckins />} />
             <Route path="/journal" element={<ClientJournal />} />
             <Route path="/journal-analytics" element={<ClientJournalDashboard />} />
