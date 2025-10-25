@@ -69,7 +69,7 @@ const Index = () => {
           <Button
             size="lg"
             className="px-8 py-6 text-lg text-white hover:opacity-90"
-            style={{ backgroundColor: '#128f8b' }}
+            style={{ backgroundColor: '#00796b' }}
             onClick={() => navigate("/intake")}
           >
             Client Intake
