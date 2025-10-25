@@ -6,71 +6,70 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        {/* ─────────────── Above-the-Fold: Compact Hero + Get Started ─────────────── */}
-        <section id="above-the-fold" className="flex flex-col items-center justify-start min-h-[88vh] pt-4 pb-2">
+        {/* ─────────────── Above-the-Fold: Ultra-Compact Hero + Get Started ─────────────── */}
+        <section id="above-the-fold" className="flex flex-col items-center justify-start min-h-[82vh] pt-3 pb-1">
           {/* App name */}
           <h2
-            className="font-extrabold text-white mb-3 leading-tight"
-            style={{ fontSize: "clamp(28px, 4vw, 44px)" }}
+            className="font-extrabold text-white mb-2 leading-tight"
+            style={{ fontSize: "clamp(26px, 3.7vw, 40px)" }}
           >
             <span className="text-white">Reconcile</span>
             <span className="text-[#d97706]"> C.A.R.E.</span>
           </h2>
 
           {/* Hero headline: 3-line centered */}
-          <h1 className="font-extrabold text-white text-center leading-tight mt-1 space-y-0.5">
-            <span className="block" style={{ fontSize: "clamp(22px, 3.5vw, 40px)" }}>
+          <h1 className="font-extrabold text-white text-center leading-tight mt-0">
+            <span className="block" style={{ fontSize: "clamp(21px, 3.2vw, 36px)" }}>
               Comprehensive Nursing Care Management
             </span>
-            <span className="block" style={{ fontSize: "clamp(18px, 2.5vw, 28px)" }}>
+            <span className="block" style={{ fontSize: "clamp(16px, 2.2vw, 24px)" }}>
               for
             </span>
-            <span className="block" style={{ fontSize: "clamp(22px, 3.5vw, 40px)" }}>
+            <span className="block" style={{ fontSize: "clamp(21px, 3.2vw, 36px)" }}>
               Legal and Medical Coordination
             </span>
           </h1>
 
           {/* Teal divider between Hero and Get Started */}
-          <div className="mt-4 mb-3 mx-auto w-20 h-0.5 bg-[#128f8b] rounded-full" />
+          <div className="mt-3 mb-2 mx-auto w-20 h-0.5 bg-[#128f8b] rounded-full" />
 
           {/* Get Started heading */}
           <h3
-            className="font-extrabold text-center mb-1"
-            style={{ fontSize: "clamp(22px, 3.2vw, 36px)" }}
+            className="font-extrabold text-center mb-0"
+            style={{ fontSize: "clamp(20px, 2.8vw, 32px)" }}
           >
             <span className="text-[#0f2a6a]">Get Started with </span>
             <span className="text-white">Reconcile</span>
             <span className="text-[#d97706]"> C.A.R.E.</span>
           </h3>
 
-          {/* Prompt + microcopy (compact) */}
+          {/* Prompt + microcopy (more compact) */}
           <p
             className="text-black font-bold text-center mt-3 mb-1"
-            style={{ fontSize: "clamp(16px, 2.4vw, 22px)" }}
+            style={{ fontSize: "clamp(15px, 2.0vw, 20px)" }}
           >
             What would you like to do?
           </p>
           <p
-            className="text-white text-center mx-auto max-w-2xl leading-snug"
-            style={{ fontSize: "clamp(14px, 2.1vw, 18px)" }}
+            className="text-white text-center mx-auto max-w-2xl leading-snug hidden lg:block"
+            style={{ fontSize: "clamp(13px, 1.7vw, 18px)" }}
           >
             Start here to connect with your team. Our secure platform brings together clients,
             attorneys, and nurse care managers to keep everyone informed.
           </p>
 
-          {/* Buttons row (stacked, compact) */}
-          <div className="mt-4 flex flex-col items-center gap-3 w-full max-w-md">
+          {/* Buttons (stacked, tighter padding) */}
+          <div className="mt-3 flex flex-col items-center gap-2.5 w-full max-w-md">
             {/* Client Intake */}
             <div className="w-full">
               <NavLink
                 to="/client-intake"
-                className="block w-full bg-[#00695C] text-white font-semibold py-2.5 px-5 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#00695C]"
-                style={{ fontSize: "clamp(16px, 2.3vw, 18px)" }}
+                className="block w-full bg-[#00695C] text-white font-semibold py-2 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#00695C]"
+                style={{ fontSize: "clamp(15px, 2.0vw, 17px)" }}
               >
                 Start Your Intake
               </NavLink>
-              {/* Save vertical space on small screens */}
-              <p className="hidden md:block mt-1.5 text-sm text-white/90 font-medium">
+              <p className="hidden lg:block mt-1 text-sm text-white/90 font-medium">
                 Begin your case and securely complete your intake and consent forms.
               </p>
             </div>
@@ -79,12 +78,12 @@ const Index = () => {
             <div className="w-full">
               <NavLink
                 to="/client-portal"
-                className="block w-full bg-[#0f2a6a] text-white font-medium py-2 px-5 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#0f2a6a]"
-                style={{ fontSize: "clamp(15px, 2.1vw, 17px)" }}
+                className="block w-full bg-[#0f2a6a] text-white font-medium py-1.5 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#0f2a6a]"
+                style={{ fontSize: "clamp(14px, 1.9vw, 16px)" }}
               >
                 Client Portal
               </NavLink>
-              <p className="hidden md:block mt-1.5 text-sm text-white/90 font-medium">
+              <p className="hidden lg:block mt-1 text-sm text-white/90 font-medium">
                 Log in to update information, submit follow-ups, or check your progress.
               </p>
             </div>
@@ -93,19 +92,19 @@ const Index = () => {
             <div className="w-full">
               <NavLink
                 to="/attorney-portal"
-                className="block w-full bg-[#d97706] text-white font-medium py-2 px-5 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#d97706]"
-                style={{ fontSize: "clamp(15px, 2.1vw, 17px)" }}
+                className="block w-full bg-[#d97706] text-white font-medium py-1.5 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-[#d97706]"
+                style={{ fontSize: "clamp(14px, 1.9vw, 16px)" }}
               >
                 Attorney Portal
               </NavLink>
-              <p className="hidden md:block mt-1.5 text-sm text-white/90 font-medium">
+              <p className="hidden lg:block mt-1 text-sm text-white/90 font-medium">
                 Access client files, review updates, and coordinate care in real time.
               </p>
             </div>
           </div>
 
           {/* Bottom divider to end the above-the-fold area */}
-          <div className="mt-5 mx-auto w-20 h-0.5 bg-[#128f8b] rounded-full" />
+          <div className="mt-4 mx-auto w-20 h-0.5 bg-[#128f8b] rounded-full" />
         </section>
 
         {/* ─────────────── Cards Section Heading (context above cards) ─────────────── */}
