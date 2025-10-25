@@ -61,14 +61,6 @@ const Index = () => {
           <Button
             size="lg"
             variant="outline"
-            className="px-8 py-6 text-lg mr-4"
-            onClick={() => navigate("/client-portal")}
-          >
-            Client Portal
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
             className="px-8 py-6 text-lg"
             onClick={() => navigate("/intake")}
           >
