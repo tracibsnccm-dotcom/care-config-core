@@ -18,10 +18,10 @@ const Index = () => {
 
         {/* ─────────────── Get Started Section (above cards) ─────────────── */}
         <section id="get-started" className="py-10 text-center">
-          <h2 className="mb-2 text-3xl md:text-4xl font-extrabold">
+          <h2 className="mb-2 text-3xl md:text-4xl font-extrabold text-white tracking-tight">
             <span className="text-[#0f2a6a]">Get Started with </span>
-            <span className="text-white">Reconcile</span>
-            <span className="text-[#d97706]"> C.A.R.E.</span>
+            <span className="text-white font-extrabold tracking-tight">Reconcile</span>
+            <span className="text-[#d97706] font-extrabold tracking-tight"> C.A.R.E.</span>
           </h2>
 
           {/* Line 1: bold black prompt */}
