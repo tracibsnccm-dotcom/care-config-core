@@ -31,23 +31,20 @@ const Index = () => {
           <div className="mt-8 mx-auto w-24 h-0.5 bg-[#128f8b] rounded-full" />
         </section>
 
-        {/* ─────────────── Get Started Section (above cards) ─────────────── */}
+        {/* ─────────────── Get Started Section (final, no lower divider) ─────────────── */}
         <section id="get-started" className="py-10 text-center">
-          <h2 className="mb-2 text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+          <h2 className="mb-2 text-3xl md:text-4xl font-extrabold">
             <span className="text-[#0f2a6a]">Get Started with </span>
-            <span className="text-white font-extrabold tracking-tight">Reconcile</span>
-            <span className="text-[#d97706] font-extrabold tracking-tight"> C.A.R.E.</span>
+            <span className="text-white">Reconcile</span>
+            <span className="text-[#d97706]"> C.A.R.E.</span>
           </h2>
 
-          {/* Line 1: bold black prompt */}
+          {/* Bold black prompt */}
           <p className="text-black text-xl md:text-2xl font-bold mt-6 mb-2">
             What would you like to do?
           </p>
 
-          {/* Subtle teal divider under prompt */}
-          <div className="mx-auto w-20 h-0.5 bg-[#128f8b] mb-6 rounded-full" />
-
-          {/* Line 2-3: white explanatory paragraph */}
+          {/* White explanatory paragraph */}
           <p className="text-white text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
             Start here to connect with your team. Our secure platform brings together clients,
             attorneys, and nurse care managers to keep everyone informed.
@@ -93,12 +90,9 @@ const Index = () => {
               </p>
             </div>
           </div>
-
-          {/* Divider before feature cards */}
-          <div className="mt-10 mx-auto w-24 h-px bg-[#128f8b] rounded-full" />
         </section>
 
-        {/* ─────────────── Cards Section Heading (adds context above cards) ─────────────── */}
+        {/* ─────────────── Cards Section Heading (context above cards) ─────────────── */}
         <section id="platform-highlights" className="text-center mb-6">
           <h3 className="text-2xl md:text-3xl font-bold text-white">
             Platform Highlights
