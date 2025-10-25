@@ -60,16 +60,16 @@ const Index = () => {
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="px-8 py-6 text-lg mr-4"
+            className="px-8 py-6 text-lg mr-4 text-white hover:opacity-90"
+            style={{ backgroundColor: '#0f2a6a' }}
             onClick={() => navigate("/client-portal")}
           >
             Client Portal
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="px-8 py-6 text-lg"
+            className="px-8 py-6 text-lg text-white hover:opacity-90"
+            style={{ backgroundColor: '#128f8b' }}
             onClick={() => navigate("/intake")}
           >
             Client Intake
