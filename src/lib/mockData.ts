@@ -4,6 +4,7 @@ import { Notification } from "@/components/NotificationBell";
 export const mockCases: Case[] = [
   {
     id: "CASE-2024-001",
+    firmId: "firm-001",
     onsetOfService: "2024-01-15",
     client: {
       rcmsId: "RC-89234",
@@ -74,6 +75,7 @@ export const mockCases: Case[] = [
   },
   {
     id: "CASE-2024-002",
+    firmId: "firm-001",
     onsetOfService: "2024-02-01",
     client: {
       rcmsId: "RC-89235",
@@ -116,6 +118,7 @@ export const mockCases: Case[] = [
   },
   {
     id: "CASE-2024-003",
+    firmId: "firm-001",
     onsetOfService: "2024-01-10",
     client: {
       rcmsId: "RC-89236",

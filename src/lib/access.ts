@@ -1,8 +1,18 @@
-import { Role, Case } from "@/config/rcms";
+// src/lib/access.ts
+// Reconcile C.A.R.E. — Centralized Access Control (RBAC)
+// Single drop-in file. Import these helpers anywhere you need permission checks.
 
-/**
- * Feature constants for access checks
- */
+/** ===== Roles & Features ===== */
+export const ROLES = {
+  CLIENT: "CLIENT",
+  ATTORNEY: "ATTORNEY",
+  RN_CCM: "RN_CCM",          // firm RN-CCM (external)
+  STAFF: "STAFF",            // firm staff (external)
+  RCMS_STAFF: "RCMS_STAFF",  // RCMS internal ops (no backdoor to firm cases)
+  SUPER_USER: "SUPER_USER",
+  SUPER_ADMIN: "SUPER_ADMIN",
+} as const;
+
 export const FEATURE = {
   VIEW_IDENTITY: "VIEW_IDENTITY",
   VIEW_CLINICAL: "VIEW_CLINICAL",
@@ -10,110 +20,151 @@ export const FEATURE = {
   ROUTE_PROVIDER: "ROUTE_PROVIDER",
 } as const;
 
+export type Role = typeof ROLES[keyof typeof ROLES];
 export type Feature = typeof FEATURE[keyof typeof FEATURE];
 
-/**
- * Export allowed roles
- */
-export const EXPORT_ALLOWED_ROLES: Role[] = ["ATTORNEY", "SUPER_USER", "SUPER_ADMIN"];
+/** ===== Minimal models used by access checks ===== */
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  role: Role;
+  orgType: "RCMS" | "FIRM";     // who they work for
+  orgId: string;                // "rcms" or firm id
+  designatedCaseIds?: string[]; // optional per-user allow list
+}
 
-/**
- * Consent-aware access control:
- * - If consent not signed => block attorney/provider data access.
- * - If consent signed but scope doesn't include attorneys/providers => block accordingly.
- * - SUPER_USER / SUPER_ADMIN can always see (oversight).
- * - RN_CCM may view clinical/routing only if provider sharing is on.
- * - Identity remains stricter (privileged + consent scope).
- */
-export function canAccess(
-  role: Role,
-  theCase: Case | undefined,
-  feature: Feature,
-  userId: string = "user-001"
-): boolean {
-  if (!theCase) return false;
-  
-  // SUPER_USER and SUPER_ADMIN have oversight access
-  if (role === "SUPER_USER" || role === "SUPER_ADMIN") return true;
+export interface CaseConsent {
+  signed: boolean;
+  scope: { shareWithAttorney: boolean; shareWithProviders: boolean };
+}
 
+export interface RcmsCase {
+  id: string;
+  firmId: string;               // owner firm
+  designatedUserIds?: string[]; // case-level allow list
+  consent: CaseConsent;
+  // (Other fields exist but are not needed by RBAC.)
+}
+
+/** ===== Helpers ===== */
+export function isDesignated(user: User | undefined, theCase: RcmsCase | undefined): boolean {
+  if (!user || !theCase) return false;
+  // Allow designation by user.id OR by case.id on the user (supports both patterns)
+  const merged = new Set([
+    ...(user.designatedCaseIds || []),
+    ...(theCase.designatedUserIds || []),
+  ]);
+  return merged.has(user.id) || merged.has(theCase.id);
+}
+
+export function sameFirm(user: User | undefined, theCase: RcmsCase | undefined): boolean {
+  return !!(user && theCase && user.orgType === "FIRM" && user.orgId === theCase.firmId);
+}
+
+/** ===== Core Guard =====
+ * Enforces least-privilege + consent:
+ * - SUPER_USER / SUPER_ADMIN can access everything (still audit separately).
+ * - RCMS_STAFF is NOT a backdoor to firm cases: must be designated AND provider-sharing consent to see clinical/identity/route/export.
+ * - ATTORNEY (firm): same firm + consent.shareWithAttorney (routing also requires provider consent).
+ * - RN_CCM (firm): same firm + designated + consent (providers) for clinical/identity/route; never export.
+ * - STAFF (firm): same firm + designated + consent (providers); no identity, no export; can view clinical/route.
+ */
+export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?: User): boolean {
   const signed = !!theCase?.consent?.signed;
   const shareWithAttorney = !!theCase?.consent?.scope?.shareWithAttorney;
   const shareWithProviders = !!theCase?.consent?.scope?.shareWithProviders;
 
-  if (role === "ATTORNEY") {
-    if (!signed) return false;
-    if (!shareWithAttorney) return false;
-    // Optional: require designation: theCase.designatedAttorneyId === userId
-    if (feature === FEATURE.EXPORT) return true;
-    if (feature === FEATURE.VIEW_IDENTITY) return true;
-    if (feature === FEATURE.VIEW_CLINICAL) return true;
-    if (feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders; // routing implies provider share
+  // Super oversight (always audited elsewhere)
+  if (role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN) return true;
+
+  // RCMS internal ops — never a backdoor to firm cases
+  if (role === ROLES.RCMS_STAFF) {
+    if ([FEATURE.VIEW_IDENTITY, FEATURE.VIEW_CLINICAL, FEATURE.ROUTE_PROVIDER, FEATURE.EXPORT].includes(feature)) {
+      return !!user && isDesignated(user, theCase) && signed && shareWithProviders;
+    }
     return false;
   }
 
-  if (role === "RN_CCM") {
+  // Attorneys — firm users
+  if (role === ROLES.ATTORNEY) {
+    if (!sameFirm(user, theCase)) return false;
+    if (!signed || !shareWithAttorney) return false;
+    if (feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
+    return true; // identity + clinical allowed when attorney sharing is true
+  }
+
+  // RN-CCM — firm users (tight): same firm + designated + consent
+  if (role === ROLES.RN_CCM) {
+    if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
     if (!signed) return false;
     if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
-    if (feature === FEATURE.VIEW_IDENTITY) return shareWithProviders; // conservative
+    if (feature === FEATURE.VIEW_IDENTITY) return shareWithProviders;
     if (feature === FEATURE.EXPORT) return false;
-    return shareWithProviders;
+    return false;
   }
 
-  if (role === "STAFF") {
-    if (!signed) return false;
-    if (feature === FEATURE.VIEW_IDENTITY) return false;
-    if (feature === FEATURE.EXPORT) return false;
-    return shareWithProviders; // e.g., scheduling
-  }
-
-  if (role === "CLIENT") {
-    // Clients can always see their own data
-    return true;
+  // STAFF — firm users (minimal)
+  if (role === ROLES.STAFF) {
+    if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
+    if (!signed || !shareWithProviders) return false;
+    if (feature === FEATURE.VIEW_IDENTITY || feature === FEATURE.EXPORT) return false;
+    if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return true;
+    return false;
   }
 
   return false;
 }
 
-/**
- * Check if export is allowed for the given role and case
- */
-export function exportAllowed(role: Role, theCase: Case | undefined, userId?: string): boolean {
-  if (!theCase) return false;
-  if (!EXPORT_ALLOWED_ROLES.includes(role)) return false;
-  // Also require consent signed + sharing scope
-  return canAccess(role, theCase, FEATURE.EXPORT, userId) && canAccess(role, theCase, FEATURE.VIEW_CLINICAL, userId);
+/** ===== Export helper (role + clinical permission) ===== */
+export function exportAllowed(role: Role, theCase: RcmsCase, user?: User): boolean {
+  const exportRoles: Role[] = [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
+  if (!exportRoles.includes(role)) return false;
+  return canAccess(role, theCase, FEATURE.VIEW_CLINICAL, user);
 }
+
+/** ===== Backward compatibility helpers ===== */
 
 /**
  * Check if a user has access to view full identity information
  */
-export function hasIdentityAccess(role: Role, theCase?: Case, userId: string = "user-001"): boolean {
+export function hasIdentityAccess(role: Role, theCase?: RcmsCase, user?: User): boolean {
   if (!theCase) return false;
-  return canAccess(role, theCase, FEATURE.VIEW_IDENTITY, userId);
+  return canAccess(role, theCase, FEATURE.VIEW_IDENTITY, user);
 }
 
 /**
  * Check if a user can see sensitive clinical information
  */
-export function canSeeSensitive(theCase: Case, role: Role, userId: string = "user-001"): boolean {
-  return canAccess(role, theCase, FEATURE.VIEW_CLINICAL, userId);
+export function canSeeSensitive(theCase: RcmsCase, role: Role, user?: User): boolean {
+  return canAccess(role, theCase, FEATURE.VIEW_CLINICAL, user);
 }
 
 /**
  * Check if a case is blocked for attorneys or staff due to consent issues
  */
-export function isBlockedForAttorney(role: Role, theCase: Case): { blocked: boolean; reason?: string } {
-  if (role !== "ATTORNEY" && role !== "STAFF") return { blocked: false };
+export function isBlockedForAttorney(role: Role, theCase: RcmsCase, user?: User): { blocked: boolean; reason?: string } {
+  if (role !== ROLES.ATTORNEY && role !== ROLES.STAFF && role !== ROLES.RCMS_STAFF) return { blocked: false };
   
   const consentSigned = !!theCase.consent?.signed;
   const shareWithAttorney = !!theCase.consent?.scope?.shareWithAttorney;
+  const shareWithProviders = !!theCase.consent?.scope?.shareWithProviders;
   
   if (!consentSigned) {
     return { blocked: true, reason: "Client consent is not signed" };
   }
   
-  if (!shareWithAttorney) {
+  if (role === ROLES.ATTORNEY && !shareWithAttorney) {
     return { blocked: true, reason: "Client consent does not authorize sharing with attorneys" };
+  }
+  
+  if (role === ROLES.RCMS_STAFF) {
+    if (!user || !isDesignated(user, theCase)) {
+      return { blocked: true, reason: "Not designated for this case" };
+    }
+    if (!shareWithProviders) {
+      return { blocked: true, reason: "Client consent does not authorize provider sharing" };
+    }
   }
   
   return { blocked: false };
@@ -131,17 +182,19 @@ export function maskName(fullName: string): string {
 
 /**
  * Get the display name for a client based on the user's access level
+ * NOTE: Assumes theCase has a .client property (from full Case type)
  */
-export function getDisplayName(role: Role, theCase: Case, userId?: string): string {
-  if (hasIdentityAccess(role, theCase, userId)) {
-    return theCase.client.fullName || theCase.client.displayNameMasked || "Unknown";
+export function getDisplayName(role: Role, theCase: any, user?: User): string {
+  if (hasIdentityAccess(role, theCase, user)) {
+    return theCase.client?.fullName || theCase.client?.displayNameMasked || "Unknown";
   }
-  return theCase.client.displayNameMasked || maskName(theCase.client.fullName) || "Restricted";
+  return theCase.client?.displayNameMasked || maskName(theCase.client?.fullName || "") || "Restricted";
 }
 
 /**
  * Check if a role can search by name
  */
 export function canSearchByName(role: Role): boolean {
-  return ["ATTORNEY", "RN_CCM", "SUPER_USER", "SUPER_ADMIN"].includes(role);
+  const searchRoles: Role[] = [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
+  return searchRoles.includes(role);
 }

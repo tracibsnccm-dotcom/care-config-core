@@ -10,6 +10,7 @@ export function TestActions() {
   function createDemoCases() {
     const c1: Case = {
       id: "C-HEAD",
+      firmId: "firm-001",
       client: {
         rcmsId: "RCMS-1001",
         attyRef: "AT-7001",
@@ -40,6 +41,7 @@ export function TestActions() {
 
     const c2: Case = {
       id: "C-BACK",
+      firmId: "firm-001",
       client: {
         rcmsId: "RCMS-1002",
         attyRef: "AT-7002",
@@ -73,6 +75,7 @@ export function TestActions() {
 
     const c3: Case = {
       id: "C-CHIRO",
+      firmId: "firm-001",
       client: {
         rcmsId: "RCMS-1003",
         attyRef: "AT-7003",

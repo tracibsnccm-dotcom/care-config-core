@@ -5,6 +5,7 @@ export const ROLES = {
   ATTORNEY: "ATTORNEY",
   RN_CCM: "RN_CCM",
   STAFF: "STAFF",
+  RCMS_STAFF: "RCMS_STAFF",
   SUPER_USER: "SUPER_USER",
   SUPER_ADMIN: "SUPER_ADMIN",
 } as const;
@@ -143,6 +144,8 @@ export interface Checkin {
 
 export interface Case {
   id: string;
+  firmId: string;               // owner firm
+  designatedUserIds?: string[]; // case-level allow list
   onsetOfService?: string;
   client: Client;
   intake: Intake;

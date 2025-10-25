@@ -84,6 +84,7 @@ export default function IntakeWizard() {
     const masked = maskName(client.fullName || "");
     const newCase: Case = {
       id: "C-" + Math.random().toString(36).slice(2, 7).toUpperCase(),
+      firmId: "firm-001",
       client: { ...client, displayNameMasked: masked },
       intake,
       fourPs,
