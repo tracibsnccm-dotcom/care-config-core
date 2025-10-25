@@ -1,11 +1,8 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { NavLink } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Activity, Shield, Users } from "lucide-react";
 
 const Index = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
@@ -50,32 +47,45 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="text-center">
-          <Button
-            size="lg"
-            className="bg-accent hover:bg-accent-light text-accent-foreground px-8 py-6 text-lg mr-4"
-            onClick={() => navigate("/attorney")}
-          >
-            Attorney Portal
-          </Button>
-          <Button
-            size="lg"
-            className="px-8 py-6 text-lg mr-4 text-white hover:opacity-90"
-            style={{ backgroundColor: '#0f2a6a' }}
-            onClick={() => navigate("/client-portal")}
-          >
-            Client Portal
-          </Button>
-          <Button
-            size="lg"
-            className="px-8 py-6 text-lg text-white hover:opacity-90"
-            style={{ backgroundColor: '#00695c' }}
-            onClick={() => navigate("/intake")}
-          >
-            Client Intake
-          </Button>
+        <section className="flex flex-col items-center gap-5 mt-8 max-w-md mx-auto text-center">
+          <div>
+            <NavLink
+              to="/intake"
+              className="block w-full bg-[#00695C] text-white text-lg font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#00695C]"
+            >
+              Start Your Intake
+            </NavLink>
+            <p className="mt-2 text-sm text-gray-600">
+              Begin your case. Complete your intake form and consent securely.
+            </p>
+          </div>
+
+          <div>
+            <NavLink
+              to="/client-portal"
+              className="block w-full bg-[#0f2a6a] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#0f2a6a]"
+            >
+              Client Portal
+            </NavLink>
+            <p className="mt-2 text-sm text-gray-600">
+              Return to update your information or check your case progress.
+            </p>
+          </div>
+
+          <div>
+            <NavLink
+              to="/attorney"
+              className="block w-full bg-[#b85c00] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#b85c00]"
+            >
+              Attorney Portal
+            </NavLink>
+            <p className="mt-2 text-sm text-gray-600">
+              Access client files, case updates, and provider routing.
+            </p>
+          </div>
+
           <p className="text-white/60 text-sm mt-4">Demo Mode • No Authentication Required</p>
-        </div>
+        </section>
       </div>
     </div>
   );
