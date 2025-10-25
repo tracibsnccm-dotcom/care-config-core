@@ -11,7 +11,7 @@ const Index = () => {
             Reconcile <span className="text-[#d97706] font-bold">C.A.R.E.</span>
           </h1>
           <p className="text-3xl md:text-4xl font-extrabold text-white max-w-2xl mx-auto">
-            Comprehensive <span className="text-[#d97706]">Nursing</span> Care Management<br />
+            Comprehensive <span className="text-white">Nursing</span> Care Management<br />
             for Legal and Medical Coordination
           </p>
         </div>
@@ -20,11 +20,22 @@ const Index = () => {
         <section id="get-started" className="py-10 text-center">
           <h2 className="mb-2 text-3xl md:text-4xl font-extrabold">
             <span className="text-[#0f2a6a]">Get Started with </span>
-            <span className="text-[#d97706]">Reconcile C.A.R.E.</span>
+            <span className="text-white">Reconcile</span>
+            <span className="text-[#d97706]"> C.A.R.E.</span>
           </h2>
+
+          {/* Line 1: bold black prompt */}
+          <p className="text-black text-xl md:text-2xl font-bold mt-6 mb-2">
+            What would you like to do?
+          </p>
+
+          {/* Subtle teal divider under prompt */}
+          <div className="mx-auto w-20 h-0.5 bg-[#128f8b] mb-6 rounded-full" />
+
+          {/* Line 2-3: white explanatory paragraph */}
           <p className="text-white text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            Pick the button below that matches who you are. Start here to connect with your team. 
-            Our secure platform brings together clients, attorneys, and nurse care managers to keep everyone informed.
+            Start here to connect with your team. Our secure platform brings together clients,
+            attorneys, and nurse care managers to keep everyone informed.
           </p>
 
           <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
@@ -58,7 +69,7 @@ const Index = () => {
             <div>
               <NavLink
                 to="/attorney-portal"
-                className="block w-full bg-[#128f8b] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#128f8b]"
+                className="block w-full bg-[#d97706] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#d97706]"
               >
                 Attorney Portal
               </NavLink>
