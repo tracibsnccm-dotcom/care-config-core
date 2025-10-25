@@ -10,11 +10,22 @@ const Index = () => {
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
             Reconcile <span className="text-[#d97706] font-bold">C.A.R.E.</span>
           </h1>
-          <p className="text-3xl md:text-4xl font-extrabold text-white max-w-2xl mx-auto">
-            Comprehensive <span className="text-white">Nursing</span> Care Management<br />
-            for Legal and Medical Coordination
-          </p>
         </div>
+
+        {/* ─────────────── Hero Tagline (3-line centered layout) ─────────────── */}
+        <section id="hero" className="text-center py-10">
+          <h1 className="font-extrabold text-white leading-tight">
+            <span className="block text-3xl md:text-5xl">
+              Comprehensive Nursing Care Management
+            </span>
+            <span className="block text-2xl md:text-3xl my-1">
+              for
+            </span>
+            <span className="block text-3xl md:text-5xl">
+              Legal and Medical Coordination
+            </span>
+          </h1>
+        </section>
 
         {/* ─────────────── Get Started Section (above cards) ─────────────── */}
         <section id="get-started" className="py-10 text-center">
