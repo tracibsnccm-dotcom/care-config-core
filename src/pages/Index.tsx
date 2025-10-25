@@ -6,15 +6,16 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            Reconcile <span className="text-[#d97706] font-bold">C.A.R.E.</span>
-          </h1>
-        </div>
+        {/* ─────────────── Hero Section (reduced spacing, 3-line layout) ─────────────── */}
+        <section id="hero" className="text-center py-6">
+          {/* App name with tighter bottom margin */}
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-2">
+            <span className="text-white">Reconcile</span>
+            <span className="text-[#d97706]"> C.A.R.E.</span>
+          </h2>
 
-        {/* ─────────────── Hero Tagline (3-line centered layout) ─────────────── */}
-        <section id="hero" className="text-center py-10">
-          <h1 className="font-extrabold text-white leading-tight">
+          {/* Main headline split into three lines */}
+          <h1 className="font-extrabold text-white leading-tight mt-0">
             <span className="block text-3xl md:text-5xl">
               Comprehensive Nursing Care Management
             </span>
