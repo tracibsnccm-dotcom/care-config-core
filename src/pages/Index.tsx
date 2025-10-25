@@ -8,7 +8,7 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            Reconcile <span className="text-accent">C.A.R.E.</span>
+            Reconcile <span className="text-[#b85c00] font-bold">C.A.R.E.</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
             Comprehensive care management for legal and medical coordination
@@ -50,7 +50,7 @@ const Index = () => {
         {/* RCMS C.A.R.E. — Header + Buttons (Non-destructive, no background changes) */}
         <section id="rcms-landing-cta" className="py-10">
           <header className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-white">Reconcile C.A.R.E.</h2>
+            <h2 className="text-3xl font-bold text-white">Reconcile <span className="text-[#b85c00] font-bold">C.A.R.E.</span></h2>
             <p className="text-white/90 text-base mt-1">
               A secure platform connecting attorneys, clients, and clinical insight.
             </p>
