@@ -50,7 +50,7 @@ const Index = () => {
         <section className="flex flex-col items-center gap-5 mt-8 max-w-md mx-auto text-center">
           <div>
             <NavLink
-              to="/intake"
+              to="/client-intake"
               className="block w-full bg-[#00695C] text-white text-lg font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#00695C]"
             >
               Start Your Intake
@@ -67,19 +67,19 @@ const Index = () => {
             >
               Client Portal
             </NavLink>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-800">
               Return to update your information or check your case progress.
             </p>
           </div>
 
           <div>
             <NavLink
-              to="/attorney"
+              to="/attorney-portal"
               className="block w-full bg-[#b85c00] text-white font-medium py-2 px-5 rounded-lg hover:shadow-md transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#b85c00]"
             >
               Attorney Portal
             </NavLink>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-800">
               Access client files, case updates, and provider routing.
             </p>
           </div>
