@@ -6,16 +6,16 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        {/* ─────────────── Hero Section (balanced spacing, 3-line layout) ─────────────── */}
+        {/* ─────────────── Hero Section (with divider added) ─────────────── */}
         <section id="hero" className="text-center py-8">
-          {/* App name with balanced bottom margin */}
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+          {/* App name */}
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
             <span className="text-white">Reconcile</span>
             <span className="text-[#d97706]"> C.A.R.E.</span>
           </h2>
 
           {/* Main headline split into three lines */}
-          <h1 className="font-extrabold text-white leading-tight mt-1">
+          <h1 className="font-extrabold text-white leading-tight mt-2">
             <span className="block text-3xl md:text-5xl">
               Comprehensive Nursing Care Management
             </span>
@@ -26,6 +26,9 @@ const Index = () => {
               Legal and Medical Coordination
             </span>
           </h1>
+
+          {/* Teal divider between Hero and Get Started */}
+          <div className="mt-8 mx-auto w-24 h-0.5 bg-[#128f8b] rounded-full" />
         </section>
 
         {/* ─────────────── Get Started Section (above cards) ─────────────── */}
