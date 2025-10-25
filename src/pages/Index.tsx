@@ -11,17 +11,18 @@ const Index = () => {
             Reconcile <span className="text-[#d97706] font-bold">C.A.R.E.</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            Comprehensive care management for legal and medical coordination
+            Comprehensive <span className="text-[#d97706]">Nursing</span> Care Management for Legal and Medical Coordination
           </p>
         </div>
 
         {/* ─────────────── Get Started Section (above cards) ─────────────── */}
         <section id="get-started" className="py-10 text-center">
-          <h2 className="text-2xl font-bold text-[#0f2a6a] mb-2">
-            Get Started with <span className="text-[#d97706]">Reconcile C.A.R.E.</span>
+          <h2 className="mb-2 text-3xl md:text-4xl font-extrabold">
+            <span className="text-[#0f2a6a]">Get Started with </span>
+            <span className="text-white">Reconcile C.A.R.E.</span>
           </h2>
-          <p className="text-gray-700 text-base mb-8">
-            Choose your path below to begin — secure, compliant, and built to simplify collaboration between clients, attorneys, and care managers.
+          <p className="text-white text-base md:text-lg mb-8">
+            Choose your path below to begin — secure, compliant, and built to simplify collaboration between clients, attorneys, and nurse care managers.
           </p>
 
           <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
@@ -33,7 +34,7 @@ const Index = () => {
               >
                 Start Your Intake
               </NavLink>
-              <p className="mt-2 text-sm text-gray-900 font-semibold">
+              <p className="mt-2 text-sm md:text-base text-white font-semibold">
                 Begin your case and securely complete your intake and consent forms.
               </p>
             </div>
@@ -46,7 +47,7 @@ const Index = () => {
               >
                 Client Portal
               </NavLink>
-              <p className="mt-2 text-sm text-gray-900 font-semibold">
+              <p className="mt-2 text-sm md:text-base text-white font-semibold">
                 Log in to update information, submit follow-ups, or check your progress.
               </p>
             </div>
@@ -59,7 +60,7 @@ const Index = () => {
               >
                 Attorney Portal
               </NavLink>
-              <p className="mt-2 text-sm text-gray-900 font-semibold">
+              <p className="mt-2 text-sm md:text-base text-white font-semibold">
                 Access client files, review updates, and coordinate care in real time.
               </p>
             </div>
@@ -67,6 +68,16 @@ const Index = () => {
 
           {/* Divider before feature cards */}
           <div className="mt-10 mx-auto w-24 h-px bg-gray-300 rounded-full" />
+        </section>
+
+        {/* ─────────────── Cards Section Heading (adds context above cards) ─────────────── */}
+        <section id="platform-highlights" className="text-center mb-6">
+          <h3 className="text-2xl md:text-3xl font-bold text-white">
+            Platform Highlights
+          </h3>
+          <p className="text-white/90 text-base md:text-lg mt-1">
+            Built for privacy, clinical insight, and dependable provider routing.
+          </p>
         </section>
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
