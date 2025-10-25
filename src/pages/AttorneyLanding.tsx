@@ -9,6 +9,7 @@ import { RCMS_CONFIG } from "@/config/rcms";
 import { Case, CaseStatus } from "@/config/rcms";
 import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
+import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
 
 // Status color coding helper
 function getStatusColor(status: CaseStatus): {
@@ -259,6 +260,17 @@ export default function AttorneyLanding() {
             </div>
           </Card>
         </div>
+
+        {/* Pending Intakes Widget */}
+        <PendingIntakesWidget
+          currentFirmId="firm-001"
+          cases={cases as any}
+          onNudge={async (c) => {
+            const gasUrl = import.meta.env.VITE_GAS_URL;
+            await sendImmediateNudge({ webAppUrl: gasUrl }, c);
+            log("NUDGE_SENT", c.id);
+          }}
+        />
 
         {/* Case Tracking Sections */}
         <div className="space-y-6">

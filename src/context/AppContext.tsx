@@ -4,6 +4,7 @@ import { store, nextQuarterReset } from "@/lib/store";
 import { mockCases, mockProviders } from "@/lib/mockData";
 import { logAudit } from "@/lib/auditLog";
 import { isTrialActive, trialDaysRemaining, coerceTrialStartDate, TRIAL_DAYS } from "@/utils/trial";
+import { autoPurgeIncomplete } from "@/modules/rcms-intake-extras";
 
 type TierName = "Trial" | "Basic" | "Solo" | "Mid-Sized" | "Enterprise" | "Expired (Trial)" | "Inactive";
 
@@ -105,6 +106,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [trialStartDate, trialEndDate]);
+
+  // Auto-purge incomplete intakes on init
+  useEffect(() => {
+    const runPurge = async () => {
+      const gasUrl = import.meta.env.VITE_GAS_URL;
+      const { keep, purged } = await autoPurgeIncomplete({ webAppUrl: gasUrl }, cases as any);
+      if (purged.length > 0) {
+        setCases(keep as any);
+        console.log(`Auto-purged ${purged.length} incomplete intake(s) older than 7 days`);
+      }
+    };
+    runPurge();
+  }, []); // Run once on mount
 
   // Check trial expiration and update tier status using new helpers
   useEffect(() => {

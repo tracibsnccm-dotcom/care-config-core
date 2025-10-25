@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import {
 import { AlertCircle, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { maskName } from "@/lib/access";
+import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -99,11 +100,33 @@ export default function IntakeWizard() {
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     setCases((arr) => [newCase, ...arr]);
     log("INTAKE_SUBMIT", newCase.id);
+    
+    // Schedule client reminders via Google Apps Script
+    const gasUrl = import.meta.env.VITE_GAS_URL;
+    scheduleClientReminders({ webAppUrl: gasUrl }, newCase as any);
+    
     alert(`Case ${newCase.id} created. Status: ${newCase.status}`);
     navigate("/cases");
   }
 
   const requiredIncidentOk = !!intake.incidentDate && !!intake.incidentType;
+
+  // Calculate intake progress
+  const intakeMeta = useMemo(() => ({
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+    required: {
+      incident: !!intake.incidentDate && !!intake.incidentType,
+      injuries: intake.injuries.length > 0,
+      consent: consent.signed,
+    },
+    optional: {
+      fourPs: fourPs.physical !== 50 || fourPs.psychological !== 50 || fourPs.psychosocial !== 50 || fourPs.professional !== 50,
+      sdoh: sdoh.housing || sdoh.food || sdoh.transport || sdoh.insuranceGap,
+    },
+  }), [intake, consent, fourPs, sdoh]);
+
+  const progressPercent = useIntakePercent(intakeMeta);
 
   return (
     <AppLayout>
@@ -118,6 +141,11 @@ export default function IntakeWizard() {
           setStep={setStep}
           labels={["Consent", "Incident", "Treatment", "4Ps + SDOH", "Review"]}
         />
+
+        {/* Progress Bar */}
+        <div className="mt-4">
+          <IntakeProgressBar percent={progressPercent} />
+        </div>
 
         {/* Step 0: Consent */}
         {step === 0 && (
