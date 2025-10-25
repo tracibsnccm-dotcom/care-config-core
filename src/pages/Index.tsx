@@ -55,7 +55,7 @@ const Index = () => {
             >
               Start Your Intake
             </NavLink>
-            <p className="mt-2 text-sm text-[#00695C]">
+            <p className="mt-2 text-sm text-gray-800">
               Begin your case. Complete your intake form and consent securely.
             </p>
           </div>
