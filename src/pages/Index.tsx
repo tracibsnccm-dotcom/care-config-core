@@ -90,6 +90,9 @@ const Index = () => {
               </p>
             </div>
           </div>
+
+          {/* Teal divider after buttons */}
+          <div className="mt-10 mx-auto w-24 h-0.5 bg-[#128f8b] rounded-full" />
         </section>
 
         {/* ─────────────── Cards Section Heading (context above cards) ─────────────── */}
