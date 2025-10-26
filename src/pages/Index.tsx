@@ -5,7 +5,7 @@ import { Activity, Shield, Users } from "lucide-react";
 const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 pb-16">
         <style>
           {`
             #rcms-getstarted .rcms-card {
