@@ -251,8 +251,6 @@ const Index = () => {
             {/* Social placeholders (optional) */}
             <div className="mt-3 flex items-center gap-3">
               <a href="#" aria-label="LinkedIn" className="text-primary-foreground/80 hover:text-primary-foreground">LinkedIn</a>
-              <span aria-hidden="true" className="text-primary-foreground/30">•</span>
-              <a href="#" aria-label="Twitter" className="text-primary-foreground/80 hover:text-primary-foreground">X/Twitter</a>
             </div>
           </div>
         </div>
