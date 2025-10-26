@@ -25,35 +25,31 @@ const Index = () => {
             }
             #rcms-getstarted a.rcms-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
 
-            /* CTA: Client Intake — clearly larger */
+            /* CTA: Client Intake — prominent but fits on one line */
             #rcms-getstarted a.cta-intake {
               background:#00695c !important;
               font-weight:800 !important;
-              font-size:1.45rem !important;
-              padding:1.15rem 2.8rem !important;
-              min-width:15rem !important;
+              font-size:1.25rem !important;
+              padding:1rem 2.2rem !important;
             }
             @media (min-width: 768px){
               #rcms-getstarted a.cta-intake {
-                font-size:1.55rem !important;
-                padding:1.2rem 3.1rem !important;
-                min-width:17rem !important;
+                font-size:1.35rem !important;
+                padding:1.05rem 2.4rem !important;
               }
             }
             #rcms-getstarted a.cta-intake:hover { background:#00897b !important; }
 
-            /* Slim Long style for the other three */
+            /* Slim Long style for the other three (proportional sizing) */
             #rcms-getstarted a.btn-slim {
               font-weight:700 !important;
-              font-size:1.05rem !important;
-              padding:0.65rem 1.9rem !important;
-              min-width:12.5rem !important;
+              font-size:0.98rem !important;
+              padding:0.55rem 1.25rem !important;
             }
             @media (min-width: 768px){
               #rcms-getstarted a.btn-slim {
-                font-size:1.1rem !important;
-                padding:0.7rem 2.2rem !important;
-                min-width:13.5rem !important;
+                font-size:1rem !important;
+                padding:0.6rem 1.35rem !important;
               }
             }
 
