@@ -174,7 +174,7 @@ const Index = () => {
         </section>
 
         {/* ─────────────── Cards Section Heading (context above cards) ─────────────── */}
-        <section id="platform-highlights" className="text-center mb-6">
+        <section id="platform-highlights" className="text-center mb-6 mt-16">
           <h3 className="text-2xl md:text-3xl font-bold text-primary-foreground">
             Platform Highlights
           </h3>
