@@ -196,10 +196,10 @@ const Index = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <a href="/intake" className="rcms-btn cta-intake" style={{ fontSize:'1rem', padding:'0.75rem 1.25rem' }}>Client Intake</a>
             <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
             <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
             <a href="/provider-portal" className="rcms-btn btn-provider-portal">Provider Portal</a>
-            <a href="/intake" className="rcms-btn cta-intake" style={{ fontSize:'1rem', padding:'0.75rem 1.25rem' }}>Client Intake</a>
           </div>
         </div>
 
