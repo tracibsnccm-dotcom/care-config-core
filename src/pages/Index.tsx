@@ -6,69 +6,114 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        {/* ===================== FIXED GET STARTED SECTION ===================== */}
-        <section className="text-center py-16 px-6 bg-gradient-to-b from-secondary via-primary to-secondary">
+        <style>
+          {`
+            /* SCOPED OVERRIDES (very specific + !important) */
+            #rcms-getstarted h3 .rcms-gs-prefix { color:#0f2a6a !important; }  /* "Get Started with" */
+            #rcms-getstarted a.rcms-btn { 
+              display:inline-block !important; 
+              color:#ffffff !important; 
+              border-radius:0.75rem !important; 
+              box-shadow:0 6px 18px rgba(0,0,0,0.25) !important; 
+              text-decoration:none !important;
+              transition:transform .15s ease, filter .2s ease !important;
+            }
+            #rcms-getstarted a.rcms-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
+
+            /* Intake = PRIMARY & BIGGER */
+            #rcms-getstarted a.cta-intake {
+              background:#00695c !important;
+              padding:1rem 2rem !important;                /* bigger */
+              font-size:1.25rem !important;                /* ~text-xl */
+              font-weight:700 !important;
+            }
+            @media (min-width: 768px){
+              #rcms-getstarted a.cta-intake { 
+                padding:1.1rem 2.5rem !important; 
+                font-size:1.35rem !important;              /* clearly larger on md+ */
+              }
+            }
+            #rcms-getstarted a.cta-intake:hover { background:#00897b !important; }
+
+            /* Client Portal = Navy */
+            #rcms-getstarted a.btn-client-portal, 
+            #rcms-footer  a.btn-client-portal {
+              background:#0f2a6a !important;
+              padding:0.75rem 1.25rem !important;
+              font-size:1rem !important;
+              font-weight:600 !important;
+            }
+            #rcms-getstarted a.btn-client-portal:hover,
+            #rcms-footer  a.btn-client-portal:hover { background:#1a3f8b !important; }
+
+            /* Attorney Portal = Orange */
+            #rcms-getstarted a.btn-attorney-portal, 
+            #rcms-footer  a.btn-attorney-portal {
+              background:#ff8c42 !important;
+              padding:0.75rem 1.25rem !important;
+              font-size:1rem !important;
+              font-weight:600 !important;
+            }
+            #rcms-getstarted a.btn-attorney-portal:hover,
+            #rcms-footer  a.btn-attorney-portal:hover { background:#ff9f5c !important; }
+
+            /* Provider Portal = Eggplant */
+            #rcms-getstarted a.btn-provider-portal, 
+            #rcms-footer  a.btn-provider-portal {
+              background:#4b2e83 !important;
+              padding:0.75rem 1.25rem !important;
+              font-size:1rem !important;
+              font-weight:600 !important;
+            }
+            #rcms-getstarted a.btn-provider-portal:hover,
+            #rcms-footer  a.btn-provider-portal:hover { background:#5a36a5 !important; }
+
+            /* Get Started card border */
+            #rcms-getstarted .rcms-card {
+              border:2px solid rgba(255,255,255,0.2) !important;
+              border-radius:1rem !important;
+              background:rgba(255,255,255,0.05) !important;
+              backdrop-filter: blur(4px) !important;
+            }
+          `}
+        </style>
+
+        {/* ===================== HERO + GET STARTED ===================== */}
+        <section id="rcms-getstarted" className="text-center py-16 px-6 bg-gradient-to-b from-[#0f2a6a] via-[#128f8b] to-[#0f2a6a]">
           {/* Hero */}
-          <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2 tracking-tight">
-            Reconcile <span className="text-accent">C.A.R.E.</span>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+            Reconcile <span className="text-[#ff8c42]">C.A.R.E.</span>
           </h1>
-          <h2 className="text-2xl md:text-3xl font-semibold text-primary-foreground leading-snug mb-6">
+          <h2 className="text-2xl md:text-3xl font-semibold text-white leading-snug mb-6">
             Comprehensive Nursing Care Management<br />
             <span className="text-lg font-normal">for</span><br />
             Legal and Medical Coordination
           </h2>
 
           {/* Divider */}
-          <div className="border-t border-border w-2/3 mx-auto my-8"></div>
+          <div className="border-t border-white/30 w-2/3 mx-auto my-8"></div>
 
-          {/* Get Started Box */}
-          <div className="border-2 border-border rounded-2xl shadow-lg bg-card/10 backdrop-blur-sm p-8 max-w-4xl mx-auto">
+          {/* Get Started (with border & forced colors) */}
+          <div className="rcms-card p-8 max-w-4xl mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold mb-4">
-              <span className="text-secondary">Get&nbsp;Started&nbsp;with</span>{' '}
-              <span className="text-primary-foreground">Reconcile</span>{' '}
-              <span className="text-accent">C.A.R.E.</span>
+              <span className="rcms-gs-prefix">Get&nbsp;Started&nbsp;with</span>{' '}
+              <span className="text-white">Reconcile</span>{' '}
+              <span className="text-[#ff8c42]">C.A.R.E.</span>
             </h3>
 
             {/* Instruction */}
-            <p className="text-foreground font-bold text-lg mb-3">What would you like to do?</p>
-            <p className="text-primary-foreground text-base md:text-lg mb-8">
+            <p className="text-black font-bold text-lg mb-3">What would you like to do?</p>
+            <p className="text-white text-base md:text-lg mb-8">
               Start here to connect with your team. Our secure platform brings together
               clients, attorneys, and nurse care managers to keep everyone informed.
             </p>
 
-            {/* Buttons */}
+            {/* Buttons (colors forced via CSS above) */}
             <div className="flex flex-col md:flex-row flex-wrap justify-center gap-4">
-              {/* Client Intake */}
-              <a
-                href="/intake"
-                className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg px-8 py-4 rounded-xl shadow-md transition-all duration-200"
-              >
-                Client Intake
-              </a>
-
-              {/* Client Portal */}
-              <a
-                href="/client-portal"
-                className="inline-block bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
-              >
-                Client Portal
-              </a>
-
-              {/* Attorney Portal */}
-              <a
-                href="/attorney-portal"
-                className="inline-block bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
-              >
-                Attorney Portal
-              </a>
-
-              {/* Provider Portal */}
-              <a
-                href="/provider-portal"
-                className="inline-block bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
-              >
-                Provider Portal
-              </a>
+              <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
+              <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
+              <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
+              <a href="/provider-portal" className="rcms-btn btn-provider-portal">Provider Portal</a>
             </div>
           </div>
         </section>
@@ -118,56 +163,34 @@ const Index = () => {
         <p className="text-primary-foreground/60 text-sm text-center mt-8">Demo Mode • No Authentication Required</p>
       </div>
 
-      {/* ===================== FOOTER ===================== */}
-      <footer className="mt-16 bg-gradient-to-b from-secondary via-secondary/90 to-secondary text-primary-foreground/90" aria-label="Site footer">
-        {/* Top strip: brand + tagline */}
+      {/* ===================== FOOTER (forced button colors) ===================== */}
+      <footer id="rcms-footer" className="mt-16 bg-gradient-to-b from-[#0f2a6a] via-[#0e385f] to-[#0f2a6a] text-white/90" aria-label="Site footer">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <h3 className="text-2xl font-extrabold tracking-tight">
-              Reconcile <span className="text-accent">C.A.R.E.</span>
+              Reconcile <span className="text-[#ff8c42]">C.A.R.E.</span>
             </h3>
-            <p className="text-sm text-primary-foreground/80 mt-1">
+            <p className="text-sm text-white/80 mt-1">
               Comprehensive Nursing Care Management for Legal and Medical Coordination
             </p>
           </div>
 
-          {/* Quick actions (ensure colors match buttons above) */}
           <div className="flex flex-wrap gap-3">
-            <a
-              href="/attorney-portal"
-              className="inline-block bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
-            >
-              Attorney Portal
-            </a>
-            <a
-              href="/client-portal"
-              className="inline-block bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
-            >
-              Client Portal
-            </a>
-            <a
-              href="/provider-portal"
-              className="inline-block bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
-            >
-              Provider Portal
-            </a>
-            <a
-              href="/intake"
-              className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
-            >
-              Client Intake
-            </a>
+            <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
+            <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
+            <a href="/provider-portal" className="rcms-btn btn-provider-portal">Provider Portal</a>
+            <a href="/intake" className="rcms-btn cta-intake" style={{ fontSize:'1rem', padding:'0.75rem 1.25rem' }}>Client Intake</a>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-border/20" />
+        <div className="border-t border-white/20" />
 
         {/* Link columns */}
         <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company */}
           <div>
-            <h4 className="text-primary-foreground font-semibold mb-3">Reconcile Care Management Services</h4>
+            <h4 className="text-white font-semibold mb-3">Reconcile Care Management Services</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/about" className="hover:underline">About RCMS</a></li>
               <li><a href="/contact" className="hover:underline">Contact</a></li>
@@ -178,7 +201,7 @@ const Index = () => {
 
           {/* Compliance */}
           <div>
-            <h4 className="text-primary-foreground font-semibold mb-3">Compliance</h4>
+            <h4 className="text-white font-semibold mb-3">Compliance</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/hipaa-notice" className="hover:underline">HIPAA Notice of Privacy Practices</a></li>
               <li><a href="/privacy" className="hover:underline">Privacy Policy</a></li>
@@ -189,7 +212,7 @@ const Index = () => {
 
           {/* Product */}
           <div>
-            <h4 className="text-primary-foreground font-semibold mb-3">Product</h4>
+            <h4 className="text-white font-semibold mb-3">Product</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/security" className="hover:underline">Security &amp; Data Retention</a></li>
               <li><a href="/accessibility" className="hover:underline">Accessibility (WCAG 2.1 AA)</a></li>
@@ -200,22 +223,22 @@ const Index = () => {
 
           {/* Support */}
           <div>
-            <h4 className="text-primary-foreground font-semibold mb-3">Support</h4>
+            <h4 className="text-white font-semibold mb-3">Support</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="mailto:support@reconcilecms.com" className="hover:underline">support@reconcilecms.com</a></li>
               <li><a href="tel:+1-555-555-1212" className="hover:underline">+1 (555) 555-1212</a></li>
-              <li className="text-primary-foreground/75">Mon–Fri, 9am–5pm CT</li>
+              <li className="text-white/75">Mon–Fri, 9am–5pm CT</li>
             </ul>
             <div className="mt-3 flex items-center gap-3">
-              <a href="#" aria-label="LinkedIn" className="text-primary-foreground/80 hover:text-primary-foreground">LinkedIn</a>
+              <a href="#" aria-label="LinkedIn" className="text-white/80 hover:text-white">LinkedIn</a>
             </div>
           </div>
         </div>
 
         {/* Mini disclaimer */}
         <div className="max-w-7xl mx-auto px-6 pb-6">
-          <div className="rounded-xl bg-card/10 border border-border/15 p-4">
-            <p className="text-xs text-primary-foreground/80">
+          <div className="rounded-xl bg-white/5 border border-white/15 p-4">
+            <p className="text-xs text-white/80">
               <strong>Notice:</strong> Reconcile C.A.R.E. is designed with privacy by default. Do not include PHI in URLs, email, or SMS.
               Minimum necessary data is collected. Access to sensitive cases is restricted by role and consent.
             </p>
@@ -223,10 +246,10 @@ const Index = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-border/15">
-          <div className="max-w-7xl mx-auto px-6 py-4 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-primary-foreground/70">
+        <div className="border-t border-white/15">
+          <div className="max-w-7xl mx-auto px-6 py-4 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-white/70">
             <p>© {new Date().getFullYear()} Reconcile Care Management Services. All rights reserved.</p>
-            <p className="text-primary-foreground/70">Built for attorneys, clients, and nurse care managers — secure, auditable, and HIPAA-aware.</p>
+            <p className="text-white/70">Built for attorneys, clients, and nurse care managers — secure, auditable, and HIPAA-aware.</p>
           </div>
         </div>
       </footer>
