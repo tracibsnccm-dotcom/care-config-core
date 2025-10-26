@@ -218,8 +218,188 @@ const Index = () => {
         <p className="text-primary-foreground/60 text-sm text-center mt-8">Demo Mode • No Authentication Required</p>
       </div>
 
-      {/* ===================== FOOTER (forced button colors) ===================== */}
-      <footer id="rcms-footer" className="mt-16 bg-gradient-to-b from-[#0f2a6a] via-[#0e385f] to-[#0f2a6a] text-white/90" aria-label="Site footer">
+      {/* ===================== RCMS Reserved Modules + RN Dash Placeholders + Footer ===================== */}
+
+      {/* ===== Reserved Future Modules Section (placeholders only) ===== */}
+      <section id="rcms-reserved" className="py-16 px-6 bg-gradient-to-b from-[#0f2a6a] via-[#128f8b] to-[#0f2a6a] text-white">
+        <div className="max-w-7xl mx-auto">
+          {/* Section heading */}
+          <header className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Coming Soon to Reconcile <span className="text-[#ff8c42]">C.A.R.E.</span></h2>
+            <p className="mt-3 text-white/90 max-w-2xl mx-auto">
+              We're reserving space for key enhancements. These modules will activate once server endpoints and content are connected.
+            </p>
+          </header>
+
+          {/* Grid of reserved modules */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1) Explainer Video Placeholder */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">🎥 Intake & Portal Explainer Video</h3>
+              <p className="text-white/90 mb-4">
+                A short walkthrough for clients and attorneys covering intake, portals, and how to navigate the system.
+              </p>
+              <div className="aspect-video rounded-lg border border-white/20 bg-black/30 flex items-center justify-center">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                  aria-label="Video placeholder"
+                >
+                  <span className="inline-block w-0 h-0 border-t-[10px] border-b-[10px] border-l-[16px] border-t-transparent border-b-transparent border-l-white" />
+                  <span className="text-white/90 font-semibold">Video Placeholder</span>
+                </button>
+              </div>
+              <p className="mt-3 text-sm text-white/70">Reserved space • Upload/Embed when ready (no PHI in titles or captions).</p>
+            </div>
+
+            {/* 2) Savings / ROI Calculator Placeholder */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">📈 Attorney Savings / ROI Calculator</h3>
+              <p className="text-white/90 mb-4">
+                Estimate cost savings and outcome impact when partnering with RN Care Management on personal injury or workers' comp cases.
+              </p>
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-white/80 mb-1">Avg. Case Volume / Month</label>
+                    <input className="w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white" placeholder="e.g., 10" disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/80 mb-1">Avg. Case Value ($)</label>
+                    <input className="w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white" placeholder="e.g., 25,000" disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/80 mb-1">RN CM Tier</label>
+                    <select className="w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white" disabled>
+                      <option>Trial</option>
+                      <option>Basic</option>
+                      <option>Solo</option>
+                      <option>Mid-Sized</option>
+                      <option>Enterprise</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/80 mb-1">Assumed Efficiency Gain (%)</label>
+                    <input className="w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white" placeholder="e.g., 8%" disabled />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-sm text-white/70">* Inputs disabled until calculator goes live.</span>
+                  <button className="px-4 py-2 rounded-lg bg-white/10 text-white/80" disabled>Calculate</button>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-white/70">Reserved space • Wire to simple JS or backend function later.</p>
+            </div>
+
+            {/* 3) Nurse Portal Module — Individual RN "My Metrics" */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">🩺 RN Portal — My Quality Metrics</h3>
+              <p className="text-white/90 mb-4">
+                Private dashboard for each RN Case Manager. Shows personal performance vs. targets (weekly & monthly).
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Example metric tiles (placeholders) */}
+                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                  <div className="text-sm text-white/80">Timeliness of Notes</div>
+                  <div className="mt-1 text-2xl font-extrabold text-white">95%</div>
+                  <div className="mt-2 h-2 rounded bg-white/10">
+                    <div className="h-2 rounded bg-green-500" style={{ width: '95%' }} />
+                  </div>
+                  <div className="mt-2 text-xs text-white/70">Target ≥ 95% • You're on track</div>
+                </div>
+                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                  <div className="text-sm text-white/80">Follow-Up Calls Completed</div>
+                  <div className="mt-1 text-2xl font-extrabold text-white">88%</div>
+                  <div className="mt-2 h-2 rounded bg-white/10">
+                    <div className="h-2 rounded bg-yellow-400" style={{ width: '88%' }} />
+                  </div>
+                  <div className="mt-2 text-xs text-white/70">Target ≥ 92% • Improve this week</div>
+                </div>
+                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                  <div className="text-sm text-white/80">Medication Reconciliation</div>
+                  <div className="mt-1 text-2xl font-extrabold text-white">90%</div>
+                  <div className="mt-2 h-2 rounded bg-white/10">
+                    <div className="h-2 rounded bg-green-500" style={{ width: '90%' }} />
+                  </div>
+                  <div className="mt-2 text-xs text-white/70">Target ≥ 90% • Meets goal</div>
+                </div>
+                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                  <div className="text-sm text-white/80">Care Plans Up-to-Date</div>
+                  <div className="mt-1 text-2xl font-extrabold text-white">92%</div>
+                  <div className="mt-2 h-2 rounded bg-white/10">
+                    <div className="h-2 rounded bg-green-500" style={{ width: '92%' }} />
+                  </div>
+                  <div className="mt-2 text-xs text-white/70">Target ≥ 92% • On target</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-white/70">
+                Weekly vs. Monthly trend lines will appear here • Individual RN access only.
+              </div>
+            </div>
+
+            {/* 4) Nurse Portal Module — Team Quality Metrics (Supervisor) */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">🩺 RN Portal — Team Quality Metrics (Supervisor)</h3>
+              <p className="text-white/90 mb-4">
+                Supervisor view: compare RN performance, drill into details, and identify areas needing support.
+              </p>
+              <div className="overflow-x-auto rounded-lg border border-white/20 bg-white/10">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-white/10 text-white/80">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">RN</th>
+                      <th className="text-left px-4 py-2 font-semibold">Notes ≤24h</th>
+                      <th className="text-left px-4 py-2 font-semibold">Follow-Ups</th>
+                      <th className="text-left px-4 py-2 font-semibold">Med Rec</th>
+                      <th className="text-left px-4 py-2 font-semibold">Care Plans</th>
+                      <th className="text-left px-4 py-2 font-semibold">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: 'RN A', notes: 97, fu: 93, med: 91, cp: 95, score: 94 },
+                      { name: 'RN B', notes: 92, fu: 88, med: 90, cp: 89, score: 90 },
+                      { name: 'RN C', notes: 89, fu: 85, med: 87, cp: 86, score: 87 },
+                    ].map((r, i) => (
+                      <tr key={i} className="border-t border-white/10">
+                        <td className="px-4 py-2">{r.name}</td>
+                        <td className="px-4 py-2">{r.notes}%</td>
+                        <td className="px-4 py-2">{r.fu}%</td>
+                        <td className="px-4 py-2">{r.med}%</td>
+                        <td className="px-4 py-2">{r.cp}%</td>
+                        <td className="px-4 py-2 font-semibold">{r.score}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 text-sm text-white/70">Supervisor-only access • Alerts for &gt;48h overdue notes will surface here.</div>
+            </div>
+
+            {/* 5) Privacy / Consent Statement (Modal placeholder) */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm lg:col-span-2">
+              <h3 className="text-xl font-bold mb-2">📜 Privacy & Consent</h3>
+              <p className="text-white/90">
+                Reconcile C.A.R.E. uses privacy by design — minimum necessary data, no PHI in URLs, and consent-gated sharing.
+                This is a placeholder for the consent notice/modal link. It will appear on first visit and in the footer.
+              </p>
+              <button
+                type="button"
+                className="mt-4 inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white/80"
+                aria-disabled="true"
+                disabled
+              >
+                Open Consent Notice (Preview)
+              </button>
+              <p className="mt-2 text-sm text-white/70">Reserved space • Wire to your consent content and acknowledgment audit later.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Footer (rebuilt with four columns and correct links/colors) ===== */}
+      <footer id="rcms-footer" className="bg-gradient-to-b from-[#0f2a6a] via-[#0e385f] to-[#0f2a6a] text-white/90" aria-label="Site footer">
+        {/* Top strip: brand + quick actions */}
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <h3 className="text-2xl font-extrabold tracking-tight">
@@ -229,64 +409,62 @@ const Index = () => {
               Comprehensive Nursing Care Management for Legal and Medical Coordination
             </p>
           </div>
-
-          <div className="flex flex-nowrap gap-3">
-            <a href="/intake" className="rcms-btn cta-intake" style={{ fontSize:'1rem', padding:'0.75rem 1.25rem' }}>Client Intake</a>
-            <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
-            <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
-            <a href="/provider-portal" className="rcms-btn btn-provider-portal">Provider Portal</a>
+          <div className="flex flex-wrap gap-3">
+            <a href="/attorney-portal" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</a>
+            <a href="/client-portal"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</a>
+            <a href="/provider-portal" className="inline-block bg-[#4b2e83] hover:bg-[#5a36a5] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Provider Portal</a>
+            <a href="/intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
           </div>
         </div>
 
         {/* Divider */}
         <div className="border-t border-white/20" />
 
-        {/* Link columns */}
+        {/* Four columns */}
         <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company */}
+          {/* Column 1 — RCMS Info */}
           <div>
             <h4 className="text-white font-semibold mb-3">Reconcile Care Management Services</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/about" className="hover:underline">About RCMS</a></li>
-              <li><a href="/contact" className="hover:underline">Contact</a></li>
-              <li><a href="/pricing" className="hover:underline">Pricing &amp; Tiers</a></li>
-              <li><a href="/faq" className="hover:underline">FAQ</a></li>
+              <li><a href="/mission" className="hover:underline">Our Mission</a></li>
+              <li><a href="/standards" className="hover:underline">Care Standards</a></li>
+              <li className="text-white/70 italic mt-2">"Where Clinical Insight Meets Legal Advocacy."</li>
             </ul>
           </div>
 
-          {/* Compliance */}
+          {/* Column 2 — Portals & Access */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Compliance</h4>
+            <h4 className="text-white font-semibold mb-3">Portals &amp; Access</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/hipaa-notice" className="hover:underline">HIPAA Notice of Privacy Practices</a></li>
+              <li><a href="/intake" className="hover:underline">Client Intake</a></li>
+              <li><a href="/client-portal" className="hover:underline">Client Portal</a></li>
+              <li><a href="/attorney-portal" className="hover:underline">Attorney Portal</a></li>
+              <li><a href="/provider-portal" className="hover:underline">Provider Portal</a></li>
+              <li><span className="text-white/60">RN Portal (coming soon)</span></li>
+            </ul>
+          </div>
+
+          {/* Column 3 — Legal & Compliance */}
+          <div>
+            <h4 className="text-white font-semibold mb-3">Legal &amp; Compliance</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="/baa" className="hover:underline">Business Associate Agreement</a></li>
+              <li><a href="/security" className="hover:underline">Security &amp; Data Retention</a></li>
               <li><a href="/privacy" className="hover:underline">Privacy Policy</a></li>
               <li><a href="/terms" className="hover:underline">Terms of Service</a></li>
-              <li><a href="/baa" className="hover:underline">Business Associate Agreement</a></li>
             </ul>
           </div>
 
-          {/* Product */}
+          {/* Column 4 — System & Support */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Product</h4>
+            <h4 className="text-white font-semibold mb-3">System &amp; Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/security" className="hover:underline">Security &amp; Data Retention</a></li>
               <li><a href="/accessibility" className="hover:underline">Accessibility (WCAG 2.1 AA)</a></li>
               <li><a href="/roadmap" className="hover:underline">Roadmap</a></li>
               <li><a href="/status" className="hover:underline">System Status</a></li>
+              <li><a href="/contact" className="hover:underline">Contact Us</a> &nbsp;•&nbsp; <a href="/faq" className="hover:underline">FAQ</a></li>
             </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="text-white font-semibold mb-3">Support</h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="mailto:support@reconcilecms.com" className="hover:underline">support@reconcilecms.com</a></li>
-              <li><a href="tel:+1-555-555-1212" className="hover:underline">+1 (555) 555-1212</a></li>
-              <li className="text-white/75">Mon–Fri, 9am–5pm CT</li>
-            </ul>
-            <div className="mt-3 flex items-center gap-3">
-              <a href="#" aria-label="LinkedIn" className="text-white/80 hover:text-white">LinkedIn</a>
-            </div>
           </div>
         </div>
 
@@ -304,7 +482,7 @@ const Index = () => {
         <div className="border-t border-white/15">
           <div className="max-w-7xl mx-auto px-6 py-4 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-white/70">
             <p>© {new Date().getFullYear()} Reconcile Care Management Services. All rights reserved.</p>
-            <p className="text-white/70">Built for attorneys, clients, and nurse care managers — secure, auditable, and HIPAA-aware.</p>
+            <p className="text-white/70">Built for clients, attorneys, and nurse care managers — secure, auditable, and HIPAA-aware.</p>
           </div>
         </div>
       </footer>
