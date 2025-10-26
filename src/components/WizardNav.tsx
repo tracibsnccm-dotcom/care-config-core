@@ -5,9 +5,10 @@ interface WizardNavProps {
   step: number;
   setStep: (step: number) => void;
   last: number;
+  canAdvance?: boolean;
 }
 
-export function WizardNav({ step, setStep, last }: WizardNavProps) {
+export function WizardNav({ step, setStep, last, canAdvance = true }: WizardNavProps) {
   return (
     <div className="flex items-center justify-between pt-4 border-t border-border">
       <Button
@@ -23,7 +24,7 @@ export function WizardNav({ step, setStep, last }: WizardNavProps) {
       </span>
       <Button
         onClick={() => setStep(Math.min(last, step + 1))}
-        disabled={step === last}
+        disabled={step === last || !canAdvance}
       >
         Next
         <ArrowRight className="w-4 h-4 ml-2" />

@@ -98,6 +98,11 @@ export interface Intake {
   initialTreatment: InitialTreatment;
   injuries: string[];
   severitySelfScore: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  // Medical information (from MedsConditionsSection)
+  conditions?: string;
+  medList?: string;
+  allergies?: string;
+  medsAttested?: boolean;
 }
 
 export interface FourPs {

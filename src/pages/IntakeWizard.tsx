@@ -29,6 +29,7 @@ import { AlertCircle, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
+import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -72,6 +73,14 @@ export default function IntakeWizard() {
     insuranceGap: false,
   });
 
+  const [medsBlock, setMedsBlock] = useState({ 
+    conditions: "",
+    meds: "",
+    allergies: "",
+    attested: false,
+    valid: false 
+  });
+
   const addOrRemoveInjury = (txt: string) => {
     setIntake((v) => ({
       ...v,
@@ -87,7 +96,14 @@ export default function IntakeWizard() {
       id: "C-" + Math.random().toString(36).slice(2, 7).toUpperCase(),
       firmId: "firm-001",
       client: { ...client, displayNameMasked: masked },
-      intake,
+      intake: {
+        ...intake,
+        // Include medical info from medsBlock
+        conditions: medsBlock.conditions,
+        medList: medsBlock.meds,
+        allergies: medsBlock.allergies,
+        medsAttested: medsBlock.attested,
+      },
       fourPs,
       sdoh,
       consent: { ...consent, restrictedAccess: sensitiveTag || consent.restrictedAccess },
@@ -139,7 +155,7 @@ export default function IntakeWizard() {
         <Stepper
           step={step}
           setStep={setStep}
-          labels={["Consent", "Incident", "Treatment", "4Ps + SDOH", "Review"]}
+          labels={["Consent", "Incident", "Treatment", "Medical Info", "4Ps + SDOH", "Review"]}
         />
 
         {/* Progress Bar */}
@@ -325,8 +341,18 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        {/* Step 3: 4Ps & SDOH */}
+        {/* Step 3: Medical Info (Conditions, Medications, Allergies) */}
         {step === 3 && (
+          <Card className="p-6 border-border">
+            <IntakeMedConditionsSection
+              initial={medsBlock}
+              onValidChange={setMedsBlock}
+            />
+          </Card>
+        )}
+
+        {/* Step 4: 4Ps & SDOH */}
+        {step === 4 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">
               Optional 4Ps & SDOH (complete within 24–72 hours)
@@ -374,8 +400,8 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        {/* Step 4: Review */}
-        {step === 4 && (
+        {/* Step 5: Review */}
+        {step === 5 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
@@ -420,14 +446,19 @@ export default function IntakeWizard() {
               <Button onClick={submit} aria-label="Submit intake">
                 Submit Intake
               </Button>
-              <Button variant="secondary" onClick={() => setStep(3)}>
+              <Button variant="secondary" onClick={() => setStep(4)}>
                 Back
               </Button>
             </div>
           </Card>
         )}
 
-        <WizardNav step={step} setStep={setStep} last={4} />
+        <WizardNav 
+          step={step} 
+          setStep={setStep} 
+          last={5}
+          canAdvance={step === 3 ? medsBlock.valid : true}
+        />
       </div>
     </AppLayout>
   );

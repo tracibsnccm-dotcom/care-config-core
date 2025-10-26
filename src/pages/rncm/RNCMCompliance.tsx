@@ -4,6 +4,7 @@ import { ROLES, FEATURE } from "@/lib/rcms-core";
 import { canAccess } from "@/lib/access";
 import { AppLayout } from "@/components/AppLayout";
 import { AlertCircle } from "lucide-react";
+import { RNNotesMedConditionsSection } from "@/components/MedsConditionsSection";
 
 /* ───────────────────────────── CONFIG (edit in one place) ───────────────────────────── */
 const RNCM_CONFIG = {
@@ -656,6 +657,15 @@ export default function RNCM_Compliance_Demo() {
   const visitDateISO = new Date(Date.now() - 26 * 3600 * 1000).toISOString(); // 26h ago → Yellow
   const carePlanInitiatedAtISO = new Date().toISOString();
 
+  // State for RN meds/conditions section
+  const [rnMedsBlock, setRnMedsBlock] = useState({ 
+    conditions: "",
+    meds: "",
+    allergies: "",
+    attested: false,
+    valid: false 
+  });
+
   return (
     <AppLayout>
       <div className="p-6 bg-background min-h-screen">
@@ -690,6 +700,28 @@ export default function RNCM_Compliance_Demo() {
                 // TODO: persist; set status=Initiated
               }}
             />
+          </div>
+
+          {/* 2.5) RN Notes — Conditions, Medications & Allergies */}
+          <div className="rounded-2xl border border-border p-6 bg-card">
+            <RNNotesMedConditionsSection
+              initial={rnMedsBlock}
+              required={true}
+              onValidChange={setRnMedsBlock}
+            />
+            {rnMedsBlock.valid && (
+              <div className="mt-4">
+                <button
+                  className="rounded-lg px-4 py-2 font-semibold text-white bg-[hsl(var(--primary))] hover:brightness-110"
+                  onClick={() => {
+                    console.log("RN MEDS/CONDITIONS SAVED", rnMedsBlock);
+                    // TODO: persist to case
+                  }}
+                >
+                  Save RN Documentation
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 3) Required Call Task after plan initiation */}
