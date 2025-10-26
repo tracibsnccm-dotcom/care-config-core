@@ -21,6 +21,7 @@ import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import { ClientPortalRoute } from "./modules/rcms-client-portal-tab";
 import RNCMCompliance from "./pages/rncm/RNCMCompliance";
+import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/rn-cm/compliance" element={<RNCMCompliance />} />
+            <Route path="/rn-cm/quality" element={<RNQualityDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
