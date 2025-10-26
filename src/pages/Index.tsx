@@ -6,7 +6,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        {/* ===================== HERO + GET STARTED ===================== */}
+        {/* ===================== FIXED GET STARTED SECTION ===================== */}
         <section className="text-center py-16 px-6 bg-gradient-to-b from-secondary via-primary to-secondary">
           {/* Hero */}
           <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2 tracking-tight">
@@ -21,25 +21,24 @@ const Index = () => {
           {/* Divider */}
           <div className="border-t border-border w-2/3 mx-auto my-8"></div>
 
-          {/* Get Started (with border & correct colors) */}
+          {/* Get Started Box */}
           <div className="border-2 border-border rounded-2xl shadow-lg bg-card/10 backdrop-blur-sm p-8 max-w-4xl mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold mb-4">
-              <span className="text-secondary">Get Started with</span> <span className="text-primary-foreground">Reconcile</span> <span className="text-accent">C.A.R.E.</span>
+              <span className="text-secondary">Get&nbsp;Started&nbsp;with</span>{' '}
+              <span className="text-primary-foreground">Reconcile</span>{' '}
+              <span className="text-accent">C.A.R.E.</span>
             </h3>
 
-            {/* Instruction line */}
-            <p className="text-foreground font-bold text-lg mb-3">
-              What would you like to do?
-            </p>
-
+            {/* Instruction */}
+            <p className="text-foreground font-bold text-lg mb-3">What would you like to do?</p>
             <p className="text-primary-foreground text-base md:text-lg mb-8">
               Start here to connect with your team. Our secure platform brings together
               clients, attorneys, and nurse care managers to keep everyone informed.
             </p>
 
-            {/* Buttons (colors fixed) */}
+            {/* Buttons */}
             <div className="flex flex-col md:flex-row flex-wrap justify-center gap-4">
-              {/* Client Intake (primary) */}
+              {/* Client Intake */}
               <a
                 href="/intake"
                 className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg px-8 py-4 rounded-xl shadow-md transition-all duration-200"
@@ -47,7 +46,7 @@ const Index = () => {
                 Client Intake
               </a>
 
-              {/* Client Portal (blue) */}
+              {/* Client Portal */}
               <a
                 href="/client-portal"
                 className="inline-block bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
@@ -55,7 +54,7 @@ const Index = () => {
                 Client Portal
               </a>
 
-              {/* Attorney Portal (orange) */}
+              {/* Attorney Portal */}
               <a
                 href="/attorney-portal"
                 className="inline-block bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
@@ -63,7 +62,7 @@ const Index = () => {
                 Attorney Portal
               </a>
 
-              {/* Provider Portal (eggplant) */}
+              {/* Provider Portal */}
               <a
                 href="/provider-portal"
                 className="inline-block bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
