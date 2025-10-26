@@ -8,32 +8,64 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <style>
           {`
-            /* SCOPED OVERRIDES (very specific + !important) */
-            #rcms-getstarted h3 .rcms-gs-prefix { color:#0f2a6a !important; }  /* "Get Started with" */
-            #rcms-getstarted a.rcms-btn { 
-              display:inline-block !important; 
-              color:#ffffff !important; 
-              border-radius:0.75rem !important; 
-              box-shadow:0 6px 18px rgba(0,0,0,0.25) !important; 
+            /* SCOPED OVERRIDES */
+            #rcms-getstarted h3 .rcms-gs-prefix { color:#0f2a6a !important; }
+
+            #rcms-getstarted a.rcms-btn {
+              display:inline-flex !important;
+              align-items:center !important;
+              justify-content:center !important;
+              color:#ffffff !important;
+              border-radius:0.8rem !important;
+              box-shadow:0 6px 18px rgba(0,0,0,0.20) !important;
               text-decoration:none !important;
               transition:transform .15s ease, filter .2s ease !important;
+              line-height:1.15 !important;
+              white-space:nowrap !important;
             }
             #rcms-getstarted a.rcms-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
 
-            /* Intake = PRIMARY & BIGGER */
+            /* CTA: Client Intake — clearly larger */
             #rcms-getstarted a.cta-intake {
               background:#00695c !important;
-              padding:1rem 2rem !important;                /* bigger */
-              font-size:1.25rem !important;                /* ~text-xl */
-              font-weight:700 !important;
+              font-weight:800 !important;
+              font-size:1.45rem !important;
+              padding:1.15rem 2.8rem !important;
+              min-width:15rem !important;
             }
             @media (min-width: 768px){
-              #rcms-getstarted a.cta-intake { 
-                padding:1.1rem 2.5rem !important; 
-                font-size:1.35rem !important;              /* clearly larger on md+ */
+              #rcms-getstarted a.cta-intake {
+                font-size:1.55rem !important;
+                padding:1.2rem 3.1rem !important;
+                min-width:17rem !important;
               }
             }
             #rcms-getstarted a.cta-intake:hover { background:#00897b !important; }
+
+            /* Slim Long style for the other three */
+            #rcms-getstarted a.btn-slim {
+              font-weight:700 !important;
+              font-size:1.05rem !important;
+              padding:0.65rem 1.9rem !important;
+              min-width:12.5rem !important;
+            }
+            @media (min-width: 768px){
+              #rcms-getstarted a.btn-slim {
+                font-size:1.1rem !important;
+                padding:0.7rem 2.2rem !important;
+                min-width:13.5rem !important;
+              }
+            }
+
+            /* Individual colors */
+            #rcms-getstarted a.btn-client-portal { background:#0f2a6a !important; }
+            #rcms-getstarted a.btn-client-portal:hover { background:#1a3f8b !important; }
+
+            #rcms-getstarted a.btn-attorney-portal { background:#ff8c42 !important; }
+            #rcms-getstarted a.btn-attorney-portal:hover { background:#ff9f5c !important; }
+
+            #rcms-getstarted a.btn-provider-portal { background:#4b2e83 !important; }
+            #rcms-getstarted a.btn-provider-portal:hover { background:#5a36a5 !important; }
 
             /* Footer base rcms buttons */
             #rcms-footer a.rcms-btn {
@@ -56,37 +88,31 @@ const Index = () => {
             #rcms-footer a.cta-intake:hover { background:#00897b !important; }
 
             /* Client Portal = Navy */
-            #rcms-getstarted a.btn-client-portal, 
-            #rcms-footer  a.btn-client-portal {
+            #rcms-footer a.btn-client-portal {
               background:#0f2a6a !important;
               padding:0.75rem 1.25rem !important;
               font-size:1rem !important;
               font-weight:600 !important;
             }
-            #rcms-getstarted a.btn-client-portal:hover,
-            #rcms-footer  a.btn-client-portal:hover { background:#1a3f8b !important; }
+            #rcms-footer a.btn-client-portal:hover { background:#1a3f8b !important; }
 
             /* Attorney Portal = Orange */
-            #rcms-getstarted a.btn-attorney-portal, 
-            #rcms-footer  a.btn-attorney-portal {
+            #rcms-footer a.btn-attorney-portal {
               background:#ff8c42 !important;
               padding:0.75rem 1.25rem !important;
               font-size:1rem !important;
               font-weight:600 !important;
             }
-            #rcms-getstarted a.btn-attorney-portal:hover,
-            #rcms-footer  a.btn-attorney-portal:hover { background:#ff9f5c !important; }
+            #rcms-footer a.btn-attorney-portal:hover { background:#ff9f5c !important; }
 
             /* Provider Portal = Eggplant */
-            #rcms-getstarted a.btn-provider-portal, 
-            #rcms-footer  a.btn-provider-portal {
+            #rcms-footer a.btn-provider-portal {
               background:#4b2e83 !important;
               padding:0.75rem 1.25rem !important;
               font-size:1rem !important;
               font-weight:600 !important;
             }
-            #rcms-getstarted a.btn-provider-portal:hover,
-            #rcms-footer  a.btn-provider-portal:hover { background:#5a36a5 !important; }
+            #rcms-footer a.btn-provider-portal:hover { background:#5a36a5 !important; }
 
             /* Get Started card border */
             #rcms-getstarted .rcms-card {
@@ -128,12 +154,12 @@ const Index = () => {
               clients, attorneys, and nurse care managers to keep everyone informed.
             </p>
 
-            {/* Buttons (colors forced via CSS above) */}
+            {/* Button row — proportional */}
             <div className="flex flex-col md:flex-row flex-wrap justify-center gap-4">
               <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
-              <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
-              <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
-              <a href="/provider-portal" className="rcms-btn btn-provider-portal">Provider Portal</a>
+              <a href="/client-portal" className="rcms-btn btn-slim btn-client-portal">Client Portal</a>
+              <a href="/attorney-portal" className="rcms-btn btn-slim btn-attorney-portal">Attorney Portal</a>
+              <a href="/provider-portal" className="rcms-btn btn-slim btn-provider-portal">Provider Portal</a>
             </div>
           </div>
         </section>
