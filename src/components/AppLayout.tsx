@@ -17,6 +17,7 @@ import {
   FolderKanban,
   Shield,
   BarChart3,
+  ClipboardCheck,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -45,6 +46,7 @@ const navigation = [
   { name: "Check-ins", href: "/checkins", icon: HeartPulse, roles: [ROLES.CLIENT, ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Journal", href: "/journal", icon: BookOpen, roles: [ROLES.CLIENT, ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Journal Analytics", href: "/journal-analytics", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "RN CM Compliance", href: "/rn-cm/compliance", icon: ClipboardCheck, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Admin", href: "/admin", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
