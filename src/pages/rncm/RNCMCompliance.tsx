@@ -5,6 +5,7 @@ import { canAccess } from "@/lib/access";
 import { AppLayout } from "@/components/AppLayout";
 import { AlertCircle } from "lucide-react";
 import { RNNotesMedConditionsSection } from "@/components/MedsConditionsSection";
+import { RNQualitySummary, type Dataset } from "@/lib/exports-and-metrics";
 
 /* ───────────────────────────── CONFIG (edit in one place) ───────────────────────────── */
 const RNCM_CONFIG = {
@@ -666,6 +667,65 @@ export default function RNCM_Compliance_Demo() {
     valid: false 
   });
 
+  // Mock RN quality dataset for demonstration
+  const mockRNDataset: Dataset = [
+    {
+      caseId: "RCMS-001",
+      clientLabel: "A.B.",
+      dateISO: "2025-10-01",
+      conditions: "Back pain; T2DM",
+      meds: "Metformin 500mg BID; Ibuprofen 200mg PRN",
+      allergies: "Penicillin (rash)",
+      attested: true,
+      shareWithPCP: true,
+      pcpName: "Primary Health Clinic"
+    },
+    {
+      caseId: "RCMS-002",
+      clientLabel: "C.D.",
+      dateISO: "2025-10-05",
+      conditions: "Neck strain post-MVA; anxiety",
+      meds: "Cyclobenzaprine 10mg QHS; Sertraline 50mg daily",
+      allergies: "None",
+      attested: true,
+      shareWithPCP: false,
+      pcpName: ""
+    },
+    {
+      caseId: "RCMS-003",
+      clientLabel: "E.F.",
+      dateISO: "2025-10-10",
+      conditions: "Shoulder impingement; chronic migraines",
+      meds: "Sumatriptan 100mg PRN; Vitamin D3 2000 IU daily; Magnesium glycinate 400mg",
+      allergies: "Shellfish (hives)",
+      attested: true,
+      shareWithPCP: true,
+      pcpName: "West Valley Medical"
+    },
+    {
+      caseId: "RCMS-004",
+      clientLabel: "G.H.",
+      dateISO: "2025-10-12",
+      conditions: "Lower back pain; hypertension",
+      meds: "Lisinopril 10mg daily; Acetaminophen 500mg PRN",
+      allergies: "None",
+      attested: true,
+      shareWithPCP: null,
+      pcpName: ""
+    },
+    {
+      caseId: "RCMS-005",
+      clientLabel: "I.J.",
+      dateISO: "2025-10-15",
+      conditions: "Knee pain post-fall; pre-diabetes",
+      meds: "None",
+      allergies: "Codeine (nausea)",
+      attested: true,
+      shareWithPCP: true,
+      pcpName: "Downtown Family Practice"
+    },
+  ];
+
   return (
     <AppLayout>
       <div className="p-6 bg-background min-h-screen">
@@ -729,6 +789,9 @@ export default function RNCM_Compliance_Demo() {
 
           {/* 4) RN–Client contact verification via random-length code */}
           <ContactVerification caseId={caseId} nurseName={nurse} clientPhone={clientPhone} />
+
+          {/* 5) RN Quality Summary with CSV Export */}
+          <RNQualitySummary role={role} data={mockRNDataset} />
         </div>
       </div>
     </AppLayout>
