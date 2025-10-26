@@ -33,6 +33,11 @@ interface PurgeRequest {
   maxAgeDays: number;
 }
 
+interface ProviderNoteRequest {
+  token: string;
+  note: string;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -224,6 +229,25 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ ok: true, purged: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // POST /api/portal/provider-note - Provider submits note
+    if (path === '/api/portal/provider-note' && req.method === 'POST') {
+      const body: ProviderNoteRequest = await req.json();
+      console.log('[portal-api] Provider note received:', { token: body.token?.slice(0, 10) + '...' });
+
+      // TODO: Validate token and store note in portal_provider_notes table
+      
+      // Log audit event
+      console.log('[AUDIT] PROVIDER_NOTE_SUBMITTED', { 
+        token: body.token,
+        noteLength: body.note.length 
+      });
+
+      return new Response(
+        JSON.stringify({ ok: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
