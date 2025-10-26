@@ -15,10 +15,9 @@ const Index = () => {
               backdrop-filter:blur(4px);
             }
 
-            /* Headings */
             #rcms-getstarted h3 .rcms-gs-prefix { color:#0f2a6a !important; }
 
-            /* General button shape */
+            /* Base button style */
             #rcms-getstarted a.rcms-btn {
               display:inline-flex;
               align-items:center;
@@ -29,6 +28,7 @@ const Index = () => {
               text-decoration:none;
               transition:transform .15s ease, filter .2s ease;
               white-space:nowrap;
+              line-height:1.15;
             }
             #rcms-getstarted a.rcms-btn:hover {
               transform:translateY(-1px);
@@ -39,20 +39,38 @@ const Index = () => {
             #rcms-getstarted a.cta-intake {
               background:#00695c;
               font-size:1.6rem;
-              padding:1.25rem 3rem;
+              padding:1.25rem 3.25rem;
               min-width:18rem;
               font-weight:800;
             }
             #rcms-getstarted a.cta-intake:hover { background:#00897b; }
 
-            /* Secondary row buttons (slimmer + equal width) */
+            /* Secondary buttons (slimmer but equal width) */
             #rcms-getstarted a.btn-secondary {
               font-size:1.05rem;
               padding:0.65rem 2rem;
               min-width:12rem;
+              font-weight:700;
             }
 
-            /* Individual colors */
+            /* Keep row horizontal on mobile */
+            #rcms-getstarted .rcms-row {
+              display:flex;
+              flex-direction:row;
+              flex-wrap:nowrap;
+              justify-content:center;
+              gap:0.75rem;
+            }
+            @media (max-width:480px){
+              #rcms-getstarted .rcms-row a.rcms-btn {
+                font-size:0.9rem;
+                padding:0.5rem 1rem;
+                min-width:auto;
+                flex:1 1 auto;
+              }
+            }
+
+            /* Colors */
             #rcms-getstarted a.btn-client-portal { background:#0f2a6a; }
             #rcms-getstarted a.btn-client-portal:hover { background:#1a3f8b; }
 
@@ -141,13 +159,13 @@ const Index = () => {
               clients, attorneys, and nurse care managers to keep everyone informed.
             </p>
 
-            {/* Single large intake button */}
+            {/* Large intake button (top) */}
             <div className="flex justify-center mb-8">
               <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
             </div>
 
-            {/* Row of three centered smaller buttons */}
-            <div className="flex flex-col md:flex-row justify-center gap-4">
+            {/* Always-horizontal row */}
+            <div className="rcms-row">
               <a href="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
               <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
               <a href="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</a>
