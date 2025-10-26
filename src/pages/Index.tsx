@@ -6,105 +6,72 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary">
       <div className="container mx-auto px-4 py-16">
-        {/* ─────────────── Above-the-Fold: Ultra-Compact Hero + Get Started ─────────────── */}
-        <section id="above-the-fold" className="flex flex-col items-center justify-start min-h-[82vh] pt-3 pb-1">
-          {/* App name */}
-          <h2
-            className="font-extrabold text-primary-foreground mb-2 leading-tight"
-            style={{ fontSize: "clamp(26px, 3.7vw, 40px)" }}
-          >
-            <span className="text-primary-foreground">Reconcile</span>
-            <span className="text-accent"> C.A.R.E.</span>
+        {/* ===================== HERO + GET STARTED ===================== */}
+        <section className="text-center py-16 px-6 bg-gradient-to-b from-secondary via-primary to-secondary">
+          {/* Hero */}
+          <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2 tracking-tight">
+            Reconcile <span className="text-accent">C.A.R.E.</span>
+          </h1>
+          <h2 className="text-2xl md:text-3xl font-semibold text-primary-foreground leading-snug mb-6">
+            Comprehensive Nursing Care Management<br />
+            <span className="text-lg font-normal">for</span><br />
+            Legal and Medical Coordination
           </h2>
 
-          {/* Hero headline: 3-line centered */}
-          <h1 className="font-extrabold text-primary-foreground text-center leading-tight mt-0">
-            <span className="block" style={{ fontSize: "clamp(21px, 3.2vw, 36px)" }}>
-              Comprehensive Nursing Care Management
-            </span>
-            <span className="block" style={{ fontSize: "clamp(16px, 2.2vw, 24px)" }}>
-              for
-            </span>
-            <span className="block" style={{ fontSize: "clamp(21px, 3.2vw, 36px)" }}>
-              Legal and Medical Coordination
-            </span>
-          </h1>
+          {/* Divider */}
+          <div className="border-t border-border w-2/3 mx-auto my-8"></div>
 
-          {/* Teal divider between Hero and Get Started */}
-          <div className="mt-3 mb-2 mx-auto w-20 h-0.5 bg-primary rounded-full" />
+          {/* Get Started (with border & correct colors) */}
+          <div className="border-2 border-border rounded-2xl shadow-lg bg-card/10 backdrop-blur-sm p-8 max-w-4xl mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold mb-4">
+              <span className="text-secondary">Get Started with</span> <span className="text-primary-foreground">Reconcile</span> <span className="text-accent">C.A.R.E.</span>
+            </h3>
 
-          {/* Get Started heading */}
-          <h3
-            className="font-extrabold text-center mb-0"
-            style={{ fontSize: "clamp(20px, 2.8vw, 32px)" }}
-          >
-            <span className="text-secondary">Get Started with </span>
-            <span className="text-primary-foreground">Reconcile</span>
-            <span className="text-accent"> C.A.R.E.</span>
-          </h3>
+            {/* Instruction line */}
+            <p className="text-foreground font-bold text-lg mb-3">
+              What would you like to do?
+            </p>
 
-          {/* Prompt + microcopy (more compact) */}
-          <p
-            className="text-black font-bold text-center mt-3 mb-1"
-            style={{ fontSize: "clamp(15px, 2.0vw, 20px)" }}
-          >
-            What would you like to do?
-          </p>
-          <p
-            className="text-primary-foreground text-center mx-auto max-w-2xl leading-snug hidden lg:block"
-            style={{ fontSize: "clamp(13px, 1.7vw, 18px)" }}
-          >
-            Start here to connect with your team. Our secure platform brings together clients,
-            attorneys, and nurse care managers to keep everyone informed.
-          </p>
+            <p className="text-primary-foreground text-base md:text-lg mb-8">
+              Start here to connect with your team. Our secure platform brings together
+              clients, attorneys, and nurse care managers to keep everyone informed.
+            </p>
 
-          {/* Buttons (stacked, tighter padding) */}
-          <div className="mt-3 flex flex-col items-center gap-2.5 w-full max-w-md">
-            {/* Client Intake */}
-            <div className="w-full">
-              <NavLink
-                to="/client-intake"
-                className="block w-full bg-primary text-primary-foreground font-semibold py-2 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-primary"
-                style={{ fontSize: "clamp(15px, 2.0vw, 17px)" }}
+            {/* Buttons (colors fixed) */}
+            <div className="flex flex-col md:flex-row flex-wrap justify-center gap-4">
+              {/* Client Intake (primary) */}
+              <a
+                href="/intake"
+                className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg px-8 py-4 rounded-xl shadow-md transition-all duration-200"
               >
-                Start Your Intake
-              </NavLink>
-              <p className="hidden lg:block mt-1 text-sm text-primary-foreground/90 font-medium">
-                Begin your case and securely complete your intake and consent forms.
-              </p>
-            </div>
+                Client Intake
+              </a>
 
-            {/* Client Portal */}
-            <div className="w-full">
-              <NavLink
-                to="/client-portal"
-                className="block w-full bg-secondary text-secondary-foreground font-medium py-1.5 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-secondary"
-                style={{ fontSize: "clamp(14px, 1.9vw, 16px)" }}
+              {/* Client Portal (blue) */}
+              <a
+                href="/client-portal"
+                className="inline-block bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
               >
                 Client Portal
-              </NavLink>
-              <p className="hidden lg:block mt-1 text-sm text-primary-foreground/90 font-medium">
-                Log in to update information, submit follow-ups, or check your progress.
-              </p>
-            </div>
+              </a>
 
-            {/* Attorney Portal */}
-            <div className="w-full">
-              <NavLink
-                to="/attorney-portal"
-                className="block w-full bg-accent text-accent-foreground font-medium py-1.5 px-4 rounded-lg shadow hover:shadow-md transition-transform hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-accent"
-                style={{ fontSize: "clamp(14px, 1.9vw, 16px)" }}
+              {/* Attorney Portal (orange) */}
+              <a
+                href="/attorney-portal"
+                className="inline-block bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
               >
                 Attorney Portal
-              </NavLink>
-              <p className="hidden lg:block mt-1 text-sm text-primary-foreground/90 font-medium">
-                Access client files, review updates, and coordinate care in real time.
-              </p>
+              </a>
+
+              {/* Provider Portal (eggplant) */}
+              <a
+                href="/provider-portal"
+                className="inline-block bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-base px-6 py-3 rounded-lg shadow-md transition-all duration-200"
+              >
+                Provider Portal
+              </a>
             </div>
           </div>
-
-          {/* Bottom divider to end the above-the-fold area */}
-          <div className="mt-4 mx-auto w-20 h-0.5 bg-primary rounded-full" />
         </section>
 
         {/* ─────────────── Cards Section Heading (context above cards) ─────────────── */}
@@ -152,7 +119,7 @@ const Index = () => {
         <p className="text-primary-foreground/60 text-sm text-center mt-8">Demo Mode • No Authentication Required</p>
       </div>
 
-      {/* Footer */}
+      {/* ===================== FOOTER ===================== */}
       <footer className="mt-16 bg-gradient-to-b from-secondary via-secondary/90 to-secondary text-primary-foreground/90" aria-label="Site footer">
         {/* Top strip: brand + tagline */}
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -165,29 +132,29 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Quick actions (no PHI) */}
+          {/* Quick actions (ensure colors match buttons above) */}
           <div className="flex flex-wrap gap-3">
             <a
               href="/attorney-portal"
-              className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
+              className="inline-block bg-accent hover:bg-accent/90 text-accent-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
             >
               Attorney Portal
             </a>
             <a
               href="/client-portal"
-              className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
+              className="inline-block bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
             >
               Client Portal
             </a>
             <a
               href="/provider-portal"
-              className="bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
+              className="inline-block bg-secondary-light hover:bg-secondary-light/90 text-secondary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
             >
               Provider Portal
             </a>
             <a
               href="/intake"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
+              className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
             >
               Client Intake
             </a>
@@ -232,30 +199,21 @@ const Index = () => {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Support */}
           <div>
             <h4 className="text-primary-foreground font-semibold mb-3">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li>
-                <a href="mailto:support@reconcilecms.com" className="hover:underline">
-                  support@reconcilecms.com
-                </a>
-              </li>
-              <li>
-                <a href="tel:+1-555-555-1212" className="hover:underline">
-                  +1 (555) 555-1212
-                </a>
-              </li>
+              <li><a href="mailto:support@reconcilecms.com" className="hover:underline">support@reconcilecms.com</a></li>
+              <li><a href="tel:+1-555-555-1212" className="hover:underline">+1 (555) 555-1212</a></li>
               <li className="text-primary-foreground/75">Mon–Fri, 9am–5pm CT</li>
             </ul>
-            {/* Social placeholders (optional) */}
             <div className="mt-3 flex items-center gap-3">
               <a href="#" aria-label="LinkedIn" className="text-primary-foreground/80 hover:text-primary-foreground">LinkedIn</a>
             </div>
           </div>
         </div>
 
-        {/* Mini disclaimer row */}
+        {/* Mini disclaimer */}
         <div className="max-w-7xl mx-auto px-6 pb-6">
           <div className="rounded-xl bg-card/10 border border-border/15 p-4">
             <p className="text-xs text-primary-foreground/80">
@@ -269,9 +227,7 @@ const Index = () => {
         <div className="border-t border-border/15">
           <div className="max-w-7xl mx-auto px-6 py-4 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-primary-foreground/70">
             <p>© {new Date().getFullYear()} Reconcile Care Management Services. All rights reserved.</p>
-            <p className="text-primary-foreground/70">
-              Built for attorneys, clients, and nurse care managers — secure, auditable, and HIPAA-aware.
-            </p>
+            <p className="text-primary-foreground/70">Built for attorneys, clients, and nurse care managers — secure, auditable, and HIPAA-aware.</p>
           </div>
         </div>
       </footer>
