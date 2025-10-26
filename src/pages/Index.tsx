@@ -155,7 +155,7 @@ const Index = () => {
             </p>
 
             {/* Button row — proportional */}
-            <div className="flex flex-col md:flex-row flex-wrap justify-center gap-4">
+            <div className="flex flex-col md:flex-row md:flex-nowrap justify-center gap-4">
               <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
               <a href="/client-portal" className="rcms-btn btn-slim btn-client-portal">Client Portal</a>
               <a href="/attorney-portal" className="rcms-btn btn-slim btn-attorney-portal">Attorney Portal</a>
@@ -221,7 +221,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-nowrap gap-3">
             <a href="/intake" className="rcms-btn cta-intake" style={{ fontSize:'1rem', padding:'0.75rem 1.25rem' }}>Client Intake</a>
             <a href="/attorney-portal" className="rcms-btn btn-attorney-portal">Attorney Portal</a>
             <a href="/client-portal" className="rcms-btn btn-client-portal">Client Portal</a>
