@@ -8,60 +8,59 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <style>
           {`
-            /* SCOPED OVERRIDES */
+            #rcms-getstarted .rcms-card {
+              border:2px solid rgba(255,255,255,0.2);
+              border-radius:1rem;
+              background:rgba(255,255,255,0.05);
+              backdrop-filter:blur(4px);
+            }
+
+            /* Headings */
             #rcms-getstarted h3 .rcms-gs-prefix { color:#0f2a6a !important; }
 
+            /* General button shape */
             #rcms-getstarted a.rcms-btn {
-              display:inline-flex !important;
-              align-items:center !important;
-              justify-content:center !important;
-              color:#ffffff !important;
-              border-radius:0.8rem !important;
-              box-shadow:0 6px 18px rgba(0,0,0,0.20) !important;
-              text-decoration:none !important;
-              transition:transform .15s ease, filter .2s ease !important;
-              line-height:1.15 !important;
-              white-space:nowrap !important;
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+              color:#fff;
+              border-radius:0.75rem;
+              font-weight:700;
+              text-decoration:none;
+              transition:transform .15s ease, filter .2s ease;
+              white-space:nowrap;
             }
-            #rcms-getstarted a.rcms-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
+            #rcms-getstarted a.rcms-btn:hover {
+              transform:translateY(-1px);
+              filter:brightness(1.08);
+            }
 
-            /* CTA: Client Intake — prominent but fits on one line */
+            /* Large Client Intake CTA */
             #rcms-getstarted a.cta-intake {
-              background:#00695c !important;
-              font-weight:800 !important;
-              font-size:1.25rem !important;
-              padding:1rem 2.2rem !important;
+              background:#00695c;
+              font-size:1.6rem;
+              padding:1.25rem 3rem;
+              min-width:18rem;
+              font-weight:800;
             }
-            @media (min-width: 768px){
-              #rcms-getstarted a.cta-intake {
-                font-size:1.35rem !important;
-                padding:1.05rem 2.4rem !important;
-              }
-            }
-            #rcms-getstarted a.cta-intake:hover { background:#00897b !important; }
+            #rcms-getstarted a.cta-intake:hover { background:#00897b; }
 
-            /* Slim Long style for the other three (proportional sizing) */
-            #rcms-getstarted a.btn-slim {
-              font-weight:700 !important;
-              font-size:0.98rem !important;
-              padding:0.55rem 1.25rem !important;
-            }
-            @media (min-width: 768px){
-              #rcms-getstarted a.btn-slim {
-                font-size:1rem !important;
-                padding:0.6rem 1.35rem !important;
-              }
+            /* Secondary row buttons (slimmer + equal width) */
+            #rcms-getstarted a.btn-secondary {
+              font-size:1.05rem;
+              padding:0.65rem 2rem;
+              min-width:12rem;
             }
 
             /* Individual colors */
-            #rcms-getstarted a.btn-client-portal { background:#0f2a6a !important; }
-            #rcms-getstarted a.btn-client-portal:hover { background:#1a3f8b !important; }
+            #rcms-getstarted a.btn-client-portal { background:#0f2a6a; }
+            #rcms-getstarted a.btn-client-portal:hover { background:#1a3f8b; }
 
-            #rcms-getstarted a.btn-attorney-portal { background:#ff8c42 !important; }
-            #rcms-getstarted a.btn-attorney-portal:hover { background:#ff9f5c !important; }
+            #rcms-getstarted a.btn-attorney-portal { background:#ff8c42; }
+            #rcms-getstarted a.btn-attorney-portal:hover { background:#ff9f5c; }
 
-            #rcms-getstarted a.btn-provider-portal { background:#4b2e83 !important; }
-            #rcms-getstarted a.btn-provider-portal:hover { background:#5a36a5 !important; }
+            #rcms-getstarted a.btn-provider-portal { background:#4b2e83; }
+            #rcms-getstarted a.btn-provider-portal:hover { background:#5a36a5; }
 
             /* Footer base rcms buttons */
             #rcms-footer a.rcms-btn {
@@ -109,14 +108,6 @@ const Index = () => {
               font-weight:600 !important;
             }
             #rcms-footer a.btn-provider-portal:hover { background:#5a36a5 !important; }
-
-            /* Get Started card border */
-            #rcms-getstarted .rcms-card {
-              border:2px solid rgba(255,255,255,0.2) !important;
-              border-radius:1rem !important;
-              background:rgba(255,255,255,0.05) !important;
-              backdrop-filter: blur(4px) !important;
-            }
           `}
         </style>
 
@@ -150,12 +141,16 @@ const Index = () => {
               clients, attorneys, and nurse care managers to keep everyone informed.
             </p>
 
-            {/* Button row — proportional */}
-            <div className="flex flex-col md:flex-row md:flex-nowrap justify-center gap-4">
+            {/* Single large intake button */}
+            <div className="flex justify-center mb-8">
               <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
-              <a href="/client-portal" className="rcms-btn btn-slim btn-client-portal">Client Portal</a>
-              <a href="/attorney-portal" className="rcms-btn btn-slim btn-attorney-portal">Attorney Portal</a>
-              <a href="/provider-portal" className="rcms-btn btn-slim btn-provider-portal">Provider Portal</a>
+            </div>
+
+            {/* Row of three centered smaller buttons */}
+            <div className="flex flex-col md:flex-row justify-center gap-4">
+              <a href="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
+              <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
+              <a href="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</a>
             </div>
           </div>
         </section>
