@@ -122,22 +122,22 @@ export function PortalSharePanel({
     : {text:"Ready", color:COLORS.ok};
 
   return (
-    <section className="rounded-2xl border border-white/20 p-4 bg-white/5">
+    <section className="rounded-2xl border border-border p-4 bg-card/50">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-white font-bold">Secure Portal Share</h3>
+        <h3 className="text-foreground font-bold">Secure Portal Share</h3>
         <span className="text-xs rounded-full px-2 py-0.5 font-semibold" style={{background:badge.color, color:"#fff"}}>
           {badge.text}
         </span>
       </div>
 
-      <dl className="grid grid-cols-1 md:grid-cols-3 gap-3 text-white/90 text-sm mb-3">
-        <div><dt className="text-white/70">Case</dt><dd className="font-semibold">{caseInfo.id}</dd></div>
-        <div><dt className="text-white/70">Provider</dt><dd className="font-semibold">{provider.name}{provider.city?`, ${provider.city}`:""}{provider.state?`, ${provider.state}`:""}</dd></div>
-        <div><dt className="text-white/70">Consent</dt><dd className="font-semibold">{consent.scope.shareWithProviders ? "Share Allowed" : "Not Allowed"}</dd></div>
+      <dl className="grid grid-cols-1 md:grid-cols-3 gap-3 text-foreground/90 text-sm mb-3">
+        <div><dt className="text-muted-foreground">Case</dt><dd className="font-semibold">{caseInfo.id}</dd></div>
+        <div><dt className="text-muted-foreground">Provider</dt><dd className="font-semibold">{provider.name}{provider.city?`, ${provider.city}`:""}{provider.state?`, ${provider.state}`:""}</dd></div>
+        <div><dt className="text-muted-foreground">Consent</dt><dd className="font-semibold">{consent.scope.shareWithProviders ? "Share Allowed" : "Not Allowed"}</dd></div>
       </dl>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <label className="block text-sm font-semibold text-white">
+        <label className="block text-sm font-semibold text-foreground">
           Link Expiration (hours)
           <input
             type="number" min={4} max={168}
@@ -148,7 +148,7 @@ export function PortalSharePanel({
           />
         </label>
 
-        <div className="block text-sm font-semibold text-white">
+        <div className="block text-sm font-semibold text-foreground">
           Redaction
           <div className="mt-2 flex items-center gap-2">
             <input
@@ -159,11 +159,11 @@ export function PortalSharePanel({
               onChange={(e)=> setRedact(e.target.checked)}
               disabled={!!blockedReason || status==="creating" || !caseInfo.isSensitive}
             />
-            <label htmlFor="redact" className="text-sm text-white">
+            <label htmlFor="redact" className="text-sm text-foreground">
               Apply redaction for sensitive cases (default)
             </label>
           </div>
-          <p className="text-xs text-white/70 mt-1">Sensitive cases require limited fields and watermarked output.</p>
+          <p className="text-xs text-muted-foreground mt-1">Sensitive cases require limited fields and watermarked output.</p>
         </div>
       </div>
 
@@ -172,28 +172,28 @@ export function PortalSharePanel({
           onClick={createShare}
           disabled={!!blockedReason || status==="creating"}
           className={blockedReason
-            ? "bg-gray-400 cursor-not-allowed rounded-md px-4 py-2 text-white font-semibold"
-            : "bg-[#0f2a6a] hover:brightness-110 rounded-md px-4 py-2 text-white font-semibold"}
+            ? "bg-muted cursor-not-allowed rounded-md px-4 py-2 text-muted-foreground font-semibold"
+            : "bg-secondary hover:brightness-110 rounded-md px-4 py-2 text-secondary-foreground font-semibold"}
           title={blockedReason || "Create portal link"}
         >
           {status==="creating" ? "Creating…" : "Create Portal Link"}
         </button>
 
         {status==="done" && link && (
-          <span className="text-white/90 text-sm">
+          <span className="text-foreground/90 text-sm">
             Link ready →{" "}
-            <Link className="underline text-white" to={link}>Preview Provider View</Link>
+            <Link className="underline text-foreground" to={link}>Preview Provider View</Link>
           </span>
         )}
-        {status==="error" && <span className="text-yellow-200 text-sm">{msg}</span>}
+        {status==="error" && <span className="text-warning text-sm">{msg}</span>}
       </div>
 
       {!blockedReason && msg && status!=="error" && (
-        <p className="mt-2 text-xs text-white/70">{msg}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{msg}</p>
       )}
 
-      <hr className="my-3 border-white/20" />
-      <p className="text-xs text-white/70">
+      <hr className="my-3 border-border" />
+      <p className="text-xs text-muted-foreground">
         <strong>Policy:</strong> No PHI in emails, texts, or URLs. The provider receives a notification to log in and view items inside the portal.
         This demo issues token links client-side; production must issue and validate tokens on the server with audit logging.
       </p>
@@ -220,20 +220,20 @@ export function ProviderShareView() {
     setRecord(rec); setState("ok");
   }, [token]);
 
-  if (state === "loading") return <div className="p-6 text-white">Loading…</div>;
+  if (state === "loading") return <div className="p-6 text-foreground">Loading…</div>;
   if (state === "invalid") return (
     <section className="p-6">
-      <div className="rounded-xl border border-white/20 bg-white/10 p-5 text-white">
-        <h3 className="font-bold text-lg text-red-200">Invalid Link</h3>
-        <p className="text-sm text-white/80 mt-1">This secure link is not valid. Please contact the sender.</p>
+      <div className="rounded-xl border border-border bg-card/50 p-5 text-foreground">
+        <h3 className="font-bold text-lg text-destructive">Invalid Link</h3>
+        <p className="text-sm text-foreground/80 mt-1">This secure link is not valid. Please contact the sender.</p>
       </div>
     </section>
   );
   if (state === "expired") return (
     <section className="p-6">
-      <div className="rounded-xl border border-white/20 bg-white/10 p-5 text-white">
-        <h3 className="font-bold text-lg text-yellow-200">Link Expired</h3>
-        <p className="text-sm text-white/80 mt-1">This secure link has expired. Request a new link from the sender.</p>
+      <div className="rounded-xl border border-border bg-card/50 p-5 text-foreground">
+        <h3 className="font-bold text-lg text-warning">Link Expired</h3>
+        <p className="text-sm text-foreground/80 mt-1">This secure link has expired. Request a new link from the sender.</p>
       </div>
     </section>
   );
@@ -242,7 +242,7 @@ export function ProviderShareView() {
   const minutesLeft = record ? Math.max(0, Math.round((record.expiresAt - Date.now())/60000)) : 0;
   return (
     <section className="p-6">
-      <div className="rounded-2xl border border-white/20 bg-white/10 p-5 text-white space-y-3">
+      <div className="rounded-2xl border border-border bg-card/50 p-5 text-foreground space-y-3">
         <header className="flex items-center justify-between">
           <h3 className="font-bold text-lg">Reconcile C.A.R.E. — Secure Share</h3>
           <span className="text-xs rounded-full px-2 py-0.5 font-semibold" style={{background:COLORS.teal, color:"#fff"}}>
@@ -250,23 +250,23 @@ export function ProviderShareView() {
           </span>
         </header>
         <dl className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <div><dt className="text-white/70">Case</dt><dd className="font-semibold">{record?.payload.caseId}</dd></div>
-          <div><dt className="text-white/70">Client</dt><dd className="font-semibold">{record?.payload.clientLabel || "—"}</dd></div>
-          <div><dt className="text-white/70">Scope</dt><dd className="font-semibold">{record?.redacted ? "Redacted (Sensitive)" : "Standard"}</dd></div>
+          <div><dt className="text-muted-foreground">Case</dt><dd className="font-semibold">{record?.payload.caseId}</dd></div>
+          <div><dt className="text-muted-foreground">Client</dt><dd className="font-semibold">{record?.payload.clientLabel || "—"}</dd></div>
+          <div><dt className="text-muted-foreground">Scope</dt><dd className="font-semibold">{record?.redacted ? "Redacted (Sensitive)" : "Standard"}</dd></div>
         </dl>
 
         {/* Redacted content example — keep minimal in demo */}
-        <div className="rounded-lg border border-white/20 p-3 bg-white/5">
+        <div className="rounded-lg border border-border p-3 bg-card">
           <h4 className="font-semibold">Shared Summary</h4>
-          <p className="text-white/90 text-sm mt-1">{record?.payload.summary}</p>
+          <p className="text-foreground/90 text-sm mt-1">{record?.payload.summary}</p>
           {record?.redacted && (
-            <p className="text-xs text-white/60 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Sensitive case: extended identifiers and detailed clinical data are withheld by policy.
             </p>
           )}
         </div>
 
-        <p className="text-xs text-white/70">
+        <p className="text-xs text-muted-foreground">
           This is a demonstration view. Production links are verified on the server and fully audited.
         </p>
       </div>
@@ -289,7 +289,7 @@ export default function PortalShareDemoPage() {
 
   return (
     <section className="space-y-6 p-6">
-      <h2 className="text-white text-2xl font-extrabold">Secure Portal Share — Demo</h2>
+      <h2 className="text-foreground text-2xl font-extrabold">Secure Portal Share — Demo</h2>
       <PortalSharePanel currentRole={currentRole} consent={consent} caseInfo={caseInfo} provider={provider} />
     </section>
   );

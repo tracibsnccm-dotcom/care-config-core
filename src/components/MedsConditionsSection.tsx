@@ -102,13 +102,13 @@ export function MedsConditionsSection({
   const fieldBase = "mt-1 w-full rounded-md border px-3 py-2 bg-white min-h-[84px]";
 
   return (
-    <section className="rounded-2xl border border-white/20 p-4 bg-white/5">
-      <h3 className="text-white font-bold text-lg">
+    <section className="rounded-2xl border border-border p-4 bg-card/50">
+      <h3 className="text-foreground font-bold text-lg">
         {labels.title} {required && <RequiredBadge />}
       </h3>
 
       {/* Conditions */}
-      <label className="block text-sm font-semibold text-white mt-3">
+      <label className="block text-sm font-semibold text-foreground mt-3">
         {labels.conditions} {required && <RequiredBadge />}
         <textarea
           aria-label="Current conditions under treatment"
@@ -128,7 +128,7 @@ export function MedsConditionsSection({
       </label>
 
       {/* Medications */}
-      <label className="block text-sm font-semibold text-white mt-3">
+      <label className="block text-sm font-semibold text-foreground mt-3">
         {labels.meds} {required && <RequiredBadge />}
         <textarea
           aria-label="Full medication list"
@@ -139,13 +139,13 @@ export function MedsConditionsSection({
           value={values.meds}
           onChange={(e) => setValues((v) => ({ ...v, meds: e.target.value }))}
         />
-        <p className="text-xs text-white/80 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           If none, type <em>&quot;None&quot;</em>. Include dose/strength if known.
         </p>
       </label>
 
       {/* Allergies */}
-      <label className="block text-sm font-semibold text-white mt-3">
+      <label className="block text-sm font-semibold text-foreground mt-3">
         {labels.allergies} {required && <RequiredBadge />}
         <textarea
           aria-label="Allergies to medications and foods"
@@ -161,7 +161,7 @@ export function MedsConditionsSection({
       </label>
 
       {/* Attestation */}
-      <label className="mt-3 flex items-start gap-2 text-white">
+      <label className="mt-3 flex items-start gap-2 text-foreground">
         <input
           type="checkbox"
           className="mt-1"

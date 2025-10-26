@@ -85,7 +85,7 @@ export function ExportMedsCSVButton({
   role,
   data,
   filename = "rcms_meds_conditions_export.csv",
-  className = "rounded-md bg-[#0f2a6a] text-white px-3 py-2 font-semibold hover:brightness-110",
+  className = "rounded-md bg-secondary text-secondary-foreground px-3 py-2 font-semibold hover:brightness-110",
 }: {
   role?: Role;
   data: Dataset;
@@ -95,7 +95,7 @@ export function ExportMedsCSVButton({
   const disabled = !exportAllowed(role) || !data?.length;
   return (
     <button
-      className={disabled ? "rounded-md bg-gray-400 text-white px-3 py-2 font-semibold cursor-not-allowed" : className}
+      className={disabled ? "rounded-md bg-muted text-muted-foreground px-3 py-2 font-semibold cursor-not-allowed" : className}
       disabled={disabled}
       onClick={() => {
         if (disabled) return;
@@ -165,7 +165,7 @@ export function RNQualitySummary({
 }) {
   const m = calcQualityMetrics(data);
   return (
-    <div className="rounded-xl border border-white/20 bg-white/10 p-4 text-white">
+    <div className="rounded-xl border border-border bg-card/50 p-4 text-foreground">
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-bold">RN Quality Summary</h4>
         <ExportMedsCSVButton role={role} data={data} />

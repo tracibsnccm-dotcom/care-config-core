@@ -29,7 +29,7 @@ export function ClientPortalNavItem() {
       to="/client-portal"
       className={({ isActive }) =>
         `px-3 py-1.5 rounded-md text-sm ${
-          isActive ? "bg-blue-600 text-white" : "bg-gray-100 hover:bg-gray-200"
+          isActive ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
         }`
       }
     >

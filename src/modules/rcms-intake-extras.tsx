@@ -200,7 +200,7 @@ export function PendingIntakesWidget(props: {
                   </td>
                   <td className="p-2">
                     <button
-                      className="rounded bg-blue-600 px-3 py-1.5 text-white text-sm hover:bg-blue-700"
+                      className="rounded bg-primary px-3 py-1.5 text-primary-foreground text-sm hover:bg-primary/90"
                       onClick={() => onNudge(c)}
                       title="Send a friendly reminder to complete intake"
                     >
