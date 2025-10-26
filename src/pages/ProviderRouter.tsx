@@ -18,6 +18,7 @@ import { AlertCircle, MapPin, MoreHorizontal } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { canAccess, FEATURE } from "@/lib/access";
+import { PortalSharePanel } from "@/pages/provider/PortalShareDemo";
 
 export default function ProviderRouter() {
   const {
@@ -35,6 +36,8 @@ export default function ProviderRouter() {
 
   const [specialtyFilter, setSpecialtyFilter] = useState("All Specialties");
   const [sortByDistance, setSortByDistance] = useState(true);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
 
   const activeProviders = providers.filter((p) => p.active);
   const used = activeProviders.length;
@@ -173,7 +176,11 @@ export default function ProviderRouter() {
                                     cases.map((c) => (
                                       <DropdownMenuItem
                                         key={c.id}
-                                        onClick={() => routeCaseToProvider(c.id, p.id)}
+                                        onClick={() => {
+                                          routeCaseToProvider(c.id, p.id);
+                                          setSelectedCaseId(c.id);
+                                          setSelectedProviderId(p.id);
+                                        }}
                                         className="cursor-pointer"
                                       >
                                         Route {c.id}
@@ -199,6 +206,43 @@ export default function ProviderRouter() {
                 </p>
               </div>
             </Card>
+
+            {/* Secure Portal Share - Show when a case and provider are selected */}
+            {selectedCaseId && selectedProviderId && (() => {
+              const selectedCase = cases.find(c => c.id === selectedCaseId);
+              const selectedProvider = providers.find(p => p.id === selectedProviderId);
+              
+              if (!selectedCase || !selectedProvider) return null;
+
+              // Build a non-PHI summary from case data
+              const injuries = selectedCase.intake?.injuries?.join(", ") || "Injury details available";
+              const caseSummary = `${selectedCase.intake?.incidentType || "Incident"} case - ${injuries}. Care coordination in progress.`;
+
+              return (
+                <div className="mt-6">
+                  <PortalSharePanel
+                    currentRole={role as any}
+                    consent={{
+                      scope: {
+                        shareWithProviders: selectedCase.consent?.scope?.shareWithProviders ?? false
+                      }
+                    }}
+                    caseInfo={{
+                      id: selectedCase.id,
+                      isSensitive: selectedCase.consent?.restrictedAccess ?? false,
+                      clientLabel: selectedCase.client?.displayNameMasked || selectedCase.id,
+                      summary: caseSummary
+                    }}
+                    provider={{
+                      id: selectedProvider.id,
+                      name: selectedProvider.name,
+                      city: selectedProvider.city,
+                      state: selectedProvider.state
+                    }}
+                  />
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
