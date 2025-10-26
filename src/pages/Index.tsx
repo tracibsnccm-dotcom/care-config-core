@@ -35,6 +35,26 @@ const Index = () => {
             }
             #rcms-getstarted a.cta-intake:hover { background:#00897b !important; }
 
+            /* Footer base rcms buttons */
+            #rcms-footer a.rcms-btn {
+              display:inline-block !important;
+              color:#ffffff !important;
+              border-radius:0.75rem !important;
+              box-shadow:0 6px 18px rgba(0,0,0,0.25) !important;
+              text-decoration:none !important;
+              transition:transform .15s ease, filter .2s ease !important;
+            }
+            #rcms-footer a.rcms-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
+
+            /* Intake in footer */
+            #rcms-footer a.cta-intake {
+              background:#00695c !important;
+              padding:0.75rem 1.25rem !important;
+              font-size:1rem !important;
+              font-weight:600 !important;
+            }
+            #rcms-footer a.cta-intake:hover { background:#00897b !important; }
+
             /* Client Portal = Navy */
             #rcms-getstarted a.btn-client-portal, 
             #rcms-footer  a.btn-client-portal {
