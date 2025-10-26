@@ -35,7 +35,7 @@ interface AppLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: "all" },
-  { name: "Attorney", href: "/attorney", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Attorney", href: "/attorney-portal", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
@@ -48,7 +48,7 @@ const navigation = [
   { name: "Journal Analytics", href: "/journal-analytics", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN CM Compliance", href: "/rn-cm/compliance", icon: ClipboardCheck, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Quality", href: "/rn-cm/quality", icon: Activity, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  { name: "Admin", href: "/admin", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Admin", href: "/admin-dashboard", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];

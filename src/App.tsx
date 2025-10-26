@@ -36,7 +36,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/attorney" element={<AttorneyLanding />} />
+            <Route path="/attorney-portal" element={<AttorneyLanding />} />
             <Route path="/intake" element={<IntakeWizard />} />
             <Route path="/cases" element={<Cases />} />
             <Route path="/cases/:caseId" element={<CaseDetail />} />
@@ -47,7 +47,7 @@ const App = () => (
             <Route path="/checkins" element={<ClientCheckins />} />
             <Route path="/journal" element={<ClientJournal />} />
             <Route path="/journal-analytics" element={<ClientJournalDashboard />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/admin-dashboard" element={<AdminPanel />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/rn-cm/compliance" element={<RNCMCompliance />} />
             <Route path="/rn-cm/quality" element={<RNQualityDashboard />} />
