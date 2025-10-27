@@ -218,6 +218,57 @@ const Index = () => {
         <p className="text-primary-foreground/60 text-sm text-center mt-8">Demo Mode • No Authentication Required</p>
       </div>
 
+      {/* ===================== RCMS Client Intake & Client Portal Explainer Videos ===================== */}
+
+      {/* 1️⃣ Intake Explainer Video Section */}
+      <section id="intake-video" className="py-12 px-6 bg-white text-[#0f2a6a]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Welcome — Getting Started with Intake</h2>
+          <p className="text-[#0f2a6a]/80 mb-6 text-lg">
+            This short video walks you through completing your intake quickly and easily. 
+            We'll explain why certain questions (like medications and social factors) matter 
+            and what happens once you submit your form.
+          </p>
+          <div className="aspect-video bg-[#f4f6f8] border border-[#0f2a6a]/20 rounded-xl flex items-center justify-center">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#00695c] hover:bg-[#00897b] text-white font-semibold shadow transition"
+              aria-label="Play Intake Explainer Video"
+            >
+              <span className="inline-block w-0 h-0 border-t-[10px] border-b-[10px] border-l-[16px] border-t-transparent border-b-transparent border-l-white" />
+              <span>Watch Intake Explainer</span>
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-[#0f2a6a]/60">Video placeholder — replace with uploaded or embedded explainer later.</p>
+        </div>
+      </section>
+
+      {/* Divider between videos */}
+      <div className="w-full h-[1px] bg-[#0f2a6a]/10 my-8"></div>
+
+      {/* 2️⃣ Client Portal Explainer Video Section */}
+      <section id="portal-video" className="py-12 px-6 bg-gradient-to-b from-[#f9fafb] to-[#eef2f3] text-[#0f2a6a]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Welcome Back — Navigating Your Portal</h2>
+          <p className="text-[#0f2a6a]/80 mb-6 text-lg">
+            This video shows you how to use your Client Portal to track your progress, 
+            update pain or mood scores, message your RN Case Manager, and stay informed 
+            about your case updates.
+          </p>
+          <div className="aspect-video bg-[#e8f0f0] border border-[#0f2a6a]/20 rounded-xl flex items-center justify-center">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#128f8b] hover:bg-[#0f7f7a] text-white font-semibold shadow transition"
+              aria-label="Play Portal Explainer Video"
+            >
+              <span className="inline-block w-0 h-0 border-t-[10px] border-b-[10px] border-l-[16px] border-t-transparent border-b-transparent border-l-white" />
+              <span>Watch Portal Explainer</span>
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-[#0f2a6a]/60">Video placeholder — replace with uploaded or embedded tutorial later.</p>
+        </div>
+      </section>
+
       {/* ===================== RCMS Reserved Modules + RN Dash Placeholders + Footer ===================== */}
 
       {/* ===== Reserved Future Modules Section (placeholders only) ===== */}
