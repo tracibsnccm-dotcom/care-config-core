@@ -273,7 +273,45 @@ const Index = () => {
               <p className="mt-3 text-sm text-white/70">Reserved space • Upload/Embed when ready (no PHI in titles or captions).</p>
             </div>
 
-            {/* 3) Savings / ROI Calculator Placeholder */}
+            {/* 3) Attorney Portal Explainer Video */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">🎥 Attorney Portal Explainer Video</h3>
+              <p className="text-white/90 mb-4">
+                This video walks you through managing cases, viewing consents, and routing providers securely.
+              </p>
+              <div className="aspect-video rounded-lg border border-white/20 bg-black/30 flex items-center justify-center">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                  aria-label="Play Attorney Portal Explainer Video"
+                >
+                  <span className="inline-block w-0 h-0 border-t-[10px] border-b-[10px] border-l-[16px] border-t-transparent border-b-transparent border-l-white" />
+                  <span className="text-white/90 font-semibold">Watch Attorney Portal Overview</span>
+                </button>
+              </div>
+              <p className="mt-3 text-sm text-white/70">Reserved space • Upload/Embed when ready (no PHI in titles or captions).</p>
+            </div>
+
+            {/* 4) Provider Portal Explainer Video */}
+            <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-2">🎥 Provider Portal Explainer Video</h3>
+              <p className="text-white/90 mb-4">
+                Learn how to record visits, update care plans, and stay compliant with Reconcile C.A.R.E.
+              </p>
+              <div className="aspect-video rounded-lg border border-white/20 bg-black/30 flex items-center justify-center">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                  aria-label="Play Provider Portal Explainer Video"
+                >
+                  <span className="inline-block w-0 h-0 border-t-[10px] border-b-[10px] border-l-[16px] border-t-transparent border-b-transparent border-l-white" />
+                  <span className="text-white/90 font-semibold">Watch Provider Portal Overview</span>
+                </button>
+              </div>
+              <p className="mt-3 text-sm text-white/70">Reserved space • Upload/Embed when ready (no PHI in titles or captions).</p>
+            </div>
+
+            {/* 5) Savings / ROI Calculator Placeholder */}
             <div className="rounded-xl border border-white/20 bg-white/5 p-6 backdrop-blur-sm">
               <h3 className="text-xl font-bold mb-2">📈 Attorney Savings / ROI Calculator</h3>
               <p className="text-white/90 mb-4">
