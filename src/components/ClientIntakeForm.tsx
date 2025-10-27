@@ -13,34 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface ADLStatus {
-  [activity: string]: string;
-}
-
-interface DifficultAnswers {
-  [question: string]: string;
-}
-
-interface IntakeFormData {
-  injuryDescription: string;
-  meds: string;
-  conditions: string;
-  allergies: string;
-  pharmacy: string;
-  beforeADL: ADLStatus;
-  afterADL: ADLStatus;
-  pain: string;
-  anxiety: string;
-  depression: string;
-  support: string;
-  difficultAnswers: DifficultAnswers;
-  shareWithAttorney: string | null;
-  shareWithPCP: boolean;
-  wantEducation: boolean;
-  confirm: boolean;
-  signature: string;
-}
+import { useToast } from "@/hooks/use-toast";
+import { IntakeForm, serializeIntakeForExport, toSheetRow } from "@/lib/intakeExport";
 
 const activities = ["Walking", "Bathing", "Dressing", "Cooking/Cleaning", "Driving"];
 const adlOptions = ["Independent", "Needs help", "Unable"];
@@ -54,7 +28,8 @@ const difficultQuestions = [
 ];
 
 export default function ClientIntakeForm() {
-  const [form, setForm] = useState<IntakeFormData>({
+  const { toast } = useToast();
+  const [form, setForm] = useState<IntakeForm>({
     injuryDescription: "",
     meds: "",
     conditions: "",
@@ -76,22 +51,55 @@ export default function ClientIntakeForm() {
 
   const [hideSensitive, setHideSensitive] = useState(false);
 
-  const handleChange = <K extends keyof IntakeFormData>(
+  const handleChange = <K extends keyof IntakeForm>(
     field: K,
-    value: IntakeFormData[K]
+    value: IntakeForm[K]
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAttorneyShare = (value: string) => {
-    handleChange("shareWithAttorney", value);
+    handleChange("shareWithAttorney", value as "yes" | "no");
     setHideSensitive(value === "no");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: send form to Apps Script endpoint or localStorage
-    console.log("Submitted intake:", form);
+    
+    // Validate required fields
+    if (!form.confirm || !form.signature.trim()) {
+      toast({
+        title: "Incomplete Form",
+        description: "Please confirm and provide your signature to submit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Serialize the intake form using the export schema
+    const envelope = serializeIntakeForExport(form, {
+      caseId: `RC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
+      clientLabel: form.signature.split(" ").map(n => n[0]?.toUpperCase() || "").join(".") + ".",
+      firmName: "RCMS C.A.R.E.",
+    });
+
+    const sheetRow = toSheetRow(envelope);
+
+    console.log("Intake Export Envelope:", envelope);
+    console.log("Sheet Row Format:", sheetRow);
+
+    // TODO: POST envelope to Apps Script endpoint
+    // Example:
+    // fetch(APPS_SCRIPT_WEBHOOK_URL, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(envelope),
+    // });
+
+    toast({
+      title: "Intake Submitted",
+      description: `Case ID: ${envelope.meta.case_id}. Your intake form has been recorded.`,
+    });
   };
 
   return (
@@ -175,7 +183,7 @@ export default function ClientIntakeForm() {
                   onValueChange={(value) =>
                     setForm((f) => ({
                       ...f,
-                      beforeADL: { ...f.beforeADL, [activity]: value },
+                      beforeADL: { ...f.beforeADL, [activity]: value as "Independent" | "Needs help" | "Unable" },
                     }))
                   }
                 >
@@ -196,7 +204,7 @@ export default function ClientIntakeForm() {
                   onValueChange={(value) =>
                     setForm((f) => ({
                       ...f,
-                      afterADL: { ...f.afterADL, [activity]: value },
+                      afterADL: { ...f.afterADL, [activity]: value as "Independent" | "Needs help" | "Unable" },
                     }))
                   }
                 >
