@@ -70,7 +70,9 @@ export interface AuditEvent {
     | "NUDGE_SENT"
     | "REMINDER_SCHEDULED"
     | "INVITE_CREATED"
-    | "EXPORT_ATTEMPT";
+    | "EXPORT_ATTEMPT"
+    | "DOSSIER_MODAL_OPEN"
+    | "DOSSIER_ACTION";
   caseId?: string;
   meta?: Json;
 }
