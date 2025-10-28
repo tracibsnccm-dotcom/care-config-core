@@ -68,7 +68,9 @@ export interface AuditEvent {
     | "VIEW_CASE"
     | "CONSENT_REVOKED"
     | "NUDGE_SENT"
-    | "REMINDER_SCHEDULED";
+    | "REMINDER_SCHEDULED"
+    | "INVITE_CREATED"
+    | "EXPORT_ATTEMPT";
   caseId?: string;
   meta?: Json;
 }
