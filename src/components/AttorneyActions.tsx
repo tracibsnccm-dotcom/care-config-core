@@ -5,7 +5,7 @@
  *
  * Requirements:
  *  - rcmsApi.ts already added with: audit(), withUserNotice()
- *  - loadSession() available from AccessGateway
+ *  - Pass session object from useAuth hook
  *  - exportAllowed(role) and canAccess(role, feature, ctx) exist in your access.ts (or similar)
  *  - case objects passed to ExportButton should already be redacted per consent rules upstream
  * ========================================================================================= */

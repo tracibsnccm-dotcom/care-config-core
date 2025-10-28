@@ -10,6 +10,35 @@ import { Case, CaseStatus } from "@/config/rcms";
 import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
+import { AttorneyInvitePanel, ExportButton } from "@/components/AttorneyActions";
+import { useAuth } from "@/auth/AuthContext";
+
+// Consent + CSV helpers (keep PHI out)
+function consentAllowsAttorney(caseObj: Case) {
+  const signed = !!caseObj?.consent?.signed;
+  const share = caseObj?.consent?.scope?.shareWithAttorney !== false;
+  const difficultShare = (caseObj as any)?.difficult_block?.share_with_attorney !== false;
+  return signed && share && difficultShare;
+}
+
+function buildCsvRowsFromCase(caseObj: Case) {
+  if (!caseObj) return [];
+  return [{
+    case_id: caseObj.id || (caseObj as any).case_id || "",
+    status: caseObj.status || "",
+    onset_date: caseObj.intake?.incidentDate || "",
+    incident_type: caseObj.intake?.incidentType || "",
+    initial_treatment: caseObj.intake?.initialTreatment || "",
+    flags: (caseObj.flags || []).join("|"),
+    provider_id: caseObj.assignedProviderId || "",
+    p_physical: (caseObj as any).fourPs?.physical ?? "",
+    p_psychological: (caseObj as any).fourPs?.psychological ?? "",
+    p_psychosocial: (caseObj as any).fourPs?.psychosocial ?? "",
+    p_professional: (caseObj as any).fourPs?.professional ?? "",
+    consent_signed: caseObj.consent?.signed ? "yes" : "no",
+    restricted: caseObj.consent?.restrictedAccess ? "yes" : "no",
+  }];
+}
 
 // Status color coding helper
 function getStatusColor(status: CaseStatus): {
@@ -68,6 +97,7 @@ function getStatusColor(status: CaseStatus): {
 
 export default function AttorneyLanding() {
   const navigate = useNavigate();
+  const { user, roles } = useAuth();
   const {
     currentTier,
     tierCaps,
@@ -272,6 +302,17 @@ export default function AttorneyLanding() {
           }}
         />
 
+        {/* Attorney Invite Panel */}
+        <div className="mb-6">
+          <AttorneyInvitePanel 
+            defaultCaseId="" 
+            session={{ 
+              role: roles[0] || "ATTORNEY", 
+              userId: user?.id || "" 
+            }} 
+          />
+        </div>
+
         {/* Case Tracking Sections */}
         <div className="space-y-6">
           {/* CRITICAL: 72-hour cases */}
@@ -386,16 +427,19 @@ function CaseListItem({
 
   const statusColors = getStatusColor(c.status);
 
+  const { user, roles } = useAuth();
+  const rows = buildCsvRowsFromCase(c);
+  const okByConsent = consentAllowsAttorney(c);
+
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
         urgent
-          ? "border-destructive/50 bg-destructive/10 hover:bg-destructive/20"
-          : `${statusColors.border} ${statusColors.bg} hover:opacity-80`
+          ? "border-destructive/50 bg-destructive/10"
+          : `${statusColors.border} ${statusColors.bg}`
       }`}
-      onClick={() => navigate(`/case/${c.id}`)}
     >
-      <div className="flex-1">
+      <div className="flex-1 cursor-pointer" onClick={() => navigate(`/case/${c.id}`)}>
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{c.client.rcmsId}</span>
           <span
@@ -410,22 +454,33 @@ function CaseListItem({
           {c.intake.injuries.length > 2 && "..."}
         </p>
       </div>
-      <div className="text-right">
-        {urgent && (
-          <p className="text-sm font-semibold text-destructive">
-            {Math.floor(hoursOld)}h old
-          </p>
-        )}
-        {showLastCheckin && (
-          <p className="text-sm text-muted-foreground">
-            {daysSinceCheckin} days ago
-          </p>
-        )}
-        {!urgent && !showLastCheckin && (
-          <p className="text-sm text-muted-foreground">
-            {fmtDate(c.createdAt)}
-          </p>
-        )}
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          {urgent && (
+            <p className="text-sm font-semibold text-destructive">
+              {Math.floor(hoursOld)}h old
+            </p>
+          )}
+          {showLastCheckin && (
+            <p className="text-sm text-muted-foreground">
+              {daysSinceCheckin} days ago
+            </p>
+          )}
+          {!urgent && !showLastCheckin && (
+            <p className="text-sm text-muted-foreground">
+              {fmtDate(c.createdAt)}
+            </p>
+          )}
+        </div>
+        <ExportButton
+          role={roles[0] || "ATTORNEY"}
+          caseId={c?.id || (c as any)?.case_id}
+          consentAllows={okByConsent}
+          rows={rows}
+          filename={`rcms_case_${c?.id || (c as any)?.case_id}.csv`}
+          userId={user?.id || ""}
+          caseData={c}
+        />
       </div>
     </div>
   );
