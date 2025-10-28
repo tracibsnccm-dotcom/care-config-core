@@ -17,7 +17,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
-import { audit } from "@/lib/rcmsApi";
+import { audit, notifyDossierCommissioned } from "@/lib/rcmsApi";
 
 type CaseLike = {
   id?: string;
@@ -149,6 +149,7 @@ function DossierModal({
   onClose: () => void;
   onAudit: (meta: Record<string, any>) => Promise<any>;
 }) {
+  const { user } = useAuth();
   const [choice, setChoice] = useState<"consult" | "commission" | "">("");
 
   function goto(url: string) {
@@ -167,6 +168,15 @@ function DossierModal({
       goto("/schedule-consultation");
     } else if (choice === "commission") {
       await onAudit({ ...meta, route: "checkout" });
+      
+      // Trigger RN Supervisor task via webhook
+      await notifyDossierCommissioned({
+        caseId,
+        attorneyId: user?.id,
+        attorneyEmail: user?.email,
+        clientLabel: caseObj?.client_label,
+      });
+      
       goto(`/checkout?case_id=${encodeURIComponent(caseId)}`);
     }
   }

@@ -121,6 +121,16 @@ export async function notifyExpired(payload: { caseId: string; email?: string })
   return postToGAS("notifyExpired", payload);
 }
 
+/** Trigger RN Supervisor task when pre-settlement dossier is commissioned */
+export async function notifyDossierCommissioned(payload: {
+  caseId: string;
+  attorneyId?: string;
+  attorneyEmail?: string;
+  clientLabel?: string;
+}) {
+  return postToGAS("dossierCommissioned", payload);
+}
+
 /* ----------------------- Helper: safe wrapper with toast ----------------------- */
 /** Wrap a promise to surface user-friendly errors. */
 export async function withUserNotice<T>(
