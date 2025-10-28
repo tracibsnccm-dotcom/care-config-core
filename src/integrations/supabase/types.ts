@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string | null
+          actor_id: string | null
+          actor_role: string | null
+          case_id: string | null
+          id: number
+          meta: Json | null
+          ts: string | null
+        }
+        Insert: {
+          action?: string | null
+          actor_id?: string | null
+          actor_role?: string | null
+          case_id?: string | null
+          id?: number
+          meta?: Json | null
+          ts?: string | null
+        }
+        Update: {
+          action?: string | null
+          actor_id?: string | null
+          actor_role?: string | null
+          case_id?: string | null
+          id?: number
+          meta?: Json | null
+          ts?: string | null
+        }
+        Relationships: []
+      }
       case_access: {
         Row: {
           case_id: string
@@ -38,27 +68,130 @@ export type Database = {
         }
         Relationships: []
       }
+      case_assignments: {
+        Row: {
+          case_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          atty_ref: string | null
+          client_label: string | null
+          consent: Json | null
+          created_at: string | null
+          created_by: string | null
+          fourps: Json | null
+          id: string
+          incident: Json | null
+          sdoh: Json | null
+          status: string | null
+        }
+        Insert: {
+          atty_ref?: string | null
+          client_label?: string | null
+          consent?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          fourps?: Json | null
+          id?: string
+          incident?: Json | null
+          sdoh?: Json | null
+          status?: string | null
+        }
+        Update: {
+          atty_ref?: string | null
+          client_label?: string | null
+          consent?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          fourps?: Json | null
+          id?: string
+          incident?: Json | null
+          sdoh?: Json | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      checkins: {
+        Row: {
+          case_id: string | null
+          created_at: string | null
+          id: string
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string | null
+          id?: string
+          payload: Json
+          user_id?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string | null
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkins_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
+          display_name: string | null
           email: string
           full_name: string | null
           id: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          display_name?: string | null
           email: string
           full_name?: string | null
           id: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          display_name?: string | null
           email?: string
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -92,13 +225,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | { Args: { check_role: string }; Returns: boolean }
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
     }
     Enums: {
       app_role:
@@ -108,6 +243,7 @@ export type Database = {
         | "RN_CCM"
         | "SUPER_USER"
         | "SUPER_ADMIN"
+        | "STAFF"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -242,6 +378,7 @@ export const Constants = {
         "RN_CCM",
         "SUPER_USER",
         "SUPER_ADMIN",
+        "STAFF",
       ],
     },
   },
