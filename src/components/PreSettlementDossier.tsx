@@ -1,44 +1,77 @@
-/* ================= RCMS C.A.R.E. — Pre-Settlement Case Analysis (Attorney) ================
- * Purpose
- * - Shows a "Pre-Settlement Case Analysis" button (only when relevant).
- * - Opens a modal with concise value prop + 2 actions (consult or commission).
- * - PHI-aware: never renders full names; uses case id + client_label token.
- * - Colors: brand blue (#0f2a6a), teal (#128f8b), attorney CTA = orange (Tailwind orange-500).
+/* ================= RCMS C.A.R.E. — Pre-Settlement Case Analysis + Readiness ================
+ * Contents:
+ *   1) <PreSettlementDossier /> — Button + modal for consult / commission
+ *   2) <DossierReadiness /> — Small readiness meter (Green/Yellow/Red)
  *
- * Usage
- *   import PreSettlementDossier from "./PreSettlementDossier";
+ * Brand:
+ *   Blue  : #0f2a6a
+ *   Teal  : #128f8b
+ *   Orange CTA (Attorney): Tailwind orange-500 / orange-600
+ *
+ * Safety:
+ *   - PHI: No full names; uses client_label + case id
+ *   - Consent-aware: disables CTA if client disallows attorney sharing
+ *   - Audit: logs modal open + actions
+ *
+ * Integration points expected in your app:
+ *   - useAuth() from @/auth/AuthContext
+ *   - audit(), notifyDossierCommissioned() from @/lib/rcmsApi
+ *
+ * Usage:
+ *   import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
  *   ...
- *   <PreSettlementDossier caseObj={c} />
- *
- * Requirements (already in project)
- *   - useAuth() from auth/AuthContext
- *   - audit() from lib/rcmsApi  (logs INVITE/EXPORT/etc.; we'll log DOSSIER_* here)
- * ========================================================================================= */
+ *   <div className="flex items-center justify-between">
+ *     <div className="flex items-center gap-2">
+ *       <h4 className="font-semibold text-[#0f2a6a]">Case {c.id}</h4>
+ *       <DossierReadiness caseObj={c} />
+ *     </div>
+ *     <PreSettlementDossier caseObj={c} />
+ *   </div>
+ * =========================================================================================== */
 
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { audit, notifyDossierCommissioned } from "@/lib/rcmsApi";
 
+/* ------------------------------- Types (loose) -------------------------------- */
 type CaseLike = {
   id?: string;
   case_id?: string;
-  client_label?: string;             // tokenized (e.g., "J.D.")
+  client_label?: string; // tokenized initials, e.g., "J.D."
   tags?: string[];
-  status?: string;
-  mediationDate?: string;            // ISO or yyyy-mm-dd
+  status?: string; // e.g., "pre-mediation", "settlement-negotiations"
+  mediationDate?: string; // ISO string or yyyy-mm-dd
   consent?: { signed?: boolean; scope?: { shareWithAttorney?: boolean } };
-  // add anything else your case object carries; we keep it loose
+  // Optional readiness inputs (if present)
+  missing?: {
+    intake?: boolean;
+    providerNotes?: boolean;
+    labsOrImaging?: boolean;
+    rnSummary?: boolean;
+  };
+  completenessScorePct?: number; // 0..100 if you compute one upstream
 };
 
-function parseAsDateSafe(v?: string) {
+type ReadinessInputs = {
+  missing?: CaseLike["missing"];
+  score?: number | undefined;
+  status?: string | undefined;
+};
+
+/* ------------------------------- Utilities ----------------------------------- */
+function parseAsDateSafe(v?: string | null) {
   if (!v) return null;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Business rule: show CTA if tags/status/mediation suggest negotiation window. */
-function shouldShowCTA(c: CaseLike) {
-  if (!c) return false;
+function consentAllowsAttorney(c: CaseLike) {
+  const signed = !!c?.consent?.signed;
+  const share = c?.consent?.scope?.shareWithAttorney !== false; // default allow unless explicitly false
+  return signed && share;
+}
+
+function inNegotiationWindow(c: CaseLike) {
   const tags = (c.tags || []).map((t) => String(t || "").toLowerCase());
   const relevantTags = new Set(["mediation", "pre-mediation", "settlement-negotiations", "pre-trial"]);
   const hasTag = tags.some((t) => relevantTags.has(t));
@@ -54,35 +87,76 @@ function shouldShowCTA(c: CaseLike) {
   return hasTag || hasStatus || isMediationSoon;
 }
 
-/** Consent gate: we prefer consent signed & sharing allowed for this attorney-facing CTA */
-function consentAllowsAttorney(c: CaseLike) {
-  const signed = !!c?.consent?.signed;
-  const share = c?.consent?.scope?.shareWithAttorney !== false; // default allow unless explicitly false
-  return signed && share;
-}
-
-/** Build a neutral case ref without PHI. */
 function caseRef(c: CaseLike) {
   const id = c.id || c.case_id || "—";
-  const label = c.client_label ? `Client ${c.client_label}` : "Client";
-  return `${label} • Case ${id}`;
+  const who = c.client_label ? `Client ${c.client_label}` : "Client";
+  return `${who} • Case ${id}`;
 }
 
-export default function PreSettlementDossier({ caseObj }: { caseObj: CaseLike }) {
+/* ---------------------------- Readiness Heuristics --------------------------- */
+/** Decide G/Y/R from either a numeric score or missing flags + status. */
+function evaluateReadiness({ score, missing, status }: ReadinessInputs): {
+  band: "green" | "yellow" | "red";
+  label: string;
+  tooltip: string;
+} {
+  // If score provided, use that.
+  if (typeof score === "number") {
+    if (score >= 80) return { band: "green", label: "Ready", tooltip: "Core docs complete; strong for dossier." };
+    if (score >= 50) return { band: "yellow", label: "Needs Docs", tooltip: "Some items missing; dossier possible but weaker." };
+    return { band: "red", label: "Not Ready", tooltip: "Critical items missing; complete records before dossier." };
+  }
+
+  // Otherwise derive from missing flags and status.
+  const m = missing || {};
+  const criticalMissing = !!(m.intake || m.rnSummary);
+  const someMissing = !!(m.providerNotes || m.labsOrImaging);
+
+  if (criticalMissing) return { band: "red", label: "Not Ready", tooltip: "Intake/RN summary missing." };
+  if (someMissing) return { band: "yellow", label: "Needs Docs", tooltip: "Provider notes or imaging outstanding." };
+
+  // Nudge toward yellow if status is early
+  const earlyStatuses = new Set(["new", "in_progress", "awaiting_consent"]);
+  if (status && earlyStatuses.has(String(status).toLowerCase())) {
+    return { band: "yellow", label: "Early", tooltip: "Case still early; gather more documentation." };
+  }
+
+  return { band: "green", label: "Ready", tooltip: "Docs appear complete." };
+}
+
+/* ----------------------------- Dossier Readiness ----------------------------- */
+export function DossierReadiness({ caseObj }: { caseObj: CaseLike }) {
+  const inputs: ReadinessInputs = {
+    score: typeof caseObj?.completenessScorePct === "number" ? caseObj.completenessScorePct : undefined,
+    missing: caseObj?.missing,
+    status: caseObj?.status,
+  };
+  const info = evaluateReadiness(inputs);
+
+  const color =
+    info.band === "green" ? "bg-emerald-500" : info.band === "yellow" ? "bg-amber-500" : "bg-rose-500";
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white"
+      title={info.tooltip}
+    >
+      <span className={`inline-block h-2 w-2 rounded-full ${color}`} />
+      <span className="text-[#0f2a6a] bg-white/80 rounded px-1">{info.label}</span>
+    </span>
+  );
+}
+
+/* --------------------------- Pre-Settlement Dossier -------------------------- */
+export function PreSettlementDossier({ caseObj }: { caseObj: CaseLike }) {
   const { user, roles } = useAuth();
   const [open, setOpen] = useState(false);
 
-  // Optional: role guard (ATTORNEY only)
   const isAttorney = roles.includes("ATTORNEY");
-
-  const showCTA = useMemo(() => {
-    if (!isAttorney) return false;
-    return shouldShowCTA(caseObj);
-  }, [isAttorney, caseObj]);
-
+  const showCTA = useMemo(() => isAttorney && inNegotiationWindow(caseObj), [isAttorney, caseObj]);
   const disabledByConsent = !consentAllowsAttorney(caseObj);
 
-  async function onOpenModal() {
+  async function onOpen() {
     setOpen(true);
     await audit({
       actorRole: roles[0] || "ATTORNEY",
@@ -97,14 +171,18 @@ export default function PreSettlementDossier({ caseObj }: { caseObj: CaseLike })
       {showCTA ? (
         <button
           type="button"
-          onClick={onOpenModal}
-          title={disabledByConsent ? "Client consent not on file — some details may be redacted." : "Open pre-settlement analysis options"}
+          onClick={onOpen}
+          disabled={disabledByConsent}
+          title={
+            disabledByConsent
+              ? "Client consent not on file — sharing with attorney is disabled."
+              : "Open pre-settlement analysis options"
+          }
           className={`px-4 py-2 rounded-lg font-semibold shadow-sm transition
             ${disabledByConsent
               ? "bg-orange-300 text-white cursor-not-allowed"
               : "bg-orange-500 hover:bg-orange-600 text-white"
             }`}
-          disabled={disabledByConsent}
         >
           Pre-Settlement Case Analysis
         </button>
@@ -138,8 +216,7 @@ export default function PreSettlementDossier({ caseObj }: { caseObj: CaseLike })
   );
 }
 
-/* ---------------------------------- Modal ---------------------------------- */
-
+/* ------------------------------------ Modal ---------------------------------- */
 function DossierModal({
   caseObj,
   onClose,
@@ -152,7 +229,7 @@ function DossierModal({
   const { user } = useAuth();
   const [choice, setChoice] = useState<"consult" | "commission" | "">("");
 
-  function goto(url: string) {
+  function openNew(url: string) {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
@@ -165,8 +242,8 @@ function DossierModal({
 
     if (choice === "consult") {
       await onAudit({ ...meta, route: "schedule-consultation" });
-      goto("/schedule-consultation");
-    } else if (choice === "commission") {
+      openNew("/schedule-consultation");
+    } else {
       await onAudit({ ...meta, route: "checkout" });
       
       // Trigger RN Supervisor task via webhook
@@ -177,7 +254,7 @@ function DossierModal({
         clientLabel: caseObj?.client_label,
       });
       
-      goto(`/checkout?case_id=${encodeURIComponent(caseId)}`);
+      openNew(`/checkout?case_id=${encodeURIComponent(caseId)}`);
     }
   }
 
@@ -197,11 +274,11 @@ function DossierModal({
         <h2 className="text-2xl font-extrabold text-[#0f2a6a]">Pre-Settlement Case Strength Dossier</h2>
         <p className="mt-1 text-sm text-gray-600">{caseRef(caseObj)}</p>
 
-        {/* Value prop */}
+        {/* Value proposition */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm text-gray-800">
-            Anchor your settlement position in <strong>guideline-backed clinical authority</strong>. This forensic-level
-            analysis distills the medical narrative into a cohesive, defensible valuation foundation.
+            Anchor your settlement position in <strong>guideline-backed clinical authority</strong>.
+            This forensic-level analysis distills the medical narrative into a cohesive, defensible valuation foundation.
           </p>
         </div>
 
@@ -209,18 +286,10 @@ function DossierModal({
         <div className="mt-5">
           <h3 className="text-lg font-semibold text-[#0f2a6a]">What's included</h3>
           <ul className="mt-2 space-y-2 text-sm text-gray-800">
-            <li className="border-b border-gray-100 pb-2">
-              📊 <strong>Anchor Document:</strong> a formal, bound report synthesizing the clinical story.
-            </li>
-            <li className="border-b border-gray-100 pb-2">
-              🛡️ <strong>Vulnerability Audit & Rebuttals:</strong> ODG/MCG-referenced counter-arguments.
-            </li>
-            <li className="border-b border-gray-100 pb-2">
-              💰 <strong>Future Damages Quantification:</strong> projected future care costs with guidelines.
-            </li>
-            <li>
-              🎯 <strong>90-minute Strategy Session:</strong> collaborative "war room" with lead RN.
-            </li>
+            <li className="border-b border-gray-100 pb-2">📊 <strong>Anchor Document:</strong> a formal report synthesizing the clinical story</li>
+            <li className="border-b border-gray-100 pb-2">🛡️ <strong>Vulnerability Audit & Rebuttals:</strong> ODG/MCG-referenced counter-arguments</li>
+            <li className="border-b border-gray-100 pb-2">💰 <strong>Future Damages Quantification:</strong> projected future care costs with guidelines</li>
+            <li>🎯 <strong>90-minute Strategy Session:</strong> collaborative "war room" with lead RN</li>
           </ul>
         </div>
 
@@ -230,7 +299,7 @@ function DossierModal({
           <p className="mt-1 text-sm opacity-90">For cases where top-tier valuation evidence is critical.</p>
         </div>
 
-        {/* Video placeholder */}
+        {/* Explainer placeholder */}
         <div className="mt-5">
           <h4 className="text-sm font-semibold text-[#0f2a6a]">Explainer</h4>
           <div className="mt-2 rounded-lg border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">

@@ -11,7 +11,7 @@ import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Cloc
 import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
 import { AttorneyInvitePanel, ExportButton } from "@/components/AttorneyActions";
-import PreSettlementDossier from "@/components/PreSettlementDossier";
+import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
 import { useAuth } from "@/auth/AuthContext";
 
 // Consent + CSV helpers (keep PHI out)
@@ -449,6 +449,7 @@ function CaseListItem({
             {statusColors.icon}
             {c.status.replace(/_/g, " ")}
           </span>
+          <DossierReadiness caseObj={c} />
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           {c.intake.incidentType} • {c.intake.injuries.slice(0, 2).join(", ")}
