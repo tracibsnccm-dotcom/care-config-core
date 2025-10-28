@@ -30,7 +30,7 @@
  * =========================================================================================== */
 
 import React, { useMemo, useState } from "react";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth } from "@/auth/supabaseAuth";
 import { audit, notifyDossierCommissioned } from "@/lib/rcmsApi";
 
 /* ------------------------------- Types (loose) -------------------------------- */

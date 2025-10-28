@@ -13,7 +13,7 @@
 
 import React, { useCallback, ComponentType } from "react";
 import { postIntake, postCheckin, audit, withUserNotice } from "./rcmsApi";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 
 /* ------------------------------ RBAC wrapper --------------------------------- */

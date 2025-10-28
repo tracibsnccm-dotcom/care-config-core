@@ -7,6 +7,9 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
 
+// Export supabase for use in components
+export { supabase };
+
 type RCMSUser = {
   id: string;
   email?: string | null;
@@ -18,6 +21,9 @@ type AuthCtx = {
   user: RCMSUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  // Helper properties for easier access
+  roles: string[];
+  hasRole: (role: string) => boolean;
 };
 
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -68,7 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const value = useMemo(() => ({ session, user, loading, signOut }), [session, user, loading]);
+  const roles = user?.roles || [];
+  const hasRole = (role: string) => roles.includes(role);
+
+  const value = useMemo(
+    () => ({ session, user, loading, signOut, roles, hasRole }),
+    [session, user, loading, roles]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

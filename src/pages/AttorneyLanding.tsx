@@ -12,7 +12,7 @@ import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
 import { AttorneyInvitePanel, ExportButton } from "@/components/AttorneyActions";
 import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth } from "@/auth/supabaseAuth";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {

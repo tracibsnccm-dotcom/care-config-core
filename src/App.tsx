@@ -11,7 +11,7 @@ import CaseDetail from "./pages/CaseDetail";
 import CaseManagement from "./pages/CaseManagement";
 import Providers from "./pages/Providers";
 import AttorneyLanding from "./pages/AttorneyLanding";
-import AccessGateway from "./pages/AccessGateway";
+import Access from "./pages/Access";
 import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientCheckins from "./pages/ClientCheckins";
@@ -28,7 +28,7 @@ import RNCMCompliance from "./pages/rncm/RNCMCompliance";
 import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
 import RNDashboard from "./pages/rncm/RNDashboard";
 import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalShareDemo";
-import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { ProtectedRoute } from "./auth/supabaseAuth";
 
 const queryClient = new QueryClient();
 
@@ -43,8 +43,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             
-            {/* Access Gateway for magic links */}
-            <Route path="/access" element={<AccessGateway />} />
+            {/* Access - Login/Signup */}
+            <Route path="/access" element={<Access />} />
             
             {/* Public intake */}
             <Route path="/intake" element={<IntakeWizard />} />
@@ -53,7 +53,7 @@ const App = () => (
             <Route
               path="/attorney-portal"
               element={
-                <ProtectedRoute roles={["ATTORNEY"]}>
+                <ProtectedRoute roles={["ATTORNEY", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
                   <AttorneyLanding />
                 </ProtectedRoute>
               }
@@ -62,7 +62,7 @@ const App = () => (
             <Route
               path="/client-portal"
               element={
-                <ProtectedRoute roles={["CLIENT"]}>
+                <ProtectedRoute roles={["CLIENT", "ATTORNEY", "RN_CCM", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
                   <ClientPortal />
                 </ProtectedRoute>
               }
@@ -71,7 +71,7 @@ const App = () => (
             <Route
               path="/provider-portal"
               element={
-                <ProtectedRoute roles={["PROVIDER"]}>
+                <ProtectedRoute roles={["PROVIDER", "ATTORNEY", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
                   <ProviderPortal />
                 </ProtectedRoute>
               }
