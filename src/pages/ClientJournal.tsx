@@ -34,7 +34,7 @@ interface TreatmentRow {
   notes: string;
 }
 
-type TabType = "meds" | "symptoms" | "stress" | "sdoh" | "care" | "review";
+type TabType = "meds" | "pain" | "depression" | "anxiety" | "stress" | "sdoh" | "care" | "review";
 
 const SDOH_OPTIONS = [
   "Transportation",
@@ -165,7 +165,9 @@ export default function ClientJournal() {
   // Define all tabs with role restrictions
   const allTabs = [
     { id: "meds" as TabType, label: "Medications", icon: Pill, allowedRoles: "all" },
-    { id: "symptoms" as TabType, label: "Pain • Depression • Anxiety", icon: Activity, allowedRoles: "all" },
+    { id: "pain" as TabType, label: "Pain Scale", icon: Activity, allowedRoles: "all" },
+    { id: "depression" as TabType, label: "Depression", icon: Brain, allowedRoles: "all" },
+    { id: "anxiety" as TabType, label: "Anxiety", icon: AlertCircle, allowedRoles: "all" },
     { id: "stress" as TabType, label: "Stress Checklist", icon: Brain, allowedRoles: "all" },
     { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
     { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },

@@ -44,6 +44,47 @@ export type Database = {
         }
         Relationships: []
       }
+      care_plans: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          plan_text: string
+          plan_type: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          plan_text: string
+          plan_type?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          plan_text?: string
+          plan_type?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plans_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_access: {
         Row: {
           case_id: string
@@ -285,6 +326,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "intakes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          id: string
+          message_text: string
+          recipient_role: string
+          responded_at: string | null
+          responded_by: string | null
+          response_text: string | null
+          sender_id: string
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          id?: string
+          message_text: string
+          recipient_role: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response_text?: string | null
+          sender_id: string
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          id?: string
+          message_text?: string
+          recipient_role?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response_text?: string | null
+          sender_id?: string
+          status?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
