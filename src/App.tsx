@@ -12,11 +12,14 @@ import CaseManagement from "./pages/CaseManagement";
 import Providers from "./pages/Providers";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import Access from "./pages/Access";
+import Logout from "./pages/Logout";
+import RoleLandingRedirect from "./pages/RoleLandingRedirect";
 import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientCheckins from "./pages/ClientCheckins";
 import ClientPortal from "./pages/ClientPortal";
 import ProviderPortal from "./pages/ProviderPortal";
+import RNPortal from "./pages/rn/RNPortal";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import ClientJournal from "./pages/ClientJournal";
 import ClientJournalDashboard from "./pages/ClientJournalDashboard";
@@ -40,97 +43,111 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            
-            {/* Access - Login/Signup */}
             <Route path="/access" element={<Access />} />
-            
-            {/* Public intake */}
+            <Route path="/logout" element={<Logout />} />
             <Route path="/intake" element={<IntakeWizard />} />
             
-            {/* Role-protected portals */}
+            {/* Role landing redirect */}
+            <Route path="/go" element={<ProtectedRoute><RoleLandingRedirect /></ProtectedRoute>} />
+
+            {/* Attorney/Staff routes */}
             <Route
               path="/attorney-portal"
-              element={
-                <ProtectedRoute roles={["ATTORNEY", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <AttorneyLanding />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyLanding /></ProtectedRoute>}
             />
-            
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Dashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/cases"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Cases /></ProtectedRoute>}
+            />
+            <Route
+              path="/cases/:caseId"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><CaseDetail /></ProtectedRoute>}
+            />
+            <Route
+              path="/management"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><CaseManagement /></ProtectedRoute>}
+            />
+            <Route
+              path="/providers"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Providers /></ProtectedRoute>}
+            />
+            <Route
+              path="/router"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><ProviderRouter /></ProtectedRoute>}
+            />
+            <Route
+              path="/admin-dashboard"
+              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><AdminPanel /></ProtectedRoute>}
+            />
+            <Route
+              path="/reports"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Reports /></ProtectedRoute>}
+            />
+
+            {/* Client routes */}
             <Route
               path="/client-portal"
-              element={
-                <ProtectedRoute roles={["CLIENT", "ATTORNEY", "RN_CCM", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <ClientPortal />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortal /></ProtectedRoute>}
             />
-            
+            <Route
+              path="/client-portal-legacy"
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortalRoute /></ProtectedRoute>}
+            />
+            <Route
+              path="/journal"
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournal /></ProtectedRoute>}
+            />
+            <Route
+              path="/journal-analytics"
+              element={<ProtectedRoute roles={["ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournalDashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/checkins"
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientCheckins /></ProtectedRoute>}
+            />
+
+            {/* Provider routes */}
             <Route
               path="/provider-portal"
-              element={
-                <ProtectedRoute roles={["PROVIDER", "ATTORNEY", "STAFF", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <ProviderPortal />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["PROVIDER","ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><ProviderPortal /></ProtectedRoute>}
             />
-            
-            {/* RN unified landing + subpages */}
+            <Route
+              path="/provider/share-demo"
+              element={<ProtectedRoute roles={["PROVIDER","ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><PortalShareDemoPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/provider/preview"
+              element={<ProtectedRoute roles={["PROVIDER","ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><ProviderShareView /></ProtectedRoute>}
+            />
+
+            {/* RN routes */}
             <Route
               path="/rn-portal"
-              element={
-                <ProtectedRoute roles={["RN_CCM", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <RNPortalLanding />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortal /></ProtectedRoute>}
             />
-            
+            <Route
+              path="/rn-portal-landing"
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortalLanding /></ProtectedRoute>}
+            />
             <Route
               path="/rn-dashboard"
-              element={
-                <ProtectedRoute roles={["RN_CCM", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <RNDashboard />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNDashboard /></ProtectedRoute>}
             />
-            
             <Route
               path="/rn-cm/compliance"
-              element={
-                <ProtectedRoute roles={["RN_CCM", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <RNCMCompliance />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCMCompliance /></ProtectedRoute>}
             />
-            
             <Route
               path="/rn-cm/quality"
-              element={
-                <ProtectedRoute roles={["RN_CCM", "SUPER_USER", "SUPER_ADMIN"]}>
-                  <RNQualityDashboard />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNQualityDashboard /></ProtectedRoute>}
             />
-            
-            {/* Legacy routes (kept for backward compatibility) */}
-            <Route path="/cases" element={<Cases />} />
-            <Route path="/cases/:caseId" element={<CaseDetail />} />
-            <Route path="/management" element={<CaseManagement />} />
-            <Route path="/providers" element={<Providers />} />
-            <Route path="/router" element={<ProviderRouter />} />
-            <Route path="/checkins" element={<ClientCheckins />} />
-            <Route path="/journal" element={<ClientJournal />} />
-            <Route path="/journal-analytics" element={<ClientJournalDashboard />} />
-            <Route path="/admin-dashboard" element={<AdminPanel />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/provider/share-demo" element={<PortalShareDemoPage />} />
-            <Route path="/provider/preview" element={<ProviderShareView />} />
-            
-            {/* Legacy client portal route */}
-            <Route path="/client-portal-legacy" element={<ClientPortalRoute />} />
-            
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

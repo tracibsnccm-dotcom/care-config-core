@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase, useAuth } from "../auth/supabaseAuth";
 import { Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RCMS, btn } from "../constants/brand";
 
 export default function Access() {
   const { session, user } = useAuth();
@@ -14,24 +12,8 @@ export default function Access() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // Redirect authenticated users to attorney portal
-  if (session && user) {
-    // Redirect based on roles
-    if (user.roles.includes("ATTORNEY") || user.roles.includes("STAFF") || 
-        user.roles.includes("SUPER_USER") || user.roles.includes("SUPER_ADMIN")) {
-      return <Navigate to="/attorney-portal" replace />;
-    }
-    if (user.roles.includes("CLIENT")) {
-      return <Navigate to="/client-portal" replace />;
-    }
-    if (user.roles.includes("PROVIDER")) {
-      return <Navigate to="/provider-portal" replace />;
-    }
-    if (user.roles.includes("RN_CCM")) {
-      return <Navigate to="/rn-portal" replace />;
-    }
-    return <Navigate to="/" replace />;
-  }
+  // If already signed in, send to role redirect helper
+  if (session && user) return <Navigate to="/go" replace />;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,66 +49,78 @@ export default function Access() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-6 py-10">
-      <h1 className="text-2xl font-extrabold text-primary">Access RCMS C.A.R.E.</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Sign in or create an account. Roles are applied automatically (CLIENT by default). Your
-        firm can add attorney/staff access.
-      </p>
+    <div className="min-h-[80vh] flex items-center justify-center px-6 py-10">
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-extrabold" style={{color: RCMS.brandNavy}}>
+          Access Reconcile C.A.R.E.
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in or create an account. New users receive the <span className="font-semibold">CLIENT</span> role by default; firms can add additional roles.
+        </p>
 
-      <div className="mt-6 rounded-xl border border-border bg-card p-5">
-        <div className="mb-4 flex gap-2">
-          <Button
-            variant={mode === "login" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setMode("login")}
-          >
-            Log in
-          </Button>
-          <Button
-            variant={mode === "signup" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setMode("signup")}
-          >
-            Sign up
-          </Button>
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-5 flex gap-2">
+            <button
+              className={`${btn.base} ${btn.sm} ${mode==="login" ? "text-white" : "text-muted-foreground"} ${mode==="login" ? "" : "bg-muted"} `}
+              style={{ backgroundColor: mode==="login" ? RCMS.brandNavy : undefined }}
+              type="button"
+              onClick={()=>setMode("login")}
+            >
+              Log in
+            </button>
+            <button
+              className={`${btn.base} ${btn.sm} ${mode==="signup" ? "text-white" : "text-muted-foreground"} ${mode==="signup" ? "" : "bg-muted"} `}
+              style={{ backgroundColor: mode==="signup" ? RCMS.brandTeal : undefined }}
+              type="button"
+              onClick={()=>setMode("signup")}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground">Email</label>
+              <input
+                type="email"
+                required
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none focus:border-ring"
+                value={email}
+                onChange={(e)=>setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground">Password</label>
+              <input
+                type="password"
+                required
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none focus:border-ring"
+                value={pw}
+                onChange={(e)=>setPw(e.target.value)}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`${btn.base} ${btn.lg} text-white w-full`}
+              style={{ backgroundColor: loading ? "#9ca3af" : RCMS.attorneyOrange }}
+            >
+              {mode==="signup" ? "Create account" : "Log in"}
+            </button>
+          </form>
+
+          {msg && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">{msg}</p>}
+          {err && <p className="mt-3 text-sm text-destructive">{err}</p>}
+
+          <div className="mt-6">
+            <a href="/logout" className="text-xs underline text-muted-foreground">Sign out</a>
+          </div>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {mode === "signup" ? "Create account" : "Log in"}
-          </Button>
-        </form>
-
-        {msg && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">{msg}</p>}
-        {err && <p className="mt-3 text-sm text-destructive">{err}</p>}
+        <p className="mt-6 text-xs text-muted-foreground">
+          By continuing, you agree to RCMS's Minimum Necessary Data Policy and Terms.
+        </p>
       </div>
-
-      <p className="mt-6 text-xs text-muted-foreground">
-        By continuing, you agree to RCMS's Minimum Necessary Data policy and Terms.
-      </p>
     </div>
   );
 }
