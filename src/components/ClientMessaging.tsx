@@ -25,11 +25,11 @@ interface Message {
   created_at: string;
   responded_at: string | null;
   sender_profile?: {
-    display_name: string;
-  };
+    display_name: string | null;
+  } | null;
   responder_profile?: {
-    display_name: string;
-  };
+    display_name: string | null;
+  } | null;
 }
 
 interface ClientMessagingProps {
@@ -49,7 +49,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
   const [messageText, setMessageText] = useState("");
 
   // Check if messaging is allowed for current tier
-  const messagingAllowed = tier === "Clinical" || tier === "Premium";
+  const messagingAllowed = tier === "Mid-Sized" || tier === "Enterprise";
 
   useEffect(() => {
     if (messagingAllowed) {
@@ -165,7 +165,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
       <Alert>
         <MessageSquare className="w-4 h-4" />
         <AlertDescription>
-          Messaging is available for Clinical and Premium tier subscribers. Upgrade your plan to communicate directly with your care team.
+          Messaging is available for Mid-Sized and Enterprise tier subscribers. Upgrade your plan to communicate directly with your care team.
         </AlertDescription>
       </Alert>
     );

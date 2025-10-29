@@ -12,6 +12,7 @@ interface AppContextType {
   role: Role;
   setRole: (role: Role) => void;
   currentTier: TierName;
+  tier: TierName; // Alias for currentTier for consistency
   setCurrentTier: (tier: TierName) => void;
   trialStartDate: string | null;
   setTrialStartDate: React.Dispatch<React.SetStateAction<string | null>>;
@@ -202,6 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         role,
         setRole,
         currentTier,
+        tier: currentTier, // Alias
         setCurrentTier,
         trialStartDate,
         setTrialStartDate,

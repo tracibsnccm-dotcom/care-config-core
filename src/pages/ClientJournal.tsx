@@ -369,63 +369,110 @@ export default function ClientJournal() {
           </Card>
         )}
 
-        {/* Symptoms Tab */}
-        {activeTab === "symptoms" && (
+        {/* Pain Tab */}
+        {activeTab === "pain" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5" />
-                Pain, Depression & Anxiety Scores
+                Pain Scale
               </CardTitle>
+              <CardDescription>
+                Rate your current pain level on a scale of 0-10
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="painScore">Pain (0–10)</Label>
-                  <Input
-                    id="painScore"
-                    type="number"
-                    min="0"
-                    max="10"
-                    placeholder="e.g., 6"
-                    value={painScore}
-                    onChange={e => setPainScore(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="depressionScore">Depression — RCMS scale</Label>
-                  <Input
-                    id="depressionScore"
-                    type="number"
-                    min="0"
-                    max="99"
-                    placeholder="enter score"
-                    value={depressionScore}
-                    onChange={e => setDepressionScore(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="anxietyScore">Anxiety — RCMS scale</Label>
-                  <Input
-                    id="anxietyScore"
-                    type="number"
-                    min="0"
-                    max="99"
-                    placeholder="enter score"
-                    value={anxietyScore}
-                    onChange={e => setAnxietyScore(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="painScore">Pain Level (0 = No Pain, 10 = Worst Imaginable Pain)</Label>
+                <Input
+                  id="painScore"
+                  type="number"
+                  min="0"
+                  max="10"
+                  placeholder="e.g., 6"
+                  value={painScore}
+                  onChange={e => setPainScore(e.target.value)}
+                  className="text-lg"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Consider your pain over the past 24 hours
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="symptomNotes">Notes (triggers, what helped, changes since last entry)</Label>
+                <Label htmlFor="painNotes">Pain Notes</Label>
                 <Textarea
-                  id="symptomNotes"
-                  placeholder="Optional notes…"
+                  id="painNotes"
+                  placeholder="Describe location, triggers, what helps relieve it..."
                   value={symptomNotes}
                   onChange={e => setSymptomNotes(e.target.value)}
                   rows={4}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Depression Tab */}
+        {activeTab === "depression" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                Depression Assessment
+              </CardTitle>
+              <CardDescription>
+                RCMS Depression Scale Assessment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="depressionScore">Depression Score (RCMS Scale)</Label>
+                <Input
+                  id="depressionScore"
+                  type="number"
+                  min="0"
+                  max="99"
+                  placeholder="Enter your depression score"
+                  value={depressionScore}
+                  onChange={e => setDepressionScore(e.target.value)}
+                  className="text-lg"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Based on RCMS standardized depression assessment tool
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Anxiety Tab */}
+        {activeTab === "anxiety" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Anxiety Assessment
+              </CardTitle>
+              <CardDescription>
+                RCMS Anxiety Scale Assessment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="anxietyScore">Anxiety Score (RCMS Scale)</Label>
+                <Input
+                  id="anxietyScore"
+                  type="number"
+                  min="0"
+                  max="99"
+                  placeholder="Enter your anxiety score"
+                  value={anxietyScore}
+                  onChange={e => setAnxietyScore(e.target.value)}
+                  className="text-lg"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Based on RCMS standardized anxiety assessment tool
+                </p>
               </div>
             </CardContent>
           </Card>

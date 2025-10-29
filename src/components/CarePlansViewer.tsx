@@ -13,10 +13,10 @@ interface CarePlan {
   plan_type: string;
   version: number;
   created_at: string;
-  created_by: string;
+  created_by: string | null;
   profiles?: {
-    display_name: string;
-  };
+    display_name: string | null;
+  } | null;
 }
 
 interface CarePlansViewerProps {
@@ -130,7 +130,7 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
                       <Calendar className="w-3 h-3" />
                       {format(new Date(plan.created_at), "PPP")}
                     </span>
-                    {plan.profiles && (
+                    {plan.profiles?.display_name && (
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
                         {plan.profiles.display_name}
