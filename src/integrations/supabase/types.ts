@@ -101,10 +101,18 @@ export type Database = {
           consent: Json | null
           created_at: string | null
           created_by: string | null
+          documentation: Json | null
+          flags: string[] | null
           fourps: Json | null
           id: string
           incident: Json | null
+          last_pain_diary_at: string | null
+          odg_benchmarks: Json | null
+          pain_diary_count_30d: number | null
+          provider_routed: boolean | null
           sdoh: Json | null
+          sdoh_resolved: Json | null
+          specialist_report_uploaded: boolean | null
           status: string | null
         }
         Insert: {
@@ -113,10 +121,18 @@ export type Database = {
           consent?: Json | null
           created_at?: string | null
           created_by?: string | null
+          documentation?: Json | null
+          flags?: string[] | null
           fourps?: Json | null
           id?: string
           incident?: Json | null
+          last_pain_diary_at?: string | null
+          odg_benchmarks?: Json | null
+          pain_diary_count_30d?: number | null
+          provider_routed?: boolean | null
           sdoh?: Json | null
+          sdoh_resolved?: Json | null
+          specialist_report_uploaded?: boolean | null
           status?: string | null
         }
         Update: {
@@ -125,10 +141,18 @@ export type Database = {
           consent?: Json | null
           created_at?: string | null
           created_by?: string | null
+          documentation?: Json | null
+          flags?: string[] | null
           fourps?: Json | null
           id?: string
           incident?: Json | null
+          last_pain_diary_at?: string | null
+          odg_benchmarks?: Json | null
+          pain_diary_count_30d?: number | null
+          provider_routed?: boolean | null
           sdoh?: Json | null
+          sdoh_resolved?: Json | null
+          specialist_report_uploaded?: boolean | null
           status?: string | null
         }
         Relationships: []
@@ -165,6 +189,109 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intakes: {
+        Row: {
+          case_id: string
+          completed: boolean | null
+          created_at: string | null
+          id: string
+          incident_date: string | null
+          incident_type: string | null
+          initial_treatment: string | null
+          injuries: string[] | null
+          intake_data: Json | null
+          narrative: string | null
+          severity_self_score: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          case_id: string
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          incident_date?: string | null
+          incident_type?: string | null
+          initial_treatment?: string | null
+          injuries?: string[] | null
+          intake_data?: Json | null
+          narrative?: string | null
+          severity_self_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          case_id?: string
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          incident_date?: string | null
+          incident_type?: string | null
+          initial_treatment?: string | null
+          injuries?: string[] | null
+          intake_data?: Json | null
+          narrative?: string | null
+          severity_self_score?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intakes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -194,6 +321,101 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      providers: {
+        Row: {
+          accepting_patients: boolean | null
+          address: string | null
+          created_at: string | null
+          email: string | null
+          fax: string | null
+          id: string
+          name: string
+          npi: string | null
+          phone: string | null
+          practice_name: string | null
+          specialty: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepting_patients?: boolean | null
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          fax?: string | null
+          id?: string
+          name: string
+          npi?: string | null
+          phone?: string | null
+          practice_name?: string | null
+          specialty: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepting_patients?: boolean | null
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          fax?: string | null
+          id?: string
+          name?: string
+          npi?: string | null
+          phone?: string | null
+          practice_name?: string | null
+          specialty?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sdoh_assessments: {
+        Row: {
+          assessed_by: string | null
+          case_id: string
+          created_at: string | null
+          food: boolean | null
+          housing: boolean | null
+          id: string
+          insurance_gap: boolean | null
+          notes: string | null
+          resolved: Json | null
+          transport: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          assessed_by?: string | null
+          case_id: string
+          created_at?: string | null
+          food?: boolean | null
+          housing?: boolean | null
+          id?: string
+          insurance_gap?: boolean | null
+          notes?: string | null
+          resolved?: Json | null
+          transport?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          assessed_by?: string | null
+          case_id?: string
+          created_at?: string | null
+          food?: boolean | null
+          housing?: boolean | null
+          id?: string
+          insurance_gap?: boolean | null
+          notes?: string | null
+          resolved?: Json | null
+          transport?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdoh_assessments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
