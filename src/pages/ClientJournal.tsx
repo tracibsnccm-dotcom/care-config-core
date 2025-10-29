@@ -166,8 +166,8 @@ export default function ClientJournal() {
   const allTabs = [
     { id: "meds" as TabType, label: "Medications", icon: Pill, allowedRoles: "all" },
     { id: "pain" as TabType, label: "Pain Scale", icon: Activity, allowedRoles: "all" },
-    { id: "depression" as TabType, label: "Depression", icon: Brain, allowedRoles: "all" },
-    { id: "anxiety" as TabType, label: "Anxiety", icon: AlertCircle, allowedRoles: "all" },
+    { id: "depression" as TabType, label: "Depression Score", icon: Brain, allowedRoles: "all" },
+    { id: "anxiety" as TabType, label: "Anxiety Score", icon: AlertCircle, allowedRoles: "all" },
     { id: "stress" as TabType, label: "Stress Checklist", icon: Brain, allowedRoles: "all" },
     { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
     { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
@@ -601,7 +601,7 @@ export default function ClientJournal() {
                 Review & Save
               </CardTitle>
               <CardDescription>
-                Your entry will post to the RCMS Google Apps Script webhook and be recorded in your sheet.
+                Your entry will be securely saved to your case record in the system.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
