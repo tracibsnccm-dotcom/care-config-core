@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sendProviderConfirmation } from "@/lib/webhooks";
 import { WEBHOOK_CONFIG } from "@/config/webhooks";
 import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText } from "lucide-react";
+import { useApp } from "@/context/AppContext";
+import { ROLES } from "@/config/rcms";
 
 interface MedRow {
   name: string;
@@ -50,6 +52,7 @@ const SDOH_OPTIONS = [
 
 export default function ClientJournal() {
   const { toast } = useToast();
+  const { role } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>("meds");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -159,14 +162,21 @@ export default function ClientJournal() {
     toast({ title: "Cleared", description: "All entries have been reset." });
   };
 
-  const tabs = [
-    { id: "meds" as TabType, label: "Medications", icon: Pill },
-    { id: "symptoms" as TabType, label: "Pain • Depression • Anxiety", icon: Activity },
-    { id: "stress" as TabType, label: "Stress Checklist", icon: Brain },
-    { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home },
-    { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText },
-    { id: "review" as TabType, label: "Review & Save", icon: Save },
+  // Define all tabs with role restrictions
+  const allTabs = [
+    { id: "meds" as TabType, label: "Medications", icon: Pill, allowedRoles: "all" },
+    { id: "symptoms" as TabType, label: "Pain • Depression • Anxiety", icon: Activity, allowedRoles: "all" },
+    { id: "stress" as TabType, label: "Stress Checklist", icon: Brain, allowedRoles: "all" },
+    { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
+    { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
+    { id: "review" as TabType, label: "Review & Save", icon: Save, allowedRoles: "all" },
   ];
+
+  // Filter tabs based on current user's role
+  const tabs = allTabs.filter(tab => 
+    tab.allowedRoles === "all" || 
+    (Array.isArray(tab.allowedRoles) && (tab.allowedRoles as readonly string[]).includes(role))
+  );
 
   return (
     <AppLayout>
