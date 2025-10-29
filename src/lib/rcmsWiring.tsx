@@ -12,7 +12,7 @@
  * =================================================================================== */
 
 import React, { useCallback, ComponentType } from "react";
-import { postIntake, postCheckin, audit, withUserNotice } from "./rcmsApi";
+import { postIntake, postCheckin, audit, withUserNotice } from "./supabaseOperations";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 

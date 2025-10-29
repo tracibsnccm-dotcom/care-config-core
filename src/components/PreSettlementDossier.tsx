@@ -31,7 +31,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/auth/supabaseAuth";
-import { audit, notifyDossierCommissioned } from "@/lib/rcmsApi";
+import { audit, notifyDossierCommissioned } from "@/lib/supabaseOperations";
 
 /* ------------------------------- Types (loose) -------------------------------- */
 type CaseLike = {

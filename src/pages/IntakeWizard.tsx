@@ -117,9 +117,8 @@ export default function IntakeWizard() {
     setCases((arr) => [newCase, ...arr]);
     log("INTAKE_SUBMIT", newCase.id);
     
-    // Schedule client reminders via Google Apps Script
-    const gasUrl = import.meta.env.VITE_GAS_URL;
-    scheduleClientReminders({ webAppUrl: gasUrl }, newCase as any);
+    // Schedule client reminders via Supabase edge function
+    scheduleClientReminders(undefined, newCase as any);
     
     alert(`Case ${newCase.id} created. Status: ${newCase.status}`);
     navigate("/cases");

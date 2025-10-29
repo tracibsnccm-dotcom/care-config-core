@@ -7,10 +7,9 @@ import { RCMS } from "../lib/rcms-colors";
 import { CaseLite, computeSettlementReadinessScore, getNextActions, computeAlerts } from "../lib/readiness";
 import { getRNCallTriggers } from "../lib/triggers";
 import { Templates } from "../lib/templates";
+import { sendNudge } from "../lib/supabaseOperations";
 
-/** ENV (set these in Lovable settings) */
-const GAS_URL = import.meta.env.VITE_GAS_URL;           // Apps Script endpoint
-const GAS_SECRET = import.meta.env.VITE_SHARED_SECRET;  // Shared secret
+/** ENV not needed anymore - using Supabase edge functions */
 
 /* ---------- Visual helpers ---------- */
 const Badge = ({ text, tone }:{text:string; tone:"ok"|"warn"|"bad"}) => {
@@ -41,56 +40,53 @@ export function FixNextButton({ kase, action }:{kase:CaseLite; action:ReturnType
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string|null>(null);
 
-  async function callGAS(payload:any) {
-    if (!GAS_URL) { setMsg("Server not configured"); return; }
-    setBusy(true); setMsg(null);
-    try {
-      const res = await fetch(GAS_URL, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "X-RCMS-Token": GAS_SECRET || "" },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      setMsg(json.ok ? "Done." : (json.error||"Error"));
-    } catch(e:any){ setMsg(e.message || "Network error"); }
-    finally { setBusy(false); }
-  }
-
-  // Action handlers (client-side stubs)
+  // Action handlers
   const onClick = async () => {
-    switch(action) {
-      case "ROUTE_PROVIDER":
-        // TODO: open Provider Router modal
-        setMsg("Open Provider Router…");
-        break;
-      case "REQUEST_SPECIALIST":
-        await callGAS({ action:"providerUpdate", type:"specialist", caseId:kase.id });
-        break;
-      case "NARRATIVE_CAPTURE":
-        // TODO: open incident narrative collector
-        setMsg("Open Incident Narrative form…");
-        break;
-      case "ENABLE_DIARY":
-        await callGAS({ action:"sendNudge", caseId:kase.id });
-        break;
-      case "CONSENT_FIX":
-        setMsg("Navigate to Consent Manager…");
-        break;
-      case "SDOH_PROTOCOL":
-        setMsg("Open SDOH Resource Kit…");
-        break;
-      case "GENERATE_MEDIATION_PDF":
-        await callGAS({ action:"generateMediationSummary", caseId:kase.id });
-        break;
-      case "SEND_SMS":
-        await callGAS({ action:"smsSend", template:"diaryNudge", caseId:kase.id });
-        break;
-      case "REQUEST_PROVIDER_UPDATE":
-        await callGAS({ action:"providerUpdate", type:"status", caseId:kase.id });
-        break;
-      case "REQUEST_CLINICAL_RECO":
-        await callGAS({ action:"clinicalRecommendation", caseId:kase.id });
-        break;
+    setBusy(true);
+    setMsg(null);
+    try {
+      switch(action) {
+        case "ROUTE_PROVIDER":
+          setMsg("TODO: Open Provider Router modal");
+          break;
+        case "REQUEST_SPECIALIST":
+          setMsg("TODO: Implement specialist request");
+          // TODO: Create edge function for provider updates
+          break;
+        case "NARRATIVE_CAPTURE":
+          setMsg("TODO: Open Incident Narrative form");
+          break;
+        case "ENABLE_DIARY":
+          await sendNudge({ caseId: kase.id });
+          setMsg("Nudge sent to enable diary");
+          break;
+        case "CONSENT_FIX":
+          setMsg("TODO: Navigate to Consent Manager");
+          break;
+        case "SDOH_PROTOCOL":
+          setMsg("TODO: Open SDOH Resource Kit");
+          break;
+        case "GENERATE_MEDIATION_PDF":
+          setMsg("TODO: Implement mediation summary generation");
+          // TODO: Create edge function for PDF generation
+          break;
+        case "SEND_SMS":
+          setMsg("TODO: Implement SMS sending");
+          // TODO: Create edge function for SMS
+          break;
+        case "REQUEST_PROVIDER_UPDATE":
+          setMsg("TODO: Implement provider update request");
+          // TODO: Create edge function for provider updates
+          break;
+        case "REQUEST_CLINICAL_RECO":
+          setMsg("TODO: Implement clinical recommendation");
+          // TODO: Create edge function for clinical recommendations
+          break;
+      }
+    } catch(e: any) {
+      setMsg(e.message || "Error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -241,19 +237,17 @@ export function MediationSummaryButton({ kase }:{kase:CaseLite}) {
   const [busy,setBusy] = useState(false);
   const [msg,setMsg] = useState<string|null>(null);
   async function gen() {
-    if (!GAS_URL) { setMsg("Server not configured"); return; }
     setBusy(true); setMsg(null);
     try {
-      const res = await fetch(GAS_URL, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "X-RCMS-Token": GAS_SECRET||"" },
-        body: JSON.stringify({ action:"generateMediationSummary", caseId: kase.id })
-      });
-      const j = await res.json();
-      setMsg(j.ok ? "Mediation Summary queued." : (j.error||"Error"));
-      // TODO: handle download link j.pdfUrl when server returns
-    } catch(e:any){ setMsg(e.message || "Network error"); }
-    finally { setBusy(false); }
+      // TODO: Create edge function for PDF generation
+      setMsg("TODO: Implement mediation summary PDF generation");
+      // When implemented:
+      // await supabase.functions.invoke("generate-mediation-pdf", { body: { caseId: kase.id } })
+    } catch(e:any){ 
+      setMsg(e.message || "Error"); 
+    } finally { 
+      setBusy(false); 
+    }
   }
   return (
     <div>
@@ -270,17 +264,19 @@ export function SMSQuickActions({ clientName="Client", kase }:{clientName?:strin
   const [busy,setBusy] = useState(false);
   const [msg,setMsg] = useState<string|null>(null);
   async function send(kind:"appt"|"diary") {
-    if (!GAS_URL) { setMsg("Server not configured"); return; }
     setBusy(true); setMsg(null);
-    const payload = kind==="appt"
-      ? { action:"smsSend", template:"apptReminder", caseId:kase.id }
-      : { action:"smsSend", template:"diaryNudge", caseId:kase.id };
     try {
-      const r = await fetch(GAS_URL, { method:"POST", headers:{ "Content-Type":"application/json", "X-RCMS-Token": GAS_SECRET||"" }, body: JSON.stringify(payload)});
-      const j = await r.json();
-      setMsg(j.ok ? "SMS sent/queued." : (j.error||"Error"));
-    } catch(e:any){ setMsg(e.message||"Network error"); }
-    finally { setBusy(false); }
+      // TODO: Create edge function for SMS sending
+      setMsg("TODO: Implement SMS sending");
+      // When implemented:
+      // await supabase.functions.invoke("send-sms", { 
+      //   body: { caseId: kase.id, template: kind === "appt" ? "apptReminder" : "diaryNudge" }
+      // })
+    } catch(e:any){ 
+      setMsg(e.message||"Error"); 
+    } finally { 
+      setBusy(false); 
+    }
   }
   return (
     <div className="flex items-center gap-2">
@@ -309,18 +305,19 @@ function ProviderModal({ kind, onClose, kase }:{kind:"update"|"reco"; onClose:()
   const [msg,setMsg] = useState<string|null>(null);
   const title = kind==="update"?"Request Provider Update":"Generate Clinical Recommendation";
   async function submit() {
-    if (!GAS_URL) { setMsg("Server not configured"); return; }
     setBusy(true); setMsg(null);
     try {
-      const res = await fetch(GAS_URL, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "X-RCMS-Token": GAS_SECRET||"" },
-        body: JSON.stringify({ action: kind==="update"?"providerUpdate":"clinicalRecommendation", caseId:kase.id })
-      });
-      const j = await res.json();
-      setMsg(j.ok ? "Sent." : (j.error||"Error"));
-    } catch(e:any){ setMsg(e.message||"Network error"); }
-    finally { setBusy(false); }
+      // TODO: Create edge function for provider communications
+      setMsg("TODO: Implement provider update/recommendation");
+      // When implemented:
+      // await supabase.functions.invoke("provider-comms", {
+      //   body: { caseId: kase.id, action: kind === "update" ? "providerUpdate" : "clinicalRecommendation" }
+      // })
+    } catch(e:any){ 
+      setMsg(e.message||"Error"); 
+    } finally { 
+      setBusy(false); 
+    }
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

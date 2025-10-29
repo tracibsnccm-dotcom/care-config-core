@@ -31,6 +31,7 @@
 
 // -------------------------------- Types (align with your app) --------------------------------
 import * as React from "react";
+import { scheduleReminders, sendNudge, notifyExpired } from "../lib/supabaseOperations";
 
 export type IntakeRequired = { incident: boolean; injuries: boolean; consent: boolean; };
 export type IntakeOptional = { fourPs: boolean; sdoh: boolean; };
@@ -78,31 +79,23 @@ export function maskName(full?: string) {
   return `${m(f)} ${m(l)}`.trim();
 }
 
-async function gasPost<T = unknown>(cfg: GasConfig | undefined, payload: unknown): Promise<{ ok: boolean; data?: T; skipped?: boolean }> {
-  if (!cfg?.webAppUrl) return { ok: true, skipped: true };
-  const res = await fetch(cfg.webAppUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-  let data: T | undefined = undefined;
-  try { data = (await res.json()) as T; } catch {}
-  return { ok: res.ok, data };
-}
-
-// -------------------------------- Google Apps Script hooks --------------------------------
+// -------------------------------- Notification Functions (Supabase) --------------------------------
 export async function scheduleClientReminders(cfg: GasConfig | undefined, c: CaseRecord, days: readonly number[] = DEFAULT_REMINDER_DAYS) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "scheduleReminders", caseId: c.id, email, phone, days });
+  return scheduleReminders({ caseId: c.id, email, phone, days: Array.from(days) });
 }
 
 export async function sendImmediateNudge(cfg: GasConfig | undefined, c: CaseRecord) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "sendNudge", caseId: c.id, email, phone });
+  return sendNudge({ caseId: c.id, email });
 }
 
 export async function notifyIntakeExpired(cfg: GasConfig | undefined, c: CaseRecord) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "notifyExpired", caseId: c.id, email, phone });
+  return notifyExpired({ caseId: c.id, email });
 }
 
 // -------------------------------- Auto-purge helper --------------------------------

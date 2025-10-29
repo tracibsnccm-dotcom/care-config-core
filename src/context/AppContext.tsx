@@ -110,8 +110,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Auto-purge incomplete intakes on init
   useEffect(() => {
     const runPurge = async () => {
-      const gasUrl = import.meta.env.VITE_GAS_URL;
-      const { keep, purged } = await autoPurgeIncomplete({ webAppUrl: gasUrl }, cases as any);
+      const { keep, purged } = await autoPurgeIncomplete(undefined, cases as any);
       if (purged.length > 0) {
         setCases(keep as any);
         console.log(`Auto-purged ${purged.length} incomplete intake(s) older than 7 days`);

@@ -297,8 +297,7 @@ export default function AttorneyLanding() {
           currentFirmId="firm-001"
           cases={cases as any}
           onNudge={async (c) => {
-            const gasUrl = import.meta.env.VITE_GAS_URL;
-            await sendImmediateNudge({ webAppUrl: gasUrl }, c);
+            await sendImmediateNudge(undefined, c);
             log("NUDGE_SENT", c.id);
           }}
         />

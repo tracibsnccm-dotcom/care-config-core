@@ -11,7 +11,7 @@
  * ========================================================================================= */
 
 import React, { useMemo, useState } from "react";
-import { audit } from "../lib/rcmsApi";
+import { audit } from "../lib/supabaseOperations";
 import { exportAllowed } from "../lib/access";
 
 /* --------------------------------- Utilities --------------------------------- */

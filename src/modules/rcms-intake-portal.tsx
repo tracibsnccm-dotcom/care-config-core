@@ -82,23 +82,23 @@ async function gasPost<T = unknown>(cfg: GasConfig | undefined, payload: unknown
   return { ok: res.ok, data: (await res.json().catch(() => undefined)) as T | undefined };
 }
 
-// ---------- Google Apps Script hooks (client only) ----------
+import { scheduleReminders, sendNudge, notifyExpired } from "../lib/supabaseOperations";
 export async function scheduleClientReminders(cfg: GasConfig | undefined, c: CaseRecord, days: readonly number[] = DEFAULT_REMINDER_DAYS) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "scheduleReminders", caseId: c.id, email, phone, days });
+  return scheduleReminders({ caseId: c.id, email, phone, days: Array.from(days) });
 }
 
 export async function sendImmediateNudge(cfg: GasConfig | undefined, c: CaseRecord) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "sendNudge", caseId: c.id, email, phone });
+  return sendNudge({ caseId: c.id, email });
 }
 
 export async function notifyIntakeExpired(cfg: GasConfig | undefined, c: CaseRecord) {
   const { email, phone } = c.clientContact || {};
   if (!email && !phone) return { ok: true, skipped: true };
-  return gasPost(cfg, { action: "notifyExpired", caseId: c.id, email, phone });
+  return notifyExpired({ caseId: c.id, email });
 }
 
 // ---------- Hook: Intake Progress ----------
