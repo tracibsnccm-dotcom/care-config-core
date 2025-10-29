@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { sendProviderConfirmation } from "@/lib/webhooks";
 import { WEBHOOK_CONFIG } from "@/config/webhooks";
-import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText } from "lucide-react";
+import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText, BookOpen, Stethoscope, MessageSquare, Phone, Mail } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 
@@ -34,7 +34,7 @@ interface TreatmentRow {
   notes: string;
 }
 
-type TabType = "meds" | "pain" | "depression" | "anxiety" | "stress" | "sdoh" | "care" | "review";
+type TabType = "meds" | "pain" | "depression" | "anxiety" | "stress" | "sdoh" | "care" | "journal" | "provider-concerns" | "contact-rn" | "contact-provider" | "contact-attorney" | "review";
 
 const SDOH_OPTIONS = [
   "Transportation",
@@ -83,6 +83,15 @@ export default function ClientJournal() {
 
   // Care Plan
   const [carePlan, setCarePlan] = useState("");
+
+  // Journal Entries
+  const [journalEntry, setJournalEntry] = useState("");
+
+  // Provider Concerns
+  const [providerConcerns, setProviderConcerns] = useState("");
+
+  // Contact messages
+  const [contactMessage, setContactMessage] = useState("");
 
   const getCaseId = () => {
     if ((window as any).RCMS_CASE_ID) return (window as any).RCMS_CASE_ID;
@@ -169,8 +178,13 @@ export default function ClientJournal() {
     { id: "depression" as TabType, label: "Depression Score", icon: Brain, allowedRoles: "all" },
     { id: "anxiety" as TabType, label: "Anxiety Score", icon: AlertCircle, allowedRoles: "all" },
     { id: "stress" as TabType, label: "Stress Checklist", icon: Brain, allowedRoles: "all" },
+    { id: "journal" as TabType, label: "Journal Entries", icon: BookOpen, allowedRoles: "all" },
+    { id: "provider-concerns" as TabType, label: "Provider Concerns", icon: Stethoscope, allowedRoles: "all" },
     { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
     { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
+    { id: "contact-rn" as TabType, label: "Contact RN CM", icon: MessageSquare, allowedRoles: "all" },
+    { id: "contact-provider" as TabType, label: "Contact Provider", icon: Phone, allowedRoles: "all" },
+    { id: "contact-attorney" as TabType, label: "Contact Attorney", icon: Mail, allowedRoles: "all" },
     { id: "review" as TabType, label: "Review & Save", icon: Save, allowedRoles: "all" },
   ];
 
@@ -189,7 +203,7 @@ export default function ClientJournal() {
               Reconcile <span className="text-accent font-extrabold">C.A.R.E.</span> — Client Journal & Medications
             </CardTitle>
             <CardDescription className="text-primary-foreground/90">
-              Enter medications, symptoms, SDOH, and a preliminary care plan. Entries are saved securely to your case.
+              Enter medications, symptoms, pain, anxiety, depression and stress situations and events. Entries are saved securely to your case.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -399,7 +413,7 @@ export default function ClientJournal() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="painNotes">Pain Notes</Label>
+                <Label htmlFor="painNotes">Additional Details</Label>
                 <Textarea
                   id="painNotes"
                   placeholder="Describe location, triggers, what helps relieve it..."
@@ -441,6 +455,14 @@ export default function ClientJournal() {
                   Based on RCMS standardized depression assessment tool
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="depressionNotes">Additional Details</Label>
+                <Textarea
+                  id="depressionNotes"
+                  placeholder="Describe any additional context or observations..."
+                  rows={3}
+                />
+              </div>
             </CardContent>
           </Card>
         )}
@@ -474,6 +496,14 @@ export default function ClientJournal() {
                   Based on RCMS standardized anxiety assessment tool
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="anxietyNotes">Additional Details</Label>
+                <Textarea
+                  id="anxietyNotes"
+                  placeholder="Describe any additional context or observations..."
+                  rows={3}
+                />
+              </div>
             </CardContent>
           </Card>
         )}
@@ -490,7 +520,7 @@ export default function ClientJournal() {
                 Enter your total or key items (the full checklist is in your packet).
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="stressTotal">Stress Total (0–10 or count)</Label>
@@ -513,6 +543,14 @@ export default function ClientJournal() {
                     onChange={e => setStressNotes(e.target.value)}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stressDetails">Additional Details</Label>
+                <Textarea
+                  id="stressDetails"
+                  placeholder="Describe specific situations, events, or additional context..."
+                  rows={4}
+                />
               </div>
             </CardContent>
           </Card>
@@ -580,7 +618,7 @@ export default function ClientJournal() {
                 Outline the expected pathway based on client-reported symptoms and guideline references (e.g., PT duration, imaging triggers, referral criteria). Mark as preliminary until records are reviewed.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <Textarea
                 id="carePlan"
                 placeholder="Example: 4–6 weeks of conservative care (PT, NSAIDs). If no improvement, consider MRI and ortho referral. Estimated TTD 2–4 weeks pending job demands…"
@@ -588,6 +626,180 @@ export default function ClientJournal() {
                 onChange={(e) => setCarePlan(e.target.value)}
                 rows={8}
               />
+              <div className="space-y-2">
+                <Label htmlFor="carePlanNotes">Additional Notes</Label>
+                <Textarea
+                  id="carePlanNotes"
+                  placeholder="Add any additional context or observations..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Journal Entries Tab */}
+        {activeTab === "journal" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Journal Entries
+              </CardTitle>
+              <CardDescription>
+                Record any concerns, observations, or items that don't fit in other categories
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="journalEntry"
+                placeholder="Write about your day, concerns, observations, or anything else you'd like to document..."
+                value={journalEntry}
+                onChange={(e) => setJournalEntry(e.target.value)}
+                rows={10}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Provider Concerns Tab */}
+        {activeTab === "provider-concerns" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Stethoscope className="w-5 h-5" />
+                Provider Concerns & Questions
+              </CardTitle>
+              <CardDescription>
+                List questions or concerns you have for your healthcare providers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                id="providerConcerns"
+                placeholder="What questions or concerns do you want to discuss with your provider?"
+                value={providerConcerns}
+                onChange={(e) => setProviderConcerns(e.target.value)}
+                rows={8}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="providerNotes">Additional Context</Label>
+                <Textarea
+                  id="providerNotes"
+                  placeholder="Add any additional context or background information..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contact RN CM Tab */}
+        {activeTab === "contact-rn" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Contact RN Care Manager
+              </CardTitle>
+              <CardDescription>
+                Send a message to your RN Care Manager
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="rnSubject">Subject</Label>
+                <Input
+                  id="rnSubject"
+                  placeholder="Brief subject line..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rnMessage">Message</Label>
+                <Textarea
+                  id="rnMessage"
+                  placeholder="Type your message to your RN Care Manager..."
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  rows={6}
+                />
+              </div>
+              <Button className="w-full">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contact Provider Tab */}
+        {activeTab === "contact-provider" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="w-5 h-5" />
+                Contact Provider
+              </CardTitle>
+              <CardDescription>
+                Send a message to your healthcare provider
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="providerSubject">Subject</Label>
+                <Input
+                  id="providerSubject"
+                  placeholder="Brief subject line..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="providerMessage">Message</Label>
+                <Textarea
+                  id="providerMessage"
+                  placeholder="Type your message to your provider..."
+                  rows={6}
+                />
+              </div>
+              <Button className="w-full">
+                <Phone className="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contact Attorney Tab */}
+        {activeTab === "contact-attorney" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Contact Attorney
+              </CardTitle>
+              <CardDescription>
+                Send a message to your attorney
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="attorneySubject">Subject</Label>
+                <Input
+                  id="attorneySubject"
+                  placeholder="Brief subject line..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="attorneyMessage">Message</Label>
+                <Textarea
+                  id="attorneyMessage"
+                  placeholder="Type your message to your attorney..."
+                  rows={6}
+                />
+              </div>
+              <Button className="w-full">
+                <Mail className="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
             </CardContent>
           </Card>
         )}
