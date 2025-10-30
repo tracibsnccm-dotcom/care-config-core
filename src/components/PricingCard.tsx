@@ -99,13 +99,14 @@ export function PricingCard({ tier, planPrice, renewalDate, status = "Active" }:
           </Button>
         </div>
 
-        <div className="text-xs text-muted-foreground pt-4 border-t space-y-1">
-          <p>
-            <strong>Current Subscription Price:</strong> Either $9,500/$16,000/$24,000 or other amount based on the number of attorney and staff seats
-          </p>
-          <p>
-            Administrative Coordination & Case Transfer Fees for accepting client referrals are billed separately at $1,500.00 per referral + processing and applicable tax.
-          </p>
+        <div id="rcms-subscription-detail" className="pt-4 border-t space-y-2" role="group" aria-label="Subscription pricing details">
+          <div className="text-[0.98rem] text-foreground">
+            <strong>Current Subscription Price:</strong>{" "}
+            <span aria-live="polite">{planPrice ? `$${planPrice.toLocaleString('en-US')}` : "$—"}</span>
+          </div>
+          <div className="text-[0.92rem] text-muted-foreground">
+            Administrative Coordination & Case Transfer Fees for accepting client referrals are billed separately at <strong>$1,500.00</strong> per referral + processing and applicable tax.
+          </div>
         </div>
       </CardContent>
     </Card>
