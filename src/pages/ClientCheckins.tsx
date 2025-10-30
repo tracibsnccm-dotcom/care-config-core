@@ -16,6 +16,7 @@ import { useClientCheckins } from "@/hooks/useClientCheckins";
 import { CheckinChart } from "@/components/CheckinChart";
 import { CheckinHistoryModal } from "@/components/CheckinHistoryModal";
 import { createEmergencyAlert } from "@/lib/emergencyAlerts";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 export default function ClientCheckins() {
   const { user } = useAuth();
@@ -200,41 +201,51 @@ export default function ClientCheckins() {
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">
-                    Depression Scale: {depression}/10
-                  </Label>
-                  <Slider
-                    value={[depression]}
-                    onValueChange={([value]) => setDepression(value)}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Not at all</span>
-                    <span>Moderate</span>
-                    <span>Severe</span>
+                <Collapsible defaultOpen={false}>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium mb-2">Additional scales (PHQ/GAD)</Label>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm">Toggle</Button>
+                    </CollapsibleTrigger>
                   </div>
-                </div>
+                  <CollapsibleContent className="space-y-6 mt-2">
+                    <div>
+                      <Label className="text-sm font-medium mb-3 block">
+                        Depression Scale: {depression}/10
+                      </Label>
+                      <Slider
+                        value={[depression]}
+                        onValueChange={([value]) => setDepression(value)}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>Not at all</span>
+                        <span>Moderate</span>
+                        <span>Severe</span>
+                      </div>
+                    </div>
 
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">
-                    Anxiety Scale: {anxiety}/10
-                  </Label>
-                  <Slider
-                    value={[anxiety]}
-                    onValueChange={([value]) => setAnxiety(value)}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Not at all</span>
-                    <span>Moderate</span>
-                    <span>Severe</span>
-                  </div>
-                </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-3 block">
+                        Anxiety Scale: {anxiety}/10
+                      </Label>
+                      <Slider
+                        value={[anxiety]}
+                        onValueChange={([value]) => setAnxiety(value)}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>Not at all</span>
+                        <span>Moderate</span>
+                        <span>Severe</span>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 <LabeledInput
                   label="Note (optional)"
