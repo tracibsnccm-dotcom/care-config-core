@@ -20,6 +20,8 @@ export default function ClientCheckins() {
   const { user } = useAuth();
   const [caseId, setCaseId] = useState<string>("");
   const [pain, setPain] = useState(3);
+  const [depression, setDepression] = useState(3);
+  const [anxiety, setAnxiety] = useState(3);
   const [note, setNote] = useState("");
   const [quick4ps, setQuick4ps] = useState({
     physical: 50,
@@ -71,6 +73,8 @@ export default function ClientCheckins() {
           case_id: caseId,
           client_id: user.id,
           pain_scale: pain,
+          depression_scale: depression,
+          anxiety_scale: anxiety,
           note: note || null,
           p_physical: quick4ps.physical,
           p_psychological: quick4ps.psychological,
@@ -138,6 +142,8 @@ export default function ClientCheckins() {
 
       // Reset form
       setPain(3);
+      setDepression(3);
+      setAnxiety(3);
       setNote("");
       setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, purpose: 50 });
       
@@ -168,24 +174,59 @@ export default function ClientCheckins() {
               <p className="text-sm text-muted-foreground">Loading your case...</p>
             ) : (
               <div className="space-y-6">
-
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Pain Scale: {pain}/10
-                </Label>
-                <Slider
-                  value={[pain]}
-                  onValueChange={([value]) => setPain(value)}
-                  max={10}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>No Pain</span>
-                  <span>Moderate</span>
-                  <span>Severe</span>
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Pain Scale: {pain}/10
+                  </Label>
+                  <Slider
+                    value={[pain]}
+                    onValueChange={([value]) => setPain(value)}
+                    max={10}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>No Pain</span>
+                    <span>Moderate</span>
+                    <span>Severe</span>
+                  </div>
                 </div>
-              </div>
+
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Depression Scale: {depression}/10
+                  </Label>
+                  <Slider
+                    value={[depression]}
+                    onValueChange={([value]) => setDepression(value)}
+                    max={10}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>Not at all</span>
+                    <span>Moderate</span>
+                    <span>Severe</span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Anxiety Scale: {anxiety}/10
+                  </Label>
+                  <Slider
+                    value={[anxiety]}
+                    onValueChange={([value]) => setAnxiety(value)}
+                    max={10}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>Not at all</span>
+                    <span>Moderate</span>
+                    <span>Severe</span>
+                  </div>
+                </div>
 
               <LabeledInput
                 label="Note (optional)"
@@ -272,6 +313,14 @@ export default function ClientCheckins() {
                               <AlertTriangle className="w-4 h-4 text-warning" />
                             )}
                           </div>
+                        </div>
+                        <div className="flex gap-3 text-xs text-muted-foreground mb-1">
+                          {checkin.depression_scale !== null && (
+                            <span>Depression: {checkin.depression_scale}/10</span>
+                          )}
+                          {checkin.anxiety_scale !== null && (
+                            <span>Anxiety: {checkin.anxiety_scale}/10</span>
+                          )}
                         </div>
                         {checkin.note && (
                           <p className="text-xs text-muted-foreground">{checkin.note}</p>

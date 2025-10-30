@@ -42,6 +42,8 @@ export function CheckinHistoryModal({ open, onOpenChange, caseId }: CheckinHisto
     date: format(new Date(trend.bucket), period === 'day' ? 'MMM dd' : period === 'week' ? 'MMM dd' : 'MMM yyyy'),
     fullDate: format(new Date(trend.bucket), 'PPP'),
     pain: Number(trend.pain_avg),
+    depression: Number(trend.depression_avg),
+    anxiety: Number(trend.anxiety_avg),
     physical: trend.physical_avg,
     psychological: trend.psychological_avg,
     psychosocial: trend.psychosocial_avg,
@@ -55,10 +57,12 @@ export function CheckinHistoryModal({ open, onOpenChange, caseId }: CheckinHisto
 
   function handleExport() {
     const csv = [
-      ['Date', 'Pain Avg', 'Physical', 'Psychological', 'Psychosocial', 'Purpose', 'Count'],
+      ['Date', 'Pain Avg', 'Depression Avg', 'Anxiety Avg', 'Physical', 'Psychological', 'Psychosocial', 'Purpose', 'Count'],
       ...chartData.map(row => [
         row.fullDate,
         row.pain,
+        row.depression || '',
+        row.anxiety || '',
         row.physical,
         row.psychological,
         row.psychosocial,
@@ -129,7 +133,7 @@ export function CheckinHistoryModal({ open, onOpenChange, caseId }: CheckinHisto
             <>
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Pain Scale Trend</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Mental Health Scales</h3>
                   <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -151,7 +155,9 @@ export function CheckinHistoryModal({ open, onOpenChange, caseId }: CheckinHisto
                         }}
                       />
                       <Legend />
-                      <Line type="monotone" dataKey="pain" name="Pain Average" stroke="hsl(var(--destructive))" strokeWidth={2} />
+                      <Line type="monotone" dataKey="pain" name="Pain" stroke="hsl(var(--destructive))" strokeWidth={2} />
+                      <Line type="monotone" dataKey="depression" name="Depression" stroke="#6366f1" strokeWidth={2} />
+                      <Line type="monotone" dataKey="anxiety" name="Anxiety" stroke="#f59e0b" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

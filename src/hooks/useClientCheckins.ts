@@ -7,6 +7,8 @@ export interface ClientCheckin {
   case_id: string;
   client_id: string;
   pain_scale: number;
+  depression_scale: number | null;
+  anxiety_scale: number | null;
   note: string | null;
   p_physical: number;
   p_psychological: number;
@@ -19,6 +21,8 @@ export interface ClientCheckin {
 export interface CheckinTrend {
   bucket: string;
   pain_avg: number;
+  depression_avg: number;
+  anxiety_avg: number;
   physical_avg: number;
   psychological_avg: number;
   psychosocial_avg: number;

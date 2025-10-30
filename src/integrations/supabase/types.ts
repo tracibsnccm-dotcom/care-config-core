@@ -281,10 +281,12 @@ export type Database = {
       }
       client_checkins: {
         Row: {
+          anxiety_scale: number | null
           case_id: string
           client_id: string
           created_at: string
           created_by_role: string
+          depression_scale: number | null
           id: string
           note: string | null
           p_physical: number
@@ -294,10 +296,12 @@ export type Database = {
           pain_scale: number
         }
         Insert: {
+          anxiety_scale?: number | null
           case_id: string
           client_id: string
           created_at?: string
           created_by_role?: string
+          depression_scale?: number | null
           id?: string
           note?: string | null
           p_physical: number
@@ -307,10 +311,12 @@ export type Database = {
           pain_scale: number
         }
         Update: {
+          anxiety_scale?: number | null
           case_id?: string
           client_id?: string
           created_at?: string
           created_by_role?: string
+          depression_scale?: number | null
           id?: string
           note?: string | null
           p_physical?: number
@@ -838,7 +844,9 @@ export type Database = {
           p_start_date: string
         }
         Returns: {
+          anxiety_avg: number
           bucket: string
+          depression_avg: number
           n: number
           pain_avg: number
           physical_avg: number
