@@ -86,13 +86,14 @@ export default function ClientCheckins() {
         [quick4ps.physical, quick4ps.psychological, quick4ps.psychosocial, quick4ps.purpose].some(v => v <= 30);
 
       if (triggerImmediate) {
+        const severity = pain >= 8 || Object.values(quick4ps).some(v => v <= 20) ? 'high' : 'medium';
         await createEmergencyAlert({
           caseId,
           clientId: user.id,
           alertType: 'wellness_check',
-          severity: 'medium',
+          severity: severity as 'high' | 'medium',
           internalMessage: `Check-in threshold exceeded: Pain ${pain}/10, Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Purpose ${quick4ps.purpose}`,
-          minimalMessage: `Client submitted wellness check-in requiring review.`,
+          minimalMessage: `Recent client check-in suggests increased risk. Review recommended.`,
           metadata: { 
             pain_scale: pain, 
             fourPs: quick4ps,
@@ -118,13 +119,13 @@ export default function ClientCheckins() {
           await createEmergencyAlert({
             caseId,
             clientId: user.id,
-            alertType: 'safety_concern',
-            severity: 'high',
-            internalMessage: `TREND ALERT: Sustained high pain detected. Pain ≥7 for 3 consecutive check-ins. Recent scores: ${recentCheckins.map(c => c.pain_scale).join(', ')}`,
-            minimalMessage: `Client trend analysis requires urgent review.`,
+            alertType: 'crisis',
+            severity: 'critical',
+            internalMessage: `Trend alert: sustained high pain. Pain ≥7 for 3 consecutive check-ins (${recentCheckins.map(c => c.pain_scale).join(', ')})`,
+            minimalMessage: `Client experiencing sustained high pain levels. Immediate review recommended.`,
             metadata: {
-              trigger: 'sustained_high_pain',
-              consecutive_high_pain: recentCheckins.length,
+              trigger: 'consecutive_high_pain',
+              consecutive_count: 3,
               pain_scores: recentCheckins.map(c => c.pain_scale),
             },
           });
