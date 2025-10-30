@@ -1,17 +1,33 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Wallet, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 export function EWalletSummary() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
   const [pendingReferrals, setPendingReferrals] = useState(0);
+  const [pendingOffers, setPendingOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [attestationAgreed, setAttestationAgreed] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -45,15 +61,80 @@ export function EWalletSummary() {
     try {
       const { data, error } = await supabase
         .from("assignment_offers")
-        .select("id")
+        .select("*")
         .eq("attorney_id", user.id)
         .eq("status", "pending");
 
       if (error) throw error;
 
       setPendingReferrals(data?.length || 0);
+      setPendingOffers(data || []);
     } catch (error) {
       console.error("Error loading pending referrals:", error);
+    }
+  }
+
+  function openAcceptModal(offer: any) {
+    setSelectedOffer(offer);
+    setAttestationAgreed(false);
+    setShowAcceptModal(true);
+  }
+
+  function closeAcceptModal() {
+    setShowAcceptModal(false);
+    setSelectedOffer(null);
+    setAttestationAgreed(false);
+  }
+
+  async function handleAcceptReferral() {
+    if (!user || !selectedOffer || !attestationAgreed) {
+      toast({
+        title: "Agreement Required",
+        description: "Please agree to the attestation to proceed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      // Call the accept_assignment_offer function
+      const { data, error } = await supabase.rpc("accept_assignment_offer", {
+        p_offer_id: selectedOffer.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; case_id?: string };
+
+      if (result?.success === false) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to accept referral.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Referral Accepted",
+        description: "You have successfully accepted the client referral.",
+      });
+
+      // Refresh data
+      await loadBalance();
+      await loadPendingReferrals();
+      closeAcceptModal();
+    } catch (error) {
+      console.error("Error accepting referral:", error);
+      toast({
+        title: "Error",
+        description: "Failed to accept referral. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -77,14 +158,35 @@ export function EWalletSummary() {
               <p className="text-sm text-muted-foreground mb-1">Pending Referrals</p>
               <p className="text-2xl font-bold text-primary">{pendingReferrals}</p>
               {pendingReferrals > 0 && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="px-0 h-auto text-xs"
-                  onClick={() => navigate("/attorney-portal")}
-                >
-                  View pending assignments →
-                </Button>
+                <div className="space-y-2 mt-3">
+                  {pendingOffers.slice(0, 3).map((offer) => (
+                    <div
+                      key={offer.id}
+                      className="flex items-center justify-between p-2 bg-muted rounded"
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        Case: RC-{offer.case_id.slice(-8).toUpperCase()}
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={() => openAcceptModal(offer)}
+                        className="bg-[#b09837] text-black hover:bg-[#b09837]/90 h-7 text-xs"
+                      >
+                        Accept Referral
+                      </Button>
+                    </div>
+                  ))}
+                  {pendingReferrals > 3 && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="px-0 h-auto text-xs w-full"
+                      onClick={() => navigate("/attorney-portal")}
+                    >
+                      View all {pendingReferrals} pending →
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -108,6 +210,61 @@ export function EWalletSummary() {
           </>
         )}
       </CardContent>
+
+      {/* Accept Referral Attestation Modal */}
+      <Dialog open={showAcceptModal} onOpenChange={closeAcceptModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#0f2a6a]">Accept Referral Attestation</DialogTitle>
+            <DialogDescription>
+              Please review and agree to the following terms before accepting this referral.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {selectedOffer && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm">
+                  <strong>Case ID:</strong> RC-{selectedOffer.case_id.slice(-8).toUpperCase()}
+                </p>
+                <p className="text-sm mt-1">
+                  <strong>Fee:</strong> $1,500 + 3.25% processing + applicable tax
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3 p-4 bg-[#b09837]/10 rounded-lg border border-[#b09837]/20">
+              <Checkbox
+                id="attestation"
+                checked={attestationAgreed}
+                onCheckedChange={(checked) => setAttestationAgreed(checked === true)}
+              />
+              <Label
+                htmlFor="attestation"
+                className="text-sm leading-relaxed cursor-pointer font-normal"
+              >
+                I authorize Reconcile C.A.R.E. to deduct the Administrative Coordination & Case
+                Transfer Fee from my eWallet. I understand that Reconcile C.A.R.E. is not
+                responsible for the duration of the relationship between attorney and client, and
+                fees are non-refundable.
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeAcceptModal} disabled={processing}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAcceptReferral}
+              disabled={!attestationAgreed || processing}
+              className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
+            >
+              {processing ? "Processing..." : "Accept & Authorize Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
