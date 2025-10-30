@@ -24,6 +24,7 @@ import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
 import { PricingCard } from "@/components/PricingCard";
 import { TierComparisonTable } from "@/components/TierComparisonTable";
 import { RNCMSpecialServices } from "@/components/RNCMSpecialServices";
+import { ReferralPurchaseCard } from "@/components/ReferralPurchaseCard";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -333,6 +334,16 @@ export default function AttorneyBilling() {
             isSubscriber={tierData?.tier !== 'basic'}
             caseId={undefined}
             attorneyId={user?.id}
+          />
+
+          <ReferralPurchaseCard
+            walletBalance={walletBalance}
+            attorneyId={user?.id}
+            tierData={tierData}
+            onPurchaseComplete={() => {
+              loadWalletData();
+              loadTransactions();
+            }}
           />
         </TabsContent>
 
