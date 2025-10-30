@@ -103,7 +103,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user?.id) return;
+    if (!draft.trim() || !user?.id) return;
 
     setLoading(true);
     try {
@@ -118,13 +118,13 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         case_id: caseId,
         sender_id: user.id,
         sender_role: roleData?.role || "ATTORNEY",
-        message_text: newMessage.trim(),
+        message_text: draft.trim(),
         is_important: false,
       });
 
       if (error) throw error;
 
-      setNewMessage("");
+      await clearDraft();
       toast.success("Message sent");
     } catch (error: any) {
       console.error("Error sending message:", error);
@@ -227,8 +227,9 @@ export function MessageThread({ caseId }: MessageThreadProps) {
       <div className="p-4 border-t bg-card">
         <div className="flex gap-2">
           <Textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            value={draft}
+            onChange={(e) => updateDraft(e.target.value)}
+            onBlur={saveNow}
             placeholder="Type your message to RN CM..."
             className="min-h-[80px] resize-none"
             onKeyDown={(e) => {
@@ -250,7 +251,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
             <Button
               size="icon"
               onClick={handleSendMessage}
-              disabled={loading || !newMessage.trim()}
+              disabled={loading || !draft.trim()}
               style={{
                 backgroundColor: "#b09837",
                 color: "#000000",
