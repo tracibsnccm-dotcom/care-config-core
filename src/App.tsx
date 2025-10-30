@@ -35,7 +35,10 @@ import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalS
 import ConcernsComplaintsCenter from "./pages/ConcernsComplaintsCenter";
 import Settings from "./pages/Settings";
 import RNClinicalLiaison from "./pages/RNClinicalLiaison";
+import Insights from "./pages/Insights";
+import ESignCenter from "./pages/ESignCenter";
 import { ProtectedRoute } from "./auth/supabaseAuth";
+import { MobileQuickBar } from "./components/MobileQuickBar";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +49,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <MobileQuickBar />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -100,6 +104,14 @@ const App = () => (
             <Route
               path="/rn-clinical-liaison"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNClinicalLiaison /></ProtectedRoute>}
+            />
+            <Route
+              path="/insights"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Insights /></ProtectedRoute>}
+            />
+            <Route
+              path="/e-sign-center"
+              element={<ProtectedRoute roles={["ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ESignCenter /></ProtectedRoute>}
             />
 
             {/* Client routes */}

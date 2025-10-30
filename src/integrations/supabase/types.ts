@@ -258,6 +258,50 @@ export type Database = {
         }
         Relationships: []
       }
+      case_summaries: {
+        Row: {
+          case_id: string
+          edited_at: string | null
+          edited_content: string | null
+          generated_at: string
+          generated_by: string
+          id: string
+          metadata: Json | null
+          summary_content: string
+          summary_type: string
+        }
+        Insert: {
+          case_id: string
+          edited_at?: string | null
+          edited_content?: string | null
+          generated_at?: string
+          generated_by: string
+          id?: string
+          metadata?: Json | null
+          summary_content: string
+          summary_type?: string
+        }
+        Update: {
+          case_id?: string
+          edited_at?: string | null
+          edited_content?: string | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          metadata?: Json | null
+          summary_content?: string
+          summary_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_summaries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_tasks: {
         Row: {
           assigned_role: string | null
@@ -816,6 +860,149 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      e_sign_audit_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          request_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          request_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          request_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "e_sign_audit_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "e_sign_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      e_sign_requests: {
+        Row: {
+          audit_trail: Json | null
+          case_id: string
+          created_at: string
+          declined_at: string | null
+          document_path: string | null
+          expired_at: string | null
+          id: string
+          pdf_hash: string | null
+          requested_by: string
+          sent_at: string
+          signed_at: string | null
+          signer_id: string
+          status: string
+          template_id: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          audit_trail?: Json | null
+          case_id: string
+          created_at?: string
+          declined_at?: string | null
+          document_path?: string | null
+          expired_at?: string | null
+          id?: string
+          pdf_hash?: string | null
+          requested_by: string
+          sent_at?: string
+          signed_at?: string | null
+          signer_id: string
+          status?: string
+          template_id: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          audit_trail?: Json | null
+          case_id?: string
+          created_at?: string
+          declined_at?: string | null
+          document_path?: string | null
+          expired_at?: string | null
+          id?: string
+          pdf_hash?: string | null
+          requested_by?: string
+          sent_at?: string
+          signed_at?: string | null
+          signer_id?: string
+          status?: string
+          template_id?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "e_sign_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "e_sign_requests_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "e_sign_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      e_sign_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          merge_fields: Json | null
+          name: string
+          template_content: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          merge_fields?: Json | null
+          name: string
+          template_content: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          merge_fields?: Json | null
+          name?: string
+          template_content?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       intakes: {
         Row: {

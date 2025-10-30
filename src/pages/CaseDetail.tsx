@@ -11,6 +11,8 @@ import { exportCSV, exportPDFStub } from "@/lib/export";
 import { ProviderConfirmationButton } from "@/components/ProviderConfirmationButton";
 import { CaseHealthMeter } from "@/components/CaseHealthMeter";
 import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
+import { CaseTimelineView } from "@/components/CaseTimelineView";
+import { AICaseSummarizer } from "@/components/AICaseSummarizer";
 import { 
   ArrowLeft, 
   User, 
@@ -382,6 +384,20 @@ export default function CaseDetail() {
                 </div>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Timeline View */}
+        {canView && caseId && (
+          <div className="mt-6">
+            <CaseTimelineView caseId={caseId} />
+          </div>
+        )}
+
+        {/* AI Case Summarizer */}
+        {canView && caseId && (role === "ATTORNEY" || role === "RN_CCM" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6">
+            <AICaseSummarizer caseId={caseId} caseData={caseData} />
           </div>
         )}
       </div>
