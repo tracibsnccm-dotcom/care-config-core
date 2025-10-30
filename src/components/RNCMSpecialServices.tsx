@@ -122,10 +122,13 @@ export function RNCMSpecialServices({
   };
 
   return (
-    <section className="my-8">
+    <section id="rcms-referral-card" className="my-8">
       <h2 className="text-[1.6rem] font-extrabold mb-2 text-foreground">RN CM Special Services</h2>
-      <p className="text-muted-foreground mb-4">
+      <p className="text-muted-foreground mb-1">
         Order à la carte clinical services. Purchases are linked to your case and routed to our RN Care Management team.
+      </p>
+      <p className="text-[#333] mb-4 text-[1rem] leading-relaxed">
+        ⚖️ <strong className="text-[#0f2a6a]">Refund Policy:</strong> There are no cash refunds. Refunds, if granted, are issued as credits to the account or applied toward another service.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
