@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      assignment_audit_log: {
+        Row: {
+          assigned_attorney_id: string
+          assigned_by: string
+          assigned_timestamp: string
+          assignment_method: string
+          case_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          assigned_attorney_id: string
+          assigned_by?: string
+          assigned_timestamp?: string
+          assignment_method?: string
+          case_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          assigned_attorney_id?: string
+          assigned_by?: string
+          assigned_timestamp?: string
+          assignment_method?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_audit_log_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attorney_metadata: {
+        Row: {
+          capacity_available: number
+          capacity_limit: number
+          created_at: string
+          id: string
+          last_assigned_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capacity_available?: number
+          capacity_limit?: number
+          created_at?: string
+          id?: string
+          last_assigned_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capacity_available?: number
+          capacity_limit?: number
+          created_at?: string
+          id?: string
+          last_assigned_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attorney_rn_messages: {
         Row: {
           attachments: Json | null
@@ -1445,6 +1522,36 @@ export type Database = {
         }
         Relationships: []
       }
+      round_robin_settings: {
+        Row: {
+          allow_manual_override: boolean
+          check_capacity: boolean
+          enabled: boolean
+          id: string
+          reset_rotation_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_manual_override?: boolean
+          check_capacity?: boolean
+          enabled?: boolean
+          id?: string
+          reset_rotation_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_manual_override?: boolean
+          check_capacity?: boolean
+          enabled?: boolean
+          id?: string
+          reset_rotation_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sdoh_assessments: {
         Row: {
           assessed_by: string | null
@@ -1572,6 +1679,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assign_attorney_round_robin: {
+        Args: { p_case_id: string; p_reviewed_by: string }
+        Returns: string
+      }
       get_checkin_trends: {
         Args: {
           p_case_id: string
@@ -1592,6 +1703,7 @@ export type Database = {
         }[]
       }
       get_client_initials: { Args: { client_uuid: string }; Returns: string }
+      get_next_round_robin_attorney: { Args: never; Returns: string }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
       get_user_roles: {
         Args: { _user_id: string }
