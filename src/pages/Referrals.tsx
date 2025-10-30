@@ -39,6 +39,7 @@ import {
   Legend,
 } from "recharts";
 import { ReferralsDashboardWidget } from "@/components/ReferralsDashboardWidget";
+import { ReferralWalletBanner } from "@/components/ReferralWalletBanner";
 
 interface Referral {
   id: string;
@@ -196,6 +197,9 @@ export default function Referrals() {
             Export to CSV
           </Button>
         </div>
+
+        {/* eWallet Summary Banner */}
+        <ReferralWalletBanner />
 
         {/* Referral Summary Widget */}
         <ReferralsDashboardWidget />
