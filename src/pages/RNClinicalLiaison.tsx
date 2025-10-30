@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Select,
   SelectContent,
@@ -16,8 +16,6 @@ import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MessageThread } from "@/components/RNClinicalLiaison/MessageThread";
-import { ProviderContactRequestForm } from "@/components/RNClinicalLiaison/ProviderContactRequestForm";
-import { FollowUpTracker } from "@/components/RNClinicalLiaison/FollowUpTracker";
 import { format } from "date-fns";
 
 export default function RNClinicalLiaison() {
@@ -322,25 +320,9 @@ export default function RNClinicalLiaison() {
 
         {/* Main Content Tabs */}
         {selectedCaseId ? (
-          <Tabs defaultValue="messages" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="messages">Message Thread</TabsTrigger>
-              <TabsTrigger value="provider-requests">Provider Contacts</TabsTrigger>
-              <TabsTrigger value="follow-ups">Follow-Up Tracker</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="messages">
-              <MessageThread caseId={selectedCaseId} />
-            </TabsContent>
-
-            <TabsContent value="provider-requests">
-              <ProviderContactRequestForm caseId={selectedCaseId} />
-            </TabsContent>
-
-            <TabsContent value="follow-ups">
-              <FollowUpTracker caseId={selectedCaseId} />
-            </TabsContent>
-          </Tabs>
+          <div className="w-full">
+            <MessageThread caseId={selectedCaseId} />
+          </div>
         ) : (
           <Card className="p-12 text-center rounded-2xl">
             <p className="text-muted-foreground">Select a case to begin communication</p>

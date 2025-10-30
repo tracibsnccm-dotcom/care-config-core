@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMessageDraft } from "@/hooks/useMessageDraft";
 import { Input } from "@/components/ui/input";
+import { RCMS } from "@/constants/brand";
 
 interface Message {
   id: string;
@@ -219,7 +220,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
                       : "bg-card"
                   )}
                   style={{
-                    backgroundColor: isCurrentUser ? "#0f2a6a" : undefined,
+                    backgroundColor: isCurrentUser ? RCMS.brandNavy : undefined,
                     color: isCurrentUser ? "#ffffff" : undefined,
                   }}
                 >
@@ -240,8 +241,8 @@ export function MessageThread({ caseId }: MessageThreadProps) {
                       >
                         <Star
                           className="w-4 h-4"
-                          fill={msg.is_important ? "#b09837" : "none"}
-                          style={{ color: msg.is_important ? "#b09837" : "#ffffff80" }}
+                          fill={msg.is_important ? RCMS.brandGold : "none"}
+                          style={{ color: msg.is_important ? RCMS.brandGold : "#ffffff80" }}
                         />
                       </button>
                     )}
@@ -249,7 +250,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
                   <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
                   {msg.is_important && (
                     <div className="mt-2 flex items-center gap-1 text-xs opacity-90">
-                      <Star className="w-3 h-3" fill="#b09837" style={{ color: "#b09837" }} />
+                      <Star className="w-3 h-3" fill={RCMS.brandGold} style={{ color: RCMS.brandGold }} />
                       <span>Important</span>
                     </div>
                   )}
@@ -266,7 +267,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         {selectedFile && (
           <div className="mb-2 p-2 bg-muted/50 rounded flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Upload className="w-4 h-4" style={{ color: "#128f8b" }} />
+              <Upload className="w-4 h-4" style={{ color: RCMS.brandTeal }} />
               <span className="text-sm text-muted-foreground">{selectedFile.name}</span>
             </div>
             <Button
@@ -306,7 +307,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               title="Attach file"
-              style={{ borderColor: "#128f8b", color: "#128f8b" }}
+              style={{ borderColor: RCMS.brandTeal, color: RCMS.brandTeal }}
             >
               <Paperclip className="w-4 h-4" />
             </Button>
@@ -314,10 +315,10 @@ export function MessageThread({ caseId }: MessageThreadProps) {
               size="icon"
               onClick={handleSendMessage}
               disabled={loading || !draft.trim()}
-              style={{
-                backgroundColor: "#b09837",
-                color: "#000000",
-              }}
+                style={{
+                  backgroundColor: RCMS.brandGold,
+                  color: "#000000",
+                }}
               className="hover:opacity-90"
             >
               <Send className="w-4 h-4" />
