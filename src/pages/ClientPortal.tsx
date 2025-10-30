@@ -28,14 +28,34 @@ export default function ClientPortal() {
       {/* SECTION 1 - HEADER BAR */}
       <header className="bg-rcms-navy border-b-4 border-rcms-gold shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-4xl font-bold mb-2 tracking-tight">
-            <span className="text-white">Reconcile </span>
-            <span className="text-rcms-orange">C.A.R.E.</span>
-            <span className="text-white"> Client Portal</span>
-          </h1>
-          <p className="text-rcms-mint text-lg">
-            Your care, communication, and progress in one place
-          </p>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold mb-2 tracking-tight">
+                <span className="text-white">Reconcile </span>
+                <span className="text-rcms-orange">C.A.R.E.</span>
+                <span className="text-white"> Client Portal</span>
+              </h1>
+              <p className="text-rcms-mint text-lg">
+                Your care, communication, and progress in one place
+              </p>
+            </div>
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:self-end md:mb-1">
+              <Button 
+                onClick={() => setActiveTab("checkins")}
+                className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 font-medium"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                Check-Ins
+              </Button>
+              <Button 
+                onClick={() => setActiveTab("communication")}
+                className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 font-medium"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Messages
+              </Button>
+            </div>
+          </div>
         </div>
       </header>
 
