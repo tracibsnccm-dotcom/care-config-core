@@ -266,6 +266,12 @@ export default function AttorneyLanding() {
               <FileDown className="w-4 h-4 mr-2" />
               Exports
             </Button>
+            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
+              Billing & Subscription
+            </Button>
+            <Button onClick={() => navigate("/referrals")} variant="outline">
+              Referrals
+            </Button>
           </div>
         </Card>
 
