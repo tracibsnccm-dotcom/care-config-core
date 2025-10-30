@@ -422,14 +422,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Purpose/Professional (motivation, daily roles, work, goals): {quick4ps.professional}
+                          Professional (job, school, or home-based role): {quick4ps.professional}
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Purpose/Professional captures your sense of drive and fulfillment — motivation, daily roles, work performance, and personal goals.</p>
+                            <p className="text-sm">Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. It reflects satisfaction, stress, workload, and burnout risk in that environment.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
