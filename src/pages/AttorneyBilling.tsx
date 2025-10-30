@@ -209,33 +209,73 @@ export default function AttorneyBilling() {
         </TabsList>
 
         <TabsContent value="plan" className="space-y-6">
-          {/* Pricing Card */}
-          <PricingCard
-            tier={tierData?.tier}
-            planPrice={tierData?.plan_price}
-            renewalDate={tierData?.renewal_date}
-            status="Active"
-          />
-
-          {/* Billing Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#0f2a6a]">
+          {/* Combined Pricing & Billing Information */}
+          <Card className="border-[#e9e9e9] shadow-sm">
+            <CardHeader className="bg-[#0f2a6a] text-white rounded-t-2xl">
+              <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
-                Billing Information
+                Your Plan & Billing
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Card className="bg-muted border-border">
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">
-                    No setup fee. First month due at signing. Annual prepay{" "}
-                    <b className="text-foreground">-10%</b>, quarterly billing optional,{" "}
-                    <b className="text-foreground">3-month minimum</b>. Provider swaps:{" "}
-                    {RCMS_CONFIG.billing.providerSwaps.policy}
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Tier</p>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#0f2a6a] text-white text-base px-3 py-1 rounded-md font-semibold">
+                      {tierData?.tier || "—"}
+                    </span>
+                    <span className="bg-[#b09837] text-black text-xs px-2 py-1 rounded-md font-semibold">
+                      Your Plan
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Monthly Subscription</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {tierData?.plan_price ? `$${tierData.plan_price.toLocaleString()}` : "Contact Support"}
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Renewal Date</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {tierData?.renewal_date 
+                      ? new Date(tierData.renewal_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "TBD"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-md text-sm font-medium">
+                    Active
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Card className="bg-muted border-border">
+                  <CardContent className="pt-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Billing Terms</h3>
+                    <p className="text-sm text-muted-foreground">
+                      No setup fee. First month due at signing. Annual prepay{" "}
+                      <b className="text-foreground">-10%</b>, quarterly billing optional,{" "}
+                      <b className="text-foreground">3-month minimum</b>. Provider swaps:{" "}
+                      {RCMS_CONFIG.billing.providerSwaps.policy}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <p className="text-xs text-muted-foreground pt-4 border-t">
+                Subscription pricing appears here only. Coordination fees for accepted clients are billed separately at $1,500 + processing + applicable tax.
+              </p>
             </CardContent>
           </Card>
 
