@@ -125,27 +125,13 @@ export default function ClientPortal() {
       <section className="bg-rcms-mint py-12">
         <div className="max-w-7xl mx-auto px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 bg-white border-2 border-rcms-gold shadow-lg">
-              <TabsTrigger 
-                value="checkins"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Check-Ins</span>
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white border-2 border-rcms-gold shadow-lg">
               <TabsTrigger 
                 value="careplans"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Care Plans</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="communication"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Messages</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="documents"
