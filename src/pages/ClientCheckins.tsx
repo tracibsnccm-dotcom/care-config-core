@@ -23,14 +23,12 @@ export default function ClientCheckins() {
   const [caseId, setCaseId] = useState<string>("");
   const [caseOptions, setCaseOptions] = useState<string[]>([]);
   const [pain, setPain] = useState(3);
-  const [depression, setDepression] = useState(3);
-  const [anxiety, setAnxiety] = useState(3);
   const [note, setNote] = useState("");
   const [quick4ps, setQuick4ps] = useState({
     physical: 50,
     psychological: 50,
     psychosocial: 50,
-    purpose: 50,
+    professional: 50,
   });
   const [submitting, setSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -76,13 +74,11 @@ export default function ClientCheckins() {
           case_id: caseId,
           client_id: user.id,
           pain_scale: pain,
-          depression_scale: depression,
-          anxiety_scale: anxiety,
           note: note || null,
           p_physical: quick4ps.physical,
           p_psychological: quick4ps.psychological,
           p_psychosocial: quick4ps.psychosocial,
-          p_purpose: quick4ps.purpose,
+          p_purpose: quick4ps.professional,
         });
 
       if (error) throw error;
@@ -90,7 +86,7 @@ export default function ClientCheckins() {
       // Check for immediate alert thresholds
       const triggerImmediate = 
         pain >= 7 || 
-        [quick4ps.physical, quick4ps.psychological, quick4ps.psychosocial, quick4ps.purpose].some(v => v <= 30);
+        [quick4ps.physical, quick4ps.psychological, quick4ps.psychosocial, quick4ps.professional].some(v => v <= 30);
 
       if (triggerImmediate) {
         const severity = pain >= 8 || Object.values(quick4ps).some(v => v <= 20) ? 'high' : 'medium';
@@ -99,7 +95,7 @@ export default function ClientCheckins() {
           clientId: user.id,
           alertType: 'wellness_check',
           severity: severity as 'high' | 'medium',
-          internalMessage: `Check-in threshold exceeded: Pain ${pain}/10, Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Purpose ${quick4ps.purpose}`,
+          internalMessage: `Check-in threshold exceeded: Pain ${pain}/10, Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Professional ${quick4ps.professional}`,
           minimalMessage: `Recent client check-in suggests increased risk. Review recommended.`,
           metadata: { 
             pain_scale: pain, 
@@ -145,10 +141,8 @@ export default function ClientCheckins() {
 
       // Reset form
       setPain(3);
-      setDepression(3);
-      setAnxiety(3);
       setNote("");
-      setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, purpose: 50 });
+      setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
       
       refetch();
     } catch (error: any) {
@@ -201,51 +195,6 @@ export default function ClientCheckins() {
                   </div>
                 </div>
 
-                <Collapsible defaultOpen={false}>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium mb-2">Additional scales (PHQ/GAD)</Label>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="outline" size="sm">Toggle</Button>
-                    </CollapsibleTrigger>
-                  </div>
-                  <CollapsibleContent className="space-y-6 mt-2">
-                    <div>
-                      <Label className="text-sm font-medium mb-3 block">
-                        Depression Scale: {depression}/10
-                      </Label>
-                      <Slider
-                        value={[depression]}
-                        onValueChange={([value]) => setDepression(value)}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                        <span>Not at all</span>
-                        <span>Moderate</span>
-                        <span>Severe</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium mb-3 block">
-                        Anxiety Scale: {anxiety}/10
-                      </Label>
-                      <Slider
-                        value={[anxiety]}
-                        onValueChange={([value]) => setAnxiety(value)}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                        <span>Not at all</span>
-                        <span>Moderate</span>
-                        <span>Severe</span>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
 
                 <LabeledInput
                   label="Note (optional)"
