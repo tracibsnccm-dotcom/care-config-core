@@ -199,7 +199,7 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
   };
 
   return (
-    <section id="rcms-tiers" aria-labelledby="rcms-tiers-title" className="rcms-tiers">
+    <section id="rcms-tiers" aria-labelledby="rcms-tiers-title" className={`rcms-tiers tier-${currentTier?.toLowerCase() || ''}`}>
       <style>{`
         .rcms-tiers { margin: 24px 0; }
         .rcms-header { margin-bottom: 8px; }
@@ -209,17 +209,22 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
         .rcms-legend .x { color: #b00000; }
         .rcms-table-wrap { background: #fff; border: 1px solid #b09837; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); overflow: auto; }
         .rcms-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        .rcms-table thead th { position: sticky; top: 0; background: #0f2a6a; color: #fff; padding: 12px; text-align: center; font-weight: 700; z-index: 10; }
+        .rcms-table thead th { position: sticky; top: 0; background: #0f2a6a; color: #fff; padding: 14px; text-align: center; font-weight: 700; z-index: 10; vertical-align: middle; }
         .rcms-table thead th:first-child { text-align: left; padding-left: 16px; }
-        .rcms-table thead th small { display: block; font-weight: 400; font-size: 0.75rem; margin-top: 4px; opacity: 0.9; }
+        .rcms-table thead th:hover, .rcms-table thead th:focus-within { background: #102e80; }
+        .tier-label { display: flex; flex-direction: column; align-items: center; line-height: 1.3; position: relative; }
+        .tier-label > span:first-child { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
+        .tier-label small { font-size: 0.9rem; font-weight: 500; color: #b09837; opacity: 1; margin-top: 2px; display: block; }
+        .your-plan-chip { position: absolute; top: -6px; right: -10px; background: #b09837; color: #000; font-size: 0.7rem; font-weight: 600; border-radius: 10px; padding: 2px 6px; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
+        .rcms-tiers.tier-basic td:nth-child(2), .rcms-tiers.tier-basic th:nth-child(2) { background: rgba(176,152,55,0.12); box-shadow: inset 0 0 0 2px rgba(176,152,55,0.35); }
+        .rcms-tiers.tier-clinical td:nth-child(3), .rcms-tiers.tier-clinical th:nth-child(3) { background: rgba(176,152,55,0.12); box-shadow: inset 0 0 0 2px rgba(176,152,55,0.35); }
+        .rcms-tiers.tier-premium td:nth-child(4), .rcms-tiers.tier-premium th:nth-child(4) { background: rgba(176,152,55,0.12); box-shadow: inset 0 0 0 2px rgba(176,152,55,0.35); }
         .rcms-table th[scope="row"] { text-align: left; padding: 12px 16px; vertical-align: top; border-top: 1px solid #eaeaea; font-weight: 600; }
         .rcms-table th[scope="row"] small { display: block; font-weight: 400; font-size: 0.85rem; color: #555; margin-top: 2px; }
         .rcms-table td { text-align: center; padding: 12px; vertical-align: top; border-top: 1px solid #eaeaea; }
         .rcms-table td.x { color: #b00000; font-weight: 700; }
         .rcms-table small { color: #555; }
         .rcms-note { margin-top: 8px; color: #444; font-size: 0.9rem; }
-        .rcms-current-tier-col { outline: 2px solid rgba(176, 152, 55, 0.35); }
-        .rcms-tier-badge { display: inline-block; background: #b09837; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; }
         
         @media (max-width: 820px) {
           .rcms-table thead { display: none; }
@@ -234,6 +239,7 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
             margin-bottom: 2px;
           }
           .rcms-table th[scope="row"] { background: #0f2a6a; color: #fff; border-radius: 6px 6px 0 0; }
+          .your-plan-chip { position: static; display: inline-block; margin-left: 8px; }
         }
       `}</style>
 
@@ -255,12 +261,14 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
             <tr>
               <th scope="col">Feature</th>
               {tierHeaders.map((tier, idx) => (
-                <th key={idx} scope="col" className={getColumnClass(tierColumns[idx])}>
-                  {tier.name}
-                  <small>{tier.subtitle}</small>
-                  {currentTier === tierColumns[idx] && (
-                    <Badge className="rcms-tier-badge" variant="secondary">Your Plan</Badge>
-                  )}
+                <th key={idx} scope="col" className={`tier-${tierColumns[idx].toLowerCase()}`}>
+                  <div className="tier-label">
+                    <span>{tier.name}</span>
+                    <small>{tier.subtitle}</small>
+                    {currentTier === tierColumns[idx] && (
+                      <span className="your-plan-chip">Your Plan</span>
+                    )}
+                  </div>
                 </th>
               ))}
             </tr>
