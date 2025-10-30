@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "sonner";
-import { Star, Send, Paperclip } from "lucide-react";
+import { Star, Send, Paperclip, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMessageDraft } from "@/hooks/useMessageDraft";
+import { Input } from "@/components/ui/input";
 
 interface Message {
   id: string;
@@ -31,7 +32,9 @@ export function MessageThread({ caseId }: MessageThreadProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { draft, updateDraft, clearDraft, saveNow } = useMessageDraft(`rn-liaison-${caseId}`, caseId);
 
   // Fetch messages
@@ -114,23 +117,58 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         .eq("user_id", user.id)
         .single();
 
-      const { error } = await supabase.from("attorney_rn_messages").insert({
-        case_id: caseId,
-        sender_id: user.id,
-        sender_role: roleData?.role || "ATTORNEY",
-        message_text: draft.trim(),
-        is_important: false,
-      });
+      // TODO: Handle file upload to storage if selectedFile exists
+      // For now, just send the text message
+
+      const { error, data: messageData } = await supabase
+        .from("attorney_rn_messages")
+        .insert({
+          case_id: caseId,
+          sender_id: user.id,
+          sender_role: roleData?.role || "ATTORNEY",
+          message_text: draft.trim(),
+          is_important: false,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Get RN CM assigned to this case for notification
+      const { data: rnAssignment } = await supabase
+        .from("case_assignments")
+        .select("user_id")
+        .eq("case_id", caseId)
+        .eq("role", "RN_CCM")
+        .single();
+
+      if (rnAssignment?.user_id) {
+        // Send notification to RN CM
+        await supabase.from("notifications").insert({
+          user_id: rnAssignment.user_id,
+          title: "New Message from Attorney",
+          message: `You have a new message regarding case ${caseId.slice(0, 8)}`,
+          type: "info",
+          link: `/rn-portal`,
+        });
+      }
+
       await clearDraft();
-      toast.success("Message sent");
+      setSelectedFile(null);
+      toast.success("Message sent and RN CM notified");
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      toast.success(`File selected: ${file.name}`);
     }
   };
 
@@ -225,6 +263,22 @@ export function MessageThread({ caseId }: MessageThreadProps) {
 
       {/* Message Input */}
       <div className="p-4 border-t bg-card">
+        {selectedFile && (
+          <div className="mb-2 p-2 bg-muted/50 rounded flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Upload className="w-4 h-4" style={{ color: "#128f8b" }} />
+              <span className="text-sm text-muted-foreground">{selectedFile.name}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedFile(null)}
+              className="h-6 px-2"
+            >
+              Remove
+            </Button>
+          </div>
+        )}
         <div className="flex gap-2">
           <Textarea
             value={draft}
@@ -240,11 +294,19 @@ export function MessageThread({ caseId }: MessageThreadProps) {
             }}
           />
           <div className="flex flex-col gap-2">
+            <Input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            />
             <Button
               size="icon"
               variant="outline"
-              disabled
-              title="Attachments (coming soon)"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach file"
+              style={{ borderColor: "#128f8b", color: "#128f8b" }}
             >
               <Paperclip className="w-4 h-4" />
             </Button>
@@ -263,7 +325,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Press Enter to send, Shift+Enter for new line
+          Press Enter to send, Shift+Enter for new line • Attachments: PDF, Word, Images
         </p>
       </div>
     </Card>

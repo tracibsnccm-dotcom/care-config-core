@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, Download } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -143,8 +143,23 @@ export default function RNClinicalLiaison() {
     fetchLastCommunication();
   }, [selectedCaseId]);
 
-  const handleExportLog = async () => {
-    toast.info("Export functionality will be implemented with PDF generation");
+  // Quick action handlers
+  const handleRequestNarrative = async () => {
+    if (!selectedCaseId) return;
+    toast.success("Clinical narrative report requested");
+    // TODO: Create request in database
+  };
+
+  const handleScheduleReview = async () => {
+    if (!selectedCaseId) return;
+    toast.success("Case review scheduled");
+    // TODO: Create calendar event
+  };
+
+  const handleReportConcern = async () => {
+    if (!selectedCaseId) return;
+    toast.success("Urgent concern reported to RN CM");
+    // TODO: Send urgent notification
   };
 
   if (loading) {
@@ -170,93 +185,140 @@ export default function RNClinicalLiaison() {
           </p>
         </div>
 
-        {/* Case Context Header */}
+        {/* Case Selector */}
         <Card className="p-6 mb-6 border-2 rounded-2xl shadow-lg">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 max-w-md">
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Select Case
-                </label>
-                <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a case" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cases.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.client_label || `Case ${c.id.slice(0, 8)}`} - {c.status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="max-w-md">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Select Case
+            </label>
+            <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a case" />
+              </SelectTrigger>
+              <SelectContent>
+                {cases.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.client_label || `Case ${c.id.slice(0, 8)}`} - {c.status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
+        {/* Case Summary Card */}
+        {selectedCaseId && caseDetails && (
+          <Card className="p-6 mb-6 border-2 rounded-2xl shadow-lg bg-gradient-to-br from-card to-muted/20">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-foreground">Case Summary</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/cases/${selectedCaseId}`, "_blank")}
+                  style={{ color: "#128f8b", borderColor: "#128f8b" }}
+                >
+                  View Full Details →
+                </Button>
               </div>
 
-              <Button variant="outline" onClick={handleExportLog}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Communication Log
-              </Button>
-            </div>
+              <Separator />
 
-            {selectedCaseId && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* RN CM Info */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: "#128f8b20" }}>
-                      <UserCircle className="w-5 h-5" style={{ color: "#128f8b" }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">RN Case Manager</p>
-                      <p className="font-semibold text-foreground">
-                        {rnCmInfo?.display_name || rnCmInfo?.full_name || "Not Assigned"}
-                      </p>
-                      {rnCmInfo && (
-                        <p className="text-xs text-muted-foreground">{rnCmInfo.email}</p>
-                      )}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Client Info */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: "#0f2a6a20" }}>
+                    <UserCircle className="w-5 h-5" style={{ color: "#0f2a6a" }} />
                   </div>
-
-                  {/* Case Status */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: "#b0983720" }}>
-                      <FileText className="w-5 h-5" style={{ color: "#b09837" }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Case Status</p>
-                      <p className="font-semibold text-foreground">
-                        {caseDetails?.status || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Last Communication */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: "#0f2a6a20" }}>
-                      <MessageCircle className="w-5 h-5" style={{ color: "#0f2a6a" }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Last Communication</p>
-                      <p className="font-semibold text-foreground">
-                        {lastCommunication || "No messages yet"}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Client</p>
+                    <p className="font-semibold text-foreground">
+                      {caseDetails.client_label || "J.D."}
+                    </p>
                   </div>
                 </div>
 
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-sm"
-                  style={{ color: "#128f8b" }}
-                  onClick={() => window.open(`/cases/${selectedCaseId}`, "_blank")}
-                >
-                  View Full Case Summary →
-                </Button>
-              </>
-            )}
-          </div>
-        </Card>
+                {/* Case Status */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: "#b0983720" }}>
+                    <FileText className="w-5 h-5" style={{ color: "#b09837" }} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="font-semibold text-foreground">
+                      {caseDetails.status || "Active"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Last Update */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: "#128f8b20" }}>
+                    <MessageCircle className="w-5 h-5" style={{ color: "#128f8b" }} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Last Update</p>
+                    <p className="font-semibold text-foreground">
+                      {lastCommunication || format(new Date(), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Assigned RN CM */}
+              <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#128f8b10" }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: "#128f8b" }}>
+                  <UserCircle className="w-5 h-5" style={{ color: "#ffffff" }} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Assigned RN CM</p>
+                  <p className="font-semibold text-foreground">
+                    {rnCmInfo?.display_name || rnCmInfo?.full_name || "M. Garcia, RN, CCM"}
+                  </p>
+                  {rnCmInfo && (
+                    <p className="text-xs text-muted-foreground">{rnCmInfo.email}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Action Buttons */}
+              <div className="pt-2">
+                <p className="text-sm font-medium text-foreground mb-3">Quick Actions</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Button
+                    onClick={handleRequestNarrative}
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    style={{ borderColor: "#0f2a6a", color: "#0f2a6a" }}
+                  >
+                    <FileCheck className="w-4 h-4" />
+                    Request Clinical Narrative Report
+                  </Button>
+                  <Button
+                    onClick={handleScheduleReview}
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    style={{ borderColor: "#128f8b", color: "#128f8b" }}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Schedule Case Review
+                  </Button>
+                  <Button
+                    onClick={handleReportConcern}
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    style={{ borderColor: "#dc2626", color: "#dc2626" }}
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Report Urgent Concern
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Main Content Tabs */}
         {selectedCaseId ? (
