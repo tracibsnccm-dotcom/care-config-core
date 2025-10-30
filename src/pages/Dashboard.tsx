@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SupportFooter } from "@/components/SupportFooter";
+import { UpcomingDeadlinesWidget } from "@/components/UpcomingDeadlinesWidget";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -188,24 +189,29 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          {/* Quick Actions */}
-          <Card className="p-6 border-border">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
-            <div className="space-y-3">
-              <button className="w-full p-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-3">
-                <FileText className="w-5 h-5" />
-                <span className="font-medium">Create New Case</span>
-              </button>
-              <button className="w-full p-4 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary-light transition-colors flex items-center gap-3">
-                <Users className="w-5 h-5" />
-                <span className="font-medium">Add Client</span>
-              </button>
-              <button className="w-full p-4 bg-accent text-accent-foreground rounded-lg hover:bg-accent-light transition-colors flex items-center gap-3">
-                <Stethoscope className="w-5 h-5" />
-                <span className="font-medium">Find Providers</span>
-              </button>
-            </div>
-          </Card>
+          {/* Upcoming Deadlines - Attorney Only */}
+          {role === "ATTORNEY" ? (
+            <UpcomingDeadlinesWidget />
+          ) : (
+            /* Quick Actions - Non-Attorney */
+            <Card className="p-6 border-border">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
+              <div className="space-y-3">
+                <button className="w-full p-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-3">
+                  <FileText className="w-5 h-5" />
+                  <span className="font-medium">Create New Case</span>
+                </button>
+                <button className="w-full p-4 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary-light transition-colors flex items-center gap-3">
+                  <Users className="w-5 h-5" />
+                  <span className="font-medium">Add Client</span>
+                </button>
+                <button className="w-full p-4 bg-accent text-accent-foreground rounded-lg hover:bg-accent-light transition-colors flex items-center gap-3">
+                  <Stethoscope className="w-5 h-5" />
+                  <span className="font-medium">Find Providers</span>
+                </button>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Attorney-specific panels */}

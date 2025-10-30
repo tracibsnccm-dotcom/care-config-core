@@ -36,6 +36,7 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Attorney", href: "/attorney-portal", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Documents & Files", href: "/documents", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
