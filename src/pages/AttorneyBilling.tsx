@@ -23,6 +23,7 @@ import { RCMS_CONFIG } from "@/config/rcms";
 import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
 import { PricingCard } from "@/components/PricingCard";
 import { TierServicesMatrix } from "@/components/TierServicesMatrix";
+import { TierComparisonTable } from "@/components/TierComparisonTable";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -216,6 +217,9 @@ export default function AttorneyBilling() {
             renewalDate={tierData?.renewal_date}
             status="Active"
           />
+
+          {/* Tier Comparison Table */}
+          <TierComparisonTable currentTier={tierData?.tier} />
 
           {/* Tier Services Matrix */}
           <TierServicesMatrix currentTier={tierData?.tier} />
