@@ -93,7 +93,7 @@ export default function Insights() {
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
+                <Clock className="w-5 h-5 text-[hsl(var(--rcms-teal))]" />
                 Case Timeline Analytics
               </CardTitle>
               <CardDescription>Average duration by stage</CardDescription>

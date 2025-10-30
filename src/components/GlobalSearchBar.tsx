@@ -172,7 +172,7 @@ export function GlobalSearchBar() {
   return (
     <div className="relative w-full max-w-xl" ref={searchRef}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
         <Input
           ref={inputRef}
           type="text"
@@ -184,7 +184,7 @@ export function GlobalSearchBar() {
           }}
           onFocus={() => setIsOpen(true)}
           className={cn(
-            "pl-10 pr-10 h-10 border-border bg-background",
+            "pl-10 pr-10 h-10 border-white/30 bg-white text-foreground placeholder:text-muted-foreground",
             "focus-visible:ring-rcms-gold focus-visible:border-rcms-gold transition-colors"
           )}
         />

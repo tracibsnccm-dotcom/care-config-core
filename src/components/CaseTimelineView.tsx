@@ -24,9 +24,9 @@ interface CaseTimelineViewProps {
 
 const roleColors = {
   CLIENT: "bg-blue-500",
-  RN_CCM: "bg-purple-500",
+  RN_CCM: "bg-[hsl(var(--rcms-teal))]",
   PROVIDER: "bg-green-500",
-  ATTORNEY: "bg-gold-500",
+  ATTORNEY: "bg-[hsl(var(--rcms-gold))]",
 };
 
 const roleIcons = {
@@ -182,7 +182,7 @@ export function CaseTimelineView({ caseId, nodes = [] }: CaseTimelineViewProps) 
             <span className="text-xs text-muted-foreground">Client</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500" />
+            <div className="w-3 h-3 rounded-full bg-[hsl(var(--rcms-teal))]" />
             <span className="text-xs text-muted-foreground">RN Care Manager</span>
           </div>
           <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function CaseTimelineView({ caseId, nodes = [] }: CaseTimelineViewProps) 
             <span className="text-xs text-muted-foreground">Provider</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gold-500" />
+            <div className="w-3 h-3 rounded-full bg-[hsl(var(--rcms-gold))]" />
             <span className="text-xs text-muted-foreground">Attorney</span>
           </div>
         </div>
