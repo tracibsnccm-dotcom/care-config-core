@@ -145,7 +145,7 @@ export function EWalletSummary() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-[#b09837]">
           <Wallet className="h-5 w-5" />
-          eWallet Balance
+          Referrals & eWallet Balance
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
