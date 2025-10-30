@@ -116,6 +116,48 @@ export type Database = {
         }
         Relationships: []
       }
+      case_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          case_id: string
+          created_at: string
+          created_by: string | null
+          disclosure_scope: Database["public"]["Enums"]["disclosure_scope"]
+          id: string
+          message: string
+          metadata: Json | null
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          disclosure_scope?: Database["public"]["Enums"]["disclosure_scope"]
+          id?: string
+          message: string
+          metadata?: Json | null
+          severity?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          disclosure_scope?: Database["public"]["Enums"]["disclosure_scope"]
+          id?: string
+          message?: string
+          metadata?: Json | null
+          severity?: string
+        }
+        Relationships: []
+      }
       case_assignments: {
         Row: {
           case_id: string
@@ -237,6 +279,42 @@ export type Database = {
           },
         ]
       }
+      client_preferences: {
+        Row: {
+          attorney_notify_consent: boolean
+          client_id: string
+          consent_expires_at: string | null
+          consent_signed_at: string
+          created_at: string
+          id: string
+          revoked: boolean
+          revoked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attorney_notify_consent?: boolean
+          client_id: string
+          consent_expires_at?: string | null
+          consent_signed_at?: string
+          created_at?: string
+          id?: string
+          revoked?: boolean
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attorney_notify_consent?: boolean
+          client_id?: string
+          consent_expires_at?: string | null
+          consent_signed_at?: string
+          created_at?: string
+          id?: string
+          revoked?: boolean
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       concern_attachments: {
         Row: {
           concern_id: string
@@ -334,6 +412,63 @@ export type Database = {
           visit_date?: string | null
         }
         Relationships: []
+      }
+      disclosure_log: {
+        Row: {
+          alert_id: string | null
+          authorization_id: string | null
+          case_id: string
+          disclosed_at: string
+          disclosed_by: string | null
+          disclosed_to_role: string
+          disclosed_to_user_id: string
+          disclosure_reason: string
+          disclosure_scope: Database["public"]["Enums"]["disclosure_scope"]
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          alert_id?: string | null
+          authorization_id?: string | null
+          case_id: string
+          disclosed_at?: string
+          disclosed_by?: string | null
+          disclosed_to_role: string
+          disclosed_to_user_id: string
+          disclosure_reason: string
+          disclosure_scope: Database["public"]["Enums"]["disclosure_scope"]
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          alert_id?: string | null
+          authorization_id?: string | null
+          case_id?: string
+          disclosed_at?: string
+          disclosed_by?: string | null
+          disclosed_to_role?: string
+          disclosed_to_user_id?: string
+          disclosure_reason?: string
+          disclosure_scope?: Database["public"]["Enums"]["disclosure_scope"]
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disclosure_log_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "case_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disclosure_log_authorization_id_fkey"
+            columns: ["authorization_id"]
+            isOneToOne: false
+            referencedRelation: "client_preferences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -676,6 +811,7 @@ export type Database = {
         | "SUPER_USER"
         | "SUPER_ADMIN"
         | "STAFF"
+      disclosure_scope: "internal" | "minimal" | "full"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -812,6 +948,7 @@ export const Constants = {
         "SUPER_ADMIN",
         "STAFF",
       ],
+      disclosure_scope: ["internal", "minimal", "full"],
     },
   },
 } as const
