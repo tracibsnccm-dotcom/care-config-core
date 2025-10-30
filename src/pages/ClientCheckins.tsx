@@ -19,6 +19,8 @@ export default function ClientCheckins() {
   const { cases, setCases, log } = useApp();
   const [forCase, setForCase] = useState(cases[0]?.id ?? "");
   const [pain, setPain] = useState(3);
+  const [depression, setDepression] = useState(0);
+  const [anxiety, setAnxiety] = useState(0);
   const [note, setNote] = useState("");
   const [quick4ps, setQuick4ps] = useState<FourPs>({
     physical: 50,
@@ -40,7 +42,7 @@ export default function ClientCheckins() {
               ...c,
               checkins: [
                 ...(c.checkins || []),
-                { ts: new Date().toISOString(), pain, note, fourPs: quick4ps },
+                { ts: new Date().toISOString(), pain, depression, anxiety, note, fourPs: quick4ps },
               ],
               status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
             }
@@ -64,6 +66,8 @@ export default function ClientCheckins() {
 
     // Reset form
     setPain(3);
+    setDepression(0);
+    setAnxiety(0);
     setNote("");
     setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
   }
@@ -139,6 +143,38 @@ export default function ClientCheckins() {
                   <span>No Pain</span>
                   <span>Moderate</span>
                   <span>Severe</span>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">
+                  How depressed or down did you feel today? {depression}/10
+                </Label>
+                <Slider
+                  value={[depression]}
+                  onValueChange={([value]) => setDepression(value)}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>0 = not at all, 10 = extremely</span>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">
+                  How anxious or nervous did you feel today? {anxiety}/10
+                </Label>
+                <Slider
+                  value={[anxiety]}
+                  onValueChange={([value]) => setAnxiety(value)}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>0 = not at all, 10 = extremely</span>
                 </div>
               </div>
 
