@@ -64,7 +64,7 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
     {
       name: "RN Care Management",
       desc: "Ongoing coordination & advocacy",
-      basic: "❌ Not Included",
+      basic: "❌",
       clinical: "⚠️ Limited support",
       premium: "✅ Full support",
       xBasic: true
