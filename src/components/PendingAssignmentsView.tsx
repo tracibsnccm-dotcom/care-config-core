@@ -100,6 +100,23 @@ export function PendingAssignmentsView() {
     setLoading(false);
   }
 
+  async function loadWalletBalance() {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("attorney_wallet")
+      .select("balance")
+      .eq("attorney_id", user.id)
+      .maybeSingle();
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error loading wallet balance:", error);
+      return;
+    }
+
+    setWalletBalance(data?.balance || 0);
+  }
+
   function getTimeLeft(expiresAt: string): string {
     const now = new Date().getTime();
     const expires = new Date(expiresAt).getTime();
@@ -323,6 +340,7 @@ export function PendingAssignmentsView() {
             }}
             onAccept={handleAccept}
             caseId={`RC-${selectedOffer.case_id.slice(-8).toUpperCase()}`}
+            walletBalance={walletBalance}
           />
         </>
       )}
