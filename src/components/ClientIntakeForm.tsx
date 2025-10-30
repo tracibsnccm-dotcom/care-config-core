@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { IntakeForm, serializeIntakeForExport, toSheetRow } from "@/lib/intakeExport";
+import { supabase } from "@/integrations/supabase/client";
 
 const activities = ["Walking", "Bathing", "Dressing", "Cooking/Cleaning", "Driving"];
 const adlOptions = ["Independent", "Needs help", "Unable"];
@@ -64,7 +65,7 @@ export default function ClientIntakeForm() {
     setHideSensitive(value === "no");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate required fields
@@ -77,25 +78,89 @@ export default function ClientIntakeForm() {
       return;
     }
 
-    // Serialize the intake form using the export schema
-    const envelope = serializeIntakeForExport(form, {
-      caseId: `RC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
-      clientLabel: form.signature.split(" ").map(n => n[0]?.toUpperCase() || "").join(".") + ".",
-      firmName: "RCMS C.A.R.E.",
-    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to submit the intake form.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const sheetRow = toSheetRow(envelope);
+      // Serialize the intake form using the export schema
+      const envelope = serializeIntakeForExport(form, {
+        caseId: `RC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
+        clientLabel: form.signature.split(" ").map(n => n[0]?.toUpperCase() || "").join(".") + ".",
+        firmName: "RCMS C.A.R.E.",
+      });
 
-    console.log("Intake Export Envelope:", envelope);
-    console.log("Sheet Row Format:", sheetRow);
+      const sheetRow = toSheetRow(envelope);
 
-    // TODO: Submit to Supabase database
-    // This would use supabase.from('intakes').insert(...) to store the data
+      console.log("Intake Export Envelope:", envelope);
+      console.log("Sheet Row Format:", sheetRow);
 
-    toast({
-      title: "Intake Submitted",
-      description: `Case ID: ${envelope.meta.case_id}. Your intake form has been recorded.`,
-    });
+      // Save emergency notification consent to client_preferences
+      if (form.emergencyNotifyAttorney) {
+        const { error: prefError } = await supabase
+          .from('client_preferences')
+          .upsert({
+            client_id: user.id,
+            attorney_notify_consent: form.emergencyNotifyAttorney === 'yes',
+            consent_signed_at: new Date().toISOString(),
+          }, {
+            onConflict: 'client_id'
+          });
+
+        if (prefError) {
+          console.error('Error saving consent preferences:', prefError);
+          toast({
+            title: "Warning",
+            description: "Intake saved but consent preferences could not be updated.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      // TODO: Submit to Supabase database
+      // This would use supabase.from('intakes').insert(...) to store the data
+
+      toast({
+        title: "Intake Submitted",
+        description: `Case ID: ${envelope.meta.case_id}. Your intake form has been recorded.`,
+      });
+
+      // Reset form
+      setForm({
+        injuryDescription: "",
+        meds: "",
+        conditions: "",
+        allergies: "",
+        pharmacy: "",
+        beforeADL: {},
+        afterADL: {},
+        pain: "",
+        anxiety: "",
+        depression: "",
+        support: "",
+        difficultAnswers: {},
+        shareWithAttorney: null,
+        emergencyNotifyAttorney: null,
+        shareWithPCP: false,
+        wantEducation: false,
+        confirm: false,
+        signature: "",
+      });
+
+    } catch (error) {
+      console.error('Error submitting intake:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Could not submit your intake form. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
