@@ -283,7 +283,7 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
                 <Label htmlFor="respect-no" className="font-normal cursor-pointer">No</Label>
               </div>
             </RadioGroup>
-            {feltRespected && (
+            {(feltRespected === "Somewhat" || feltRespected === "No") && (
               <div className="mt-3">
                 <Label htmlFor="feltRespectedDetails" className="text-sm">
                   Please explain (optional)
@@ -318,7 +318,7 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
                 <Label htmlFor="care-no" className="font-normal cursor-pointer">No</Label>
               </div>
             </RadioGroup>
-            {careAddressed && (
+            {(careAddressed === "Somewhat" || careAddressed === "No") && (
               <div className="mt-3">
                 <Label htmlFor="careAddressedDetails" className="text-sm">
                   Please explain (optional)
