@@ -158,14 +158,21 @@ export function EWalletSummary() {
               <p className="text-sm text-muted-foreground mb-1">Pending Referrals</p>
               <p className="text-2xl font-bold text-primary">{pendingReferrals}</p>
 
-              {pendingReferrals > 0 && pendingOffers[0] && (
-                <Button
-                  onClick={() => openAcceptModal(pendingOffers[0])}
-                  className="mt-2 bg-[#b09837] text-black hover:bg-[#b09837]/90"
-                >
-                  Accept Referral
-                </Button>
-              )}
+              <Button
+                onClick={() => {
+                  if (pendingReferrals > 0 && pendingOffers[0]) {
+                    openAcceptModal(pendingOffers[0]);
+                  }
+                }}
+                disabled={pendingReferrals === 0}
+                className={
+                  pendingReferrals > 0
+                    ? "mt-3 w-full bg-[#b09837] text-black hover:bg-[#b09837]/90"
+                    : "mt-3 w-full bg-muted text-muted-foreground cursor-not-allowed"
+                }
+              >
+                Accept Referral
+              </Button>
 
               {pendingReferrals > 0 && (
                 <div className="space-y-2 mt-3">

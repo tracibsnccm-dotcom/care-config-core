@@ -226,7 +226,10 @@ export default function AttorneyLanding() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/rn-clinical-liaison")} variant="outline">
+            <Button 
+              onClick={() => navigate("/rn-clinical-liaison")} 
+              className="bg-[#128f8b] text-white hover:bg-[#128f8b]/90"
+            >
               <Stethoscope className="w-4 h-4 mr-2" />
               RN CM / Clinical Liaison
             </Button>
