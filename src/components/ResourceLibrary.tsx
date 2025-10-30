@@ -76,7 +76,7 @@ export function ResourceLibrary() {
                 <p className="text-sm text-muted-foreground mb-3">{resource.description}</p>
                 <Button
                   size="sm"
-                  className="bg-rcms-gold text-foreground hover:bg-rcms-gold/90"
+                  className="bg-rcms-orange text-white hover:bg-rcms-orange-hover"
                   asChild
                 >
                   <a href={resource.link} target="_blank" rel="noopener noreferrer">

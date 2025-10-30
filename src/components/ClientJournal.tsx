@@ -96,7 +96,7 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
             onClick={handleSubmit}
             disabled={submitting || !newEntry.trim()}
             size="sm"
-            className="bg-primary"
+            className="bg-rcms-orange text-white hover:bg-rcms-orange-hover"
           >
             <Plus className="w-4 h-4 mr-2" />
             {submitting ? "Saving..." : "Add Entry"}

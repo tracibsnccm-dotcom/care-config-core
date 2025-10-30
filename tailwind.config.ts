@@ -76,6 +76,8 @@ export default {
           closed: "hsl(var(--status-closed))",
         },
         rcms: {
+          orange: "hsl(var(--rcms-orange))",
+          "orange-hover": "hsl(var(--rcms-orange-hover))",
           gold: "hsl(var(--rcms-gold))",
           navy: "hsl(var(--rcms-navy))",
           teal: "hsl(var(--rcms-teal))",
@@ -87,7 +89,7 @@ export default {
       },
       backgroundImage: {
         'gradient-navy-teal': 'var(--gradient-navy-teal)',
-        'gradient-gold-teal': 'var(--gradient-gold-teal)',
+        'gradient-orange-teal': 'var(--gradient-orange-teal)',
       },
       boxShadow: {
         sm: "var(--shadow-sm)",
