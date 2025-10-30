@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Star, Send, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useMessageDraft } from "@/hooks/useMessageDraft";
 
 interface Message {
   id: string;
@@ -29,9 +30,9 @@ interface MessageThreadProps {
 export function MessageThread({ caseId }: MessageThreadProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { draft, updateDraft, clearDraft, saveNow } = useMessageDraft(`rn-liaison-${caseId}`, caseId);
 
   // Fetch messages
   const fetchMessages = async () => {

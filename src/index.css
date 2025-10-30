@@ -7,7 +7,7 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
+:root {
     --background: 210 20% 98%;
     --foreground: 215 25% 15%;
 
@@ -69,6 +69,7 @@ All colors MUST be HSL.
 
     /* Reconcile C.A.R.E. Brand Colors */
     --rcms-gold: 45 48% 45%;
+    --gold: 45 48% 45%;
     --rcms-orange: 20 78% 56%;
     --rcms-navy: 220 68% 24%;
     --rcms-teal: 179 75% 32%;

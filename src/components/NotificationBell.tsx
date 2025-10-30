@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ExternalLink, AlertCircle, AlertTriangle, Info, CheckCircle, FileText, UserPlus, Clock } from "lucide-react";
+import { Bell, ExternalLink, AlertCircle, AlertTriangle, Info, CheckCircle, FileText, UserPlus, Clock, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/auth/supabaseAuth";
+
+type NotificationFilter = "all" | "reports" | "messages" | "follow-ups" | "system";
 
 const notificationIcons: Record<string, React.ElementType> = {
   document_uploaded: FileText,
@@ -23,9 +27,38 @@ const notificationColors: Record<string, string> = {
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
+  const [filter, setFilter] = useState<NotificationFilter>("all");
   const feedRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+
+  // Load saved filter from user preferences
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from("user_preferences")
+        .select("notification_filter")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.notification_filter) {
+            setFilter(data.notification_filter as NotificationFilter);
+          }
+        });
+    }
+  }, [user]);
+
+  // Save filter preference
+  const saveFilter = async (newFilter: NotificationFilter) => {
+    setFilter(newFilter);
+    if (user) {
+      await supabase.from("user_preferences").upsert(
+        { user_id: user.id, notification_filter: newFilter },
+        { onConflict: "user_id" }
+      );
+    }
+  };
 
   // Close on click outside
   useEffect(() => {
@@ -82,6 +115,19 @@ export function NotificationBell() {
     setIsOpen(false);
   };
 
+  const getNotificationCategory = (notification: Notification): NotificationFilter => {
+    const metadata = notification.metadata as any;
+    if (metadata?.report_id) return "reports";
+    if (metadata?.message_id || notification.title.toLowerCase().includes("message")) return "messages";
+    if (metadata?.follow_up || notification.title.toLowerCase().includes("follow")) return "follow-ups";
+    return "system";
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (filter === "all") return true;
+    return getNotificationCategory(n) === filter;
+  });
+
   return (
     <div className="relative" ref={feedRef}>
       <button
@@ -102,18 +148,50 @@ export function NotificationBell() {
           "absolute right-0 top-12 w-[380px] max-h-[480px] overflow-auto z-50",
           "border-border shadow-lg"
         )}>
-          <div className="sticky top-0 bg-background border-b border-border p-4 flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Notifications</h3>
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={markAllAsRead}
-                className="text-xs"
-              >
-                Mark all read
-              </Button>
-            )}
+          <div className="sticky top-0 bg-background border-b border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-foreground">Notifications</h3>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs"
+                >
+                  Mark all read
+                </Button>
+              )}
+            </div>
+            
+            {/* Filter Chips */}
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "reports", "messages", "follow-ups", "system"] as NotificationFilter[]).map((f) => (
+                <Badge
+                  key={f}
+                  variant={filter === f ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer capitalize transition-colors",
+                    filter === f 
+                      ? "bg-rcms-gold text-foreground hover:bg-rcms-gold/90"
+                      : "hover:bg-accent"
+                  )}
+                  onClick={() => saveFilter(f)}
+                >
+                  {f === "follow-ups" ? "Follow-Ups" : f}
+                </Badge>
+              ))}
+              {filter !== "all" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => saveFilter("all")}
+                  className="h-6 px-2 text-xs"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="divide-y divide-border">
@@ -121,13 +199,13 @@ export function NotificationBell() {
               <div className="p-8 text-center text-muted-foreground">
                 <p className="text-sm">Loading...</p>
               </div>
-            ) : notifications.length === 0 ? (
+            ) : filteredNotifications.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Bell className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No notifications</p>
+                <p className="text-sm">No {filter !== "all" ? filter : ""} notifications</p>
               </div>
             ) : (
-              notifications.slice(0, 5).map((notification) => {
+              filteredNotifications.slice(0, 5).map((notification) => {
                 const iconColor = getNotificationColor(notification);
                 
                 return (
@@ -170,7 +248,7 @@ export function NotificationBell() {
                 );
               })
             )}
-            {notifications.length > 5 && (
+            {filteredNotifications.length > 5 && (
               <div className="p-4 border-t border-border">
                 <Button 
                   variant="outline" 

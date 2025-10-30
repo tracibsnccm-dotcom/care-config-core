@@ -28,6 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { GlobalSearchBar } from "@/components/GlobalSearchBar";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -133,10 +136,26 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex h-16 items-center gap-4 px-6">
+            <div className="flex-1 flex items-center gap-4">
+              <GlobalSearchBar />
+            </div>
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
+          </div>
+        </header>
+        
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

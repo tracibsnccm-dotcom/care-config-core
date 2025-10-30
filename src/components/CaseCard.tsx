@@ -1,14 +1,19 @@
 import { Case } from "@/config/rcms";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/store";
-import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban, FileText, MessageSquare, Flag, Star } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/access";
 import { ConsentBlockedBanner } from "./ConsentBlockedBanner";
 import { SDOHChip } from "./SDOHChip";
 import { RiskIndicator } from "./RiskIndicator";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { usePinnedCases } from "@/hooks/usePinnedCases";
 
 interface CaseCardProps {
   case: Case;
@@ -25,6 +30,29 @@ const statusConfig = {
 };
 
 export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const { isPinned, togglePin } = usePinnedCases();
+  const navigate = useNavigate();
+
+  const handlePinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    togglePin(caseData.id);
+  };
+
+  const handleQuickAction = (e: React.MouseEvent, action: string) => {
+    e.stopPropagation();
+    switch (action) {
+      case "docs":
+        navigate(`/cases/${caseData.id}#documents`);
+        break;
+      case "message":
+        navigate(`/dashboard?tab=rn-liaison&case=${caseData.id}`);
+        break;
+      case "flag":
+        navigate(`/cases/${caseData.id}#follow-ups`);
+        break;
+    }
+  };
   const { role } = useApp();
   const statusInfo = statusConfig[caseData.status];
   const StatusIcon = statusInfo.icon;
@@ -41,10 +69,84 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
         blockStatus.blocked && "border-destructive/50 bg-destructive/5"
       )}
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Pin Star */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handlePinClick}
+              className={cn(
+                "absolute top-4 right-4 p-1 rounded transition-colors z-10",
+                isPinned(caseData.id) 
+                  ? "text-rcms-gold hover:text-rcms-gold/80" 
+                  : "text-muted-foreground hover:text-rcms-gold"
+              )}
+              aria-label={isPinned(caseData.id) ? "Unpin case" : "Pin case"}
+            >
+              <Star className={cn("w-5 h-5", isPinned(caseData.id) && "fill-current")} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isPinned(caseData.id) ? "Unpin case" : "Pin case"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {/* Hover Quick Actions */}
+      {isHovered && !blockStatus.blocked && (
+        <div className="absolute top-12 right-4 flex gap-2 z-10">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 bg-background shadow-md"
+                  onClick={(e) => handleQuickAction(e, "docs")}
+                >
+                  <FileText className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View Documents</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 bg-background shadow-md"
+                  onClick={(e) => handleQuickAction(e, "message")}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Message RN CM</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 bg-background shadow-md"
+                  onClick={(e) => handleQuickAction(e, "flag")}
+                >
+                  <Flag className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Flag Follow-Up</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
+
       {/* Red Circle with Line Through - No Access Indicator */}
       {blockStatus.blocked && (
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-14 right-4">
           <div className="relative">
             <Ban className="w-12 h-12 text-destructive" strokeWidth={2.5} />
             <div className="absolute inset-0 flex items-center justify-center">
