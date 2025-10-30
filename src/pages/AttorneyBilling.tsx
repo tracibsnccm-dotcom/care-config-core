@@ -217,21 +217,17 @@ export default function AttorneyBilling() {
             status="Active"
           />
 
-          {/* Tier Comparison Table */}
-          <TierComparisonTable currentTier={tierData?.tier} />
-
-          {/* Original Plan Details Card */}
+          {/* Billing Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#0f2a6a]">
                 <Briefcase className="h-5 w-5" />
-                Additional Plan Information
+                Billing Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Card className="bg-muted border-border">
                 <CardContent className="pt-6">
-                  <h3 className="text-sm font-semibold text-foreground mb-2">Billing Information</h3>
                   <p className="text-sm text-muted-foreground">
                     No setup fee. First month due at signing. Annual prepay{" "}
                     <b className="text-foreground">-10%</b>, quarterly billing optional,{" "}
@@ -242,6 +238,9 @@ export default function AttorneyBilling() {
               </Card>
             </CardContent>
           </Card>
+
+          {/* Tier Comparison Table */}
+          <TierComparisonTable currentTier={tierData?.tier} />
         </TabsContent>
 
         <TabsContent value="payment">
