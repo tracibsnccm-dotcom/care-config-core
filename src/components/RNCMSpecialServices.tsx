@@ -144,10 +144,17 @@ export function RNCMSpecialServices({
                 <h3 className="font-extrabold mb-2" style={{ color: '#0f2a6a' }}>
                   {service.name}
                 </h3>
-                <p className="text-[0.96rem] text-foreground/80 mb-3">
-                  {service.desc}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="mb-3">
+                  <span className="text-[0.96rem] text-foreground/80">
+                    {service.desc}
+                  </span>
+                  {" "}
+                  <span className="font-extrabold text-[1.05rem] whitespace-nowrap">
+                    Price: {fmtUSD(service.price)}
+                    {showWallet && ` | eWallet: ${fmtUSD(walletPrice)}`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {caseId && (
                     <span className="inline-block text-xs px-2 py-1 rounded-full border bg-amber-50 text-foreground" style={{ borderColor: '#b09837' }}>
                       Case: {caseId}
@@ -158,10 +165,6 @@ export function RNCMSpecialServices({
                       eWallet {Math.round(discount*100)}% tier
                     </span>
                   )}
-                </div>
-                <div className="font-extrabold text-[1.05rem] mt-2">
-                  Price: {fmtUSD(service.price)}
-                  {showWallet && ` | eWallet: ${fmtUSD(walletPrice)}`}
                 </div>
               </header>
               
