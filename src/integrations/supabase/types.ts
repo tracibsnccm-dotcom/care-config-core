@@ -279,6 +279,48 @@ export type Database = {
           },
         ]
       }
+      client_checkins: {
+        Row: {
+          case_id: string
+          client_id: string
+          created_at: string
+          created_by_role: string
+          id: string
+          note: string | null
+          p_physical: number
+          p_psychological: number
+          p_psychosocial: number
+          p_purpose: number
+          pain_scale: number
+        }
+        Insert: {
+          case_id: string
+          client_id: string
+          created_at?: string
+          created_by_role?: string
+          id?: string
+          note?: string | null
+          p_physical: number
+          p_psychological: number
+          p_psychosocial: number
+          p_purpose: number
+          pain_scale: number
+        }
+        Update: {
+          case_id?: string
+          client_id?: string
+          created_at?: string
+          created_by_role?: string
+          id?: string
+          note?: string | null
+          p_physical?: number
+          p_psychological?: number
+          p_psychosocial?: number
+          p_purpose?: number
+          pain_scale?: number
+        }
+        Relationships: []
+      }
       client_preferences: {
         Row: {
           attorney_notify_consent: boolean
@@ -788,6 +830,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_checkin_trends: {
+        Args: {
+          p_case_id: string
+          p_end_date: string
+          p_period: string
+          p_start_date: string
+        }
+        Returns: {
+          bucket: string
+          n: number
+          pain_avg: number
+          physical_avg: number
+          psychological_avg: number
+          psychosocial_avg: number
+          purpose_avg: number
+        }[]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
