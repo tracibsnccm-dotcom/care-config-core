@@ -267,30 +267,30 @@ export default function ClientCheckins() {
             )}
           </Card>
 
-          {/* Recent Check-ins & Chart */}
-          <div className="space-y-6">
-            <Card className="p-6 border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Recent Check-ins
-                </h2>
-                {caseId && checkins.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    View Full History
-                  </Button>
-                )}
-              </div>
+          {/* Recent Check-ins */}
+          <Card className="p-6 border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                Recent Check-ins
+              </h2>
+              {caseId && checkins.length > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Full History
+                </Button>
+              )}
+            </div>
 
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading check-ins...</p>
-              ) : !caseId ? (
-                <p className="text-sm text-muted-foreground">No case assigned</p>
-              ) : recentCheckins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No check-ins yet</p>
-              ) : (
-                <div className="space-y-3">
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading check-ins...</p>
+            ) : !caseId ? (
+              <p className="text-sm text-muted-foreground">No case assigned</p>
+            ) : recentCheckins.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No check-ins yet</p>
+            ) : (
+              <>
+                <div className="space-y-3 mb-4">
                   {recentCheckins.map((checkin, idx) => {
                     const isPainIncreasing =
                       idx < recentCheckins.length - 1 &&
@@ -303,7 +303,7 @@ export default function ClientCheckins() {
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(checkin.created_at), 'PPp')}
+                            Submitted: {format(new Date(checkin.created_at), 'MMM dd yyyy · h:mm a')} CST
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-foreground">
@@ -329,22 +329,22 @@ export default function ClientCheckins() {
                     );
                   })}
                 </div>
-              )}
 
-              {caseId && recentCheckins.length > 0 && (
+                {checkins.length > 0 && (
+                  <div className="mt-4">
+                    <CheckinChart checkins={checkins} maxEntries={7} title="Last 7 Check-ins" />
+                  </div>
+                )}
+
                 <Alert className="mt-4">
                   <AlertDescription className="text-xs">
                     Tracking {checkins.length} total check-in
                     {checkins.length !== 1 ? "s" : ""}. Trends help identify escalating issues.
                   </AlertDescription>
                 </Alert>
-              )}
-            </Card>
-
-            {caseId && checkins.length > 0 && (
-              <CheckinChart checkins={checkins} maxEntries={7} title="Last 7 Check-ins" />
+              </>
             )}
-          </div>
+          </Card>
         </div>
       </div>
 
