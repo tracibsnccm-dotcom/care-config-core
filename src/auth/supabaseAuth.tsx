@@ -118,7 +118,15 @@ export function ProtectedRoute({
 
   if (roles && roles.length > 0) {
     const ok = user.roles.some((r) => roles.includes(r));
-    if (!ok) return <Navigate to="/access" replace />;
+    if (!ok) {
+      // In development/preview, allow navigation for testing different roles
+      // without modifying backend role assignments.
+      if (import.meta.env.DEV) {
+        console.warn("ProtectedRoute: bypassing role check in DEV for testing");
+      } else {
+        return <Navigate to="/access" replace />;
+      }
+    }
   }
 
   return <>{children}</>;
