@@ -237,6 +237,98 @@ export type Database = {
           },
         ]
       }
+      concern_attachments: {
+        Row: {
+          concern_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          concern_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          concern_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concern_attachments_concern_id_fkey"
+            columns: ["concern_id"]
+            isOneToOne: false
+            referencedRelation: "concerns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      concerns: {
+        Row: {
+          assigned_rn: string | null
+          care_addressed: string | null
+          case_id: string
+          client_id: string
+          concern_description: string
+          concern_status: string
+          concern_timestamp: string
+          created_at: string
+          felt_respected: string | null
+          id: string
+          provider_name: string
+          rn_followup_notes: string | null
+          updated_at: string
+          visit_date: string | null
+        }
+        Insert: {
+          assigned_rn?: string | null
+          care_addressed?: string | null
+          case_id: string
+          client_id: string
+          concern_description: string
+          concern_status?: string
+          concern_timestamp?: string
+          created_at?: string
+          felt_respected?: string | null
+          id?: string
+          provider_name: string
+          rn_followup_notes?: string | null
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Update: {
+          assigned_rn?: string | null
+          care_addressed?: string | null
+          case_id?: string
+          client_id?: string
+          concern_description?: string
+          concern_status?: string
+          concern_timestamp?: string
+          created_at?: string
+          felt_respected?: string | null
+          id?: string
+          provider_name?: string
+          rn_followup_notes?: string | null
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           case_id: string

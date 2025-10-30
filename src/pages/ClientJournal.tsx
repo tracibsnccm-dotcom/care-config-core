@@ -15,6 +15,7 @@ import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 
 interface MedRow {
   name: string;
@@ -249,7 +250,7 @@ export default function ClientJournal() {
     { id: "anxiety" as TabType, label: "Anxiety Score", icon: AlertCircle, allowedRoles: "all" },
     { id: "stress" as TabType, label: "Stress Checklist", icon: Brain, allowedRoles: "all" },
     { id: "journal" as TabType, label: "Journal Entries", icon: BookOpen, allowedRoles: "all" },
-    { id: "provider-concerns" as TabType, label: "Provider Concerns", icon: Stethoscope, allowedRoles: "all" },
+    { id: "provider-concerns" as TabType, label: "🗣️ Voice Your Concerns", icon: MessageSquare, allowedRoles: [ROLES.CLIENT] as const },
     { id: "sdoh" as TabType, label: "SDOH Survey", icon: Home, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
     { id: "care" as TabType, label: "Preliminary Care Plan", icon: FileText, allowedRoles: [ROLES.RN_CCM, ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] as const },
     { id: "contact-rn" as TabType, label: "Contact RN CM", icon: MessageSquare, allowedRoles: "all" },
@@ -772,36 +773,9 @@ export default function ClientJournal() {
           </Card>
         )}
 
-        {/* Provider Concerns Tab */}
+        {/* Voice Your Concerns Tab */}
         {activeTab === "provider-concerns" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Stethoscope className="w-5 h-5" />
-                Provider Concerns & Questions
-              </CardTitle>
-              <CardDescription>
-                List questions or concerns you have for your healthcare providers
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                id="providerConcerns"
-                placeholder="What questions or concerns do you want to discuss with your provider?"
-                value={providerConcerns}
-                onChange={(e) => setProviderConcerns(e.target.value)}
-                rows={8}
-              />
-              <div className="space-y-2">
-                <Label htmlFor="providerNotes">Additional Context</Label>
-                <Textarea
-                  id="providerNotes"
-                  placeholder="Add any additional context or background information..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <VoiceConcernsForm caseId={getCaseId()} />
         )}
 
         {/* Contact RN CM Tab */}
