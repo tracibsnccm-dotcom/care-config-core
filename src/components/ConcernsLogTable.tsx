@@ -21,11 +21,17 @@ interface Concern {
 }
 
 interface ConcernsLogTableProps {
-  filters: any;
+  filters: {
+    status: string;
+    dateRange: string;
+    role: string;
+    type: string;
+  };
   onUpdate: () => void;
+  highlightId?: string;
 }
 
-export function ConcernsLogTable({ filters, onUpdate }: ConcernsLogTableProps) {
+export function ConcernsLogTable({ filters, onUpdate, highlightId }: ConcernsLogTableProps) {
   const [concerns, setConcerns] = useState<Concern[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConcern, setSelectedConcern] = useState<Concern | null>(null);

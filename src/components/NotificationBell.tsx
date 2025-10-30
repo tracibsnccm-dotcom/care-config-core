@@ -1,38 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ExternalLink } from "lucide-react";
+import { Bell, ExternalLink, AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { formatDistanceToNow } from 'date-fns';
 
-export interface Notification {
-  id: string;
-  type: "CASE_LONGEVITY_ALERT" | "PROVIDER_CONFIRMED" | "DOC_UPLOADED" | "CONSENT_SIGNED" | "RISK_ESCALATED";
-  caseId: string;
-  riskLevel?: "stable" | "at_risk" | "critical";
-  sdohFlags?: string[];
-  message: string;
-  timestamp: string;
-  read?: boolean;
-}
-
-interface NotificationBellProps {
-  notifications: Notification[];
-  onNotificationClick?: (notification: Notification) => void;
-  onMarkAllRead?: () => void;
-}
-
-export function NotificationBell({ 
-  notifications, 
-  onNotificationClick,
-  onMarkAllRead 
-}: NotificationBellProps) {
+export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
 
   // Close on click outside
   useEffect(() => {
@@ -48,19 +28,29 @@ export function NotificationBell({
     }
   }, [isOpen]);
 
-  const getRiskBadgeClass = (level?: string) => {
-    switch (level) {
-      case "critical": return "bg-destructive/10 text-destructive border-destructive/20";
-      case "at_risk": return "bg-warning/10 text-warning border-warning/20";
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'error': return <AlertCircle className="w-4 h-4 text-destructive" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-warning" />;
+      case 'success': return <CheckCircle className="w-4 h-4 text-success" />;
+      default: return <Info className="w-4 h-4 text-primary" />;
+    }
+  };
+
+  const getTypeBadgeClass = (type: string) => {
+    switch (type) {
+      case 'error': return "bg-destructive/10 text-destructive border-destructive/20";
+      case 'warning': return "bg-warning/10 text-warning border-warning/20";
+      case 'success': return "bg-success/10 text-success border-success/20";
       default: return "bg-primary/10 text-primary border-primary/20";
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
-    if (onNotificationClick) {
-      onNotificationClick(notification);
+  const handleNotificationClick = async (notification: Notification) => {
+    await markAsRead(notification.id);
+    if (notification.link) {
+      navigate(notification.link);
     }
-    navigate(`/cases/${notification.caseId}`);
     setIsOpen(false);
   };
 
@@ -86,11 +76,11 @@ export function NotificationBell({
         )}>
           <div className="sticky top-0 bg-background border-b border-border p-4 flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Notifications</h3>
-            {unreadCount > 0 && onMarkAllRead && (
+            {unreadCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onMarkAllRead}
+                onClick={markAllAsRead}
                 className="text-xs"
               >
                 Mark all read
@@ -99,7 +89,11 @@ export function NotificationBell({
           </div>
 
           <div className="divide-y divide-border">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-sm">Loading...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Bell className="w-12 h-12 mx-auto mb-2 opacity-20" />
                 <p className="text-sm">No notifications</p>
@@ -110,43 +104,37 @@ export function NotificationBell({
                   key={notification.id}
                   className={cn(
                     "p-4 hover:bg-accent cursor-pointer transition-colors",
-                    !notification.read && "bg-primary/5"
+                    !notification.read && "bg-primary/5 border-l-2 border-l-primary"
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex-1">
+                    {getTypeIcon(notification.type)}
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        {notification.riskLevel && (
-                          <Badge 
-                            variant="outline" 
-                            className={cn("text-xs px-2 py-0", getRiskBadgeClass(notification.riskLevel))}
-                          >
-                            {notification.riskLevel === "critical" ? "CRITICAL" : 
-                             notification.riskLevel === "at_risk" ? "AT RISK" : "INFO"}
-                          </Badge>
-                        )}
-                        <span className="font-semibold text-sm text-foreground">
-                          {notification.caseId}
+                        <span className="font-semibold text-sm text-foreground truncate">
+                          {notification.title}
                         </span>
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-xs px-2 py-0 flex-shrink-0", getTypeBadgeClass(notification.type))}
+                        >
+                          {notification.type.toUpperCase()}
+                        </Badge>
                       </div>
                       
-                      <p className="text-sm text-foreground mb-2">
+                      <p className="text-sm text-foreground mb-2 line-clamp-2">
                         {notification.message}
                       </p>
                       
-                      {notification.sdohFlags && notification.sdohFlags.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          SDOH: {notification.sdohFlags.join(", ")}
-                        </p>
-                      )}
-                      
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {new Date(notification.timestamp).toLocaleString()}
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                       </p>
                     </div>
                     
-                    <ExternalLink className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    {notification.link && (
+                      <ExternalLink className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    )}
                   </div>
                 </div>
               ))

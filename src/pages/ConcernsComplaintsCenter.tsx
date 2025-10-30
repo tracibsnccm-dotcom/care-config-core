@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, FileText, CheckCircle2, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConcernsLogTable } from "@/components/ConcernsLogTable";
 import { ComplaintsLogTable } from "@/components/ComplaintsLogTable";
 import { ConcernComplaintFilters } from "@/components/ConcernComplaintFilters";
+import { AlertTriangle, FileText, CheckCircle2, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Metrics {
   newConcerns48hrs: number;
@@ -16,6 +17,7 @@ interface Metrics {
 }
 
 export default function ConcernsComplaintsCenter() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [metrics, setMetrics] = useState<Metrics>({
     newConcerns48hrs: 0,
     openComplaints: 0,
@@ -30,6 +32,10 @@ export default function ConcernsComplaintsCenter() {
     type: "all",
   });
   const { toast } = useToast();
+  
+  // Get tab and ID from URL params
+  const activeTab = searchParams.get('tab') || 'concerns';
+  const highlightId = searchParams.get('id');
 
   useEffect(() => {
     fetchMetrics();
@@ -226,19 +232,19 @@ export default function ConcernsComplaintsCenter() {
       <ConcernComplaintFilters filters={filters} onFiltersChange={setFilters} />
 
       {/* Tabs for Concerns and Complaints */}
-      <Tabs defaultValue="concerns" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="concerns">Concerns Log (Identified)</TabsTrigger>
           <TabsTrigger value="complaints">Complaints Log (Anonymous)</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="concerns">
-          <ConcernsLogTable filters={filters} onUpdate={fetchMetrics} />
-        </TabsContent>
+            <TabsContent value="concerns">
+              <ConcernsLogTable filters={filters} onUpdate={fetchMetrics} highlightId={highlightId || undefined} />
+            </TabsContent>
 
-        <TabsContent value="complaints">
-          <ComplaintsLogTable filters={filters} onUpdate={fetchMetrics} />
-        </TabsContent>
+            <TabsContent value="complaints">
+              <ComplaintsLogTable filters={filters} onUpdate={fetchMetrics} highlightId={highlightId || undefined} />
+            </TabsContent>
       </Tabs>
     </main>
   );

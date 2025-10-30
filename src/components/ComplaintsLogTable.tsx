@@ -19,11 +19,17 @@ interface Complaint {
 }
 
 interface ComplaintsLogTableProps {
-  filters: any;
+  filters: {
+    status: string;
+    dateRange: string;
+    role: string;
+    type: string;
+  };
   onUpdate: () => void;
+  highlightId?: string;
 }
 
-export function ComplaintsLogTable({ filters, onUpdate }: ComplaintsLogTableProps) {
+export function ComplaintsLogTable({ filters, onUpdate, highlightId }: ComplaintsLogTableProps) {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -133,7 +139,7 @@ export function ComplaintsLogTable({ filters, onUpdate }: ComplaintsLogTableProp
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {complaints.map((complaint) => {
+                {complaints.map((complaint) => {
                     const dueDate = getDueDate(complaint.created_at);
                     const dueSoon = isDueSoon(complaint.created_at);
                     const overdue = isOverdue(complaint.created_at);

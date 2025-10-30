@@ -724,6 +724,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          message: string
+          metadata: Json | null
+          read: boolean
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          read?: boolean
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          read?: boolean
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -894,6 +933,8 @@ export type Database = {
           purpose_avg: number
         }[]
       }
+      get_client_initials: { Args: { client_uuid: string }; Returns: string }
+      get_short_case_id: { Args: { case_uuid: string }; Returns: string }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
@@ -907,6 +948,28 @@ export type Database = {
             }
             Returns: boolean
           }
+      notify_roles: {
+        Args: {
+          notification_link?: string
+          notification_message: string
+          notification_metadata?: Json
+          notification_title: string
+          notification_type?: string
+          role_names: string[]
+        }
+        Returns: undefined
+      }
+      notify_user: {
+        Args: {
+          notification_link?: string
+          notification_message: string
+          notification_metadata?: Json
+          notification_title: string
+          notification_type?: string
+          target_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:

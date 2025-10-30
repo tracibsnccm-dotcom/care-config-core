@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
 import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
-import { mockNotifications } from "@/lib/mockData";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -13,7 +12,6 @@ import { trialDaysRemaining, getTrialEndDate } from "@/utils/trial";
 
 export default function Dashboard() {
   const { cases, currentTier, isTrialExpired, daysUntilInactive, trialStartDate, trialEndDate, policyAck, setPolicyAck, log } = useApp();
-  const [notifications, setNotifications] = useState(mockNotifications);
 
   const handlePolicyAgree = () => {
     setPolicyAck(true);
@@ -83,10 +81,6 @@ export default function Dashboard() {
     },
   ];
 
-  const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
   // Use new trial helper for days remaining
   const daysRemaining = trialDaysRemaining({ trialStartDate, trialEndDate });
   const trialEnd = getTrialEndDate({ trialStartDate, trialEndDate });
@@ -106,10 +100,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
             <p className="text-muted-foreground mt-1">Welcome back! Here's your overview.</p>
           </div>
-          <NotificationBell 
-            notifications={notifications} 
-            onMarkAllRead={handleMarkAllRead}
-          />
+          <NotificationBell />
         </div>
 
         {/* Trial Warning Banners */}

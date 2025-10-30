@@ -1,5 +1,4 @@
 import { Case, Provider, ROLES } from "@/config/rcms";
-import { Notification } from "@/components/NotificationBell";
 
 export const mockCases: Case[] = [
   {
@@ -173,58 +172,6 @@ export const mockCases: Case[] = [
     designatedAttorneyId: "ATT-002",
     createdAt: "2024-01-10T09:00:00Z",
     updatedAt: "2024-01-12T11:00:00Z",
-  },
-];
-
-export const mockNotifications: Notification[] = [
-  {
-    id: "notif-001",
-    type: "CASE_LONGEVITY_ALERT",
-    caseId: "CASE-2024-001",
-    riskLevel: "at_risk",
-    sdohFlags: ["Transportation", "Money/Cost"],
-    message: "Delay risk: Transportation barriers identified. RCMS outreach scheduled.",
-    timestamp: "2025-10-23T10:12:00Z",
-    read: false,
-  },
-  {
-    id: "notif-002",
-    type: "PROVIDER_CONFIRMED",
-    caseId: "CASE-2024-001",
-    riskLevel: "stable",
-    sdohFlags: [],
-    message: "Provider confirmed appointment for 10/24 @ 2:00 PM.",
-    timestamp: "2025-10-22T16:05:00Z",
-    read: false,
-  },
-  {
-    id: "notif-003",
-    type: "DOC_UPLOADED",
-    caseId: "CASE-2024-003",
-    riskLevel: "critical",
-    sdohFlags: ["Housing Instability"],
-    message: "New clinical summary uploaded. Immediate review recommended.",
-    timestamp: "2025-10-22T14:41:00Z",
-    read: true,
-  },
-  {
-    id: "notif-004",
-    type: "CONSENT_SIGNED",
-    caseId: "CASE-2024-003",
-    riskLevel: "critical",
-    message: "Client consent signed. Case now accessible for provider routing.",
-    timestamp: "2024-01-12T11:00:00Z",
-    read: true,
-  },
-  {
-    id: "notif-005",
-    type: "RISK_ESCALATED",
-    caseId: "CASE-2024-003",
-    riskLevel: "critical",
-    sdohFlags: ["Housing Instability", "Child/Elder Care"],
-    message: "Risk level escalated to CRITICAL due to multiple SDOH barriers and mental health concerns.",
-    timestamp: "2024-01-10T15:30:00Z",
-    read: true,
   },
 ];
 
