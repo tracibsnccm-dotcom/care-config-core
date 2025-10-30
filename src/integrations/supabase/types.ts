@@ -184,6 +184,81 @@ export type Database = {
           },
         ]
       }
+      case_notes: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string
+          id: string
+          note_text: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          note_text: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note_text?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
+      case_tasks: {
+        Row: {
+          assigned_role: string | null
+          assigned_to: string | null
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_role?: string | null
+          assigned_to?: string | null
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_role?: string | null
+          assigned_to?: string | null
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cases: {
         Row: {
           atty_ref: string | null

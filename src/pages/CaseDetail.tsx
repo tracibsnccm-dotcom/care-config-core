@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -8,6 +9,8 @@ import { fmtDate } from "@/lib/store";
 import { canSeeSensitive, isBlockedForAttorney, getDisplayName, FEATURE, canAccess, exportAllowed as checkExportAllowed } from "@/lib/access";
 import { exportCSV, exportPDFStub } from "@/lib/export";
 import { ProviderConfirmationButton } from "@/components/ProviderConfirmationButton";
+import { CaseHealthMeter } from "@/components/CaseHealthMeter";
+import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
 import { 
   ArrowLeft, 
   User, 
@@ -20,7 +23,8 @@ import {
   FileDown,
   ShieldAlert,
   XCircle,
-  Stethoscope
+  Stethoscope,
+  StickyNote
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,6 +34,7 @@ export default function CaseDetail() {
   const navigate = useNavigate();
   const { cases, role, log, revokeConsent, providers } = useApp();
   const caseData = cases.find((c) => c.id === caseId);
+  const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
 
   if (!caseData) {
     return (
@@ -108,7 +113,7 @@ export default function CaseDetail() {
         )}
 
         <div className="flex items-start justify-between mb-8">
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-foreground">{caseData.id}</h1>
             <p className="text-muted-foreground mt-1">
               Client: {canViewIdentity ? displayName : caseData.client.rcmsId}
@@ -116,6 +121,15 @@ export default function CaseDetail() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setNotesDrawerOpen(true)}
+              className="bg-[hsl(var(--gold))] text-foreground hover:bg-foreground hover:text-[hsl(var(--gold))]"
+            >
+              <StickyNote className="w-4 h-4 mr-2" />
+              Notes & Tasks
+            </Button>
             <Badge className="text-sm px-3 py-1">
               Status: {caseData.status.replace(/_/g, " ")}
             </Badge>
@@ -139,6 +153,13 @@ export default function CaseDetail() {
             )}
           </div>
         </div>
+
+        {/* Case Health Meter */}
+        {role === "ATTORNEY" && (
+          <Card className="p-6 border-border mb-6">
+            <CaseHealthMeter status={caseData.status} />
+          </Card>
+        )}
 
         {!canView ? (
           <Card className="p-8 text-center border-border">
@@ -364,6 +385,15 @@ export default function CaseDetail() {
           </div>
         )}
       </div>
+
+      {/* Notes & Tasks Drawer */}
+      {caseId && (
+        <CaseNotesTasksDrawer
+          caseId={caseId}
+          open={notesDrawerOpen}
+          onOpenChange={setNotesDrawerOpen}
+        />
+      )}
     </AppLayout>
   );
 }
