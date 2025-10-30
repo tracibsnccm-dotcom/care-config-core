@@ -28,7 +28,7 @@ export interface IntakeForm {
   signature: string;
 }
 
-/** Envelope for transmission to Apps Script / DB */
+/** Envelope for transmission to database */
 export interface IntakeExportEnvelope {
   meta: {
     timestamp: string;              // ISO
@@ -169,7 +169,7 @@ export function serializeIntakeForExport(
   return envelope;
 }
 
-/** CSV/Sheet row flattener for Apps Script appendRow */
+/** CSV/Sheet row flattener for spreadsheet export */
 export function toSheetRow(envelope: IntakeExportEnvelope) {
   const {
     meta,

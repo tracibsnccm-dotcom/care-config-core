@@ -1,6 +1,6 @@
 /* ========================== RCMS C.A.R.E. — rcmsWiring.tsx ==========================
  * Purpose:
- *  - Attach your Intake & Check-in submit flows to Apps Script with audit logs.
+ *  - Attach your Intake & Check-in submit flows to Supabase backend with audit logs.
  *  - Provide a uniform withRBAC() guard that calls your central canAccess().
  *  - Small, drop-in helpers you can import where needed.
  *

@@ -88,13 +88,8 @@ export default function ClientIntakeForm() {
     console.log("Intake Export Envelope:", envelope);
     console.log("Sheet Row Format:", sheetRow);
 
-    // TODO: POST envelope to Apps Script endpoint
-    // Example:
-    // fetch(APPS_SCRIPT_WEBHOOK_URL, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(envelope),
-    // });
+    // TODO: Submit to Supabase database
+    // This would use supabase.from('intakes').insert(...) to store the data
 
     toast({
       title: "Intake Submitted",

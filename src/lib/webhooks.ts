@@ -13,7 +13,7 @@ export interface ProviderConfirmationPayload {
 }
 
 /**
- * Send provider confirmation to Google Apps Script webhook
+ * Send provider confirmation to external webhook
  * @param payload - Confirmation data to send
  * @returns Promise that resolves when webhook call completes
  */
@@ -34,7 +34,7 @@ export async function sendProviderConfirmation(
       }),
     });
 
-    // Google Apps Script returns 302 redirects, so we check for success differently
+    // External webhooks may return redirects, so we check for success differently
     if (response.ok || response.redirected) {
       return { success: true };
     }

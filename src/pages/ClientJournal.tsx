@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { sendProviderConfirmation } from "@/lib/webhooks";
 import { WEBHOOK_CONFIG } from "@/config/webhooks";
-import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText, BookOpen, Stethoscope, MessageSquare, Phone, Mail } from "lucide-react";
+import { Pill, Activity, Brain, AlertCircle, Save, Trash2, Home, FileText, BookOpen, Stethoscope, MessageSquare, Phone, Mail, TrendingUp } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface MedRow {
   name: string;
@@ -55,6 +57,10 @@ export default function ClientJournal() {
   const { role } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>("meds");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Baseline intake data
+  const [baselineIntake, setBaselineIntake] = useState<any>(null);
+  const [loadingBaseline, setLoadingBaseline] = useState(true);
 
   // Medication states
   const [preInjuryMeds, setPreInjuryMeds] = useState<MedRow[]>([
@@ -98,6 +104,70 @@ export default function ClientJournal() {
     const params = new URLSearchParams(window.location.search);
     return params.get("case_id") || "RCMS-TEST";
   };
+
+  // Fetch baseline intake data
+  useEffect(() => {
+    const fetchBaselineIntake = async () => {
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user?.user) return;
+
+        // Find the case for this user
+        const { data: assignments } = await supabase
+          .from('case_assignments')
+          .select('case_id')
+          .eq('user_id', user.user.id)
+          .eq('role', 'CLIENT')
+          .limit(1);
+
+        if (!assignments || assignments.length === 0) {
+          setLoadingBaseline(false);
+          return;
+        }
+
+        const caseId = assignments[0].case_id;
+
+        // Fetch the intake data for this case
+        const { data: intake, error } = await supabase
+          .from('intakes')
+          .select('*')
+          .eq('case_id', caseId)
+          .single();
+
+        if (!error && intake) {
+          setBaselineIntake(intake);
+          
+          // Pre-populate current values with baseline if empty
+          if (intake.intake_data) {
+            const data = intake.intake_data as any;
+            if (data.meds && preInjuryMeds.length === 1 && !preInjuryMeds[0].name) {
+              // Parse medications from intake
+              const medsList = data.meds.split('\n').filter(Boolean);
+              if (medsList.length > 0) {
+                setPreInjuryMeds(medsList.map((med: string) => ({
+                  name: med,
+                  dose: "",
+                  purpose: "",
+                  prescriber: "",
+                  notes: ""
+                })));
+              }
+            }
+            
+            if (data.pain && !painScore) setPainScore(data.pain.toString());
+            if (data.anxiety && !anxietyScore) setAnxietyScore(data.anxiety.toString());
+            if (data.depression && !depressionScore) setDepressionScore(data.depression.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching baseline intake:', error);
+      } finally {
+        setLoadingBaseline(false);
+      }
+    };
+
+    fetchBaselineIntake();
+  }, []);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -396,6 +466,18 @@ export default function ClientJournal() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {baselineIntake?.intake_data?.pain && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+                  <Badge variant="outline" className="text-xs">
+                    Baseline: {baselineIntake.intake_data.pain}/10
+                  </Badge>
+                  {painScore && parseInt(painScore) !== baselineIntake.intake_data.pain && (
+                    <Badge variant={parseInt(painScore) < baselineIntake.intake_data.pain ? "default" : "destructive"} className="text-xs">
+                      {parseInt(painScore) < baselineIntake.intake_data.pain ? "Improved ↓" : "Increased ↑"}
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="painScore">Pain Level (0 = No Pain, 10 = Worst Imaginable Pain)</Label>
                 <Input
@@ -439,28 +521,42 @@ export default function ClientJournal() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {baselineIntake?.intake_data?.depression && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+                  <Badge variant="outline" className="text-xs">
+                    Baseline: {baselineIntake.intake_data.depression}/5
+                  </Badge>
+                  {depressionScore && parseInt(depressionScore) !== baselineIntake.intake_data.depression && (
+                    <Badge variant={parseInt(depressionScore) < baselineIntake.intake_data.depression ? "default" : "destructive"} className="text-xs">
+                      {parseInt(depressionScore) < baselineIntake.intake_data.depression ? "Improved ↓" : "Increased ↑"}
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="depressionScore">Depression Score (RCMS Scale)</Label>
+                <Label htmlFor="depressionScore">Depression Score (1-5 Scale)</Label>
                 <Input
                   id="depressionScore"
                   type="number"
-                  min="0"
-                  max="99"
-                  placeholder="Enter your depression score"
+                  min="1"
+                  max="5"
+                  placeholder="1 = minimal, 5 = severe"
                   value={depressionScore}
                   onChange={e => setDepressionScore(e.target.value)}
                   className="text-lg"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Based on RCMS standardized depression assessment tool
+                  Rate your mood, energy levels, and overall mental state
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="depressionNotes">Additional Details</Label>
                 <Textarea
                   id="depressionNotes"
-                  placeholder="Describe any additional context or observations..."
-                  rows={3}
+                  placeholder="Describe your mood, sleep patterns, energy levels, etc..."
+                  value={symptomNotes}
+                  onChange={e => setSymptomNotes(e.target.value)}
+                  rows={4}
                 />
               </div>
             </CardContent>
@@ -480,28 +576,42 @@ export default function ClientJournal() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {baselineIntake?.intake_data?.anxiety && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+                  <Badge variant="outline" className="text-xs">
+                    Baseline: {baselineIntake.intake_data.anxiety}/5
+                  </Badge>
+                  {anxietyScore && parseInt(anxietyScore) !== baselineIntake.intake_data.anxiety && (
+                    <Badge variant={parseInt(anxietyScore) < baselineIntake.intake_data.anxiety ? "default" : "destructive"} className="text-xs">
+                      {parseInt(anxietyScore) < baselineIntake.intake_data.anxiety ? "Improved ↓" : "Increased ↑"}
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="anxietyScore">Anxiety Score (RCMS Scale)</Label>
+                <Label htmlFor="anxietyScore">Anxiety Score (1-5 Scale)</Label>
                 <Input
                   id="anxietyScore"
                   type="number"
-                  min="0"
-                  max="99"
-                  placeholder="Enter your anxiety score"
+                  min="1"
+                  max="5"
+                  placeholder="1 = minimal, 5 = severe"
                   value={anxietyScore}
                   onChange={e => setAnxietyScore(e.target.value)}
                   className="text-lg"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Based on RCMS standardized anxiety assessment tool
+                  Rate your anxiety triggers, physical symptoms, and coping strategies
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="anxietyNotes">Additional Details</Label>
                 <Textarea
                   id="anxietyNotes"
-                  placeholder="Describe any additional context or observations..."
-                  rows={3}
+                  placeholder="Describe anxiety triggers, physical symptoms, coping strategies, etc..."
+                  value={symptomNotes}
+                  onChange={e => setSymptomNotes(e.target.value)}
+                  rows={4}
                 />
               </div>
             </CardContent>
