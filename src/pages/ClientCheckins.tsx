@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fmtDate } from "@/lib/store";
 import { Sparkline } from "@/components/Sparkline";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ClientCheckins() {
   const { cases, setCases, log } = useApp();
@@ -29,47 +30,170 @@ export default function ClientCheckins() {
     professional: 50,
   });
 
-  function submit() {
+  async function submit() {
     if (!forCase) {
       toast.error("Please select a case");
       return;
     }
 
-    setCases((arr) =>
-      arr.map((c) =>
-        c.id === forCase
-          ? {
-              ...c,
-              checkins: [
-                ...(c.checkins || []),
-                { ts: new Date().toISOString(), pain, depression, anxiety, note, fourPs: quick4ps },
-              ],
-              status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
-            }
-          : c
-      )
-    );
-    log("CHECKIN_SUBMIT", forCase);
+    try {
+      // Insert check-in to database
+      const { data: checkinData, error: checkinError } = await supabase
+        .from("client_checkins")
+        .insert({
+          case_id: forCase,
+          client_id: (await supabase.auth.getUser()).data.user?.id,
+          pain_scale: pain,
+          depression_scale: depression,
+          anxiety_scale: anxiety,
+          p_physical: quick4ps.physical,
+          p_psychological: quick4ps.psychological,
+          p_psychosocial: quick4ps.psychosocial,
+          p_purpose: quick4ps.professional,
+          note: note || null,
+        })
+        .select()
+        .single();
 
-    // Warn if worsening (naive heuristic)
-    const caseObj = cases.find((x) => x.id === forCase);
-    const prev = caseObj?.checkins?.slice(-3).map((ci) => ci.pain) ?? [];
-    const avg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : 0;
-    
-    if (pain - avg >= 2) {
-      toast.error("Warning: Escalating pain trend detected", {
-        description: "Consider scheduling a provider consultation.",
-      });
-    } else {
+      if (checkinError) throw checkinError;
+
+      // Check for immediate alerts
+      const alerts = [];
+      const caseObj = cases.find((x) => x.id === forCase);
+      const clientName = caseObj?.client?.displayNameMasked || caseObj?.client?.attyRef || "Client";
+
+      if (pain >= 7) {
+        alerts.push({
+          case_id: forCase,
+          alert_type: "pain_threshold",
+          severity: "high",
+          message: `${clientName} reported pain level ${pain}/10. Review recommended.`,
+          disclosure_scope: "internal",
+          metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
+        });
+      }
+
+      if (depression >= 7) {
+        alerts.push({
+          case_id: forCase,
+          alert_type: "depression_threshold",
+          severity: "high",
+          message: `${clientName} reported depression level ${depression}/10. Review recommended.`,
+          disclosure_scope: "internal",
+          metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
+        });
+      }
+
+      if (anxiety >= 7) {
+        alerts.push({
+          case_id: forCase,
+          alert_type: "anxiety_threshold",
+          severity: "high",
+          message: `${clientName} reported anxiety level ${anxiety}/10. Review recommended.`,
+          disclosure_scope: "internal",
+          metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
+        });
+      }
+
+      // Check 4P scores
+      const low4Ps = Object.entries(quick4ps).filter(([_, value]) => value <= 30);
+      if (low4Ps.length > 0) {
+        const dimensions = low4Ps.map(([key]) => key).join(", ");
+        alerts.push({
+          case_id: forCase,
+          alert_type: "4p_low_score",
+          severity: "medium",
+          message: `${clientName} has low 4P scores (${dimensions} ≤ 30). RN review recommended.`,
+          disclosure_scope: "internal",
+          metadata: { fourPs: quick4ps, timestamp: new Date().toISOString() },
+        });
+      }
+
+      // Check for trend alerts (3 consecutive high readings)
+      const { data: recentCheckins } = await supabase
+        .from("client_checkins")
+        .select("pain_scale, depression_scale, anxiety_scale")
+        .eq("case_id", forCase)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (recentCheckins && recentCheckins.length === 3) {
+        const allPainHigh = recentCheckins.every((c) => c.pain_scale >= 7);
+        const allDepressionHigh = recentCheckins.every((c) => c.depression_scale >= 7);
+        const allAnxietyHigh = recentCheckins.every((c) => c.anxiety_scale >= 7);
+
+        if (allPainHigh) {
+          alerts.push({
+            case_id: forCase,
+            alert_type: "pain_trend",
+            severity: "critical",
+            message: `${clientName} has reported pain ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            disclosure_scope: "internal",
+            metadata: { trend: "pain", checkins: recentCheckins, timestamp: new Date().toISOString() },
+          });
+        }
+
+        if (allDepressionHigh) {
+          alerts.push({
+            case_id: forCase,
+            alert_type: "depression_trend",
+            severity: "critical",
+            message: `${clientName} has reported depression ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            disclosure_scope: "internal",
+            metadata: { trend: "depression", checkins: recentCheckins, timestamp: new Date().toISOString() },
+          });
+        }
+
+        if (allAnxietyHigh) {
+          alerts.push({
+            case_id: forCase,
+            alert_type: "anxiety_trend",
+            severity: "critical",
+            message: `${clientName} has reported anxiety ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            disclosure_scope: "internal",
+            metadata: { trend: "anxiety", checkins: recentCheckins, timestamp: new Date().toISOString() },
+          });
+        }
+      }
+
+      // Insert all alerts
+      if (alerts.length > 0) {
+        const { error: alertError } = await supabase.from("case_alerts").insert(alerts);
+        if (alertError) console.error("Error creating alerts:", alertError);
+      }
+
+      // Update local state for UI
+      setCases((arr) =>
+        arr.map((c) =>
+          c.id === forCase
+            ? {
+                ...c,
+                checkins: [
+                  ...(c.checkins || []),
+                  { ts: new Date().toISOString(), pain, depression, anxiety, note, fourPs: quick4ps },
+                ],
+                status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
+              }
+            : c
+        )
+      );
+      log("CHECKIN_SUBMIT", forCase);
+
       toast.success("Check-in submitted successfully");
-    }
+      if (alerts.length > 0) {
+        toast.info(`${alerts.length} alert(s) created for RN review`);
+      }
 
-    // Reset form
-    setPain(3);
-    setDepression(0);
-    setAnxiety(0);
-    setNote("");
-    setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
+      // Reset form
+      setPain(3);
+      setDepression(0);
+      setAnxiety(0);
+      setNote("");
+      setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
+    } catch (error) {
+      console.error("Error submitting check-in:", error);
+      toast.error("Failed to submit check-in. Please try again.");
+    }
   }
 
   const selectedCase = cases.find((c) => c.id === forCase);
