@@ -28,8 +28,10 @@ export default function ClientPortal() {
       {/* SECTION 1 - HEADER BAR */}
       <header className="bg-rcms-navy border-b-4 border-rcms-gold shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-4xl font-bold text-rcms-gold mb-2 tracking-tight">
-            Reconcile C.A.R.E. Client Portal
+          <h1 className="text-4xl font-bold mb-2 tracking-tight">
+            <span className="text-white">Reconcile </span>
+            <span className="text-rcms-orange">C.A.R.E.</span>
+            <span className="text-white"> Client Portal</span>
           </h1>
           <p className="text-rcms-mint text-lg">
             Your care, communication, and progress in one place

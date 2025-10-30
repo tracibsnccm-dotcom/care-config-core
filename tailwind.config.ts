@@ -77,6 +77,7 @@ export default {
         },
         rcms: {
           gold: "hsl(var(--rcms-gold))",
+          orange: "hsl(var(--rcms-orange))",
           navy: "hsl(var(--rcms-navy))",
           teal: "hsl(var(--rcms-teal))",
           mint: "hsl(var(--rcms-mint))",
