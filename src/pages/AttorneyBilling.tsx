@@ -21,6 +21,8 @@ import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { RCMS_CONFIG } from "@/config/rcms";
 import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
+import { PricingCard } from "@/components/PricingCard";
+import { TierServicesMatrix } from "@/components/TierServicesMatrix";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -206,42 +208,28 @@ export default function AttorneyBilling() {
           <TabsTrigger value="ewallet">eWallet</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="plan" className="space-y-4">
+        <TabsContent value="plan" className="space-y-6">
+          {/* Pricing Card */}
+          <PricingCard
+            tier={tierData?.tier}
+            planPrice={tierData?.plan_price}
+            renewalDate={tierData?.renewal_date}
+            status="Active"
+          />
+
+          {/* Tier Services Matrix */}
+          <TierServicesMatrix currentTier={tierData?.tier} />
+
+          {/* Original Plan Details Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#0f2a6a]">
                 <Briefcase className="h-5 w-5" />
-                Current Plan
+                Additional Plan Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tier</Label>
-                  <p className="text-2xl font-bold text-[#b09837]">
-                    {tierData?.tier || "Basic"}
-                  </p>
-                </div>
-                <div>
-                  <Label>Monthly Price</Label>
-                  <p className="text-2xl font-bold">
-                    ${tierData?.plan_price?.toLocaleString() || "0"}
-                  </p>
-                </div>
-              </div>
-              {tierData?.renewal_date && (
-                <div>
-                  <Label>Next Renewal</Label>
-                  <p className="text-lg">
-                    {new Date(tierData.renewal_date).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-              <Button className="bg-[#b09837] text-black hover:bg-[#b09837]/90">
-                Update / Change Plan
-              </Button>
-
-              <Card className="mt-6 bg-muted border-border">
+              <Card className="bg-muted border-border">
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-foreground mb-2">Billing Information</h3>
                   <p className="text-sm text-muted-foreground">
