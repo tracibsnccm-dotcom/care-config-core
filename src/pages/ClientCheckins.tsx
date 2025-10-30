@@ -1,158 +1,107 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { LabeledInput } from "@/components/LabeledInput";
 import { LabeledSelect } from "@/components/LabeledSelect";
-import { Calendar, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
+import { LabeledInput } from "@/components/LabeledInput";
+import { useApp } from "@/context/AppContext";
+import { FourPs } from "@/config/rcms";
+import { Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/auth/supabaseAuth";
-import { useClientCheckins } from "@/hooks/useClientCheckins";
-import { CheckinChart } from "@/components/CheckinChart";
-import { CheckinHistoryModal } from "@/components/CheckinHistoryModal";
-import { createEmergencyAlert } from "@/lib/emergencyAlerts";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { fmtDate } from "@/lib/store";
+import { Sparkline } from "@/components/Sparkline";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ClientCheckins() {
-  const { user } = useAuth();
-  const [caseId, setCaseId] = useState<string>("");
-  const [caseOptions, setCaseOptions] = useState<string[]>([]);
+  const { cases, setCases, log } = useApp();
+  const [forCase, setForCase] = useState(cases[0]?.id ?? "");
   const [pain, setPain] = useState(3);
   const [note, setNote] = useState("");
-  const [quick4ps, setQuick4ps] = useState({
+  const [quick4ps, setQuick4ps] = useState<FourPs>({
     physical: 50,
     psychological: 50,
     psychosocial: 50,
     professional: 50,
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  
-  const { checkins, loading, refetch } = useClientCheckins(caseId);
 
-  // Get client's case on mount
-  useEffect(() => {
-    if (user) {
-      fetchClientCase();
-    }
-  }, [user]);
-
-  async function fetchClientCase() {
-    try {
-      const { data, error } = await supabase
-        .from('case_assignments')
-        .select('case_id')
-        .eq('user_id', user!.id)
-        .eq('role', 'CLIENT');
-
-      if (error) throw error;
-      const ids = (data || []).map((d: any) => d.case_id);
-      setCaseOptions(ids);
-      if (!caseId && ids.length) setCaseId(ids[0]);
-    } catch (error: any) {
-      console.error('Error fetching case:', error);
-    }
-  }
-
-  async function submit() {
-    if (!caseId || !user) {
-      toast.error("Unable to submit check-in");
+  function submit() {
+    if (!forCase) {
+      toast.error("Please select a case");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      // Insert check-in
-      const { error } = await supabase
-        .from('client_checkins')
-        .insert({
-          case_id: caseId,
-          client_id: user.id,
-          pain_scale: pain,
-          note: note || null,
-          p_physical: quick4ps.physical,
-          p_psychological: quick4ps.psychological,
-          p_psychosocial: quick4ps.psychosocial,
-          p_purpose: quick4ps.professional,
-        });
+    setCases((arr) =>
+      arr.map((c) =>
+        c.id === forCase
+          ? {
+              ...c,
+              checkins: [
+                ...(c.checkins || []),
+                { ts: new Date().toISOString(), pain, note, fourPs: quick4ps },
+              ],
+              status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
+            }
+          : c
+      )
+    );
+    log("CHECKIN_SUBMIT", forCase);
 
-      if (error) throw error;
-
-      // Check for immediate alert thresholds
-      const triggerImmediate = 
-        pain >= 7 || 
-        [quick4ps.physical, quick4ps.psychological, quick4ps.psychosocial, quick4ps.professional].some(v => v <= 30);
-
-      if (triggerImmediate) {
-        const severity = pain >= 8 || Object.values(quick4ps).some(v => v <= 20) ? 'high' : 'medium';
-        await createEmergencyAlert({
-          caseId,
-          clientId: user.id,
-          alertType: 'wellness_check',
-          severity: severity as 'high' | 'medium',
-          internalMessage: `Check-in threshold exceeded: Pain ${pain}/10, Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Professional ${quick4ps.professional}`,
-          minimalMessage: `Recent client check-in suggests increased risk. Review recommended.`,
-          metadata: { 
-            pain_scale: pain, 
-            fourPs: quick4ps,
-            trigger: pain >= 7 ? 'high_pain' : 'low_4p'
-          },
-        });
-        toast.warning("Alert sent to care team", {
-          description: "Your care manager will review your check-in.",
-        });
-      }
-
-      // Check for trend alert: 3 consecutive high-pain readings
-      const { data: recentCheckins } = await supabase
-        .from('client_checkins')
-        .select('pain_scale')
-        .eq('case_id', caseId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (recentCheckins && recentCheckins.length === 3) {
-        const allHighPain = recentCheckins.every(c => c.pain_scale >= 7);
-        if (allHighPain) {
-          await createEmergencyAlert({
-            caseId,
-            clientId: user.id,
-            alertType: 'crisis',
-            severity: 'critical',
-            internalMessage: `Trend alert: sustained high pain. Pain ≥7 for 3 consecutive check-ins (${recentCheckins.map(c => c.pain_scale).join(', ')})`,
-            minimalMessage: `Client experiencing sustained high pain levels. Immediate review recommended.`,
-            metadata: {
-              trigger: 'consecutive_high_pain',
-              consecutive_count: 3,
-              pain_scores: recentCheckins.map(c => c.pain_scale),
-            },
-          });
-        }
-      }
-
-      if (!triggerImmediate) {
-        toast.success("Check-in submitted successfully");
-      }
-
-      // Reset form
-      setPain(3);
-      setNote("");
-      setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
-      
-      refetch();
-    } catch (error: any) {
-      toast.error("Failed to submit check-in: " + error.message);
-    } finally {
-      setSubmitting(false);
+    // Warn if worsening (naive heuristic)
+    const caseObj = cases.find((x) => x.id === forCase);
+    const prev = caseObj?.checkins?.slice(-3).map((ci) => ci.pain) ?? [];
+    const avg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : 0;
+    
+    if (pain - avg >= 2) {
+      toast.error("Warning: Escalating pain trend detected", {
+        description: "Consider scheduling a provider consultation.",
+      });
+    } else {
+      toast.success("Check-in submitted successfully");
     }
+
+    // Reset form
+    setPain(3);
+    setNote("");
+    setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
   }
 
-  const recentCheckins = checkins.slice(0, 5);
+  const selectedCase = cases.find((c) => c.id === forCase);
+  const recentCheckins = selectedCase?.checkins?.slice(-5).reverse() ?? [];
+
+  // Progress tracker helpers (client-side only, original data)
+  type Period = 'day' | 'week' | 'month';
+  function bucket(ts: string, period: Period) {
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    if (period === 'day') return `${y}-${m}-${day}`;
+    if (period === 'week') {
+      // ISO week approximation
+      const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (tmp.getUTCDay() + 6) % 7;
+      tmp.setUTCDate(tmp.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 4));
+      const week = 1 + Math.round(((tmp.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+      return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+    }
+    return `${y}-${m}`; // month
+  }
+  function toSeries(period: Period) {
+    const map: Record<string, number[]> = {};
+    (selectedCase?.checkins || []).forEach(ci => {
+      const b = bucket(ci.ts, period);
+      if (!map[b]) map[b] = [];
+      map[b].push(ci.pain);
+    });
+    const entries = Object.entries(map)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, arr]) => ({ label: k, value: Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 100) / 100 }));
+    return entries;
+  }
 
   return (
     <AppLayout>
@@ -167,128 +116,107 @@ export default function ClientCheckins() {
           <Card className="p-6 border-border lg:col-span-2">
             <h2 className="text-xl font-semibold text-foreground mb-6">Submit Check-in</h2>
 
-            {!caseId ? (
-              <p className="text-sm text-muted-foreground">Loading your case...</p>
-            ) : (
-              <div className="space-y-6">
-                <LabeledSelect
-                  label="Select Case"
-                  value={caseId || "Select a case..."}
-                  onChange={setCaseId}
-                  options={["Select a case...", ...caseOptions]}
+            <div className="space-y-6">
+              <LabeledSelect
+                label="Select Case"
+                value={forCase || "Select a case..."}
+                onChange={setForCase}
+                options={["Select a case...", ...cases.map((c) => c.id)]}
+              />
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">
+                  Pain Scale: {pain}/10
+                </Label>
+                <Slider
+                  value={[pain]}
+                  onValueChange={([value]) => setPain(value)}
+                  max={10}
+                  step={1}
+                  className="w-full"
                 />
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">
-                    Pain Scale: {pain}/10
-                  </Label>
-                  <Slider
-                    value={[pain]}
-                    onValueChange={([value]) => setPain(value)}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>No Pain</span>
-                    <span>Moderate</span>
-                    <span>Severe</span>
-                  </div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>No Pain</span>
+                  <span>Moderate</span>
+                  <span>Severe</span>
                 </div>
-
-
-                <LabeledInput
-                  label="Note (optional)"
-                  value={note}
-                  onChange={setNote}
-                  placeholder="Short note about your condition..."
-                />
-
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">Quick 4P's Assessment</Label>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {(["physical", "psychological", "psychosocial", "purpose"] as const).map(
-                      (k) => (
-                        <div key={k}>
-                          <Label className="text-xs font-medium capitalize mb-2 block">
-                            {k === 'purpose' ? 'professional' : k}: {quick4ps[k]}
-                          </Label>
-                          <Slider
-                            value={[quick4ps[k]]}
-                            onValueChange={([value]) =>
-                              setQuick4ps((p) => ({ ...p, [k]: value }))
-                            }
-                            max={100}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                <Button onClick={submit} className="w-full" disabled={submitting}>
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {submitting ? "Submitting..." : "Submit Check-in"}
-                </Button>
               </div>
-            )}
+
+              <LabeledInput
+                label="Note (optional)"
+                value={note}
+                onChange={setNote}
+                placeholder="Short note about your condition..."
+              />
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Quick 4P's Assessment</Label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(["physical", "psychological", "psychosocial", "professional"] as const).map(
+                    (k) => (
+                      <div key={k}>
+                        <Label className="text-xs font-medium capitalize mb-2 block">
+                          {k}: {quick4ps[k]}
+                        </Label>
+                        <Slider
+                          value={[quick4ps[k]]}
+                          onValueChange={([value]) =>
+                            setQuick4ps((p) => ({ ...p, [k]: value }))
+                          }
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <Button onClick={submit} className="w-full" disabled={!forCase}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Submit Check-in
+              </Button>
+            </div>
           </Card>
 
-          {/* Recent Check-ins */}
-          <Card className="p-6 border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          {/* Right column */}
+          <div className="space-y-6">
+            {/* Recent Check-ins */}
+            <Card className="p-6 border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
                 Recent Check-ins
               </h2>
-              {caseId && checkins.length > 0 && (
-                <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Full History
-                </Button>
-              )}
-            </div>
 
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading check-ins...</p>
-            ) : !caseId ? (
-              <p className="text-sm text-muted-foreground">No case assigned</p>
-            ) : recentCheckins.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No check-ins yet</p>
-            ) : (
-              <>
-                <div className="space-y-3 mb-4">
+              {!selectedCase ? (
+                <p className="text-sm text-muted-foreground">Select a case to view history</p>
+              ) : recentCheckins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No check-ins yet</p>
+              ) : (
+                <div className="space-y-3">
                   {recentCheckins.map((checkin, idx) => {
                     const isPainIncreasing =
                       idx < recentCheckins.length - 1 &&
-                      checkin.pain_scale > recentCheckins[idx + 1].pain_scale;
+                      checkin.pain > recentCheckins[idx + 1].pain;
                     
                     return (
                       <div
-                        key={checkin.id}
+                        key={idx}
                         className="p-3 bg-muted rounded-lg border border-border"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-xs text-muted-foreground">
-                            Submitted: {format(new Date(checkin.created_at), 'MMM dd yyyy · h:mm a')} CST
+                            {fmtDate(checkin.ts)}
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-foreground">
-                              Pain: {checkin.pain_scale}/10
+                              Pain: {checkin.pain}/10
                             </span>
                             {isPainIncreasing && (
                               <AlertTriangle className="w-4 h-4 text-warning" />
                             )}
                           </div>
-                        </div>
-                        <div className="flex gap-3 text-xs text-muted-foreground mb-1">
-                          {checkin.depression_scale !== null && (
-                            <span>Depression: {checkin.depression_scale}/10</span>
-                          )}
-                          {checkin.anxiety_scale !== null && (
-                            <span>Anxiety: {checkin.anxiety_scale}/10</span>
-                          )}
                         </div>
                         {checkin.note && (
                           <p className="text-xs text-muted-foreground">{checkin.note}</p>
@@ -297,32 +225,51 @@ export default function ClientCheckins() {
                     );
                   })}
                 </div>
+              )}
 
-                {checkins.length > 0 && (
-                  <div className="mt-4">
-                    <CheckinChart checkins={checkins} maxEntries={7} title="Last 7 Check-ins" />
-                  </div>
-                )}
-
+              {selectedCase && recentCheckins.length > 0 && (
                 <Alert className="mt-4">
                   <AlertDescription className="text-xs">
-                    Tracking {checkins.length} total check-in
-                    {checkins.length !== 1 ? "s" : ""}. Trends help identify escalating issues.
+                    Tracking {recentCheckins.length} recent check-in
+                    {recentCheckins.length !== 1 ? "s" : ""}. Trends help identify escalating
+                    issues.
                   </AlertDescription>
                 </Alert>
-              </>
-            )}
-          </Card>
+              )}
+            </Card>
+
+            {/* 📈 Progress Tracker */}
+            <Card className="p-6 border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">📈 Progress Tracker</h2>
+              {!selectedCase || (selectedCase.checkins || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No data yet</p>
+              ) : (
+                <Tabs defaultValue="day">
+                  <TabsList className="grid w-full grid-cols-3 mb-4">
+                    <TabsTrigger value="day">Daily</TabsTrigger>
+                    <TabsTrigger value="week">Weekly</TabsTrigger>
+                    <TabsTrigger value="month">Monthly</TabsTrigger>
+                  </TabsList>
+                  {(["day", "week", "month"] as const).map((p) => {
+                    const s = toSeries(p);
+                    return (
+                      <TabsContent key={p} value={p}>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">{s.length} points</div>
+                          <div className="text-sm font-medium">Avg pain trend</div>
+                        </div>
+                        <div className="mt-2">
+                          <Sparkline values={s.map((x) => x.value)} width={300} height={48} />
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </Card>
+          </div>
         </div>
       </div>
-
-      {caseId && (
-        <CheckinHistoryModal 
-          open={showHistory} 
-          onOpenChange={setShowHistory} 
-          caseId={caseId} 
-        />
-      )}
     </AppLayout>
   );
 }
