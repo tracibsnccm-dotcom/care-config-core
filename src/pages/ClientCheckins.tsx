@@ -267,7 +267,7 @@ export default function ClientCheckins() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Client Check-ins</h1>
-          <p className="text-muted-foreground mt-1">Track pain levels and progress over time</p>
+          <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and your 4Ps of recovery (Physical, Psychological, Psychosocial, and Professional).</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
