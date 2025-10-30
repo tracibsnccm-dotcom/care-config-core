@@ -29,7 +29,10 @@ import { ReferralPurchaseCard } from "@/components/ReferralPurchaseCard";
 export default function AttorneyBilling() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "plan";
+  const qp = searchParams.get("tab") || searchParams.get("section");
+  const defaultTab = (qp && ["plan","payment","invoices","services","ewallet"].includes(qp))
+    ? qp
+    : (typeof window !== 'undefined' && window.location.hash === '#rcms-referral-card' ? 'services' : 'plan');
 
   const [tierData, setTierData] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState(0);
