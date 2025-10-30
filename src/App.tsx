@@ -188,6 +188,10 @@ const App = () => (
               path="/attorney/billing"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyBilling /></ProtectedRoute>}
             />
+            <Route
+              path="/referrals"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Referrals /></ProtectedRoute>}
+            />
 
             {/* Settings - Available to all authenticated users */}
             <Route
