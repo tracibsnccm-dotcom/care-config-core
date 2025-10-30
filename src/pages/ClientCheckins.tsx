@@ -15,6 +15,7 @@ import { fmtDate } from "@/lib/store";
 import { Sparkline } from "@/components/Sparkline";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function ClientCheckins() {
   const { cases, setCases, log } = useApp();
@@ -199,36 +200,64 @@ export default function ClientCheckins() {
   const selectedCase = cases.find((c) => c.id === forCase);
   const recentCheckins = selectedCase?.checkins?.slice(-5).reverse() ?? [];
 
-  // Progress tracker helpers (client-side only, original data)
+  // Progress tracker helpers
   type Period = 'day' | 'week' | 'month';
-  function bucket(ts: string, period: Period) {
+  
+  function formatDateForPeriod(ts: string, period: Period): string {
     const d = new Date(ts);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    if (period === 'day') return `${y}-${m}-${day}`;
-    if (period === 'week') {
-      // ISO week approximation
-      const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      const dayNum = (tmp.getUTCDay() + 6) % 7;
-      tmp.setUTCDate(tmp.getUTCDate() - dayNum + 3);
-      const firstThursday = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 4));
-      const week = 1 + Math.round(((tmp.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
-      return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
-    }
-    return `${y}-${m}`; // month
+    if (period === 'day') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (period === 'week') return `Week ${Math.ceil(d.getDate() / 7)}`;
+    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   }
-  function toSeries(period: Period) {
-    const map: Record<string, number[]> = {};
-    (selectedCase?.checkins || []).forEach(ci => {
-      const b = bucket(ci.ts, period);
-      if (!map[b]) map[b] = [];
-      map[b].push(ci.pain);
+
+  function aggregateCheckins(period: Period) {
+    const checkins = selectedCase?.checkins || [];
+    if (checkins.length === 0) return [];
+
+    // Group by period
+    const groups: Record<string, any[]> = {};
+    checkins.forEach(ci => {
+      const date = new Date(ci.ts);
+      let key: string;
+      
+      if (period === 'day') {
+        key = date.toISOString().split('T')[0];
+      } else if (period === 'week') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(ci);
     });
-    const entries = Object.entries(map)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([k, arr]) => ({ label: k, value: Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 100) / 100 }));
-    return entries;
+
+    // Aggregate data
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, items]) => ({
+        date: formatDateForPeriod(items[0].ts, period),
+        pain: Math.round((items.reduce((sum, i) => sum + (i.pain || 0), 0) / items.length) * 10) / 10,
+        depression: Math.round((items.reduce((sum, i) => sum + (i.depression || 0), 0) / items.length) * 10) / 10,
+        anxiety: Math.round((items.reduce((sum, i) => sum + (i.anxiety || 0), 0) / items.length) * 10) / 10,
+        physical: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.physical || 0), 0) / items.length),
+        psychological: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.psychological || 0), 0) / items.length),
+        psychosocial: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.psychosocial || 0), 0) / items.length),
+        professional: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.professional || 0), 0) / items.length),
+      }));
+  }
+
+  function getTrendColor(current: number, previous: number, isHigherBetter: boolean): string {
+    if (!previous) return "hsl(var(--muted-foreground))";
+    const diff = current - previous;
+    if (Math.abs(diff) < 0.5) return "hsl(var(--warning))"; // stable
+    if (isHigherBetter) {
+      return diff > 0 ? "hsl(var(--success))" : "hsl(var(--destructive))";
+    } else {
+      return diff < 0 ? "hsl(var(--success))" : "hsl(var(--destructive))";
+    }
   }
 
   return (
@@ -404,22 +433,194 @@ export default function ClientCheckins() {
               {!selectedCase || (selectedCase.checkins || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No data yet</p>
               ) : (
-                <Tabs defaultValue="day">
+                <Tabs defaultValue="day" className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-4">
                     <TabsTrigger value="day">Daily</TabsTrigger>
                     <TabsTrigger value="week">Weekly</TabsTrigger>
                     <TabsTrigger value="month">Monthly</TabsTrigger>
                   </TabsList>
-                  {(["day", "week", "month"] as const).map((p) => {
-                    const s = toSeries(p);
+                  
+                  {(["day", "week", "month"] as const).map((period) => {
+                    const data = aggregateCheckins(period);
+                    const latest = data[data.length - 1];
+                    const previous = data[data.length - 2];
+                    
                     return (
-                      <TabsContent key={p} value={p}>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">{s.length} points</div>
-                          <div className="text-sm font-medium">Avg pain trend</div>
+                      <TabsContent key={period} value={period} className="space-y-6">
+                        {/* Symptom Trends */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-foreground">Symptom Trends (0-10)</h3>
+                            {latest && (
+                              <div className="flex gap-2 text-xs">
+                                <span className={latest.pain >= 7 ? "text-destructive font-semibold" : ""}>
+                                  Pain: {latest.pain}
+                                </span>
+                                <span className={latest.depression >= 7 ? "text-destructive font-semibold" : ""}>
+                                  Depression: {latest.depression}
+                                </span>
+                                <span className={latest.anxiety >= 7 ? "text-destructive font-semibold" : ""}>
+                                  Anxiety: {latest.anxiety}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <LineChart data={data}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis 
+                                dataKey="date" 
+                                stroke="hsl(var(--muted-foreground))"
+                                style={{ fontSize: '12px' }}
+                              />
+                              <YAxis 
+                                domain={[0, 10]} 
+                                stroke="hsl(var(--muted-foreground))"
+                                style={{ fontSize: '12px' }}
+                              />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'hsl(var(--popover))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px'
+                                }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '12px' }} />
+                              <Line 
+                                type="monotone" 
+                                dataKey="pain" 
+                                stroke="#ef4444" 
+                                strokeWidth={2}
+                                name="Pain"
+                                dot={{ fill: '#ef4444', r: 4 }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="depression" 
+                                stroke="#8b5cf6" 
+                                strokeWidth={2}
+                                name="Depression"
+                                dot={{ fill: '#8b5cf6', r: 4 }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="anxiety" 
+                                stroke="#f59e0b" 
+                                strokeWidth={2}
+                                name="Anxiety"
+                                dot={{ fill: '#f59e0b', r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                          {latest && previous && (
+                            <div className="flex gap-4 mt-2 text-xs">
+                              <span style={{ color: getTrendColor(latest.pain, previous.pain, false) }}>
+                                Pain {latest.pain > previous.pain ? '↑' : latest.pain < previous.pain ? '↓' : '→'}
+                              </span>
+                              <span style={{ color: getTrendColor(latest.depression, previous.depression, false) }}>
+                                Depression {latest.depression > previous.depression ? '↑' : latest.depression < previous.depression ? '↓' : '→'}
+                              </span>
+                              <span style={{ color: getTrendColor(latest.anxiety, previous.anxiety, false) }}>
+                                Anxiety {latest.anxiety > previous.anxiety ? '↑' : latest.anxiety < previous.anxiety ? '↓' : '→'}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="mt-2">
-                          <Sparkline values={s.map((x) => x.value)} width={300} height={48} />
+
+                        {/* 4Ps Progress */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-foreground">4Ps Progress (0-100)</h3>
+                            {latest && (
+                              <div className="flex gap-2 text-xs">
+                                <span className={latest.physical <= 30 ? "text-destructive font-semibold" : ""}>
+                                  Physical: {latest.physical}
+                                </span>
+                                <span className={latest.psychological <= 30 ? "text-destructive font-semibold" : ""}>
+                                  Psych: {latest.psychological}
+                                </span>
+                                <span className={latest.psychosocial <= 30 ? "text-destructive font-semibold" : ""}>
+                                  Social: {latest.psychosocial}
+                                </span>
+                                <span className={latest.professional <= 30 ? "text-destructive font-semibold" : ""}>
+                                  Purpose: {latest.professional}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <LineChart data={data}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis 
+                                dataKey="date" 
+                                stroke="hsl(var(--muted-foreground))"
+                                style={{ fontSize: '12px' }}
+                              />
+                              <YAxis 
+                                domain={[0, 100]} 
+                                stroke="hsl(var(--muted-foreground))"
+                                style={{ fontSize: '12px' }}
+                              />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'hsl(var(--popover))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px'
+                                }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '12px' }} />
+                              <Line 
+                                type="monotone" 
+                                dataKey="physical" 
+                                stroke="#10b981" 
+                                strokeWidth={2}
+                                name="Physical"
+                                dot={{ fill: '#10b981', r: 4 }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="psychological" 
+                                stroke="#3b82f6" 
+                                strokeWidth={2}
+                                name="Psychological"
+                                dot={{ fill: '#3b82f6', r: 4 }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="psychosocial" 
+                                stroke="#ec4899" 
+                                strokeWidth={2}
+                                name="Psychosocial"
+                                dot={{ fill: '#ec4899', r: 4 }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="professional" 
+                                stroke="#6366f1" 
+                                strokeWidth={2}
+                                name="Purpose"
+                                dot={{ fill: '#6366f1', r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                          {latest && previous && (
+                            <div className="flex gap-4 mt-2 text-xs">
+                              <span style={{ color: getTrendColor(latest.physical, previous.physical, true) }}>
+                                Physical {latest.physical > previous.physical ? '↑' : latest.physical < previous.physical ? '↓' : '→'}
+                              </span>
+                              <span style={{ color: getTrendColor(latest.psychological, previous.psychological, true) }}>
+                                Psychological {latest.psychological > previous.psychological ? '↑' : latest.psychological < previous.psychological ? '↓' : '→'}
+                              </span>
+                              <span style={{ color: getTrendColor(latest.psychosocial, previous.psychosocial, true) }}>
+                                Psychosocial {latest.psychosocial > previous.psychosocial ? '↑' : latest.psychosocial < previous.psychosocial ? '↓' : '→'}
+                              </span>
+                              <span style={{ color: getTrendColor(latest.professional, previous.professional, true) }}>
+                                Purpose {latest.professional > previous.professional ? '↑' : latest.professional < previous.professional ? '↓' : '→'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
                     );
