@@ -48,7 +48,7 @@ export function SupportFooter() {
               immediately.
             </p>
             <p className="text-base md:text-lg leading-relaxed">
-              If you are in emotional distress or having thoughts of harming yourself, call or text{" "}
+              If you are in emotional distress or having thoughts of harming yourself or someone else, call or text{" "}
               <a href="tel:988" className="font-bold text-2xl md:text-3xl text-red-600 hover:text-red-500 transition-colors">
                 988
               </a>{" "}
