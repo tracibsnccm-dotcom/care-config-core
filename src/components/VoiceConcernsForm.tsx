@@ -25,7 +25,9 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
   const [visitDate, setVisitDate] = useState("");
   const [concernDescription, setConcernDescription] = useState("");
   const [feltRespected, setFeltRespected] = useState("");
+  const [feltRespectedDetails, setFeltRespectedDetails] = useState("");
   const [careAddressed, setCareAddressed] = useState("");
+  const [careAddressedDetails, setCareAddressedDetails] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
 
   // Fetch assigned providers for this case
@@ -103,7 +105,9 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
           visit_date: visitDate || null,
           concern_description: concernDescription,
           felt_respected: feltRespected || null,
+          felt_respected_details: feltRespectedDetails || null,
           care_addressed: careAddressed || null,
+          care_addressed_details: careAddressedDetails || null,
           concern_status: 'Open'
         })
         .select()
@@ -172,7 +176,9 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
       setVisitDate("");
       setConcernDescription("");
       setFeltRespected("");
+      setFeltRespectedDetails("");
       setCareAddressed("");
+      setCareAddressedDetails("");
       setAttachments([]);
 
     } catch (error) {
@@ -277,6 +283,21 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
                 <Label htmlFor="respect-no" className="font-normal cursor-pointer">No</Label>
               </div>
             </RadioGroup>
+            {feltRespected && (
+              <div className="mt-3">
+                <Label htmlFor="feltRespectedDetails" className="text-sm">
+                  Please explain (optional)
+                </Label>
+                <Textarea
+                  id="feltRespectedDetails"
+                  value={feltRespectedDetails}
+                  onChange={(e) => setFeltRespectedDetails(e.target.value)}
+                  placeholder="You can provide more details about your answer here..."
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -297,6 +318,21 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
                 <Label htmlFor="care-no" className="font-normal cursor-pointer">No</Label>
               </div>
             </RadioGroup>
+            {careAddressed && (
+              <div className="mt-3">
+                <Label htmlFor="careAddressedDetails" className="text-sm">
+                  Please explain (optional)
+                </Label>
+                <Textarea
+                  id="careAddressedDetails"
+                  value={careAddressedDetails}
+                  onChange={(e) => setCareAddressedDetails(e.target.value)}
+                  placeholder="You can provide more details about your answer here..."
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

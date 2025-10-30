@@ -282,6 +282,7 @@ export type Database = {
         Row: {
           assigned_rn: string | null
           care_addressed: string | null
+          care_addressed_details: string | null
           case_id: string
           client_id: string
           concern_description: string
@@ -289,6 +290,7 @@ export type Database = {
           concern_timestamp: string
           created_at: string
           felt_respected: string | null
+          felt_respected_details: string | null
           id: string
           provider_name: string
           rn_followup_notes: string | null
@@ -298,6 +300,7 @@ export type Database = {
         Insert: {
           assigned_rn?: string | null
           care_addressed?: string | null
+          care_addressed_details?: string | null
           case_id: string
           client_id: string
           concern_description: string
@@ -305,6 +308,7 @@ export type Database = {
           concern_timestamp?: string
           created_at?: string
           felt_respected?: string | null
+          felt_respected_details?: string | null
           id?: string
           provider_name: string
           rn_followup_notes?: string | null
@@ -314,6 +318,7 @@ export type Database = {
         Update: {
           assigned_rn?: string | null
           care_addressed?: string | null
+          care_addressed_details?: string | null
           case_id?: string
           client_id?: string
           concern_description?: string
@@ -321,6 +326,7 @@ export type Database = {
           concern_timestamp?: string
           created_at?: string
           felt_respected?: string | null
+          felt_respected_details?: string | null
           id?: string
           provider_name?: string
           rn_followup_notes?: string | null
