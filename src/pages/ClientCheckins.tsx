@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { LabeledInput } from "@/components/LabeledInput";
+import { LabeledSelect } from "@/components/LabeledSelect";
 import { Calendar, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,6 +20,7 @@ import { createEmergencyAlert } from "@/lib/emergencyAlerts";
 export default function ClientCheckins() {
   const { user } = useAuth();
   const [caseId, setCaseId] = useState<string>("");
+  const [caseOptions, setCaseOptions] = useState<string[]>([]);
   const [pain, setPain] = useState(3);
   const [depression, setDepression] = useState(3);
   const [anxiety, setAnxiety] = useState(3);
@@ -47,12 +49,12 @@ export default function ClientCheckins() {
         .from('case_assignments')
         .select('case_id')
         .eq('user_id', user!.id)
-        .eq('role', 'CLIENT')
-        .limit(1)
-        .maybeSingle();
+        .eq('role', 'CLIENT');
 
       if (error) throw error;
-      if (data) setCaseId(data.case_id);
+      const ids = (data || []).map((d: any) => d.case_id);
+      setCaseOptions(ids);
+      if (!caseId && ids.length) setCaseId(ids[0]);
     } catch (error: any) {
       console.error('Error fetching case:', error);
     }
@@ -174,6 +176,12 @@ export default function ClientCheckins() {
               <p className="text-sm text-muted-foreground">Loading your case...</p>
             ) : (
               <div className="space-y-6">
+                <LabeledSelect
+                  label="Select Case"
+                  value={caseId || "Select a case..."}
+                  onChange={setCaseId}
+                  options={["Select a case...", ...caseOptions]}
+                />
                 <div>
                   <Label className="text-sm font-medium mb-3 block">
                     Pain Scale: {pain}/10
@@ -242,7 +250,7 @@ export default function ClientCheckins() {
                       (k) => (
                         <div key={k}>
                           <Label className="text-xs font-medium capitalize mb-2 block">
-                            {k}: {quick4ps[k]}
+                            {k === 'purpose' ? 'professional' : k}: {quick4ps[k]}
                           </Label>
                           <Slider
                             value={[quick4ps[k]]}
@@ -277,7 +285,7 @@ export default function ClientCheckins() {
               {caseId && checkins.length > 0 && (
                 <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
                   <BarChart3 className="w-4 h-4 mr-2" />
-                  Full History
+                  View Full History
                 </Button>
               )}
             </div>
