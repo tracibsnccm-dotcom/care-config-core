@@ -212,11 +212,11 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
         .rcms-table thead th { position: sticky; top: 0; background: #0f2a6a; color: #fff; padding: 14px; text-align: center; font-weight: 700; z-index: 10; vertical-align: middle; }
         .rcms-table thead th:first-child { text-align: left; padding-left: 16px; }
         .rcms-table thead th:hover, .rcms-table thead th:focus-within { background: #102e80; }
-        .rcms-table thead th:hover small, .rcms-table thead th:focus-within small { color: #d4b64a; text-shadow: 0 0 3px rgba(176,152,55,0.8); }
+        .rcms-table thead th:hover small, .rcms-table thead th:focus-within small { color: #f5d56e; }
         .tier-label { display: flex; flex-direction: column; align-items: center; line-height: 1.3; position: relative; }
         .tier-label > span:first-child { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
-        .tier-label small { font-size: 0.95rem; font-weight: 600; color: #b09837; text-shadow: 0 0 1px rgba(0,0,0,0.25), 0 0 6px rgba(255,255,255,0.3); letter-spacing: 0.3px; line-height: 1.4; opacity: 1; margin-top: 2px; display: block; }
-        .tier-label small::after { content: ''; display: block; width: 55%; margin: 3px auto 0; border-bottom: 2px solid rgba(176,152,55,0.9); border-radius: 1px; }
+        .tier-label small { font-size: 0.95rem; font-weight: 600; color: #d4b64a; background: none; text-shadow: none; letter-spacing: 0.25px; line-height: 1.4; opacity: 1; margin-top: 2px; display: block; }
+        .tier-label small::after { content: ''; display: block; width: 55%; margin: 3px auto 0; border-bottom: 2px solid #b09837; border-radius: 1px; }
         .your-plan-chip { position: absolute; top: -6px; right: -10px; background: #b09837; color: #000; font-size: 0.7rem; font-weight: 600; border-radius: 10px; padding: 2px 6px; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
         .rcms-tiers.tier-basic .rcms-table th:nth-child(2), .rcms-tiers.tier-basic .rcms-table td:nth-child(2), .rcms-tiers.tier-clinical .rcms-table th:nth-child(3), .rcms-tiers.tier-clinical .rcms-table td:nth-child(3), .rcms-tiers.tier-premium .rcms-table th:nth-child(4), .rcms-tiers.tier-premium .rcms-table td:nth-child(4) { position: relative; background: #fff; z-index: 10; box-shadow: 0 12px 28px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1), 0 0 0 3px rgba(176,152,55,0.5); transform: translateZ(10px) scale(1.025); transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1); }
         .rcms-tiers.tier-basic .rcms-table thead th:nth-child(2), .rcms-tiers.tier-clinical .rcms-table thead th:nth-child(3), .rcms-tiers.tier-premium .rcms-table thead th:nth-child(4) { border-top-left-radius: 12px; border-top-right-radius: 12px; }
