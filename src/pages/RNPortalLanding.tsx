@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, CheckCircle, TrendingUp } from "lucide-react";
+import { FileText, CheckCircle, TrendingUp, AlertTriangle } from "lucide-react";
 
 export default function RNPortalLanding() {
   return (
@@ -15,7 +15,7 @@ export default function RNPortalLanding() {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           to="/rn-dashboard"
           className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition group"
@@ -62,6 +62,23 @@ export default function RNPortalLanding() {
               <h3 className="font-semibold text-foreground">Quality Metrics</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 My Metrics vs Team Metrics (role-gated), weekly/monthly rollups.
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/concerns-complaints"
+          className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition group border-warning/20"
+        >
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-warning/10 text-warning group-hover:bg-warning group-hover:text-warning-foreground transition">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Concerns & Complaints</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monitor and resolve client concerns and anonymous complaints.
               </p>
             </div>
           </div>
