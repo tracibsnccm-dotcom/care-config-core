@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MessageSquare, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ConcernConfirmationModal } from "./ConcernConfirmationModal";
 
 interface ReportConcernDialogProps {
   caseId: string;
@@ -18,6 +19,7 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
   const [concernAbout, setConcernAbout] = useState<string>("");
   const [concernDescription, setConcernDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,15 +86,12 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
         },
       });
 
-      toast({
-        title: "Concern Submitted",
-        description: "Thank you for sharing your concern. We'll review it promptly.",
-      });
-
       // Reset form
       setConcernAbout("");
       setConcernDescription("");
       
+      // Show confirmation modal
+      setShowConfirmation(true);
       onSuccess?.();
     } catch (error) {
       console.error("Error submitting concern:", error);
@@ -107,16 +106,17 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <CardTitle>Report a Concern</CardTitle>
-        </div>
-        <CardDescription>
-          Share a concern about your care or experience
-        </CardDescription>
-      </CardHeader>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <CardTitle>Report a Concern</CardTitle>
+          </div>
+          <CardDescription>
+            Share a concern about your care or experience
+          </CardDescription>
+        </CardHeader>
       <CardContent>
         <Alert className="mb-6">
           <Info className="h-4 w-4" />
@@ -166,6 +166,12 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
           </Button>
         </form>
       </CardContent>
-    </Card>
+      </Card>
+
+      <ConcernConfirmationModal 
+        open={showConfirmation} 
+        onOpenChange={setShowConfirmation}
+      />
+    </>
   );
 }

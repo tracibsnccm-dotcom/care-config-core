@@ -8,8 +8,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ComplaintConfirmationModal } from "./ComplaintConfirmationModal";
 
 export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [complaintAbout, setComplaintAbout] = useState<string>("");
   const [complaintDescription, setComplaintDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,15 +53,12 @@ export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
         },
       });
 
-      toast({
-        title: "Complaint Submitted",
-        description: "Your anonymous complaint has been received and will be reviewed within 24-48 hours. Findings or resolutions will be provided within 15 days.",
-      });
-
       // Reset form
       setComplaintAbout("");
       setComplaintDescription("");
       
+      // Show confirmation modal
+      setShowConfirmation(true);
       onSuccess?.();
     } catch (error) {
       console.error("Error submitting complaint:", error);
@@ -74,16 +73,17 @@ export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
   };
 
   return (
-    <Card className="border-warning/20">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-warning" />
-          <CardTitle>File a Complaint (Anonymous)</CardTitle>
-        </div>
-        <CardDescription>
-          Submit a confidential complaint to Reconcile C.A.R.E. Administration
-        </CardDescription>
-      </CardHeader>
+    <>
+      <Card className="border-warning/20">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            <CardTitle>File a Complaint (Anonymous)</CardTitle>
+          </div>
+          <CardDescription>
+            Submit a confidential complaint to Reconcile C.A.R.E. Administration
+          </CardDescription>
+        </CardHeader>
       <CardContent>
         <Alert className="mb-6">
           <Shield className="h-4 w-4" />
@@ -137,6 +137,12 @@ export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
           </Button>
         </form>
       </CardContent>
-    </Card>
+      </Card>
+
+      <ComplaintConfirmationModal 
+        open={showConfirmation} 
+        onOpenChange={setShowConfirmation}
+      />
+    </>
   );
 }
