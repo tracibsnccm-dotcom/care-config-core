@@ -58,6 +58,59 @@ export type Database = {
           },
         ]
       }
+      assignment_offers: {
+        Row: {
+          attorney_id: string
+          case_id: string
+          created_at: string
+          created_by: string | null
+          decline_note: string | null
+          decline_reason: string | null
+          expires_at: string
+          id: string
+          offered_at: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["assignment_offer_status"]
+          updated_at: string
+        }
+        Insert: {
+          attorney_id: string
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          decline_note?: string | null
+          decline_reason?: string | null
+          expires_at?: string
+          id?: string
+          offered_at?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_offer_status"]
+          updated_at?: string
+        }
+        Update: {
+          attorney_id?: string
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          decline_note?: string | null
+          decline_reason?: string | null
+          expires_at?: string
+          id?: string
+          offered_at?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_offer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_offers_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attorney_metadata: {
         Row: {
           capacity_available: number
@@ -164,6 +217,62 @@ export type Database = {
           ts?: string | null
         }
         Relationships: []
+      }
+      billing_transactions: {
+        Row: {
+          amount: number
+          attorney_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          processing_fee: number
+          referral_id: string
+          stripe_payment_id: string | null
+          tax: number
+          total_amount: number
+          transaction_date: string
+        }
+        Insert: {
+          amount: number
+          attorney_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          processing_fee?: number
+          referral_id: string
+          stripe_payment_id?: string | null
+          tax?: number
+          total_amount: number
+          transaction_date?: string
+        }
+        Update: {
+          amount?: number
+          attorney_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          processing_fee?: number
+          referral_id?: string
+          stripe_payment_id?: string | null
+          tax?: number
+          total_amount?: number
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_transactions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       care_plans: {
         Row: {
@@ -1465,6 +1574,68 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          acceptance_status: Database["public"]["Enums"]["referral_status"]
+          admin_fee_charged: number
+          attorney_id: string
+          case_id: string
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          payment_date: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          referral_date: string
+          reported_by: string | null
+          settlement_amount: number | null
+          settlement_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          acceptance_status?: Database["public"]["Enums"]["referral_status"]
+          admin_fee_charged?: number
+          attorney_id: string
+          case_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          referral_date?: string
+          reported_by?: string | null
+          settlement_amount?: number | null
+          settlement_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acceptance_status?: Database["public"]["Enums"]["referral_status"]
+          admin_fee_charged?: number
+          attorney_id?: string
+          case_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          referral_date?: string
+          reported_by?: string | null
+          settlement_amount?: number | null
+          settlement_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_documents: {
         Row: {
           case_id: string
@@ -1661,6 +1832,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_assignment_offer: { Args: { p_offer_id: string }; Returns: Json }
       add_complaint_timeline_entry: {
         Args: {
           p_complaint_id: string
@@ -1683,6 +1855,11 @@ export type Database = {
         Args: { p_case_id: string; p_reviewed_by: string }
         Returns: string
       }
+      decline_assignment_offer: {
+        Args: { p_note?: string; p_offer_id: string; p_reason: string }
+        Returns: Json
+      }
+      expire_assignment_offers: { Args: never; Returns: undefined }
       get_checkin_trends: {
         Args: {
           p_case_id: string
@@ -1754,7 +1931,10 @@ export type Database = {
         | "SUPER_USER"
         | "SUPER_ADMIN"
         | "STAFF"
+      assignment_offer_status: "pending" | "accepted" | "declined" | "expired"
       disclosure_scope: "internal" | "minimal" | "full"
+      payment_status: "pending" | "paid" | "failed" | "refunded"
+      referral_status: "pending" | "accepted" | "declined" | "settled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1891,7 +2071,10 @@ export const Constants = {
         "SUPER_ADMIN",
         "STAFF",
       ],
+      assignment_offer_status: ["pending", "accepted", "declined", "expired"],
       disclosure_scope: ["internal", "minimal", "full"],
+      payment_status: ["pending", "paid", "failed", "refunded"],
+      referral_status: ["pending", "accepted", "declined", "settled"],
     },
   },
 } as const

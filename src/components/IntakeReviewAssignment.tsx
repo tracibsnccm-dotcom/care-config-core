@@ -109,11 +109,13 @@ export function IntakeReviewAssignment({ caseId, onAssignmentComplete }: IntakeR
 
         if (assignError) throw assignError;
 
-        // Update attorney metadata
-        const { error: updateError } = await supabase.rpc(
-          "update_attorney_capacity",
-          { p_user_id: selectedAttorney, p_decrement: true }
-        );
+        // Get attorney current capacity
+        const { data: attorney } = await supabase.from("attorney_metadata").select("capacity_available").eq("user_id", selectedAttorney).single();
+        
+        const { error: updateError } = await supabase.rpc("update_attorney_capacity", {
+          p_attorney_id: selectedAttorney,
+          p_new_capacity_available: (attorney?.capacity_available || 1) - 1
+        });
 
         if (updateError) console.error("Error updating capacity:", updateError);
 

@@ -37,8 +37,10 @@ import Settings from "./pages/Settings";
 import RNClinicalLiaison from "./pages/RNClinicalLiaison";
 import Insights from "./pages/Insights";
 import ESignCenter from "./pages/ESignCenter";
+import Referrals from "./pages/Referrals";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
+import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AssignmentAlertBanner />
           <MobileQuickBar />
           <Routes>
             {/* Public routes */}

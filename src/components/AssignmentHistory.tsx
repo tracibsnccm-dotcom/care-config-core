@@ -11,12 +11,8 @@ interface AssignmentLog {
   assigned_timestamp: string;
   assigned_by: string;
   assignment_method: string;
-  assigned_attorney: {
-    display_name: string;
-  };
-  reviewed_by_profile: {
-    display_name: string;
-  } | null;
+  assigned_attorney_id: string;
+  reviewed_by: string | null;
 }
 
 interface AssignmentHistoryProps {
@@ -35,18 +31,7 @@ export function AssignmentHistory({ caseId }: AssignmentHistoryProps) {
     try {
       const { data, error } = await supabase
         .from("assignment_audit_log")
-        .select(`
-          id,
-          assigned_timestamp,
-          assigned_by,
-          assignment_method,
-          assigned_attorney:profiles!assignment_audit_log_assigned_attorney_id_fkey (
-            display_name
-          ),
-          reviewed_by_profile:profiles!assignment_audit_log_reviewed_by_fkey (
-            display_name
-          )
-        `)
+        .select("*")
         .eq("case_id", caseId)
         .order("assigned_timestamp", { ascending: false });
 
@@ -114,7 +99,7 @@ export function AssignmentHistory({ caseId }: AssignmentHistoryProps) {
                   {format(new Date(log.assigned_timestamp), "MMM d, yyyy h:mm a")}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {log.assigned_attorney.display_name}
+                  {log.assigned_attorney_id.slice(-8)}
                 </TableCell>
                 <TableCell>
                   <Badge variant={log.assignment_method === "round_robin" ? "default" : "secondary"}>
@@ -125,7 +110,7 @@ export function AssignmentHistory({ caseId }: AssignmentHistoryProps) {
                   <Badge variant="outline">{log.assigned_by}</Badge>
                 </TableCell>
                 <TableCell>
-                  {log.reviewed_by_profile?.display_name || "N/A"}
+                  {log.reviewed_by || "N/A"}
                 </TableCell>
               </TableRow>
             ))}

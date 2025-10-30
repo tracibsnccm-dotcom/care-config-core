@@ -53,17 +53,17 @@ export function AttorneyRoster() {
     try {
       const { data, error } = await supabase
         .from("attorney_metadata")
-        .select(`
-          *,
-          profiles!attorney_metadata_user_id_fkey (
-            display_name,
-            email
-          )
-        `)
+        .select("*")
         .order("last_assigned_date", { ascending: true, nullsFirst: true });
 
       if (error) throw error;
-      setAttorneys(data || []);
+      
+      const withProfiles = await Promise.all((data || []).map(async (a: any) => {
+        const { data: profile } = await supabase.from("profiles").select("display_name, email").eq("user_id", a.user_id).single();
+        return { ...a, profiles: profile || { display_name: "Unknown", email: "" } };
+      }));
+      
+      setAttorneys(withProfiles);
     } catch (error) {
       console.error("Error loading attorneys:", error);
       toast.error("Failed to load attorney roster");
