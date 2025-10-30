@@ -23,6 +23,7 @@ import { RCMS_CONFIG } from "@/config/rcms";
 import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
 import { PricingCard } from "@/components/PricingCard";
 import { TierComparisonTable } from "@/components/TierComparisonTable";
+import { RNCMSpecialServices } from "@/components/RNCMSpecialServices";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -337,6 +338,13 @@ export default function AttorneyBilling() {
             </CardHeader>
             <CardContent>
               <RNCMServiceCatalog />
+              
+              <RNCMSpecialServices 
+                walletBalance={walletBalance}
+                isSubscriber={tierData?.tier !== 'basic'}
+                caseId={undefined}
+                attorneyId={user?.id}
+              />
             </CardContent>
           </Card>
         </TabsContent>
