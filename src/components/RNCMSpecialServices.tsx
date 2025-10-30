@@ -150,7 +150,7 @@ export function RNCMSpecialServices({
                 <div className="font-extrabold text-[1.05rem] mb-2">
                   <div>Price: {fmtUSD(service.price)}</div>
                   {showWallet && (
-                    <div className="text-[#b09837]">eWallet: {fmtUSD(walletPrice)}</div>
+                    <div>eWallet: {fmtUSD(walletPrice)}</div>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -184,7 +184,7 @@ export function RNCMSpecialServices({
                     onClick={() => handlePayWallet(service)}
                     className="px-3 py-2 rounded-lg font-bold border-2 focus:outline-none focus:ring-2 focus:ring-offset-2"
                     style={{ 
-                      backgroundColor: '#fff', 
+                      backgroundColor: '#b09837', 
                       borderColor: '#b09837',
                       color: '#000',
                       outlineColor: '#b09837'
