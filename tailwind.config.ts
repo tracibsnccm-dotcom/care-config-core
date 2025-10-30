@@ -75,6 +75,19 @@ export default {
           hold: "hsl(var(--status-hold))",
           closed: "hsl(var(--status-closed))",
         },
+        rcms: {
+          gold: "hsl(var(--rcms-gold))",
+          navy: "hsl(var(--rcms-navy))",
+          teal: "hsl(var(--rcms-teal))",
+          mint: "hsl(var(--rcms-mint))",
+          "pale-gold": "hsl(var(--rcms-pale-gold))",
+          coral: "hsl(var(--rcms-coral))",
+          white: "hsl(var(--rcms-white))",
+        },
+      },
+      backgroundImage: {
+        'gradient-navy-teal': 'var(--gradient-navy-teal)',
+        'gradient-gold-teal': 'var(--gradient-gold-teal)',
       },
       boxShadow: {
         sm: "var(--shadow-sm)",

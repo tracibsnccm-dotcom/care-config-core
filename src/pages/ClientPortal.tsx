@@ -13,65 +13,61 @@ import { SupportFooter } from "@/components/SupportFooter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, AlertTriangle } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen } from "lucide-react";
 import { useState } from "react";
 
 export default function ClientPortal() {
-  // For demo purposes, using a placeholder case ID
-  // In production, this would come from the authenticated user's case
   const caseId = "demo-case-id";
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("checkins");
   
   return (
-    <main className="max-w-7xl mx-auto p-6 space-y-6 bg-background">
-      <header className="mb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold border border-primary/20">
-          <span>Client Portal</span>
-          <span className="opacity-75">(Role: CLIENT)</span>
+    <div className="min-h-screen bg-rcms-white">
+      {/* SECTION 1 - HEADER BAR */}
+      <header className="bg-rcms-navy border-b-4 border-rcms-gold shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
+            Reconcile C.A.R.E. Client Portal
+          </h1>
+          <p className="text-rcms-mint text-lg">
+            Your care, communication, and progress in one place
+          </p>
         </div>
-        <h1 className="mt-3 text-3xl font-extrabold text-foreground">Your Care Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          View your wellness progress, care plans, and communicate with your care team
-        </p>
       </header>
 
-      {/* Wellness Snapshot */}
-      <WellnessSnapshot 
-        caseId={caseId} 
-        onViewProgress={() => setActiveTab("checkins")} 
-      />
+      {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
+      <section className="bg-gradient-navy-teal py-12">
+        <div className="max-w-7xl mx-auto px-6 space-y-6">
+          {/* Wellness Snapshot */}
+          <WellnessSnapshot 
+            caseId={caseId} 
+            onViewProgress={() => setActiveTab("checkins")} 
+          />
 
-      {/* Motivation Widget */}
-      <MotivationWidget caseId={caseId} />
+          {/* Quick Actions Row */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Motivation Widget */}
+            <div className="md:col-span-2">
+              <MotivationWidget caseId={caseId} />
+            </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="checkins">Check-ins</TabsTrigger>
-          <TabsTrigger value="careplans">Care Plans</TabsTrigger>
-          <TabsTrigger value="communication">Messages</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Communication Center */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-foreground border-b border-primary/20 pb-2">
-                Communication Center
-              </h2>
-              <div className="grid gap-3">
+            {/* Quick Contact Card */}
+            <Card className="p-6 bg-white border-rcms-gold shadow-lg">
+              <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-rcms-gold" />
+                Quick Actions
+              </h3>
+              <div className="space-y-2">
                 <Dialog open={concernDialogOpen} onOpenChange={setConcernDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="h-auto py-3 justify-start gap-3 border-primary/20">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                      <div className="text-left">
-                        <div className="font-semibold text-foreground">Report a Concern</div>
-                        <div className="text-xs text-muted-foreground">Share a care concern with your RN</div>
-                      </div>
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-rcms-gold text-foreground hover:bg-rcms-gold/90"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Report Concern
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -84,12 +80,13 @@ export default function ClientPortal() {
 
                 <Dialog open={complaintDialogOpen} onOpenChange={setComplaintDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="h-auto py-3 justify-start gap-3 border-warning/50 hover:bg-warning/5">
-                      <AlertTriangle className="h-5 w-5 text-warning" />
-                      <div className="text-left">
-                        <div className="font-semibold text-foreground">File a Complaint</div>
-                        <div className="text-xs text-muted-foreground">Anonymous complaint to Compliance</div>
-                      </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="w-full border-rcms-coral text-rcms-coral hover:bg-rcms-coral/10"
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      File Complaint
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -97,39 +94,140 @@ export default function ClientPortal() {
                   </DialogContent>
                 </Dialog>
               </div>
-            </div>
-
-            {/* Case Timeline */}
-            <CaseTimeline caseId={caseId} />
+            </Card>
           </div>
+        </div>
+      </section>
 
-          {/* Journal */}
-          <ClientJournal caseId={caseId} />
-        </TabsContent>
+      {/* SECTION 3 - DATA & CHECK-INS (mint background) */}
+      <section className="bg-rcms-mint py-12">
+        <div className="max-w-7xl mx-auto px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 bg-white border border-rcms-gold shadow-md">
+              <TabsTrigger 
+                value="checkins"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Check-Ins</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="careplans"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Care Plans</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="communication"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Messages</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="documents"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Documents</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="timeline"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Timeline</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="resources"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-foreground"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Resources</span>
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="checkins" className="space-y-4">
-          <ClientCheckins />
-        </TabsContent>
+            {/* Tab Content with white cards */}
+            <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">
+              <TabsContent value="checkins" className="mt-0">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
+                      Check-Ins & Updates
+                    </h2>
+                  </div>
+                  <ClientCheckins />
+                  <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
+                    <ClientJournal caseId={caseId} />
+                  </div>
+                </div>
+              </TabsContent>
 
-        <TabsContent value="careplans" className="space-y-4">
-          <CarePlansViewer caseId={caseId} />
-        </TabsContent>
+              <TabsContent value="careplans" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-rcms-teal" />
+                    Care Plans
+                  </h2>
+                </div>
+                <CarePlansViewer caseId={caseId} />
+              </TabsContent>
 
-        <TabsContent value="communication" className="space-y-4">
-          <ClientMessaging caseId={caseId} />
-        </TabsContent>
+              <TabsContent value="communication" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <MessageSquare className="w-6 h-6 text-rcms-teal" />
+                    Messages / Communication Center
+                  </h2>
+                </div>
+                <ClientMessaging caseId={caseId} />
+              </TabsContent>
 
-        <TabsContent value="documents" className="space-y-4">
-          <ClientDocuments caseId={caseId} />
-        </TabsContent>
+              <TabsContent value="documents" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-rcms-teal" />
+                    Documents & Files
+                  </h2>
+                </div>
+                <ClientDocuments caseId={caseId} />
+              </TabsContent>
 
-        <TabsContent value="resources" className="space-y-4">
-          <ResourceLibrary />
-        </TabsContent>
-      </Tabs>
+              <TabsContent value="timeline" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Clock className="w-6 h-6 text-rcms-teal" />
+                    Case Summary / Activity Timeline
+                  </h2>
+                </div>
+                <CaseTimeline caseId={caseId} />
+              </TabsContent>
 
-      {/* Support Footer */}
-      <SupportFooter />
-    </main>
+              <TabsContent value="resources" className="mt-0">
+                <ResourceLibrary />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+      </section>
+
+      {/* SECTION 4 - SUPPORT FOOTER (pale gold background) */}
+      <section className="bg-rcms-pale-gold py-8">
+        <div className="max-w-7xl mx-auto px-6">
+          <SupportFooter />
+        </div>
+      </section>
+
+      {/* SECTION 5 - FOOTER (deep navy) */}
+      <footer className="bg-rcms-navy py-6 border-t-4 border-rcms-gold">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-white text-sm">
+            © 2025 Reconcile C.A.R.E. | Confidential & HIPAA Protected
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

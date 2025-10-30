@@ -61,16 +61,20 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
   }
 
   return (
-    <Card className="p-6 border-primary/20 bg-gradient-to-br from-background to-muted/5">
+    <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-rcms-teal" />
             Wellness Snapshot
           </h2>
           <p className="text-sm text-muted-foreground mt-1">7-day averages</p>
         </div>
-        <Button onClick={onViewProgress} variant="outline" size="sm" className="border-primary/30">
+        <Button 
+          onClick={onViewProgress} 
+          size="sm" 
+          className="bg-rcms-gold text-foreground hover:bg-rcms-gold/90"
+        >
           View Progress Charts
         </Button>
       </div>
