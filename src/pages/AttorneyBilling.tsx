@@ -32,7 +32,7 @@ export default function AttorneyBilling() {
   const qp = searchParams.get("tab") || searchParams.get("section");
   const defaultTab = (qp && ["plan","payment","invoices","services","ewallet"].includes(qp))
     ? qp
-    : (typeof window !== 'undefined' && window.location.hash === '#rcms-referral-card' ? 'services' : 'plan');
+    : (typeof window !== 'undefined' && window.location.hash === '#rcms-referral-card' ? 'services' : 'services');
 
   const [tierData, setTierData] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState(0);
