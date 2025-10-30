@@ -56,12 +56,11 @@ export function ResourceLibrary() {
         </AlertDescription>
       </Alert>
 
-      {/* Educational Resources */}
       <div className="grid gap-4 md:grid-cols-2">
         {resources.map((resource) => (
           <Card
             key={resource.id}
-            className="p-6 border-2 border-rcms-gold hover:shadow-lg transition-all duration-300 hover:scale-105 bg-white"
+            className="p-6 border-2 border-rcms-gold hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white"
           >
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-rcms-teal/10 flex items-center justify-center">
@@ -76,7 +75,7 @@ export function ResourceLibrary() {
                 <p className="text-sm text-muted-foreground mb-3">{resource.description}</p>
                 <Button
                   size="sm"
-                  className="bg-rcms-orange text-white hover:bg-rcms-orange-hover"
+                  className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all duration-300"
                   asChild
                 >
                   <a href={resource.link} target="_blank" rel="noopener noreferrer">

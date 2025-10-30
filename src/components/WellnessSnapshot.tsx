@@ -73,7 +73,7 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
         <Button 
           onClick={onViewProgress} 
           size="sm" 
-          className="bg-rcms-orange text-white hover:bg-rcms-orange-hover"
+          className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all duration-300 shadow-md hover:shadow-lg"
         >
           View Progress Charts
         </Button>

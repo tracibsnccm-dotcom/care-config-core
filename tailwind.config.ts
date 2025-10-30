@@ -76,8 +76,6 @@ export default {
           closed: "hsl(var(--status-closed))",
         },
         rcms: {
-          orange: "hsl(var(--rcms-orange))",
-          "orange-hover": "hsl(var(--rcms-orange-hover))",
           gold: "hsl(var(--rcms-gold))",
           navy: "hsl(var(--rcms-navy))",
           teal: "hsl(var(--rcms-teal))",
@@ -85,11 +83,12 @@ export default {
           "pale-gold": "hsl(var(--rcms-pale-gold))",
           coral: "hsl(var(--rcms-coral))",
           white: "hsl(var(--rcms-white))",
+          black: "hsl(var(--rcms-black))",
         },
       },
       backgroundImage: {
         'gradient-navy-teal': 'var(--gradient-navy-teal)',
-        'gradient-orange-teal': 'var(--gradient-orange-teal)',
+        'gradient-gold-teal': 'var(--gradient-gold-teal)',
       },
       boxShadow: {
         sm: "var(--shadow-sm)",

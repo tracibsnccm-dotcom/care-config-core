@@ -45,7 +45,7 @@ export function SupportFooter() {
           <Button
             key={contact.label}
             variant={contact.variant}
-            className="h-auto py-4 flex flex-col gap-2 border-rcms-gold hover:bg-rcms-gold/10"
+            className="h-auto py-4 flex flex-col gap-2 border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300 hover:shadow-md"
           >
             <contact.icon className="w-6 h-6" />
             <span className="text-xs font-medium">{contact.action}</span>
