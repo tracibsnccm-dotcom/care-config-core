@@ -16,6 +16,8 @@ import { Sparkline } from "@/components/Sparkline";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 export default function ClientCheckins() {
   const { cases, setCases, log } = useApp();
@@ -340,26 +342,109 @@ export default function ClientCheckins() {
 
               <div>
                 <Label className="text-sm font-medium mb-3 block">Quick 4P's Assessment</Label>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {(["physical", "psychological", "psychosocial", "professional"] as const).map(
-                    (k) => (
-                      <div key={k}>
-                        <Label className="text-xs font-medium capitalize mb-2 block">
-                          {k}: {quick4ps[k]}
+                <TooltipProvider>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs font-medium">
+                          Physical (pain, fatigue, sleep, mobility): {quick4ps.physical}
                         </Label>
-                        <Slider
-                          value={[quick4ps[k]]}
-                          onValueChange={([value]) =>
-                            setQuick4ps((p) => ({ ...p, [k]: value }))
-                          }
-                          max={100}
-                          step={1}
-                          className="w-full"
-                        />
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">Physical relates to your body's comfort and energy level — pain, fatigue, sleep quality, and mobility.</p>
+                          </TooltipContent>
+                        </UITooltip>
                       </div>
-                    )
-                  )}
-                </div>
+                      <Slider
+                        value={[quick4ps.physical]}
+                        onValueChange={([value]) =>
+                          setQuick4ps((p) => ({ ...p, physical: value }))
+                        }
+                        max={100}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs font-medium">
+                          Psychological (mood, focus, stress, coping): {quick4ps.psychological}
+                        </Label>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">Psychological reflects your emotional and mental wellbeing — your mood, focus, stress level, and coping ability.</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </div>
+                      <Slider
+                        value={[quick4ps.psychological]}
+                        onValueChange={([value]) =>
+                          setQuick4ps((p) => ({ ...p, psychological: value }))
+                        }
+                        max={100}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs font-medium">
+                          Psychosocial (relationships, finances, transportation, support): {quick4ps.psychosocial}
+                        </Label>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">Psychosocial covers your social and environmental stability — relationships, finances, transportation, and support systems.</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </div>
+                      <Slider
+                        value={[quick4ps.psychosocial]}
+                        onValueChange={([value]) =>
+                          setQuick4ps((p) => ({ ...p, psychosocial: value }))
+                        }
+                        max={100}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs font-medium">
+                          Purpose/Professional (motivation, daily roles, work, goals): {quick4ps.professional}
+                        </Label>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">Purpose/Professional captures your sense of drive and fulfillment — motivation, daily roles, work performance, and personal goals.</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </div>
+                      <Slider
+                        value={[quick4ps.professional]}
+                        onValueChange={([value]) =>
+                          setQuick4ps((p) => ({ ...p, professional: value }))
+                        }
+                        max={100}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </TooltipProvider>
               </div>
 
               <Button onClick={submit} className="w-full" disabled={!forCase}>
