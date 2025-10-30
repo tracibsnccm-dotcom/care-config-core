@@ -12,7 +12,7 @@ import { PolicyModal } from "@/components/PolicyModal";
 import { trialDaysRemaining, getTrialEndDate } from "@/utils/trial";
 
 export default function Dashboard() {
-  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialStartDate, trialEndDate, policyAck, setPolicyAck, log } = useApp();
+  const { cases, currentTier, isTrialExpired, daysUntilInactive, trialStartDate, trialEndDate, policyAck, setPolicyAck, log, role } = useApp();
 
   const handlePolicyAgree = () => {
     setPolicyAck(true);
@@ -208,10 +208,73 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Emergency Footer Section */}
-        <div className="mt-8">
-          <SupportFooter />
-        </div>
+        {/* Attorney-specific panels */}
+        {role === "ATTORNEY" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Upcoming Deadlines */}
+            <Card className="p-6 border-border">
+              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-warning" />
+                Upcoming Deadlines
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 pb-3 border-b border-border">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">CASE-2024-003 - Discovery Deadline</p>
+                    <p className="text-sm text-warning">Due in 3 days</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 pb-3 border-b border-border">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">CASE-2024-001 - Settlement Review</p>
+                    <p className="text-sm text-muted-foreground">Due in 7 days</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">CASE-2024-005 - Pre-Trial Conference</p>
+                    <p className="text-sm text-muted-foreground">Due in 14 days</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Latest Reports */}
+            <Card className="p-6 border-border">
+              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Latest Reports
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 pb-3 border-b border-border">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Medical Records Summary - CASE-2024-001</p>
+                    <p className="text-sm text-muted-foreground">Generated 2 hours ago</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 pb-3 border-b border-border">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Settlement Analysis - CASE-2024-003</p>
+                    <p className="text-sm text-muted-foreground">Generated yesterday</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Case Progress Report - CASE-2024-002</p>
+                    <p className="text-sm text-muted-foreground">Generated 3 days ago</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Crisis support - only for non-attorney roles */}
+        {role !== "ATTORNEY" && (
+          <div className="mt-8">
+            <SupportFooter />
+          </div>
+        )}
       </div>
     </AppLayout>
   );
