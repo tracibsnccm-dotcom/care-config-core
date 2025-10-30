@@ -207,7 +207,7 @@ export default function RNClinicalLiaison() {
         </Card>
 
         {/* Case Summary Card */}
-        {selectedCaseId && caseDetails && (
+        {selectedCaseId && (
           <Card className="p-6 mb-6 border-2 rounded-2xl shadow-lg bg-gradient-to-br from-card to-muted/20">
             <div className="space-y-4">
               <div className="flex items-center justify-between">

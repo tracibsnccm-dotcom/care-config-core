@@ -143,13 +143,13 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         .single();
 
       if (rnAssignment?.user_id) {
-        // Send notification to RN CM
-        await supabase.from("notifications").insert({
-          user_id: rnAssignment.user_id,
-          title: "New Message from Attorney",
-          message: `You have a new message regarding case ${caseId.slice(0, 8)}`,
-          type: "info",
-          link: `/rn-portal`,
+        await supabase.rpc('notify_user', {
+          target_user_id: rnAssignment.user_id,
+          notification_title: 'New Message from Attorney',
+          notification_message: `You have a new message regarding case ${caseId.slice(0, 8).toUpperCase()}`,
+          notification_type: 'info',
+          notification_link: `/case-detail/${caseId}`,
+          notification_metadata: { case_id: caseId, source: 'rn_liaison' }
         });
       }
 
