@@ -32,6 +32,7 @@ import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
 import RNDashboard from "./pages/rncm/RNDashboard";
 import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalShareDemo";
 import ConcernsComplaintsCenter from "./pages/ConcernsComplaintsCenter";
+import Settings from "./pages/Settings";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 
 const queryClient = new QueryClient();
@@ -151,6 +152,12 @@ const App = () => (
             <Route
               path="/concerns-complaints"
               element={<ProtectedRoute roles={["RN_CCM_DIRECTOR","COMPLIANCE","SUPER_USER","SUPER_ADMIN"]}><ConcernsComplaintsCenter /></ProtectedRoute>}
+            />
+
+            {/* Settings - Available to all authenticated users */}
+            <Route
+              path="/settings"
+              element={<ProtectedRoute><Settings /></ProtectedRoute>}
             />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
