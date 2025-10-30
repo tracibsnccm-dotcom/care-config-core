@@ -237,12 +237,10 @@ export function ReferralPurchaseCard({
   return (
     <section id="rcms-referral-card" className="space-y-4">
       <div>
-        <h2 className="text-[1.6rem] font-extrabold mb-1.5 text-black">
-          Accepted Client Referral
-        </h2>
-        <p className="text-[#333] mb-4 text-[1rem] leading-relaxed">
+        <p className="text-[#333] mb-1 text-[1rem] leading-relaxed">
           Order à la carte clinical services. Purchases are linked to your case and routed to our RN Care Management team.
-          <br /><br />
+        </p>
+        <p className="text-[#333] mb-4 text-[1rem] leading-relaxed">
           ⚖️ <strong className="text-[#0f2a6a]">Refund Policy:</strong> There are no cash refunds. Refunds, if granted, are issued as credits to the account or applied toward another service.
         </p>
       </div>
