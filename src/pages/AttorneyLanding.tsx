@@ -254,6 +254,12 @@ export default function AttorneyLanding() {
               <FolderOpen className="w-4 h-4 mr-2" />
               View Cases
             </Button>
+            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
+              Billing & Subscription
+            </Button>
+            <Button onClick={() => navigate("/referrals")} variant="outline">
+              Referrals
+            </Button>
             <Button
               onClick={() =>
                 alert("Exports index (stub). Use per-case exports in Dashboard.")
@@ -265,12 +271,6 @@ export default function AttorneyLanding() {
             >
               <FileDown className="w-4 h-4 mr-2" />
               Exports
-            </Button>
-            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
-              Billing & Subscription
-            </Button>
-            <Button onClick={() => navigate("/referrals")} variant="outline">
-              Referrals
             </Button>
           </div>
         </Card>
