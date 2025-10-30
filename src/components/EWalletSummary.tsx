@@ -157,6 +157,16 @@ export function EWalletSummary() {
             <div className="pb-3 border-b border-border">
               <p className="text-sm text-muted-foreground mb-1">Pending Referrals</p>
               <p className="text-2xl font-bold text-primary">{pendingReferrals}</p>
+
+              {pendingReferrals > 0 && pendingOffers[0] && (
+                <Button
+                  onClick={() => openAcceptModal(pendingOffers[0])}
+                  className="mt-2 bg-[#b09837] text-black hover:bg-[#b09837]/90"
+                >
+                  Accept Referral
+                </Button>
+              )}
+
               {pendingReferrals > 0 && (
                 <div className="space-y-2 mt-3">
                   {pendingOffers.slice(0, 3).map((offer) => (
@@ -243,10 +253,7 @@ export function EWalletSummary() {
                 htmlFor="attestation"
                 className="text-sm leading-relaxed cursor-pointer font-normal"
               >
-                I authorize Reconcile C.A.R.E. to deduct the Administrative Coordination & Case
-                Transfer Fee from my eWallet. I understand that Reconcile C.A.R.E. is not
-                responsible for the duration of the relationship between attorney and client, and
-                fees are non-refundable.
+                I authorize RCMS to deduct the Administrative Coordination & Case Transfer Fee from your eWallet, I understand that RCMS is not responsible for the duration of the relationship between attorney and client, and fee are non-refundable.
               </Label>
             </div>
           </div>
