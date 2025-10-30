@@ -341,7 +341,7 @@ export default function ClientCheckins() {
               />
 
               <div>
-                <Label className="text-sm font-medium mb-3 block">Quick 4P's Assessment</Label>
+                <Label className="text-sm font-medium mb-3 block">Quick 4Ps Assessment</Label>
                 <TooltipProvider>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
