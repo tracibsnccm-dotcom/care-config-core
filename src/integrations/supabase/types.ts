@@ -1740,6 +1740,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_attorney_capacity: {
+        Args: { p_attorney_id: string; p_new_capacity_available: number }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
