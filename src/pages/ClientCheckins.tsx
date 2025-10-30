@@ -80,19 +80,18 @@ export default function ClientCheckins() {
 
       if (error) throw error;
 
-      // Check for alert thresholds
-      const alertNeeded = 
+      // Check for immediate alert thresholds
+      const triggerImmediate = 
         pain >= 7 || 
-        Object.values(quick4ps).some(v => v <= 30);
+        [quick4ps.physical, quick4ps.psychological, quick4ps.psychosocial, quick4ps.purpose].some(v => v <= 30);
 
-      if (alertNeeded) {
-        const severity = pain >= 8 || Object.values(quick4ps).some(v => v <= 20) ? 'high' : 'medium';
+      if (triggerImmediate) {
         await createEmergencyAlert({
           caseId,
           clientId: user.id,
           alertType: 'wellness_check',
-          severity: severity as 'high' | 'medium',
-          internalMessage: `Check-in alert: Pain ${pain}/10, 4Ps: Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Purpose ${quick4ps.purpose}`,
+          severity: 'medium',
+          internalMessage: `Check-in threshold exceeded: Pain ${pain}/10, Physical ${quick4ps.physical}, Psychological ${quick4ps.psychological}, Psychosocial ${quick4ps.psychosocial}, Purpose ${quick4ps.purpose}`,
           minimalMessage: `Client submitted wellness check-in requiring review.`,
           metadata: { 
             pain_scale: pain, 
@@ -103,7 +102,36 @@ export default function ClientCheckins() {
         toast.warning("Alert sent to care team", {
           description: "Your care manager will review your check-in.",
         });
-      } else {
+      }
+
+      // Check for trend alert: 3 consecutive high-pain readings
+      const { data: recentCheckins } = await supabase
+        .from('client_checkins')
+        .select('pain_scale')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (recentCheckins && recentCheckins.length === 3) {
+        const allHighPain = recentCheckins.every(c => c.pain_scale >= 7);
+        if (allHighPain) {
+          await createEmergencyAlert({
+            caseId,
+            clientId: user.id,
+            alertType: 'safety_concern',
+            severity: 'high',
+            internalMessage: `TREND ALERT: Sustained high pain detected. Pain ≥7 for 3 consecutive check-ins. Recent scores: ${recentCheckins.map(c => c.pain_scale).join(', ')}`,
+            minimalMessage: `Client trend analysis requires urgent review.`,
+            metadata: {
+              trigger: 'sustained_high_pain',
+              consecutive_high_pain: recentCheckins.length,
+              pain_scores: recentCheckins.map(c => c.pain_scale),
+            },
+          });
+        }
+      }
+
+      if (!triggerImmediate) {
         toast.success("Check-in submitted successfully");
       }
 
