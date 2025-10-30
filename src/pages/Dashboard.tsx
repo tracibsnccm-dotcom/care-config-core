@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
 import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
+import { SupportFooter } from "@/components/SupportFooter";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -205,6 +206,11 @@ export default function Dashboard() {
               </button>
             </div>
           </Card>
+        </div>
+
+        {/* Emergency Footer Section */}
+        <div className="mt-8">
+          <SupportFooter />
         </div>
       </div>
     </AppLayout>
