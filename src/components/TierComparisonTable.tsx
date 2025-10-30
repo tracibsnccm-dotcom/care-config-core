@@ -215,6 +215,7 @@ export function TierComparisonTable({ currentTier = "Basic" }: TierComparisonTab
         .tier-label { display: flex; flex-direction: column; align-items: center; line-height: 1.3; position: relative; }
         .tier-label > span:first-child { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
         .tier-label small { font-size: 0.9rem; font-weight: 500; color: #b09837; opacity: 1; margin-top: 2px; display: block; }
+        .tier-label small::after { content: ''; display: block; width: 60%; margin: 4px auto 0; border-bottom: 2px solid rgba(176,152,55,0.6); border-radius: 2px; }
         .your-plan-chip { position: absolute; top: -6px; right: -10px; background: #b09837; color: #000; font-size: 0.7rem; font-weight: 600; border-radius: 10px; padding: 2px 6px; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
         .rcms-tiers.tier-basic td:nth-child(2), .rcms-tiers.tier-basic th:nth-child(2) { background: rgba(176,152,55,0.12); box-shadow: inset 0 0 0 2px rgba(176,152,55,0.35); }
         .rcms-tiers.tier-clinical td:nth-child(3), .rcms-tiers.tier-clinical th:nth-child(3) { background: rgba(176,152,55,0.12); box-shadow: inset 0 0 0 2px rgba(176,152,55,0.35); }
