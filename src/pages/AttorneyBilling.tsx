@@ -275,7 +275,7 @@ export default function AttorneyBilling() {
 
               <div className="text-xs text-muted-foreground pt-4 border-t space-y-1">
                 <p>
-                  <strong>Current Subscription Price:</strong> Either $9,500/$16,000/$24,000 or other amount based on the number of attorney and staff seats
+                  <strong>Current Subscription Price:</strong> {tierData?.plan_price ? `$${tierData.plan_price.toLocaleString()}` : "Based on the number of attorney and staff seats"}
                 </p>
                 <p>
                   Administrative Coordination & Case Transfer Fees for accepting client referrals are billed separately at $1,500.00 per referral + processing and applicable tax.
