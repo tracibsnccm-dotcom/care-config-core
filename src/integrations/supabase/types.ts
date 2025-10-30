@@ -1007,6 +1007,63 @@ export type Database = {
         }
         Relationships: []
       }
+      report_documents: {
+        Row: {
+          case_id: string
+          created_at: string
+          file_path: string | null
+          filed_at: string | null
+          filed_by: string | null
+          filed_status: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          metadata: Json | null
+          report_title: string
+          report_type: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          file_path?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filed_status?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          report_title: string
+          report_type: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          file_path?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filed_status?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          report_title?: string
+          report_type?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sdoh_assessments: {
         Row: {
           assessed_by: string | null
