@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Wallet } from "lucide-react";
 
 export function ReferralWalletBanner() {
@@ -41,6 +42,12 @@ export function ReferralWalletBanner() {
     return "Silver";
   }
 
+  function getTierVariant(bal: number): "platinum" | "gold" | "silver" {
+    if (bal >= 5000) return "platinum";
+    if (bal >= 1500) return "gold";
+    return "silver";
+  }
+
   function getDiscountPercent(bal: number): number {
     if (bal >= 5000) return 30;
     if (bal >= 1500) return 20;
@@ -48,6 +55,7 @@ export function ReferralWalletBanner() {
   }
 
   const tierName = getTierName(balance);
+  const tierVariant = getTierVariant(balance);
   const discountPct = getDiscountPercent(balance);
 
   if (loading) {
@@ -71,9 +79,11 @@ export function ReferralWalletBanner() {
 
         {/* Loyalty Tier */}
         <div>
-          <div className="text-sm text-[#444] mb-0.5">Loyalty Tier</div>
-          <div className="text-lg font-extrabold text-[#0f2a6a]">
-            {tierName} ({discountPct}%)
+          <div className="text-sm text-[#444] mb-1">Loyalty Tier</div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant={tierVariant} className="text-sm px-3 py-1">
+              {tierName}
+            </Badge>
           </div>
           <div className="text-sm text-[#333]">
             Current discount: {discountPct}%
