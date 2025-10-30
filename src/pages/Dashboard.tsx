@@ -7,7 +7,7 @@ import { FileText, Users, Stethoscope, AlertCircle, TrendingUp, Clock, AlertTria
 import { NotificationBell } from "@/components/NotificationBell";
 import { SupportFooter } from "@/components/SupportFooter";
 import { UpcomingDeadlinesWidget } from "@/components/UpcomingDeadlinesWidget";
-import { LatestReports } from "@/components/LatestReports";
+import { LatestReportsPanel } from "@/components/LatestReportsPanel";
 import { useState } from "react";
 import { fmtDate } from "@/lib/store";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -217,37 +217,8 @@ export default function Dashboard() {
 
         {/* Attorney-specific panels */}
         {role === "ATTORNEY" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* Upcoming Deadlines */}
-            <Card className="p-6 border-border">
-              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-warning" />
-                Upcoming Deadlines
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 pb-3 border-b border-border">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">CASE-2024-003 - Discovery Deadline</p>
-                    <p className="text-sm text-warning">Due in 3 days</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 pb-3 border-b border-border">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">CASE-2024-001 - Settlement Review</p>
-                    <p className="text-sm text-muted-foreground">Due in 7 days</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">CASE-2024-005 - Pre-Trial Conference</p>
-                    <p className="text-sm text-muted-foreground">Due in 14 days</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Latest Reports - Enhanced Component */}
-            <LatestReports />
+          <div className="mt-6">
+            <LatestReportsPanel />
           </div>
         )}
 
