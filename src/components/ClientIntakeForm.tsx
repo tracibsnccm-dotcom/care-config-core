@@ -345,6 +345,9 @@ export default function ClientIntakeForm() {
             <Label className="text-base font-semibold">
               If you experience a difficult or emergency situation (for example, you feel unsafe, overwhelmed, or are thinking of harming yourself), do you want your attorney to be notified when your RN Care Manager makes an emergency referral or wellness check?
             </Label>
+            <p className="text-sm text-muted-foreground">
+              Selecting <strong>Yes</strong> means your attorney will only receive a brief notice that a "client crisis occurred and a referral was made." No private medical or mental health details will be shared.
+            </p>
             <RadioGroup
               value={form.emergencyNotifyAttorney || ""}
               onValueChange={(value) => handleChange("emergencyNotifyAttorney", value as "yes" | "no")}
@@ -363,6 +366,15 @@ export default function ClientIntakeForm() {
                 </Label>
               </div>
             </RadioGroup>
+            <Alert className="bg-muted">
+              <AlertDescription className="text-sm">
+                <strong>Authorization to Notify Attorney During Emergency Situations</strong>
+                <br />
+                I authorize Reconcile C.A.R.E. and my RN Care Manager to notify my attorney if I experience a difficult or emergency situation requiring crisis intervention or referral. I understand that only minimal information will be shared (that an emergency referral was made, without details of my condition or treatment).
+                <br /><br />
+                This authorization remains valid until I revoke it in writing or electronically in my client portal.
+              </AlertDescription>
+            </Alert>
           </div>
           
           <div className="flex items-center space-x-2">
