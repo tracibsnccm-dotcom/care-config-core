@@ -43,6 +43,7 @@ export default function ClientIntakeForm() {
     support: "",
     difficultAnswers: {},
     shareWithAttorney: null,
+    emergencyNotifyAttorney: null,
     shareWithPCP: false,
     wantEducation: false,
     confirm: false,
@@ -335,10 +336,34 @@ export default function ClientIntakeForm() {
         </section>
 
         {/* 7️⃣ Sharing & Education Preferences */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           <h3 className="font-semibold text-lg text-foreground">
             Sharing & Education Preferences
           </h3>
+
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">
+              If you experience a difficult or emergency situation (for example, you feel unsafe, overwhelmed, or are thinking of harming yourself), do you want your attorney to be notified when your RN Care Manager makes an emergency referral or wellness check?
+            </Label>
+            <RadioGroup
+              value={form.emergencyNotifyAttorney || ""}
+              onValueChange={(value) => handleChange("emergencyNotifyAttorney", value as "yes" | "no")}
+              className="space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="yes" id="emergency-yes" />
+                <Label htmlFor="emergency-yes" className="font-normal cursor-pointer">
+                  Yes, I give permission to notify my attorney.
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="no" id="emergency-no" />
+                <Label htmlFor="emergency-no" className="font-normal cursor-pointer">
+                  No, please keep this private between me and my care team.
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
           
           <div className="flex items-center space-x-2">
             <Checkbox

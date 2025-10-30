@@ -22,6 +22,7 @@ export interface IntakeForm {
   support: string;
   difficultAnswers: Record<string, string>; // each question → free text
   shareWithAttorney: "yes" | "no" | null;
+  emergencyNotifyAttorney: "yes" | "no" | null;
   shareWithPCP: boolean;
   wantEducation: boolean;
   confirm: boolean;
@@ -54,6 +55,7 @@ export interface IntakeExportEnvelope {
     anxiety_1_5: number | null;
     depression_1_5: number | null;
     support_notes: string;
+    emergency_notify_attorney: "yes" | "no" | null;
     share_with_pcp: boolean;
     wants_education: boolean;
   };
@@ -85,6 +87,7 @@ export interface IntakeExportEnvelope {
     anxiety_1_5: number | null;
     depression_1_5: number | null;
     support_notes: string;
+    emergency_notify_attorney: "yes" | "no" | null;
     share_with_pcp: boolean;
     wants_education: boolean;
     difficult_block_redacted: boolean;   // true when share_with_attorney === "no"
@@ -137,6 +140,7 @@ export function serializeIntakeForExport(
       anxiety_1_5: toNum(form.anxiety),
       depression_1_5: toNum(form.depression),
       support_notes: form.support?.trim() || "",
+      emergency_notify_attorney: form.emergencyNotifyAttorney,
       share_with_pcp: !!form.shareWithPCP,
       wants_education: !!form.wantEducation,
     },
@@ -157,6 +161,7 @@ export function serializeIntakeForExport(
       anxiety_1_5: toNum(form.anxiety),
       depression_1_5: toNum(form.depression),
       support_notes: form.support?.trim() || "",
+      emergency_notify_attorney: form.emergencyNotifyAttorney,
       share_with_pcp: !!form.shareWithPCP,
       wants_education: !!form.wantEducation,
       difficult_block_redacted: shareNo,
@@ -197,6 +202,7 @@ export function toSheetRow(envelope: IntakeExportEnvelope) {
     adl_before_json: JSON.stringify(summary.adl_before || {}),
     adl_since_json: JSON.stringify(summary.adl_since || {}),
     support_notes: summary.support_notes,
+    emergency_notify_attorney: summary.emergency_notify_attorney ?? "",
     share_with_pcp: summary.share_with_pcp ? "yes" : "no",
     wants_education: summary.wants_education ? "yes" : "no",
 
@@ -229,6 +235,7 @@ export const SHEET_HEADERS = [
   "adl_before_json",
   "adl_since_json",
   "support_notes",
+  "emergency_notify_attorney",
   "share_with_pcp",
   "wants_education",
 
