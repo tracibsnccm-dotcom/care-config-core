@@ -273,13 +273,23 @@ export default function AttorneyBilling() {
                 </Card>
               </div>
 
-              <div className="text-xs text-muted-foreground pt-4 border-t space-y-1">
-                <p>
-                  <strong>Current Subscription Price:</strong> {tierData?.plan_price ? `$${tierData.plan_price.toLocaleString()}` : "Based on the number of attorney and staff seats"}
-                </p>
-                <p>
-                  Administrative Coordination & Case Transfer Fees for accepting client referrals are billed separately at $1,500.00 per referral + processing and applicable tax.
-                </p>
+              <div 
+                id="rcms-subscription-detail" 
+                className="rcms-subscription-detail pt-4 border-t space-y-2" 
+                role="group" 
+                aria-label="Subscription pricing details"
+              >
+                <div className="rcms-sub-line text-[0.98rem] text-[#111]">
+                  <strong className="font-bold">Current Subscription Price:</strong>{" "}
+                  <span id="rcms-current-price" aria-live="polite">
+                    {tierData?.plan_price 
+                      ? `$${tierData.plan_price.toLocaleString('en-US')}`
+                      : "$—"}
+                  </span>
+                </div>
+                <div className="rcms-sub-line rcms-micro text-[0.92rem] text-[#333]">
+                  Administrative Coordination & Case Transfer Fees for accepting client referrals are billed separately at <strong className="font-bold">$1,500.00</strong> per referral + processing and applicable tax.
+                </div>
               </div>
             </CardContent>
           </Card>
