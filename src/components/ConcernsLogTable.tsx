@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Eye, Check, UserPlus, FileCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ResolutionModal } from "./ResolutionModal";
+import { ConcernDetailModal } from "./ConcernDetailModal";
+import { StatusBadge, getStatusProgress } from "./StatusBadge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface Concern {
@@ -35,7 +37,7 @@ export function ConcernsLogTable({ filters, onUpdate, highlightId }: ConcernsLog
   const [concerns, setConcerns] = useState<Concern[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConcern, setSelectedConcern] = useState<Concern | null>(null);
-  const [resolutionModalOpen, setResolutionModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -127,10 +129,6 @@ export function ConcernsLogTable({ filters, onUpdate, highlightId }: ConcernsLog
     }
   };
 
-  const handleResolve = (concern: Concern) => {
-    setSelectedConcern(concern);
-    setResolutionModalOpen(true);
-  };
 
   return (
     <>
@@ -164,37 +162,20 @@ export function ConcernsLogTable({ filters, onUpdate, highlightId }: ConcernsLog
                       <TableCell className="font-mono text-xs">{concern.case_id.slice(0, 8)}</TableCell>
                       <TableCell>{concern.provider_name}</TableCell>
                       <TableCell>
-                        <Badge variant={concern.concern_status === "Resolved" ? "default" : "secondary"}>
-                          {concern.concern_status}
-                        </Badge>
+                        <StatusBadge status={concern.concern_status} />
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" title="View Details">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {concern.concern_status === "Open" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Acknowledge Receipt"
-                              onClick={() => handleAcknowledge(concern.id)}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" title="Assign Follow-Up">
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Resolve & Document"
-                            onClick={() => handleResolve(concern)}
-                          >
-                            <FileCheck className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedConcern(concern);
+                            setDetailModalOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -206,15 +187,11 @@ export function ConcernsLogTable({ filters, onUpdate, highlightId }: ConcernsLog
       </Card>
 
       {selectedConcern && (
-        <ResolutionModal
-          open={resolutionModalOpen}
-          onOpenChange={setResolutionModalOpen}
-          item={selectedConcern}
-          type="concern"
-          onResolved={() => {
-            fetchConcerns();
-            onUpdate();
-          }}
+        <ConcernDetailModal
+          concernId={selectedConcern?.id || null}
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          concern={selectedConcern}
         />
       )}
     </>

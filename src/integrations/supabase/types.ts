@@ -363,8 +363,50 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_timeline: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          event_type: string
+          id: string
+          notes: string | null
+          performed_by: string | null
+          performed_by_role: string | null
+          status: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_role?: string | null
+          status: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_role?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_timeline_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaints: {
         Row: {
+          archived_at: string | null
           assigned_to: string | null
           complaint_about: string
           complaint_description: string
@@ -373,9 +415,11 @@ export type Database = {
           resolution_notes: string | null
           resolved_at: string | null
           status: string
+          status_changed_at: string | null
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           assigned_to?: string | null
           complaint_about: string
           complaint_description: string
@@ -384,9 +428,11 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           status?: string
+          status_changed_at?: string | null
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           assigned_to?: string | null
           complaint_about?: string
           complaint_description?: string
@@ -395,6 +441,7 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           status?: string
+          status_changed_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -440,8 +487,50 @@ export type Database = {
           },
         ]
       }
+      concern_timeline: {
+        Row: {
+          concern_id: string
+          created_at: string
+          event_type: string
+          id: string
+          notes: string | null
+          performed_by: string | null
+          performed_by_role: string | null
+          status: string
+        }
+        Insert: {
+          concern_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_role?: string | null
+          status: string
+        }
+        Update: {
+          concern_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_role?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concern_timeline_concern_id_fkey"
+            columns: ["concern_id"]
+            isOneToOne: false
+            referencedRelation: "concerns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concerns: {
         Row: {
+          archived_at: string | null
           assigned_rn: string | null
           care_addressed: string | null
           care_addressed_details: string | null
@@ -457,10 +546,12 @@ export type Database = {
           id: string
           provider_name: string
           rn_followup_notes: string | null
+          status_changed_at: string | null
           updated_at: string
           visit_date: string | null
         }
         Insert: {
+          archived_at?: string | null
           assigned_rn?: string | null
           care_addressed?: string | null
           care_addressed_details?: string | null
@@ -476,10 +567,12 @@ export type Database = {
           id?: string
           provider_name: string
           rn_followup_notes?: string | null
+          status_changed_at?: string | null
           updated_at?: string
           visit_date?: string | null
         }
         Update: {
+          archived_at?: string | null
           assigned_rn?: string | null
           care_addressed?: string | null
           care_addressed_details?: string | null
@@ -495,6 +588,7 @@ export type Database = {
           id?: string
           provider_name?: string
           rn_followup_notes?: string | null
+          status_changed_at?: string | null
           updated_at?: string
           visit_date?: string | null
         }
@@ -914,6 +1008,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_complaint_timeline_entry: {
+        Args: {
+          p_complaint_id: string
+          p_event_type: string
+          p_notes?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      add_concern_timeline_entry: {
+        Args: {
+          p_concern_id: string
+          p_event_type: string
+          p_notes?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
       get_checkin_trends: {
         Args: {
           p_case_id: string

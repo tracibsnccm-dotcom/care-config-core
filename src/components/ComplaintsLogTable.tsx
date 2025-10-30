@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Eye, FileEdit, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ResolutionModal } from "./ResolutionModal";
+import { ComplaintDetailModal } from "./ComplaintDetailModal";
+import { StatusBadge, getStatusProgress } from "./StatusBadge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 
 interface Complaint {
@@ -33,7 +35,7 @@ export function ComplaintsLogTable({ filters, onUpdate, highlightId }: Complaint
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
-  const [resolutionModalOpen, setResolutionModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,9 +112,9 @@ export function ComplaintsLogTable({ filters, onUpdate, highlightId }: Complaint
     return dueDate < new Date();
   };
 
-  const handleResolve = (complaint: Complaint) => {
+  const handleViewDetails = (complaint: Complaint) => {
     setSelectedComplaint(complaint);
-    setResolutionModalOpen(true);
+    setDetailModalOpen(true);
   };
 
   return (
@@ -149,46 +151,24 @@ export function ComplaintsLogTable({ filters, onUpdate, highlightId }: Complaint
                         <TableCell>{format(new Date(complaint.created_at), "MMM dd, yyyy HH:mm")}</TableCell>
                         <TableCell>{complaint.complaint_about.replace("_", " ")}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              complaint.status === "resolved"
-                                ? "default"
-                                : complaint.status === "under_investigation"
-                                ? "secondary"
-                                : "outline"
-                            }
-                          >
-                            {complaint.status.replace("_", " ")}
-                          </Badge>
+                          <StatusBadge status={complaint.status} />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className={overdue ? "text-destructive font-semibold" : dueSoon ? "text-warning font-semibold" : ""}>
                               {format(dueDate, "MMM dd, yyyy")}
                             </span>
-                            {overdue && <Badge variant="destructive">Overdue</Badge>}
-                            {dueSoon && !overdue && <Badge variant="outline" className="text-warning">Due Soon</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" title="Open Complaint">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" title="Add Notes">
-                              <FileEdit className="h-4 w-4" />
-                            </Button>
-                            {complaint.status !== "resolved" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Mark Resolved"
-                                onClick={() => handleResolve(complaint)}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewDetails(complaint)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -201,15 +181,11 @@ export function ComplaintsLogTable({ filters, onUpdate, highlightId }: Complaint
       </Card>
 
       {selectedComplaint && (
-        <ResolutionModal
-          open={resolutionModalOpen}
-          onOpenChange={setResolutionModalOpen}
-          item={selectedComplaint}
-          type="complaint"
-          onResolved={() => {
-            fetchComplaints();
-            onUpdate();
-          }}
+        <ComplaintDetailModal
+          complaintId={selectedComplaint.id}
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          complaint={selectedComplaint}
         />
       )}
     </>
