@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, AlertCircle, TrendingUp, PieChart, BarChart3 } from "lucide-react";
+import { AlertCircle, TrendingUp, PieChart, BarChart3 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -101,35 +101,6 @@ export default function Referrals() {
     setLoading(false);
   }
 
-  function exportToCsv() {
-    const headers = [
-      "Case ID",
-      "Referral Date",
-      "Status",
-      "Settlement Amount",
-      "Fee Charged",
-      "Payment Status",
-      "Notes",
-    ];
-
-    const rows = referrals.map((r) => [
-      `RC-${r.case_id.slice(-8)}`.toUpperCase(),
-      new Date(r.referral_date).toLocaleDateString(),
-      r.acceptance_status,
-      r.settlement_amount ? `$${r.settlement_amount}` : "N/A",
-      `$${r.admin_fee_charged}`,
-      r.payment_status,
-      r.notes || "",
-    ]);
-
-    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `referrals-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-  }
 
   const statusData = [
     { name: "Accepted", value: referrals.filter((r) => r.acceptance_status === "accepted").length },
@@ -182,20 +153,11 @@ export default function Referrals() {
   return (
     <AppLayout>
       <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Referrals</h1>
-            <p className="text-muted-foreground mt-1">
-              Track and manage your client referrals
-            </p>
-          </div>
-          <Button
-            onClick={exportToCsv}
-            className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export to CSV
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Referrals</h1>
+          <p className="text-muted-foreground mt-1">
+            Track and manage your client referrals
+          </p>
         </div>
 
         {/* eWallet Summary Banner */}
