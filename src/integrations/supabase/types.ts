@@ -363,6 +363,42 @@ export type Database = {
         }
         Relationships: []
       }
+      complaints: {
+        Row: {
+          assigned_to: string | null
+          complaint_about: string
+          complaint_description: string
+          created_at: string
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          complaint_about: string
+          complaint_description: string
+          created_at?: string
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          complaint_about?: string
+          complaint_description?: string
+          created_at?: string
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       concern_attachments: {
         Row: {
           concern_id: string
@@ -411,6 +447,7 @@ export type Database = {
           care_addressed_details: string | null
           case_id: string
           client_id: string
+          concern_category: string | null
           concern_description: string
           concern_status: string
           concern_timestamp: string
@@ -429,6 +466,7 @@ export type Database = {
           care_addressed_details?: string | null
           case_id: string
           client_id: string
+          concern_category?: string | null
           concern_description: string
           concern_status?: string
           concern_timestamp?: string
@@ -447,6 +485,7 @@ export type Database = {
           care_addressed_details?: string | null
           case_id?: string
           client_id?: string
+          concern_category?: string | null
           concern_description?: string
           concern_status?: string
           concern_timestamp?: string
