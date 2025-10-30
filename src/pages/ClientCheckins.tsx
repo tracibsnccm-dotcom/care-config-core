@@ -228,12 +228,12 @@ export default function ClientCheckins() {
                   </div>
                 </div>
 
-              <LabeledInput
-                label="Note (optional)"
-                value={note}
-                onChange={setNote}
-                placeholder="Short note about your condition..."
-              />
+                <LabeledInput
+                  label="Note (optional)"
+                  value={note}
+                  onChange={setNote}
+                  placeholder="Short note about your condition..."
+                />
 
                 <div>
                   <Label className="text-sm font-medium mb-3 block">Quick 4P's Assessment</Label>
