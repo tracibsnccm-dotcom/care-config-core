@@ -34,6 +34,7 @@ import RNDashboard from "./pages/rncm/RNDashboard";
 import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalShareDemo";
 import ConcernsComplaintsCenter from "./pages/ConcernsComplaintsCenter";
 import Settings from "./pages/Settings";
+import RNClinicalLiaison from "./pages/RNClinicalLiaison";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,10 @@ const App = () => (
             <Route
               path="/reports"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><Reports /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn-clinical-liaison"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNClinicalLiaison /></ProtectedRoute>}
             />
 
             {/* Client routes */}

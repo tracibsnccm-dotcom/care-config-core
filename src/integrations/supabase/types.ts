@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      attorney_rn_messages: {
+        Row: {
+          attachments: Json | null
+          case_id: string
+          created_at: string
+          id: string
+          is_important: boolean | null
+          message_text: string
+          sender_id: string
+          sender_role: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          case_id: string
+          created_at?: string
+          id?: string
+          is_important?: boolean | null
+          message_text: string
+          sender_id: string
+          sender_role: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          case_id?: string
+          created_at?: string
+          id?: string
+          is_important?: boolean | null
+          message_text?: string
+          sender_id?: string
+          sender_role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attorney_rn_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string | null
@@ -961,6 +1005,69 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      provider_contact_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          provider_id: string
+          reason: string
+          requested_by: string
+          status: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider_id: string
+          reason: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider_id?: string
+          reason?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_contact_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_contact_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       providers: {
         Row: {
