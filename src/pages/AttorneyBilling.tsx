@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { RCMS_CONFIG } from "@/config/rcms";
+import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -287,28 +288,13 @@ export default function AttorneyBilling() {
           <Card>
             <CardHeader>
               <CardTitle className="text-[#0f2a6a]">RN CM Special Services</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Request specialized clinical services from our RN Care Management team. All services are 
+                attorney-ready and delivered within specified SLA timeframes.
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Additional Clinical Narrative Report</h3>
-                    <p className="text-sm text-muted-foreground">Detailed case summary by RN CM</p>
-                  </div>
-                  <Button className="bg-[#b09837] text-black hover:bg-[#b09837]/90">
-                    Request
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Provider Coordination Add-On</h3>
-                    <p className="text-sm text-muted-foreground">Enhanced provider liaison services</p>
-                  </div>
-                  <Button className="bg-[#b09837] text-black hover:bg-[#b09837]/90">
-                    Request
-                  </Button>
-                </div>
-              </div>
+            <CardContent>
+              <RNCMServiceCatalog />
             </CardContent>
           </Card>
         </TabsContent>
