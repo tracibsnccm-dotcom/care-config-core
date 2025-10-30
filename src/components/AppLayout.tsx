@@ -45,6 +45,8 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Attorney", href: "/attorney-portal", icon: UserCircle, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Billing & Subscriptions", href: "/attorney/billing", icon: ClipboardCheck, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Referrals", href: "/referrals", icon: Users, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN CM / Clinical Liaison", href: "/rn-clinical-liaison", icon: HeartPulse, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Documents & Files", href: "/documents", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },

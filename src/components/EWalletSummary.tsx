@@ -10,11 +10,13 @@ export function EWalletSummary() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
+  const [pendingReferrals, setPendingReferrals] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     loadBalance();
+    loadPendingReferrals();
   }, [user]);
 
   async function loadBalance() {
@@ -37,6 +39,24 @@ export function EWalletSummary() {
     }
   }
 
+  async function loadPendingReferrals() {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("assignment_offers")
+        .select("id")
+        .eq("attorney_id", user.id)
+        .eq("status", "pending");
+
+      if (error) throw error;
+
+      setPendingReferrals(data?.length || 0);
+    } catch (error) {
+      console.error("Error loading pending referrals:", error);
+    }
+  }
+
   const isLowBalance = balance < 1500;
 
   return (
@@ -52,7 +72,25 @@ export function EWalletSummary() {
           <p className="text-muted-foreground">Loading...</p>
         ) : (
           <>
+            {/* Pending Referrals */}
+            <div className="pb-3 border-b border-border">
+              <p className="text-sm text-muted-foreground mb-1">Pending Referrals</p>
+              <p className="text-2xl font-bold text-primary">{pendingReferrals}</p>
+              {pendingReferrals > 0 && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="px-0 h-auto text-xs"
+                  onClick={() => navigate("/attorney-portal")}
+                >
+                  View pending assignments →
+                </Button>
+              )}
+            </div>
+
+            {/* Wallet Balance */}
             <div>
+              <p className="text-sm text-muted-foreground mb-1">eWallet Balance</p>
               <p className="text-3xl font-bold">${balance.toLocaleString()}</p>
               {isLowBalance && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-amber-600">

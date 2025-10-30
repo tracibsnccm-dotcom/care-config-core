@@ -38,6 +38,7 @@ import {
   Line,
   Legend,
 } from "recharts";
+import { ReferralsDashboardWidget } from "@/components/ReferralsDashboardWidget";
 
 interface Referral {
   id: string;
@@ -179,7 +180,7 @@ export default function Referrals() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 p-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Referrals</h1>
@@ -195,6 +196,9 @@ export default function Referrals() {
             Export to CSV
           </Button>
         </div>
+
+        {/* Referral Summary Widget */}
+        <ReferralsDashboardWidget />
 
         <Card className="bg-[#b09837]/5 border-[#b09837]/20">
           <CardContent className="pt-6">

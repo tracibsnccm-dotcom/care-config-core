@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
+import { RCMS_CONFIG } from "@/config/rcms";
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
@@ -185,13 +187,14 @@ export default function AttorneyBilling() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#0f2a6a]">Billing & Subscription</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your plan, payments, and eWallet.
-        </p>
-      </div>
+    <AppLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-[#0f2a6a]">Billing & Subscription</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your plan, payments, and eWallet.
+          </p>
+        </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
@@ -236,6 +239,18 @@ export default function AttorneyBilling() {
               <Button className="bg-[#b09837] text-black hover:bg-[#b09837]/90">
                 Update / Change Plan
               </Button>
+
+              <Card className="mt-6 bg-muted border-border">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Billing Information</h3>
+                  <p className="text-sm text-muted-foreground">
+                    No setup fee. First month due at signing. Annual prepay{" "}
+                    <b className="text-foreground">-10%</b>, quarterly billing optional,{" "}
+                    <b className="text-foreground">3-month minimum</b>. Provider swaps:{" "}
+                    {RCMS_CONFIG.billing.providerSwaps.policy}
+                  </p>
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </TabsContent>
@@ -416,6 +431,7 @@ export default function AttorneyBilling() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

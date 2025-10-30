@@ -10,12 +10,11 @@ import { Case, CaseStatus } from "@/config/rcms";
 import { Users, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
-import { AttorneyInvitePanel, ExportButton } from "@/components/AttorneyActions";
+import { ExportButton } from "@/components/AttorneyActions";
 import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
 import { useAuth } from "@/auth/supabaseAuth";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
-import { ReferralsDashboardWidget } from "@/components/ReferralsDashboardWidget";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -173,13 +172,6 @@ export default function AttorneyLanding() {
     return daysSinceCheckin >= 30;
   });
 
-  function inviteClient() {
-    toast({
-      title: "Feature Removed",
-      description: "Client invitations are now managed through the system workflow.",
-      variant: "default",
-    });
-  }
 
   return (
     <AppLayout>
@@ -274,31 +266,10 @@ export default function AttorneyLanding() {
               <FileDown className="w-4 h-4 mr-2" />
               Exports
             </Button>
-            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
-              Billing & Subscription
-            </Button>
-            <Button onClick={() => navigate("/referrals")} variant="outline">
-              Referrals
-            </Button>
           </div>
-
-          <Card className="mt-6 p-4 bg-muted border-border">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Billing Information</h3>
-            <p className="text-sm text-muted-foreground">
-              No setup fee. First month due at signing. Annual prepay{" "}
-              <b className="text-foreground">-10%</b>, quarterly billing optional,{" "}
-              <b className="text-foreground">3-month minimum</b>. Provider swaps:{" "}
-              {RCMS_CONFIG.billing.providerSwaps.policy}
-            </p>
-          </Card>
         </Card>
 
           <EWalletSummary />
-        </div>
-
-        {/* Referrals Widget */}
-        <div className="mb-6">
-          <ReferralsDashboardWidget />
         </div>
 
         {/* Quick Stats */}
@@ -353,17 +324,6 @@ export default function AttorneyLanding() {
             log("NUDGE_SENT", c.id);
           }}
         />
-
-        {/* Attorney Invite Panel */}
-        <div className="mb-6">
-          <AttorneyInvitePanel 
-            defaultCaseId="" 
-            session={{ 
-              role: roles[0] || "ATTORNEY", 
-              userId: user?.id || "" 
-            }} 
-          />
-        </div>
 
         {/* Case Tracking Sections */}
         <div className="space-y-6">
