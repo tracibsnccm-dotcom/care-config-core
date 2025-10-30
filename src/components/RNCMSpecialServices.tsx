@@ -144,15 +144,14 @@ export function RNCMSpecialServices({
                 <h3 className="font-extrabold mb-2" style={{ color: '#0f2a6a' }}>
                   {service.name}
                 </h3>
-                <div className="mb-3">
-                  <span className="text-[0.96rem] text-foreground/80">
-                    {service.desc}
-                  </span>
-                  {" "}
-                  <span className="font-extrabold text-[1.05rem] whitespace-nowrap">
-                    Price: {fmtUSD(service.price)}
-                    {showWallet && ` | eWallet: ${fmtUSD(walletPrice)}`}
-                  </span>
+                <p className="text-[0.96rem] text-foreground/80 mb-3">
+                  {service.desc}
+                </p>
+                <div className="font-extrabold text-[1.05rem] mb-2">
+                  <div>Price: {fmtUSD(service.price)}</div>
+                  {showWallet && (
+                    <div className="text-[#b09837]">eWallet: {fmtUSD(walletPrice)}</div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {caseId && (
