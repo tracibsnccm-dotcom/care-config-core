@@ -903,6 +903,39 @@ export type Database = {
         }
         Relationships: []
       }
+      message_reminders: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          id: string
+          message_id: string
+          remind_at: string
+          reminded: boolean
+          reminded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          remind_at: string
+          reminded?: boolean
+          reminded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          remind_at?: string
+          reminded?: boolean
+          reminded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           case_id: string
@@ -1278,7 +1311,9 @@ export type Database = {
       user_preferences: {
         Row: {
           created_at: string
+          dismissed_tips: Json | null
           id: string
+          nav_collapsed: boolean | null
           notification_filter: string | null
           theme: string | null
           updated_at: string
@@ -1286,7 +1321,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dismissed_tips?: Json | null
           id?: string
+          nav_collapsed?: boolean | null
           notification_filter?: string | null
           theme?: string | null
           updated_at?: string
@@ -1294,7 +1331,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dismissed_tips?: Json | null
           id?: string
+          nav_collapsed?: boolean | null
           notification_filter?: string | null
           theme?: string | null
           updated_at?: string

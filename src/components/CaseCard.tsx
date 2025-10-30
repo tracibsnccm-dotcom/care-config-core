@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/store";
-import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban, FileText, MessageSquare, Flag, Star } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle, User, ShieldAlert, Ban, FileText, MessageSquare, Flag, Star, Eye } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { isBlockedForAttorney, canAccess, FEATURE, getDisplayName } from "@/lib/access";
 import { ConsentBlockedBanner } from "./ConsentBlockedBanner";
@@ -18,6 +18,7 @@ import { usePinnedCases } from "@/hooks/usePinnedCases";
 interface CaseCardProps {
   case: Case;
   onClick?: () => void;
+  onQuickView?: (caseId: string) => void;
 }
 
 const statusConfig = {
@@ -29,7 +30,7 @@ const statusConfig = {
   CLOSED: { label: "Closed", className: "bg-status-closed/10 text-status-closed border-status-closed/20", icon: CheckCircle },
 };
 
-export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
+export function CaseCard({ case: caseData, onClick, onQuickView }: CaseCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { isPinned, togglePin } = usePinnedCases();
   const navigate = useNavigate();
@@ -37,6 +38,13 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
   const handlePinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     togglePin(caseData.id);
+  };
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onQuickView) {
+      onQuickView(caseData.id);
+    }
   };
 
   const handleQuickAction = (e: React.MouseEvent, action: string) => {
@@ -72,32 +80,51 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Pin Star */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={handlePinClick}
-              className={cn(
-                "absolute top-4 right-4 p-1 rounded transition-colors z-10",
-                isPinned(caseData.id) 
-                  ? "text-rcms-gold hover:text-rcms-gold/80" 
-                  : "text-muted-foreground hover:text-rcms-gold"
-              )}
-              aria-label={isPinned(caseData.id) ? "Unpin case" : "Pin case"}
-            >
-              <Star className={cn("w-5 h-5", isPinned(caseData.id) && "fill-current")} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isPinned(caseData.id) ? "Unpin case" : "Pin case"}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      {/* Pin Star and Quick View */}
+      <div className="absolute top-4 right-4 flex gap-2 z-10">
+        <TooltipProvider>
+          {onQuickView && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 bg-background shadow-sm"
+                  onClick={handleQuickView}
+                  aria-label="Quick view case summary"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Quick View</TooltipContent>
+            </Tooltip>
+          )}
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handlePinClick}
+                className={cn(
+                  "h-8 w-8 flex items-center justify-center rounded-md border transition-colors",
+                  isPinned(caseData.id) 
+                    ? "text-rcms-gold bg-background border-rcms-gold hover:bg-rcms-gold/10" 
+                    : "text-muted-foreground bg-background border-border hover:text-rcms-gold hover:border-rcms-gold"
+                )}
+                aria-label={isPinned(caseData.id) ? "Unpin case" : "Pin case"}
+              >
+                <Star className={cn("w-4 h-4", isPinned(caseData.id) && "fill-current")} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isPinned(caseData.id) ? "Unpin case" : "Pin case"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {/* Hover Quick Actions */}
       {isHovered && !blockStatus.blocked && (
-        <div className="absolute top-12 right-4 flex gap-2 z-10">
+        <div className="absolute top-16 right-4 flex gap-2 z-10">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
