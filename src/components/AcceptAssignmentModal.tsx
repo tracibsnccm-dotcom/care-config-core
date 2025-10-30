@@ -16,6 +16,7 @@ interface AcceptAssignmentModalProps {
   onClose: () => void;
   onAccept: () => void;
   caseId: string;
+  walletBalance: number;
 }
 
 export function AcceptAssignmentModal({
@@ -23,6 +24,7 @@ export function AcceptAssignmentModal({
   onClose,
   onAccept,
   caseId,
+  walletBalance,
 }: AcceptAssignmentModalProps) {
   const [agreed, setAgreed] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -44,6 +46,8 @@ export function AcceptAssignmentModal({
   const processingFee = adminFee * 0.0325;
   const tax = (adminFee + processingFee) * 0.0;
   const total = adminFee + processingFee + tax;
+  const useWallet = walletBalance >= total;
+  const insufficientFunds = !useWallet && walletBalance < total;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -99,17 +103,27 @@ export function AcceptAssignmentModal({
             </div>
           </div>
 
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 space-y-2">
+          <div className={`rounded-lg border p-4 space-y-2 ${
+            insufficientFunds ? "bg-destructive/10 border-destructive/20" : "bg-muted border-border"
+          }`}>
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                insufficientFunds ? "text-destructive" : "text-[#b09837]"
+              }`} />
               <div className="space-y-1">
-                <p className="font-semibold text-sm text-destructive">
-                  Payment required immediately upon acceptance
+                <p className={`font-semibold text-sm ${insufficientFunds ? "text-destructive" : ""}`}>
+                  {useWallet 
+                    ? "Payment will be deducted from your eWallet"
+                    : insufficientFunds 
+                      ? "Insufficient eWallet balance"
+                      : "Payment will be charged to credit card on file"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Payment will be charged to your account on file. The administrative
-                  fee is <strong>non-refundable</strong> once the referral is issued or
-                  accepted.
+                  {useWallet 
+                    ? `Your eWallet balance of $${walletBalance.toLocaleString()} will be reduced by $${total.toFixed(2)}.`
+                    : insufficientFunds
+                      ? `Your eWallet balance ($${walletBalance.toLocaleString()}) is insufficient. Please add funds or update your payment method.`
+                      : `Payment will be charged to your credit card. The administrative fee is non-refundable once the referral is accepted.`}
                 </p>
               </div>
             </div>
@@ -139,13 +153,22 @@ export function AcceptAssignmentModal({
           <Button variant="outline" onClick={handleClose} disabled={accepting}>
             Cancel
           </Button>
-          <Button
-            onClick={handleAccept}
-            disabled={!agreed || accepting}
-            className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
-          >
-            {accepting ? "Processing..." : "Agree & Accept Referral"}
-          </Button>
+          {insufficientFunds ? (
+            <Button
+              onClick={() => window.location.href = "/attorney/billing?tab=ewallet"}
+              className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
+            >
+              Add Funds to eWallet
+            </Button>
+          ) : (
+            <Button
+              onClick={handleAccept}
+              disabled={!agreed || accepting}
+              className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
+            >
+              {accepting ? "Processing..." : "Agree & Accept Referral"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -7,12 +7,19 @@ import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { RCMS_CONFIG } from "@/config/rcms";
 import { Case, CaseStatus } from "@/config/rcms";
-import { Users, UserPlus, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
+import { Users, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
 import { AttorneyInvitePanel, ExportButton } from "@/components/AttorneyActions";
 import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
 import { useAuth } from "@/auth/supabaseAuth";
+import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
+import { EWalletSummary } from "@/components/EWalletSummary";
+import { ReferralsDashboardWidget } from "@/components/ReferralsDashboardWidget";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -113,6 +120,30 @@ export default function AttorneyLanding() {
     log,
   } = useApp();
 
+  const [tierData, setTierData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    loadTierData();
+  }, [user]);
+
+  async function loadTierData() {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("attorney_metadata")
+        .select("tier")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setTierData(data);
+    } catch (error) {
+      console.error("Error loading tier data:", error);
+    }
+  }
+
   const usedProviders = providers.filter((p) => p.active).length;
   const providerRemain = Math.max(0, providerSlots - usedProviders);
 
@@ -143,35 +174,46 @@ export default function AttorneyLanding() {
   });
 
   function inviteClient() {
-    const token = Math.random().toString(36).slice(2, 8).toUpperCase();
-    alert(`Invite token generated (mock): ${token}\n\nTODO: send via secure channel.`);
-    log("INVITE_CLIENT");
+    toast({
+      title: "Feature Removed",
+      description: "Client invitations are now managed through the system workflow.",
+      variant: "default",
+    });
   }
 
   return (
     <AppLayout>
+      <PolicyAcknowledgmentBanner />
+      
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Attorney Landing</h1>
           <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
         </div>
 
-        <Card className="p-6 border-border mb-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-                Tier: {currentTier}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                Price: ${RCMS_CONFIG.tiers[currentTier].price.toLocaleString()}/mo
-              </span>
+        {/* Top Row: Tier + eWallet */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="p-6 border-border lg:col-span-2">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary cursor-help">
+                      Tier: {tierData?.tier || currentTier}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Manage plan and pricing in Billing</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <div className="text-sm text-muted-foreground">
+                Next reset: <b className="text-foreground">{fmtDate(nextReset)}</b> &middot; Swaps
+                remaining:{" "}
+                <b className="text-foreground">{Math.max(0, swapsCap - swapsUsed)}</b>
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Next reset: <b className="text-foreground">{fmtDate(nextReset)}</b> &middot; Swaps
-              remaining:{" "}
-              <b className="text-foreground">{Math.max(0, swapsCap - swapsUsed)}</b>
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
             <KPI
@@ -192,10 +234,6 @@ export default function AttorneyLanding() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button onClick={inviteClient} aria-label="Invite client">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Invite Client
-            </Button>
             <Button onClick={() => navigate("/reports")} variant="outline">
               <BarChart3 className="w-4 h-4 mr-2" />
               View Reports
@@ -236,6 +274,12 @@ export default function AttorneyLanding() {
               <FileDown className="w-4 h-4 mr-2" />
               Exports
             </Button>
+            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
+              Billing & Subscription
+            </Button>
+            <Button onClick={() => navigate("/referrals")} variant="outline">
+              Referrals
+            </Button>
           </div>
 
           <Card className="mt-6 p-4 bg-muted border-border">
@@ -248,6 +292,14 @@ export default function AttorneyLanding() {
             </p>
           </Card>
         </Card>
+
+          <EWalletSummary />
+        </div>
+
+        {/* Referrals Widget */}
+        <div className="mb-6">
+          <ReferralsDashboardWidget />
+        </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

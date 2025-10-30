@@ -38,6 +38,8 @@ import RNClinicalLiaison from "./pages/RNClinicalLiaison";
 import Insights from "./pages/Insights";
 import ESignCenter from "./pages/ESignCenter";
 import Referrals from "./pages/Referrals";
+import AttorneyPolicy from "./pages/AttorneyPolicy";
+import AttorneyBilling from "./pages/AttorneyBilling";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
@@ -177,6 +179,14 @@ const App = () => (
             <Route
               path="/concerns-complaints"
               element={<ProtectedRoute roles={["RN_CCM_DIRECTOR","COMPLIANCE","SUPER_USER","SUPER_ADMIN"]}><ConcernsComplaintsCenter /></ProtectedRoute>}
+            />
+            <Route
+              path="/attorney/policy"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyPolicy /></ProtectedRoute>}
+            />
+            <Route
+              path="/attorney/billing"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyBilling /></ProtectedRoute>}
             />
 
             {/* Settings - Available to all authenticated users */}

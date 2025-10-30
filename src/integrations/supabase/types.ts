@@ -118,7 +118,10 @@ export type Database = {
           created_at: string
           id: string
           last_assigned_date: string | null
+          plan_price: number | null
+          renewal_date: string | null
           status: string
+          tier: string
           updated_at: string
           user_id: string
         }
@@ -128,7 +131,10 @@ export type Database = {
           created_at?: string
           id?: string
           last_assigned_date?: string | null
+          plan_price?: number | null
+          renewal_date?: string | null
           status?: string
+          tier?: string
           updated_at?: string
           user_id: string
         }
@@ -138,7 +144,10 @@ export type Database = {
           created_at?: string
           id?: string
           last_assigned_date?: string | null
+          plan_price?: number | null
+          renewal_date?: string | null
           status?: string
+          tier?: string
           updated_at?: string
           user_id?: string
         }
@@ -187,6 +196,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      attorney_wallet: {
+        Row: {
+          attorney_id: string
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          attorney_id: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          attorney_id?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -1436,6 +1469,57 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_acceptances: {
+        Row: {
+          accepted_at: string
+          attorney_id: string
+          attorney_name: string
+          checksum: string
+          created_at: string
+          firm: string | null
+          id: string
+          ip_address: string | null
+          policy_version: string
+          signature_blob: string | null
+          signature_type: string
+          title: string | null
+          typed_signature_text: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          attorney_id: string
+          attorney_name: string
+          checksum: string
+          created_at?: string
+          firm?: string | null
+          id?: string
+          ip_address?: string | null
+          policy_version?: string
+          signature_blob?: string | null
+          signature_type: string
+          title?: string | null
+          typed_signature_text?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          attorney_id?: string
+          attorney_name?: string
+          checksum?: string
+          created_at?: string
+          firm?: string | null
+          id?: string
+          ip_address?: string | null
+          policy_version?: string
+          signature_blob?: string | null
+          signature_type?: string
+          title?: string | null
+          typed_signature_text?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -1827,6 +1911,89 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          attorney_id: string
+          id: string
+          ip_address: string | null
+          message_hash: string
+          user_agent: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          attorney_id: string
+          id?: string
+          ip_address?: string | null
+          message_hash: string
+          user_agent?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          attorney_id?: string
+          id?: string
+          ip_address?: string | null
+          message_hash?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          attorney_id: string
+          case_id: string | null
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          processing_fee: number
+          status: string
+          tax: number
+          total_amount: number
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          attorney_id: string
+          case_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          processing_fee?: number
+          status?: string
+          tax?: number
+          total_amount: number
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          attorney_id?: string
+          case_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          processing_fee?: number
+          status?: string
+          tax?: number
+          total_amount?: number
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1880,6 +2047,14 @@ export type Database = {
         }[]
       }
       get_client_initials: { Args: { client_uuid: string }; Returns: string }
+      get_latest_policy_acceptance: {
+        Args: { p_attorney_id: string }
+        Returns: {
+          accepted_at: string
+          id: string
+          policy_version: string
+        }[]
+      }
       get_next_round_robin_attorney: { Args: never; Returns: string }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
       get_user_roles: {

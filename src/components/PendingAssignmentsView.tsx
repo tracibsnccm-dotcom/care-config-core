@@ -33,10 +33,12 @@ export function PendingAssignmentsView() {
   const [selectedOffer, setSelectedOffer] = useState<PendingAssignment | null>(null);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     loadAssignments();
+    loadWalletBalance();
 
     const channel = supabase
       .channel("pending_assignments")

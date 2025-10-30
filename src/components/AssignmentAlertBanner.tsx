@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, X } from "lucide-react";
 import { DeclineAssignmentModal } from "./DeclineAssignmentModal";
 import { AcceptAssignmentModal } from "./AcceptAssignmentModal";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface PendingOffer {
   id: string;
@@ -15,16 +17,21 @@ interface PendingOffer {
 
 export function AssignmentAlertBanner() {
   const { user, hasRole } = useAuth();
+  const navigate = useNavigate();
   const [pendingOffer, setPendingOffer] = useState<PendingOffer | null>(null);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState("");
   const [dismissed, setDismissed] = useState(false);
+  const [hasPolicySigned, setHasPolicySigned] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     if (!user || !hasRole("ATTORNEY")) return;
 
     loadPendingOffer();
+    checkPolicyStatus();
+    loadWalletBalance();
 
     // Set up realtime subscription
     const channel = supabase
@@ -89,6 +96,41 @@ export function AssignmentAlertBanner() {
 
     setPendingOffer(data);
     setDismissed(false);
+  }
+
+  async function checkPolicyStatus() {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("policy_acceptances")
+      .select("id")
+      .eq("attorney_id", user.id)
+      .eq("policy_version", "2025-10-30")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error checking policy status:", error);
+      return;
+    }
+
+    setHasPolicySigned(!!data);
+  }
+
+  async function loadWalletBalance() {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("attorney_wallet")
+      .select("balance")
+      .eq("attorney_id", user.id)
+      .maybeSingle();
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error loading wallet balance:", error);
+      return;
+    }
+
+    setWalletBalance(data?.balance || 0);
   }
 
   async function handleAccept() {
@@ -196,12 +238,38 @@ export function AssignmentAlertBanner() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setShowAcceptModal(true)}
-              className="bg-black text-[#b09837] hover:bg-black/90"
-            >
-              Accept Client
-            </Button>
+            {!hasPolicySigned ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      disabled
+                      className="bg-black text-[#b09837] hover:bg-black/90"
+                    >
+                      Accept Client
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Action required: Acknowledge Referral Policy to proceed.</p>
+                    <Button
+                      size="sm"
+                      variant="link"
+                      onClick={() => navigate("/attorney/policy")}
+                      className="text-xs p-0 h-auto"
+                    >
+                      Review Policy
+                    </Button>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                onClick={() => setShowAcceptModal(true)}
+                className="bg-black text-[#b09837] hover:bg-black/90"
+              >
+                Accept Client
+              </Button>
+            )}
             <Button
               onClick={() => setShowDeclineModal(true)}
               variant="outline"
@@ -233,6 +301,7 @@ export function AssignmentAlertBanner() {
         onClose={() => setShowAcceptModal(false)}
         onAccept={handleAccept}
         caseId={caseId}
+        walletBalance={walletBalance}
       />
     </>
   );
