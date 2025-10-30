@@ -68,8 +68,56 @@ export default function ClientPortal() {
             onViewProgress={() => setActiveTab("checkins")} 
           />
 
-          {/* Motivation Widget - Full Width */}
-          <MotivationWidget caseId={caseId} />
+          {/* Quick Actions Row */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Motivation Widget */}
+            <div className="md:col-span-2">
+              <MotivationWidget caseId={caseId} />
+            </div>
+
+            {/* Quick Contact Card */}
+            <Card className="p-6 bg-white border-rcms-gold shadow-lg">
+              <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-rcms-gold" />
+                Quick Actions
+              </h3>
+              <div className="space-y-2">
+                <Dialog open={concernDialogOpen} onOpenChange={setConcernDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all duration-300"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Report Concern
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <ReportConcernDialog 
+                      caseId={caseId} 
+                      onSuccess={() => setConcernDialogOpen(false)} 
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={complaintDialogOpen} onOpenChange={setComplaintDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="w-full border-rcms-coral text-rcms-coral hover:bg-rcms-coral/10 transition-all duration-300"
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      File Complaint
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <FileComplaintForm onSuccess={() => setComplaintDialogOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Card>
+          </div>
         </div>
       </section>
 
