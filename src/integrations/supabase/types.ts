@@ -1777,6 +1777,54 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_cm_service_requests: {
+        Row: {
+          acknowledged_at: string | null
+          assigned_rn: string | null
+          attorney_id: string
+          completed_at: string | null
+          created_at: string
+          delivery_files: Json | null
+          form_data: Json
+          id: string
+          price_cents: number
+          service_id: string
+          service_title: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          assigned_rn?: string | null
+          attorney_id: string
+          completed_at?: string | null
+          created_at?: string
+          delivery_files?: Json | null
+          form_data?: Json
+          id?: string
+          price_cents: number
+          service_id: string
+          service_title: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          assigned_rn?: string | null
+          attorney_id?: string
+          completed_at?: string | null
+          created_at?: string
+          delivery_files?: Json | null
+          form_data?: Json
+          id?: string
+          price_cents?: number
+          service_id?: string
+          service_title?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       round_robin_settings: {
         Row: {
           allow_manual_override: boolean
