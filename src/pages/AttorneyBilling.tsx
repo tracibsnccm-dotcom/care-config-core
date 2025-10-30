@@ -327,26 +327,13 @@ export default function AttorneyBilling() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="services">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-[#0f2a6a]">RN CM Special Services</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Request specialized clinical services from our RN Care Management team. All services are 
-                attorney-ready and delivered within specified SLA timeframes.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <RNCMServiceCatalog />
-              
-              <RNCMSpecialServices 
-                walletBalance={walletBalance}
-                isSubscriber={tierData?.tier !== 'basic'}
-                caseId={undefined}
-                attorneyId={user?.id}
-              />
-            </CardContent>
-          </Card>
+        <TabsContent value="services" className="space-y-6">
+          <RNCMSpecialServices 
+            walletBalance={walletBalance}
+            isSubscriber={tierData?.tier !== 'basic'}
+            caseId={undefined}
+            attorneyId={user?.id}
+          />
         </TabsContent>
 
         <TabsContent value="ewallet" className="space-y-6">
