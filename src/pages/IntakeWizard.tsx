@@ -30,10 +30,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
+import { IntakeWelcome } from "@/components/IntakeWelcome";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
   const { setCases, log } = useApp();
+  const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
   const [sensitiveTag, setSensitiveTag] = useState(false);
 
@@ -146,21 +148,33 @@ export default function IntakeWizard() {
   return (
     <AppLayout>
       <div className="p-8 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Client Intake Wizard</h1>
-          <p className="text-muted-foreground mt-1">Complete the intake process step by step</p>
-        </div>
+        {showWelcome ? (
+          <IntakeWelcome
+            client={client}
+            consent={consent}
+            sensitiveTag={sensitiveTag}
+            onClientChange={setClient}
+            onConsentChange={setConsent}
+            onSensitiveChange={setSensitiveTag}
+            onContinue={() => setShowWelcome(false)}
+          />
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground">Client Intake Wizard</h1>
+              <p className="text-muted-foreground mt-1">Complete the intake process step by step</p>
+            </div>
 
-        <Stepper
-          step={step}
-          setStep={setStep}
-          labels={["Consent", "Incident", "Treatment", "Medical Info", "4Ps + SDOH", "Review"]}
-        />
+            <Stepper
+              step={step}
+              setStep={setStep}
+              labels={["Consent", "Incident", "Treatment", "Medical Info", "4Ps + SDOH", "Review"]}
+            />
 
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <IntakeProgressBar percent={progressPercent} />
-        </div>
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <IntakeProgressBar percent={progressPercent} />
+            </div>
 
         {/* Step 0: Consent */}
         {step === 0 && (
@@ -452,12 +466,14 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        <WizardNav 
-          step={step} 
-          setStep={setStep} 
-          last={5}
-          canAdvance={step === 3 ? medsBlock.valid : true}
-        />
+            <WizardNav 
+              step={step} 
+              setStep={setStep} 
+              last={5}
+              canAdvance={step === 3 ? medsBlock.valid : true}
+            />
+          </>
+        )}
       </div>
     </AppLayout>
   );
