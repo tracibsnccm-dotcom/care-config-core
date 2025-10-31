@@ -1044,6 +1044,10 @@ export type Database = {
           id: string
           metadata: Json | null
           mime_type: string | null
+          read_by: string[] | null
+          requires_attention: boolean | null
+          status: string
+          updated_at: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -1056,6 +1060,10 @@ export type Database = {
           id?: string
           metadata?: Json | null
           mime_type?: string | null
+          read_by?: string[] | null
+          requires_attention?: boolean | null
+          status?: string
+          updated_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -1068,6 +1076,10 @@ export type Database = {
           id?: string
           metadata?: Json | null
           mime_type?: string | null
+          read_by?: string[] | null
+          requires_attention?: boolean | null
+          status?: string
+          updated_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
