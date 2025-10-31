@@ -153,6 +153,39 @@ export type Database = {
         }
         Relationships: []
       }
+      attorney_performance: {
+        Row: {
+          accepted: number | null
+          attorney_code: string
+          avg_response_time_hours: number | null
+          conversion_rate: number | null
+          declined: number | null
+          id: string
+          last_updated: string | null
+          total_referrals: number | null
+        }
+        Insert: {
+          accepted?: number | null
+          attorney_code: string
+          avg_response_time_hours?: number | null
+          conversion_rate?: number | null
+          declined?: number | null
+          id?: string
+          last_updated?: string | null
+          total_referrals?: number | null
+        }
+        Update: {
+          accepted?: number | null
+          attorney_code?: string
+          avg_response_time_hours?: number | null
+          conversion_rate?: number | null
+          declined?: number | null
+          id?: string
+          last_updated?: string | null
+          total_referrals?: number | null
+        }
+        Relationships: []
+      }
       attorney_rn_messages: {
         Row: {
           attachments: Json | null
@@ -196,6 +229,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      attorney_sla: {
+        Row: {
+          attorney_code: string
+          auto_accept: boolean | null
+          created_at: string | null
+          fee_amount: number | null
+          id: string
+          is_active: boolean | null
+          response_time_hours: number
+          updated_at: string | null
+        }
+        Insert: {
+          attorney_code: string
+          auto_accept?: boolean | null
+          created_at?: string | null
+          fee_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          response_time_hours?: number
+          updated_at?: string | null
+        }
+        Update: {
+          attorney_code?: string
+          auto_accept?: boolean | null
+          created_at?: string | null
+          fee_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          response_time_hours?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       attorney_wallet: {
         Row: {
@@ -724,6 +790,53 @@ export type Database = {
         }
         Relationships: []
       }
+      client_communications: {
+        Row: {
+          channel: string
+          client_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          id: string
+          message_content: string | null
+          metadata: Json | null
+          sent_at: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          channel: string
+          client_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_content?: string | null
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          type: string
+        }
+        Update: {
+          channel?: string
+          client_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_content?: string | null
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_communications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_preferences: {
         Row: {
           attorney_notify_consent: boolean
@@ -988,6 +1101,30 @@ export type Database = {
           status_changed_at?: string | null
           updated_at?: string
           visit_date?: string | null
+        }
+        Relationships: []
+      }
+      data_retention_policy: {
+        Row: {
+          client_record_years: number | null
+          export_before_purge: boolean | null
+          id: string
+          purged_data_backup_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_record_years?: number | null
+          export_before_purge?: boolean | null
+          id?: string
+          purged_data_backup_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_record_years?: number | null
+          export_before_purge?: boolean | null
+          id?: string
+          purged_data_backup_days?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2248,6 +2385,10 @@ export type Database = {
       }
       update_attorney_capacity: {
         Args: { p_attorney_id: string; p_new_capacity_available: number }
+        Returns: undefined
+      }
+      update_attorney_performance: {
+        Args: { p_attorney_code: string }
         Returns: undefined
       }
     }
