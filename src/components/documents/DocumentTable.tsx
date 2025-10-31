@@ -62,7 +62,6 @@ export function DocumentTable({
   cases,
   onUpdate,
 }: DocumentTableProps) {
-  const navigate = useNavigate();
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<keyof Document>("created_at");
@@ -195,11 +194,14 @@ export function DocumentTable({
               ) : (
                 paginatedDocuments.map((doc) => {
                   const isUnread = !doc.read_by.includes(currentUserId);
+                  const isUrgentPending = doc.status === "pending" && isUnread;
                   return (
                     <TableRow
                       key={doc.id}
                       className={`transition-colors cursor-pointer ${
-                        isUnread 
+                        isUrgentPending
+                          ? 'bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/30 animate-pulse' 
+                          : isUnread 
                           ? 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30' 
                           : 'hover:bg-muted/50'
                       }`}
@@ -216,8 +218,20 @@ export function DocumentTable({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <FileText className={`w-4 h-4 ${isUnread ? 'text-yellow-600' : 'text-muted-foreground'}`} />
-                          <span className={`truncate max-w-xs ${isUnread ? 'font-semibold' : ''}`}>
+                          <FileText className={`w-4 h-4 ${
+                            isUrgentPending 
+                              ? 'text-orange-600 animate-pulse' 
+                              : isUnread 
+                              ? 'text-yellow-600' 
+                              : 'text-muted-foreground'
+                          }`} />
+                          <span className={`truncate max-w-xs ${
+                            isUrgentPending 
+                              ? 'font-bold text-orange-900 dark:text-orange-100' 
+                              : isUnread 
+                              ? 'font-semibold' 
+                              : ''
+                          }`}>
                             {doc.file_name}
                           </span>
                         </div>
@@ -239,12 +253,19 @@ export function DocumentTable({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {doc.is_sensitive && <Shield className="w-4 h-4 text-red-600" />}
+                          {doc.is_sensitive && (
+                            <Badge variant="destructive" className="animate-pulse">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Sensitive
+                            </Badge>
+                          )}
                           <Badge 
                             variant={doc.status === "reviewed" ? "default" : "outline"}
                             className={
                               doc.status === "reviewed" 
                                 ? "bg-green-500 text-white" 
+                                : isUrgentPending
+                                ? "bg-orange-500 text-white animate-pulse"
                                 : "bg-amber-100 text-amber-800 border-amber-300"
                             }
                           >
