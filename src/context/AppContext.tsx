@@ -120,11 +120,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     meta: log.meta,
   }));
 
-  // Update role from Supabase roles
+  // Set initial role from Supabase roles (only on first load)
   useEffect(() => {
     if (roles && roles.length > 0) {
-      const primaryRole = roles[0] as Role;
-      setRole(primaryRole);
+      const storedRole = store.get("currentRole", null);
+      // Only set role if not already set by user
+      if (!storedRole) {
+        const primaryRole = roles[0] as Role;
+        setRole(primaryRole);
+      }
     }
   }, [roles]);
 
