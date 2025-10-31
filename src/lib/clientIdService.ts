@@ -101,6 +101,30 @@ export class ClientIdService {
   }
   
   /**
+   * Mark an intake as completed when fully submitted
+   */
+  static async markIntakeCompleted(caseId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('cases')
+        .update({
+          status: 'COMPLETED'
+        })
+        .eq('id', caseId);
+      
+      if (error) {
+        console.error('Error marking intake as completed:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Exception marking intake as completed:', error);
+      return { success: false, error: 'Failed to mark intake as completed' };
+    }
+  }
+  
+  /**
    * Purge abandoned internal intakes (7+ days old, IN_PROGRESS status)
    * This should be called via a scheduled job
    */
@@ -109,10 +133,10 @@ export class ClientIdService {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
-      // Find abandoned intakes
+      // Find ONLY abandoned intakes that are incomplete (IN_PROGRESS)
       const { data: abandonedCases, error: selectError } = await supabase
         .from('cases')
-        .select('id')
+        .select('id, client_number')
         .eq('status', 'IN_PROGRESS')
         .eq('client_type', 'I')
         .lt('created_at', sevenDaysAgo.toISOString());
@@ -126,7 +150,7 @@ export class ClientIdService {
         return { success: true, purgedCount: 0 };
       }
       
-      // Delete them
+      // Delete only the incomplete records
       const { error: deleteError } = await supabase
         .from('cases')
         .delete()
@@ -137,7 +161,8 @@ export class ClientIdService {
         return { success: false, error: deleteError.message };
       }
       
-      console.log(`Purged ${abandonedCases.length} abandoned intake(s)`);
+      const purgedIds = abandonedCases.map(c => c.client_number || c.id).join(', ');
+      console.log(`Purged ${abandonedCases.length} abandoned intake(s): ${purgedIds}`);
       return { success: true, purgedCount: abandonedCases.length };
     } catch (error) {
       console.error('Exception purging abandoned intakes:', error);
