@@ -129,7 +129,33 @@ export default function Reports() {
       <div className="p-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Attorney Reports</h1>
+            <div className="flex items-center gap-2 relative">
+              <h1 className="text-3xl font-bold text-foreground">Attorney Reports</h1>
+              <span 
+                className="inline-flex justify-center items-center w-[18px] h-[18px] rounded-full bg-[hsl(var(--primary))] text-primary-foreground font-extrabold text-[0.75rem] cursor-help relative group"
+                tabIndex={0}
+                aria-label="Confidentiality Notice"
+              >
+                ?
+                <div 
+                  className="absolute left-0 top-[140%] bg-card border border-[hsl(var(--accent))] rounded-lg shadow-lg p-3 max-w-[300px] z-20 hidden group-hover:block group-focus:block"
+                  role="tooltip"
+                >
+                  <p className="text-sm text-foreground mb-2 leading-snug">
+                    <strong>Confidentiality Notice:</strong><br />
+                    All communications, case notes, and uploaded files within Reconcile C.A.R.E. are encrypted and stored under HIPAA and attorney–client privilege standards. Information shared here is accessible only to authorized case team members.
+                  </p>
+                  <a 
+                    href="/compliance-and-privacy" 
+                    target="_blank" 
+                    rel="noopener"
+                    className="text-[hsl(var(--primary))] font-bold text-sm underline hover:opacity-80"
+                  >
+                    View full Compliance Policy
+                  </a>
+                </div>
+              </span>
+            </div>
             <p className="text-muted-foreground mt-1">
               Case activity and deletion warnings
             </p>
