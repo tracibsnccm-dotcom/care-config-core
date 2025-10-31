@@ -352,7 +352,7 @@ export default function DocumentHub() {
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-orange-600 animate-pulse" />
                 <h3 className="font-bold text-orange-900 dark:text-orange-100">
-                  Awaiting Review - Requires Immediate Attention
+                  Requires Immediate Attention
                 </h3>
                 <Badge className="bg-orange-600 text-white ml-2">
                   {sortedUrgent.length}
