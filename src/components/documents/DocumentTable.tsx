@@ -20,9 +20,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { FileText, Eye, Download, RefreshCw } from "lucide-react";
+import { FileText, Eye, Download, Shield } from "lucide-react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { DocumentActionsMenu } from "./DocumentActionsMenu";
 
 interface Document {
   id: string;
@@ -36,6 +36,9 @@ interface Document {
   requires_attention: boolean;
   file_path: string;
   mime_type: string | null;
+  category: string;
+  is_sensitive: boolean;
+  note: string | null;
 }
 
 interface DocumentTableProps {
@@ -44,6 +47,8 @@ interface DocumentTableProps {
   onMarkAsRead: (docId: string) => void;
   onPreview: (doc: Document) => void;
   getDocumentTypeColor: (type: string) => string;
+  cases: Array<{ id: string }>;
+  onUpdate: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -54,6 +59,8 @@ export function DocumentTable({
   onMarkAsRead,
   onPreview,
   getDocumentTypeColor,
+  cases,
+  onUpdate,
 }: DocumentTableProps) {
   const navigate = useNavigate();
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
@@ -170,6 +177,8 @@ export function DocumentTable({
                 >
                   Type {sortColumn === "document_type" && (sortDirection === "asc" ? "↑" : "↓")}
                 </TableHead>
+                <TableHead className="font-semibold">Category</TableHead>
+                <TableHead className="font-semibold">Notes</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="text-right font-semibold">Actions</TableHead>
               </TableRow>
@@ -177,7 +186,7 @@ export function DocumentTable({
             <TableBody>
               {paginatedDocuments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="font-medium">No documents found</p>
                     <p className="text-sm mt-1">Try adjusting your filters or upload a new document</p>
@@ -223,16 +232,31 @@ export function DocumentTable({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={doc.status === "reviewed" ? "default" : "outline"}>
-                          {doc.status}
-                        </Badge>
+                        <Badge variant="outline">{doc.category}</Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-sm">
+                        {doc.note || <span className="text-muted-foreground">No note</span>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {doc.is_sensitive && <Shield className="w-4 h-4 text-red-600" />}
+                          <Badge 
+                            variant={doc.status === "reviewed" ? "default" : "outline"}
+                            className={
+                              doc.status === "reviewed" 
+                                ? "bg-green-500 text-white" 
+                                : "bg-amber-100 text-amber-800 border-amber-300"
+                            }
+                          >
+                            {doc.status}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-[#128f8b] hover:text-[#128f8b] hover:bg-[#128f8b]/10"
                             onClick={(e) => {
                               e.stopPropagation();
                               onMarkAsRead(doc.id);
@@ -240,22 +264,13 @@ export function DocumentTable({
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[#0f2a6a] hover:text-[#0f2a6a] hover:bg-[#0f2a6a]/10"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[#b09837] hover:text-[#b09837] hover:bg-[#b09837]/10"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </Button>
+                          <DocumentActionsMenu
+                            documentId={doc.id}
+                            caseId={doc.case_id}
+                            isSensitive={doc.is_sensitive}
+                            cases={cases}
+                            onActionComplete={onUpdate}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

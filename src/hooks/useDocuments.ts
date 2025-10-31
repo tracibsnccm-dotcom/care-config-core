@@ -15,6 +15,9 @@ interface Document {
   requires_attention: boolean;
   file_path: string;
   mime_type: string | null;
+  category: string;
+  is_sensitive: boolean;
+  note: string | null;
 }
 
 export function useDocuments() {

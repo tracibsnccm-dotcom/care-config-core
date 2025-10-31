@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -8,13 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, Search, Upload } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Search, Calendar as CalendarIcon, Upload, X, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -22,14 +24,22 @@ interface DocumentFiltersProps {
   selectedCase: string;
   selectedType: string;
   selectedStatus: string;
+  selectedCategory: string;
   searchQuery: string;
   dateRange: { from?: Date; to?: Date };
+  showSensitiveOnly: boolean;
+  showAwaitingOnly: boolean;
+  showMyUploadsOnly: boolean;
   cases: Array<{ id: string }>;
   onCaseChange: (value: string) => void;
   onTypeChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
   onSearchChange: (value: string) => void;
   onDateRangeChange: (range: { from?: Date; to?: Date }) => void;
+  onSensitiveOnlyChange: (value: boolean) => void;
+  onAwaitingOnlyChange: (value: boolean) => void;
+  onMyUploadsOnlyChange: (value: boolean) => void;
   onUploadClick: () => void;
 }
 
@@ -37,16 +47,36 @@ export function DocumentFilters({
   selectedCase,
   selectedType,
   selectedStatus,
+  selectedCategory,
   searchQuery,
   dateRange,
+  showSensitiveOnly,
+  showAwaitingOnly,
+  showMyUploadsOnly,
   cases,
   onCaseChange,
   onTypeChange,
   onStatusChange,
+  onCategoryChange,
   onSearchChange,
   onDateRangeChange,
+  onSensitiveOnlyChange,
+  onAwaitingOnlyChange,
+  onMyUploadsOnlyChange,
   onUploadClick,
 }: DocumentFiltersProps) {
+  const handleClearFilters = () => {
+    onCaseChange("all");
+    onTypeChange("all");
+    onStatusChange("all");
+    onCategoryChange("all");
+    onSearchChange("");
+    onDateRangeChange({});
+    onSensitiveOnlyChange(false);
+    onAwaitingOnlyChange(false);
+    onMyUploadsOnlyChange(false);
+  };
+
   return (
     <Card className="p-6 border-border">
       <div className="flex items-center gap-2 mb-4">
@@ -54,18 +84,16 @@ export function DocumentFilters({
         <h3 className="font-semibold text-foreground">Filter & Search</h3>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
-            Select Case
-          </label>
+          <Label>Select Case</Label>
           <Select value={selectedCase} onValueChange={onCaseChange}>
-            <SelectTrigger className="bg-background">
+            <SelectTrigger>
               <SelectValue placeholder="All Cases" />
             </SelectTrigger>
-            <SelectContent className="bg-background z-50">
+            <SelectContent>
               <SelectItem value="all">All Cases</SelectItem>
-              {cases.slice(0, 10).map((caseItem) => (
+              {cases.slice(0, 20).map((caseItem) => (
                 <SelectItem key={caseItem.id} value={caseItem.id}>
                   {caseItem.id}
                 </SelectItem>
@@ -75,51 +103,61 @@ export function DocumentFilters({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
-            Document Type
-          </label>
+          <Label>Document Type</Label>
           <Select value={selectedType} onValueChange={onTypeChange}>
-            <SelectTrigger className="bg-background">
+            <SelectTrigger>
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
-            <SelectContent className="bg-background z-50">
+            <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="Clinical Report">Clinical Report</SelectItem>
-              <SelectItem value="Legal Filing">Legal Filing</SelectItem>
+              <SelectItem value="Clinical Report">📑 Clinical Report</SelectItem>
+              <SelectItem value="Legal Filing">⚖️ Legal Filing</SelectItem>
               <SelectItem value="Client Form">Client Form</SelectItem>
-              <SelectItem value="Provider Note">Provider Note</SelectItem>
+              <SelectItem value="Provider Note">⚕️ Provider Note</SelectItem>
               <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
-            Status
-          </label>
-          <Select value={selectedStatus} onValueChange={onStatusChange}>
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="All Status" />
+          <Label>Category</Label>
+          <Select value={selectedCategory} onValueChange={onCategoryChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Categories" />
             </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="reviewed">Reviewed</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="Medical">⚕️ Medical</SelectItem>
+              <SelectItem value="Legal">⚖️ Legal</SelectItem>
+              <SelectItem value="Financial">💰 Financial</SelectItem>
+              <SelectItem value="Communication">💬 Communication</SelectItem>
+              <SelectItem value="Other">📋 Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
-            Date Range
-          </label>
+          <Label>Status</Label>
+          <Select value={selectedStatus} onValueChange={onStatusChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="reviewed">Reviewed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Date Range</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal bg-background",
+                  "w-full justify-start text-left font-normal",
                   !dateRange.from && "text-muted-foreground"
                 )}
               >
@@ -132,11 +170,11 @@ export function DocumentFilters({
                     format(dateRange.from, "MMM dd, yyyy")
                   )
                 ) : (
-                  "Pick a date range"
+                  "Pick a date"
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-background" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 initialFocus
                 mode="range"
@@ -150,9 +188,7 @@ export function DocumentFilters({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
-            Search
-          </label>
+          <Label>Search</Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -160,27 +196,55 @@ export function DocumentFilters({
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 bg-background"
+              className="pl-10"
             />
           </div>
         </div>
       </div>
 
-      <div className="mt-4 flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={() => {
-            onCaseChange("all");
-            onTypeChange("all");
-            onStatusChange("all");
-            onSearchChange("");
-            onDateRangeChange({});
-          }}
-        >
+      {/* Toggle Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="sensitive-only"
+            checked={showSensitiveOnly}
+            onCheckedChange={onSensitiveOnlyChange}
+          />
+          <Label htmlFor="sensitive-only" className="cursor-pointer">
+            🔒 Show Only Sensitive Documents
+          </Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="awaiting-only"
+            checked={showAwaitingOnly}
+            onCheckedChange={onAwaitingOnlyChange}
+          />
+          <Label htmlFor="awaiting-only" className="cursor-pointer">
+            ⏳ Show Only Awaiting Review
+          </Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="my-uploads-only"
+            checked={showMyUploadsOnly}
+            onCheckedChange={onMyUploadsOnlyChange}
+          />
+          <Label htmlFor="my-uploads-only" className="cursor-pointer">
+            👤 Show Only Files Uploaded by Me
+          </Label>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-between items-center">
+        <Button variant="outline" onClick={handleClearFilters}>
+          <X className="w-4 h-4 mr-2" />
           Clear Filters
         </Button>
         <Button 
-          className="bg-[#b09837] text-black hover:bg-black hover:text-[#b09837] transition-colors font-medium"
+          className="bg-[#b09837] text-black hover:bg-black hover:text-[#b09837]"
           onClick={onUploadClick}
         >
           <Upload className="w-4 h-4 mr-2" />

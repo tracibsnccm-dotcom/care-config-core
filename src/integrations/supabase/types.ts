@@ -1033,51 +1033,110 @@ export type Database = {
           },
         ]
       }
+      document_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          document_id: string
+          id: string
+          metadata: Json | null
+          performed_by: string
+          performed_by_name: string | null
+          performed_by_role: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          document_id: string
+          id?: string
+          metadata?: Json | null
+          performed_by: string
+          performed_by_name?: string | null
+          performed_by_role?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          metadata?: Json | null
+          performed_by?: string
+          performed_by_name?: string | null
+          performed_by_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_activity_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
+          activity_log: Json | null
           case_id: string
+          category: string | null
           created_at: string | null
           document_type: string
           file_name: string
           file_path: string
           file_size: number | null
           id: string
+          is_sensitive: boolean | null
           metadata: Json | null
           mime_type: string | null
+          mirror_to_case_notes: boolean | null
+          note: string | null
           read_by: string[] | null
           requires_attention: boolean | null
+          shared_with: string[] | null
           status: string
           updated_at: string | null
           uploaded_by: string | null
         }
         Insert: {
+          activity_log?: Json | null
           case_id: string
+          category?: string | null
           created_at?: string | null
           document_type: string
           file_name: string
           file_path: string
           file_size?: number | null
           id?: string
+          is_sensitive?: boolean | null
           metadata?: Json | null
           mime_type?: string | null
+          mirror_to_case_notes?: boolean | null
+          note?: string | null
           read_by?: string[] | null
           requires_attention?: boolean | null
+          shared_with?: string[] | null
           status?: string
           updated_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
+          activity_log?: Json | null
           case_id?: string
+          category?: string | null
           created_at?: string | null
           document_type?: string
           file_name?: string
           file_path?: string
           file_size?: number | null
           id?: string
+          is_sensitive?: boolean | null
           metadata?: Json | null
           mime_type?: string | null
+          mirror_to_case_notes?: boolean | null
+          note?: string | null
           read_by?: string[] | null
           requires_attention?: boolean | null
+          shared_with?: string[] | null
           status?: string
           updated_at?: string | null
           uploaded_by?: string | null
@@ -2130,6 +2189,14 @@ export type Database = {
             }
             Returns: boolean
           }
+      log_document_activity: {
+        Args: {
+          p_action_type: string
+          p_document_id: string
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
       notify_roles: {
         Args: {
           notification_link?: string

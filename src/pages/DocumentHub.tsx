@@ -9,7 +9,7 @@ import { DocumentStats } from "@/components/documents/DocumentStats";
 import { DocumentFilters } from "@/components/documents/DocumentFilters";
 import { UrgentDocumentsSection } from "@/components/documents/UrgentDocumentsSection";
 import { DocumentTable } from "@/components/documents/DocumentTable";
-import { DocumentPreviewModal } from "@/components/documents/DocumentPreviewModal";
+import { DocumentPreviewDrawer } from "@/components/documents/DocumentPreviewDrawer";
 import { DocumentUploadModal } from "@/components/documents/DocumentUploadModal";
 
 interface Document {
@@ -24,6 +24,9 @@ interface Document {
   requires_attention: boolean;
   file_path: string;
   mime_type: string | null;
+  category?: string;
+  is_sensitive?: boolean;
+  note?: string;
 }
 
 export default function DocumentHub() {
@@ -35,8 +38,12 @@ export default function DocumentHub() {
   const [selectedCase, setSelectedCase] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
+  const [showAwaitingOnly, setShowAwaitingOnly] = useState(false);
+  const [showMyUploadsOnly, setShowMyUploadsOnly] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -45,6 +52,10 @@ export default function DocumentHub() {
     if (selectedCase !== "all" && doc.case_id !== selectedCase) return false;
     if (selectedType !== "all" && doc.document_type !== selectedType) return false;
     if (selectedStatus !== "all" && doc.status !== selectedStatus) return false;
+    if (selectedCategory !== "all" && doc.category !== selectedCategory) return false;
+    if (showSensitiveOnly && !doc.is_sensitive) return false;
+    if (showAwaitingOnly && doc.status !== "pending") return false;
+    if (showMyUploadsOnly && doc.uploaded_by !== currentUserId) return false;
     
     // Date range filter
     if (dateRange.from || dateRange.to) {
@@ -84,6 +95,7 @@ export default function DocumentHub() {
 
   const totalDocuments = documents.length;
   const awaitingReview = documents.filter(d => d.status === "pending").length;
+  const sensitiveFiles = documents.filter(d => d.is_sensitive).length;
   const lastUpdated = documents.length > 0 
     ? format(new Date(Math.max(...documents.map(d => new Date(d.created_at).getTime()))), "MMM dd, yyyy")
     : "N/A";
@@ -132,6 +144,7 @@ export default function DocumentHub() {
           <DocumentStats
             totalDocuments={totalDocuments}
             awaitingReview={awaitingReview}
+            sensitiveFiles={sensitiveFiles}
             lastUpdated={lastUpdated}
           />
         </div>
@@ -142,14 +155,22 @@ export default function DocumentHub() {
             selectedCase={selectedCase}
             selectedType={selectedType}
             selectedStatus={selectedStatus}
+            selectedCategory={selectedCategory}
             searchQuery={searchQuery}
             dateRange={dateRange}
+            showSensitiveOnly={showSensitiveOnly}
+            showAwaitingOnly={showAwaitingOnly}
+            showMyUploadsOnly={showMyUploadsOnly}
             cases={cases}
             onCaseChange={setSelectedCase}
             onTypeChange={setSelectedType}
             onStatusChange={setSelectedStatus}
+            onCategoryChange={setSelectedCategory}
             onSearchChange={setSearchQuery}
             onDateRangeChange={setDateRange}
+            onSensitiveOnlyChange={setShowSensitiveOnly}
+            onAwaitingOnlyChange={setShowAwaitingOnly}
+            onMyUploadsOnlyChange={setShowMyUploadsOnly}
             onUploadClick={() => setShowUploadModal(true)}
           />
         </div>
@@ -172,14 +193,17 @@ export default function DocumentHub() {
           onMarkAsRead={markAsRead}
           onPreview={(doc) => setPreviewDocument(doc)}
           getDocumentTypeColor={getDocumentTypeColor}
+          cases={cases}
+          onUpdate={refetch}
         />
       </div>
 
       {/* Modals */}
-      <DocumentPreviewModal
+      <DocumentPreviewDrawer
         document={previewDocument}
         isOpen={!!previewDocument}
         onClose={() => setPreviewDocument(null)}
+        onUpdate={refetch}
       />
       
       <DocumentUploadModal

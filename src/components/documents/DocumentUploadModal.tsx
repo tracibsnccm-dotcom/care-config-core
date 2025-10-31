@@ -39,8 +39,10 @@ export function DocumentUploadModal({
   const [selectedCase, setSelectedCase] = useState("");
   const [documentType, setDocumentType] = useState("");
   const [customDocumentType, setCustomDocumentType] = useState("");
+  const [category, setCategory] = useState("Other");
   const [note, setNote] = useState("");
   const [requiresAttention, setRequiresAttention] = useState(false);
+  const [mirrorToCase, setMirrorToCase] = useState(true);
   const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,17 +90,20 @@ export function DocumentUploadModal({
         file_name: selectedFile.name,
         file_path: filePath,
         document_type: finalDocType,
+        category: category,
         file_size: selectedFile.size,
         mime_type: selectedFile.type,
         uploaded_by: user.data.user?.id,
         requires_attention: requiresAttention,
+        mirror_to_case_notes: mirrorToCase,
+        note: note.trim() || null,
         status: 'pending',
       }).select().single();
 
       if (dbError) throw dbError;
 
-      // Create case note if note text is provided
-      if (note.trim() && docData) {
+      // Create case note if note text is provided and mirroring is enabled
+      if (note.trim() && docData && mirrorToCase) {
         await supabase.from("case_notes").insert({
           case_id: selectedCase,
           note_text: `📎 Document added: ${selectedFile.name}\n${note}`,
@@ -131,8 +136,10 @@ export function DocumentUploadModal({
     setSelectedCase("");
     setDocumentType("");
     setCustomDocumentType("");
+    setCategory("Other");
     setNote("");
     setRequiresAttention(false);
+    setMirrorToCase(true);
     onClose();
   };
 
@@ -236,32 +243,61 @@ export function DocumentUploadModal({
           )}
 
           <div>
-            <Label htmlFor="doc-note">Note (mirrored to case)</Label>
+            <Label htmlFor="doc-category">Category *</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="doc-category" className="mt-2">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Medical">⚕️ Medical</SelectItem>
+                <SelectItem value="Legal">⚖️ Legal</SelectItem>
+                <SelectItem value="Financial">💰 Financial</SelectItem>
+                <SelectItem value="Communication">💬 Communication</SelectItem>
+                <SelectItem value="Other">📋 Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="doc-note">Note (optional)</Label>
             <Textarea
               id="doc-note"
-              placeholder="Add context for this document. This will also appear in the case notes."
+              placeholder="Add context for this document..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               className="mt-2"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Optional: This note will be added to the case notes and linked to this document.
-            </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="requires-attention"
-              checked={requiresAttention}
-              onCheckedChange={(checked) => setRequiresAttention(checked as boolean)}
-            />
-            <Label
-              htmlFor="requires-attention"
-              className="text-sm font-normal cursor-pointer"
-            >
-              Mark as requiring immediate attention
-            </Label>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="mirror-to-case"
+                checked={mirrorToCase}
+                onCheckedChange={(checked) => setMirrorToCase(checked as boolean)}
+              />
+              <Label
+                htmlFor="mirror-to-case"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Mirror note to case notes (recommended)
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="requires-attention"
+                checked={requiresAttention}
+                onCheckedChange={(checked) => setRequiresAttention(checked as boolean)}
+              />
+              <Label
+                htmlFor="requires-attention"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Mark as requiring immediate attention
+              </Label>
+            </div>
           </div>
         </div>
 
