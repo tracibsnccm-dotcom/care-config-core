@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,8 +36,35 @@ export function IntakeWelcome({
   const [caraStyle, setCaraStyle] = useState("simple");
   const [caraAnswer, setCaraAnswer] = useState("");
   const [isLoadingCara, setIsLoadingCara] = useState(false);
+  const [countdownText, setCountdownText] = useState("⏳ You can return within 7 days — progress saves automatically.");
 
   const VIDEO_URL = "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&autoplay=1";
+
+  // 7-day countdown timer
+  useEffect(() => {
+    const updateCountdown = () => {
+      const savedExpiry = localStorage.getItem('rcms_expiry_iso');
+      if (!savedExpiry) {
+        setCountdownText("⏳ You can return within 7 days — progress saves automatically.");
+        return;
+      }
+
+      const ms = new Date(savedExpiry).getTime() - new Date().getTime();
+      if (ms <= 0) {
+        setCountdownText("⚠️ This intake has expired. Please start a new one.");
+        return;
+      }
+
+      const days = Math.floor(ms / 86400000);
+      const hrs = Math.floor((ms % 86400000) / 3600000);
+      setCountdownText(`⏳ You can return within ${days} days ${hrs} hours — progress saves automatically.`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 3600000); // refresh hourly
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCaraExplain = async () => {
     if (!caraQuestion.trim()) {
@@ -77,6 +104,12 @@ export function IntakeWelcome({
           <p className="rcms-welcome__body">
             You can <strong>pause anytime</strong> and come back within <strong>7 days</strong> to finish. Your progress saves automatically, and all information is kept private and secure.
           </p>
+          
+          {/* 7-Day countdown note */}
+          <p className="rcms-expiry-note">
+            {countdownText}
+          </p>
+
           <div className="rcms-welcome__assist">
             <div className="cara-inline-help">
               <span className="cara-dot"></span>
@@ -247,6 +280,18 @@ export function IntakeWelcome({
         .cara-btn:hover {
           background: #0a1f4d;
           border-color: #0a1f4d;
+        }
+
+        /* Expiry countdown */
+        .rcms-expiry-note {
+          font-size: 0.9rem;
+          color: #0f2a6a;
+          font-weight: 700;
+          background: #fdf8e1;
+          border-left: 4px solid #b09837;
+          padding: 6px 10px;
+          margin: 8px 0 12px;
+          border-radius: 6px;
         }
       `}</style>
 
