@@ -34,6 +34,7 @@ import {
 import { format } from "date-fns";
 import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/auth/supabaseAuth";
 
 interface Document {
   id: string;
@@ -43,60 +44,96 @@ interface Document {
   uploadedBy: string;
   type: "Clinical Report" | "Legal Filing" | "Client Form" | "Provider Note";
   status: "pending" | "reviewed" | "archived";
+  readBy: string[]; // user IDs who have read this document
+  requiresImmediateAttention: boolean;
 }
 
 // Mock data - in production, this would come from the database
 const mockDocuments: Document[] = [
   {
     id: "1",
-    dateUploaded: new Date("2024-01-15"),
+    dateUploaded: new Date("2025-10-31T14:30:00"),
+    fileName: "urgent_medical_update.pdf",
+    caseId: "CASE-2024-007",
+    uploadedBy: "Dr. Johnson (Provider)",
+    type: "Clinical Report",
+    status: "pending",
+    readBy: [],
+    requiresImmediateAttention: true,
+  },
+  {
+    id: "2",
+    dateUploaded: new Date("2025-10-31T10:15:00"),
+    fileName: "critical_legal_filing.pdf",
+    caseId: "CASE-2024-008",
+    uploadedBy: "Lisa Chen (Attorney)",
+    type: "Legal Filing",
+    status: "pending",
+    readBy: [],
+    requiresImmediateAttention: true,
+  },
+  {
+    id: "3",
+    dateUploaded: new Date("2025-10-30T16:45:00"),
+    fileName: "new_consent_form.pdf",
+    caseId: "CASE-2024-002",
+    uploadedBy: "Client Portal",
+    type: "Client Form",
+    status: "pending",
+    readBy: [],
+    requiresImmediateAttention: false,
+  },
+  {
+    id: "4",
+    dateUploaded: new Date("2025-10-29T09:20:00"),
     fileName: "medical_records_summary.pdf",
     caseId: "CASE-2024-001",
     uploadedBy: "Maria Garcia (RN-CCM)",
     type: "Clinical Report",
     status: "reviewed",
+    readBy: ["user-123"],
+    requiresImmediateAttention: false,
   },
   {
-    id: "2",
-    dateUploaded: new Date("2024-01-14"),
+    id: "5",
+    dateUploaded: new Date("2025-10-28T11:30:00"),
     fileName: "discovery_motion.pdf",
     caseId: "CASE-2024-003",
     uploadedBy: "Lisa Chen (Attorney)",
     type: "Legal Filing",
     status: "pending",
+    readBy: [],
+    requiresImmediateAttention: false,
   },
   {
-    id: "3",
-    dateUploaded: new Date("2024-01-13"),
-    fileName: "consent_form_signed.pdf",
-    caseId: "CASE-2024-002",
-    uploadedBy: "Client Portal",
-    type: "Client Form",
-    status: "reviewed",
-  },
-  {
-    id: "4",
-    dateUploaded: new Date("2024-01-12"),
+    id: "6",
+    dateUploaded: new Date("2025-10-27T14:00:00"),
     fileName: "provider_visit_notes.pdf",
     caseId: "CASE-2024-005",
     uploadedBy: "Dr. Smith (Provider)",
     type: "Provider Note",
     status: "pending",
+    readBy: [],
+    requiresImmediateAttention: false,
   },
   {
-    id: "5",
-    dateUploaded: new Date("2024-01-10"),
+    id: "7",
+    dateUploaded: new Date("2025-10-26T10:00:00"),
     fileName: "settlement_analysis.pdf",
     caseId: "CASE-2024-003",
     uploadedBy: "Lisa Chen (Attorney)",
     type: "Clinical Report",
     status: "reviewed",
+    readBy: ["user-123"],
+    requiresImmediateAttention: false,
   },
 ];
 
 export default function DocumentHub() {
   const { cases } = useApp();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const currentUserId = user?.id || "user-123"; // Fallback for demo
   
   const [documents, setDocuments] = useState<Document[]>(mockDocuments);
   const [selectedCase, setSelectedCase] = useState<string>("all");
@@ -120,8 +157,22 @@ export default function DocumentHub() {
     return true;
   });
 
-  // Sort documents
-  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+  // Separate urgent documents that need immediate attention
+  const urgentDocuments = filteredDocuments.filter(
+    doc => doc.requiresImmediateAttention && !doc.readBy.includes(currentUserId)
+  );
+  
+  // Regular documents (excluding urgent unread ones)
+  const regularDocuments = filteredDocuments.filter(
+    doc => !doc.requiresImmediateAttention || doc.readBy.includes(currentUserId)
+  );
+
+  // Sort documents by date (latest first by default)
+  const sortedUrgent = [...urgentDocuments].sort((a, b) => 
+    b.dateUploaded.getTime() - a.dateUploaded.getTime()
+  );
+  
+  const sortedDocuments = [...regularDocuments].sort((a, b) => {
     const aVal = a[sortColumn];
     const bVal = b[sortColumn];
     
@@ -145,6 +196,15 @@ export default function DocumentHub() {
       setSortColumn(column);
       setSortDirection("asc");
     }
+  };
+
+  const markAsRead = (docId: string) => {
+    setDocuments(prev => prev.map(doc => {
+      if (doc.id === docId && !doc.readBy.includes(currentUserId)) {
+        return { ...doc, readBy: [...doc.readBy, currentUserId] };
+      }
+      return doc;
+    }));
   };
 
   const totalDocuments = documents.length;
@@ -285,8 +345,98 @@ export default function DocumentHub() {
           </div>
         </Card>
 
-        {/* Documents Table */}
+        {/* Awaiting Review Section - Urgent Files */}
+        {sortedUrgent.length > 0 && (
+          <Card className="border-orange-500/50 mb-6 bg-orange-50/50 dark:bg-orange-950/20">
+            <div className="p-4 border-b border-orange-500/20">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-600 animate-pulse" />
+                <h3 className="font-bold text-orange-900 dark:text-orange-100">
+                  Awaiting Review - Requires Immediate Attention
+                </h3>
+                <Badge className="bg-orange-600 text-white ml-2">
+                  {sortedUrgent.length}
+                </Badge>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-border">
+                    <TableHead className="font-semibold">Date & Time</TableHead>
+                    <TableHead className="font-semibold">File Name</TableHead>
+                    <TableHead className="font-semibold">Case ID</TableHead>
+                    <TableHead className="font-semibold">Uploaded By</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedUrgent.map((doc) => (
+                    <TableRow
+                      key={doc.id}
+                      className="animate-pulse-orange hover:bg-orange-100 dark:hover:bg-orange-950/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        markAsRead(doc.id);
+                        navigate(`/cases/${doc.caseId}`);
+                      }}
+                    >
+                      <TableCell className="font-medium">
+                        {format(doc.dateUploaded, "MMM dd, yyyy HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-orange-600" />
+                          <span className="truncate max-w-xs font-semibold text-orange-900 dark:text-orange-100">
+                            {doc.fileName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm">{doc.caseId}</span>
+                      </TableCell>
+                      <TableCell className="text-sm">{doc.uploadedBy}</TableCell>
+                      <TableCell>
+                        <Badge className={getDocumentTypeColor(doc.type)}>
+                          {doc.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-[#128f8b] hover:text-[#128f8b] hover:bg-[#128f8b]/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(doc.id);
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-[#0f2a6a] hover:text-[#0f2a6a] hover:bg-[#0f2a6a]/10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
+
+        {/* Regular Documents Table */}
         <Card className="border-border">
+          <div className="p-4 border-b border-border">
+            <h3 className="font-bold text-foreground">All Documents</h3>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -295,7 +445,7 @@ export default function DocumentHub() {
                     className="cursor-pointer select-none font-semibold"
                     onClick={() => handleSort("dateUploaded")}
                   >
-                    Date Uploaded {sortColumn === "dateUploaded" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Date & Time {sortColumn === "dateUploaded" && (sortDirection === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead 
                     className="cursor-pointer select-none font-semibold"
@@ -334,75 +484,96 @@ export default function DocumentHub() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedDocuments.map((doc) => (
-                    <TableRow
-                      key={doc.id}
-                      className="hover:bg-[#faf4d6] transition-colors cursor-pointer"
-                      onClick={() => navigate(`/cases/${doc.caseId}`)}
-                    >
-                      <TableCell className="font-medium">
-                        {format(doc.dateUploaded, "MMM dd, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span className="truncate max-w-xs">{doc.fileName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{doc.caseId}</span>
-                      </TableCell>
-                      <TableCell className="text-sm">{doc.uploadedBy}</TableCell>
-                      <TableCell>
-                        <Badge className={getDocumentTypeColor(doc.type)}>
-                          {doc.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[#128f8b] hover:text-[#128f8b] hover:bg-[#128f8b]/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Handle view
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[#0f2a6a] hover:text-[#0f2a6a] hover:bg-[#0f2a6a]/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Handle download
-                            }}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[#b09837] hover:text-[#b09837] hover:bg-[#b09837]/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Handle request update
-                            }}
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  sortedDocuments.map((doc) => {
+                    const isUnread = !doc.readBy.includes(currentUserId);
+                    return (
+                      <TableRow
+                        key={doc.id}
+                        className={`transition-colors cursor-pointer ${
+                          isUnread 
+                            ? 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => {
+                          markAsRead(doc.id);
+                          navigate(`/cases/${doc.caseId}`);
+                        }}
+                      >
+                        <TableCell className="font-medium">
+                          {format(doc.dateUploaded, "MMM dd, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileText className={`w-4 h-4 ${isUnread ? 'text-yellow-600' : 'text-muted-foreground'}`} />
+                            <span className={`truncate max-w-xs ${isUnread ? 'font-semibold' : ''}`}>
+                              {doc.fileName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{doc.caseId}</span>
+                        </TableCell>
+                        <TableCell className="text-sm">{doc.uploadedBy}</TableCell>
+                        <TableCell>
+                          <Badge className={getDocumentTypeColor(doc.type)}>
+                            {doc.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#128f8b] hover:text-[#128f8b] hover:bg-[#128f8b]/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(doc.id);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#0f2a6a] hover:text-[#0f2a6a] hover:bg-[#0f2a6a]/10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#b09837] hover:text-[#b09837] hover:bg-[#b09837]/10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
         </Card>
       </div>
+      
+      <style>{`
+        @keyframes pulse-orange {
+          0%, 100% {
+            background-color: rgba(251, 146, 60, 0.1);
+          }
+          50% {
+            background-color: rgba(251, 146, 60, 0.3);
+          }
+        }
+        
+        .animate-pulse-orange {
+          animation: pulse-orange 2s ease-in-out infinite;
+        }
+      `}</style>
     </AppLayout>
   );
 }
