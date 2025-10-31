@@ -57,10 +57,14 @@ export function DocumentActionsMenu({
 
       if (error) throw error;
 
-      // Log activity
-      await supabase.rpc("log_document_activity", {
-        p_document_id: documentId,
-        p_action_type: isSensitive ? "unmarked_sensitive" : "marked_sensitive",
+      // Log activity to activity log
+      const user = await supabase.auth.getUser();
+      await supabase.from("document_activity_log").insert({
+        document_id: documentId,
+        action_type: isSensitive ? "unmarked_sensitive" : "marked_sensitive",
+        performed_by: user.data.user?.id,
+        performed_by_role: "ATTORNEY",
+        metadata: { previous_sensitive: isSensitive }
       });
 
       toast({
@@ -102,11 +106,14 @@ export function DocumentActionsMenu({
 
       if (error) throw error;
 
-      // Log activity
-      await supabase.rpc("log_document_activity", {
-        p_document_id: documentId,
-        p_action_type: "filed_to_case",
-        p_metadata: { from_case: caseId, to_case: selectedCase },
+      // Log activity to activity log
+      const user = await supabase.auth.getUser();
+      await supabase.from("document_activity_log").insert({
+        document_id: documentId,
+        action_type: "filed_to_case",
+        performed_by: user.data.user?.id,
+        performed_by_role: "ATTORNEY",
+        metadata: { previous_case: caseId, new_case: selectedCase }
       });
 
       toast({
@@ -148,11 +155,14 @@ export function DocumentActionsMenu({
 
         if (error) throw error;
 
-        // Log activity
-        await supabase.rpc("log_document_activity", {
-          p_document_id: documentId,
-          p_action_type: "shared",
-          p_metadata: { shared_with_count: rnIds.length },
+        // Log activity to activity log
+        const user = await supabase.auth.getUser();
+        await supabase.from("document_activity_log").insert({
+          document_id: documentId,
+          action_type: "shared_with_rn",
+          performed_by: user.data.user?.id,
+          performed_by_role: "ATTORNEY",
+          metadata: { shared_with_count: rnIds.length }
         });
 
         // Send notifications to RN CMs
@@ -209,10 +219,14 @@ export function DocumentActionsMenu({
 
       if (error) throw error;
 
-      // Log activity
-      await supabase.rpc("log_document_activity", {
-        p_document_id: documentId,
-        p_action_type: "report_requested",
+      // Log activity to activity log
+      const taskUser = await supabase.auth.getUser();
+      await supabase.from("document_activity_log").insert({
+        document_id: documentId,
+        action_type: "clinical_report_requested",
+        performed_by: taskUser.data.user?.id,
+        performed_by_role: "ATTORNEY",
+        metadata: { case_id: caseId }
       });
 
       toast({

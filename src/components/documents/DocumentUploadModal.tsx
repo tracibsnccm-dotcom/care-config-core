@@ -45,6 +45,14 @@ export function DocumentUploadModal({
   const [mirrorToCase, setMirrorToCase] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  // Generate structured filename: CASE-{caseId}_{date}_{docType}
+  const buildFileName = (caseId: string, docType: string, originalName: string) => {
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const base = (docType || originalName.replace(/\.[^.]+$/, '')).replace(/\s+/g, '_').slice(0, 40);
+    return `CASE-${caseId}_${dateStr}_${base}`.replace(/[^A-Za-z0-9_\-\.]/g, '');
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -75,7 +83,11 @@ export function DocumentUploadModal({
     try {
       const user = await supabase.auth.getUser();
       const finalDocType = documentType === "Other" ? customDocumentType : documentType;
-      const filePath = `${selectedCase}/${Date.now()}_${selectedFile.name}`;
+      
+      // Generate structured filename
+      const fileExt = selectedFile.name.split('.').pop();
+      const structuredName = buildFileName(selectedCase, finalDocType, selectedFile.name);
+      const filePath = `${selectedCase}/${structuredName}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage

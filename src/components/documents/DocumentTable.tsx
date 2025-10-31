@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -20,9 +21,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { FileText, Eye, Download, Shield } from "lucide-react";
+import { FileText, Eye, Download, Shield, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { DocumentActionsMenu } from "./DocumentActionsMenu";
+import { InlineNoteEditor } from "./InlineNoteEditor";
 
 interface Document {
   id: string;
@@ -66,6 +68,19 @@ export function DocumentTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<keyof Document>("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [documentNotes, setDocumentNotes] = useState<Record<string, string>>({});
+
+  const handleNoteClick = (e: React.MouseEvent, docId: string) => {
+    e.stopPropagation();
+    setEditingNoteId(docId);
+  };
+
+  const handleNoteSave = (docId: string, newNote: string) => {
+    setDocumentNotes({ ...documentNotes, [docId]: newNote });
+    setEditingNoteId(null);
+    onUpdate();
+  };
 
   const handleSort = (column: keyof Document) => {
     if (sortColumn === column) {
@@ -195,17 +210,19 @@ export function DocumentTable({
                 paginatedDocuments.map((doc) => {
                   const isUnread = !doc.read_by.includes(currentUserId);
                   const isUrgentPending = doc.status === "pending" && isUnread;
+                  const isSensitive = doc.is_sensitive;
+                  
                   return (
                     <TableRow
                       key={doc.id}
-                      className={`transition-colors cursor-pointer ${
-                        isUrgentPending
-                          ? 'bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/30 animate-pulse' 
-                          : isUnread 
-                          ? 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => onPreview(doc)}
+                      className={cn(
+                        "transition-colors cursor-pointer",
+                        isUrgentPending && 'bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/30 animate-pulse',
+                        isSensitive && 'bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-600',
+                        !isUrgentPending && !isSensitive && isUnread && 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30',
+                        !isUrgentPending && !isSensitive && !isUnread && 'hover:bg-muted/50'
+                      )}
+                      onClick={() => editingNoteId !== doc.id && onPreview(doc)}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -218,22 +235,26 @@ export function DocumentTable({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <FileText className={`w-4 h-4 ${
-                            isUrgentPending 
-                              ? 'text-orange-600 animate-pulse' 
-                              : isUnread 
-                              ? 'text-yellow-600' 
-                              : 'text-muted-foreground'
-                          }`} />
-                          <span className={`truncate max-w-xs ${
-                            isUrgentPending 
-                              ? 'font-bold text-orange-900 dark:text-orange-100' 
-                              : isUnread 
-                              ? 'font-semibold' 
-                              : ''
-                          }`}>
+                          <FileText className={cn(
+                            "w-4 h-4",
+                            isUrgentPending && 'text-orange-600 animate-pulse',
+                            isSensitive && !isUrgentPending && 'text-red-600',
+                            !isUrgentPending && !isSensitive && isUnread && 'text-yellow-600',
+                            !isUrgentPending && !isSensitive && !isUnread && 'text-muted-foreground'
+                          )} />
+                          <span className={cn(
+                            "truncate max-w-xs",
+                            isUrgentPending && 'font-bold text-orange-900 dark:text-orange-100',
+                            isSensitive && !isUrgentPending && 'font-semibold text-red-900 dark:text-red-100',
+                            !isUrgentPending && !isSensitive && isUnread && 'font-semibold'
+                          )}>
                             {doc.file_name}
                           </span>
+                          {isSensitive && (
+                            <Badge variant="destructive" className="text-xs animate-pulse">
+                              Sensitive
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -248,30 +269,39 @@ export function DocumentTable({
                       <TableCell>
                         <Badge variant="outline">{doc.category}</Badge>
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm">
-                        {doc.note || <span className="text-muted-foreground">No note</span>}
+                      <TableCell onClick={(e) => e.stopPropagation()} className="max-w-xs">
+                        {editingNoteId === doc.id ? (
+                          <InlineNoteEditor
+                            documentId={doc.id}
+                            caseId={doc.case_id}
+                            initialNote={documentNotes[doc.id] || doc.note || ""}
+                            onSave={(newNote) => handleNoteSave(doc.id, newNote)}
+                            onCancel={() => setEditingNoteId(null)}
+                          />
+                        ) : (
+                          <div 
+                            className="flex items-center gap-2 group cursor-pointer"
+                            onClick={(e) => handleNoteClick(e, doc.id)}
+                          >
+                            <span className="text-sm truncate">
+                              {documentNotes[doc.id] || doc.note || <span className="text-muted-foreground">Add note...</span>}
+                            </span>
+                            <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {doc.is_sensitive && (
-                            <Badge variant="destructive" className="animate-pulse">
-                              <Shield className="w-3 h-3 mr-1" />
-                              Sensitive
-                            </Badge>
+                        <Badge 
+                          variant={doc.status === "reviewed" ? "default" : "outline"}
+                          className={cn(
+                            doc.status === "reviewed" && "bg-green-500 text-white",
+                            isUrgentPending && "bg-orange-500 text-white animate-pulse",
+                            isSensitive && !isUrgentPending && "bg-red-500 text-white animate-pulse",
+                            !doc.status && !isUrgentPending && !isSensitive && "bg-amber-100 text-amber-800 border-amber-300"
                           )}
-                          <Badge 
-                            variant={doc.status === "reviewed" ? "default" : "outline"}
-                            className={
-                              doc.status === "reviewed" 
-                                ? "bg-green-500 text-white" 
-                                : isUrgentPending
-                                ? "bg-orange-500 text-white animate-pulse"
-                                : "bg-amber-100 text-amber-800 border-amber-300"
-                            }
-                          >
-                            {doc.status}
-                          </Badge>
-                        </div>
+                        >
+                          {doc.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
