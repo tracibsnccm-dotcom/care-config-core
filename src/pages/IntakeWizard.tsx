@@ -31,6 +31,7 @@ import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
+import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -54,6 +55,9 @@ export default function IntakeWizard() {
     gender: "prefer_not_to_say",
     state: "TX",
   });
+
+  const [attorneyCode, setAttorneyCode] = useState("");
+  const [clientType, setClientType] = useState<ClientType>('I');
 
   const [consent, setConsent] = useState<Consent>({
     signed: false,
@@ -92,8 +96,20 @@ export default function IntakeWizard() {
     }));
   };
 
-  function submit() {
+  async function submit() {
     const masked = maskName(client.fullName || "");
+    
+    // Generate client ID
+    const clientIdResult = await ClientIdService.generateClientId({
+      attorneyCode: clientType !== 'I' ? attorneyCode : undefined,
+      type: clientType
+    });
+    
+    if (!clientIdResult.success) {
+      alert(`Error generating client ID: ${clientIdResult.error}`);
+      return;
+    }
+    
     const newCase: Case = {
       id: "C-" + Math.random().toString(36).slice(2, 7).toUpperCase(),
       firmId: "firm-001",
@@ -122,7 +138,7 @@ export default function IntakeWizard() {
     // Schedule client reminders via Supabase edge function
     scheduleClientReminders(undefined, newCase as any);
     
-    alert(`Case ${newCase.id} created. Status: ${newCase.status}`);
+    alert(`Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Status: ${newCase.status}`);
     navigate("/cases");
   }
 
@@ -170,6 +186,26 @@ export default function IntakeWizard() {
               setStep={setStep}
               labels={["Consent", "Incident", "Treatment", "Medical Info", "4Ps + SDOH", "Review"]}
             />
+            
+            {/* Client Type & Attorney Code */}
+            <Card className="p-4 border-border mt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <LabeledSelect
+                  label="Intake Type"
+                  value={clientType}
+                  onChange={(v) => setClientType(v as ClientType)}
+                  options={['I', 'D', 'R']}
+                />
+                {clientType !== 'I' && (
+                  <LabeledInput
+                    label="Attorney Code"
+                    value={attorneyCode}
+                    onChange={setAttorneyCode}
+                    placeholder="e.g., SMI, JON"
+                  />
+                )}
+              </div>
+            </Card>
 
             {/* Progress Bar */}
             <div className="mt-4">

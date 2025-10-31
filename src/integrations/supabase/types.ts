@@ -568,9 +568,13 @@ export type Database = {
       }
       cases: {
         Row: {
+          attorney_code: string | null
           atty_ref: string | null
           client_label: string | null
+          client_number: string | null
+          client_type: string | null
           consent: Json | null
+          converted_at: string | null
           created_at: string | null
           created_by: string | null
           documentation: Json | null
@@ -580,6 +584,7 @@ export type Database = {
           incident: Json | null
           last_pain_diary_at: string | null
           odg_benchmarks: Json | null
+          original_intake_id: string | null
           pain_diary_count_30d: number | null
           provider_routed: boolean | null
           sdoh: Json | null
@@ -588,9 +593,13 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          attorney_code?: string | null
           atty_ref?: string | null
           client_label?: string | null
+          client_number?: string | null
+          client_type?: string | null
           consent?: Json | null
+          converted_at?: string | null
           created_at?: string | null
           created_by?: string | null
           documentation?: Json | null
@@ -600,6 +609,7 @@ export type Database = {
           incident?: Json | null
           last_pain_diary_at?: string | null
           odg_benchmarks?: Json | null
+          original_intake_id?: string | null
           pain_diary_count_30d?: number | null
           provider_routed?: boolean | null
           sdoh?: Json | null
@@ -608,9 +618,13 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          attorney_code?: string | null
           atty_ref?: string | null
           client_label?: string | null
+          client_number?: string | null
+          client_type?: string | null
           consent?: Json | null
+          converted_at?: string | null
           created_at?: string | null
           created_by?: string | null
           documentation?: Json | null
@@ -620,6 +634,7 @@ export type Database = {
           incident?: Json | null
           last_pain_diary_at?: string | null
           odg_benchmarks?: Json | null
+          original_intake_id?: string | null
           pain_diary_count_30d?: number | null
           provider_routed?: boolean | null
           sdoh?: Json | null
@@ -2141,11 +2156,19 @@ export type Database = {
         Args: { p_case_id: string; p_reviewed_by: string }
         Returns: string
       }
+      convert_to_attorney_case: {
+        Args: { p_attorney_code: string; p_internal_case_id: string }
+        Returns: Json
+      }
       decline_assignment_offer: {
         Args: { p_note?: string; p_offer_id: string; p_reason: string }
         Returns: Json
       }
       expire_assignment_offers: { Args: never; Returns: undefined }
+      generate_client_id: {
+        Args: { p_attorney_code: string; p_client_type: string }
+        Returns: string
+      }
       get_checkin_trends: {
         Args: {
           p_case_id: string
@@ -2173,6 +2196,10 @@ export type Database = {
           id: string
           policy_version: string
         }[]
+      }
+      get_next_client_number: {
+        Args: { p_attorney_code: string; p_client_type: string }
+        Returns: number
       }
       get_next_round_robin_attorney: { Args: never; Returns: string }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
