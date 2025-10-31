@@ -2,89 +2,100 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PotentialDuplicate {
   id: string;
-  client_number: string | null;
-  client_type: string | null;
-  status: string | null;
+  client_number?: string;
+  status?: string;
   created_at: string;
   matchReason: string;
 }
 
+/**
+ * Service to detect potential duplicate clients during intake
+ */
 export class DuplicateDetectionService {
   /**
-   * Find potential duplicate clients based on email and name
-   * Only checks COMPLETED and CONVERTED cases to avoid false positives with abandoned intakes
+   * Find potential duplicate clients based on email, phone, and name
    */
   static async findPotentialDuplicates(
-    email: string,
-    firstName: string,
-    lastName: string
-  ): Promise<{ success: boolean; duplicates?: PotentialDuplicate[]; error?: string }> {
+    email?: string,
+    phone?: string,
+    firstName?: string,
+    lastName?: string
+  ): Promise<{ success: boolean; matches?: PotentialDuplicate[]; error?: string }> {
     try {
-      // Query for potential matches
+      if (!email && !phone && (!firstName || !lastName)) {
+        return { success: true, matches: [] };
+      }
+
+      // Query for potential matches in completed or converted cases
       const { data: cases, error } = await supabase
         .from('cases')
-        .select('id, client_number, client_type, status, created_at, consent')
-        .or(`consent->>email.eq.${email.toLowerCase()}`)
-        .in('status', ['COMPLETED', 'Converted to Attorney']);
+        .select('id, client_number, status, created_at, consent')
+        .in('status', ['COMPLETED', 'Converted to Attorney'])
+        .limit(10);
 
       if (error) {
         console.error('Error finding duplicates:', error);
         return { success: false, error: error.message };
       }
 
-      if (!cases || cases.length === 0) {
-        return { success: true, duplicates: [] };
-      }
+      // Filter matches based on criteria
+      const matches: PotentialDuplicate[] = [];
+      
+      cases?.forEach(caseData => {
+        const consent = caseData.consent as any;
+        let matchReason = '';
 
-      // Check for name matches (case-insensitive)
-      const duplicates: PotentialDuplicate[] = cases
-        .map(c => {
-          const consent = c.consent as any;
-          const caseEmail = consent?.email?.toLowerCase();
-          const caseFirstName = consent?.firstName?.toLowerCase();
-          const caseLastName = consent?.lastName?.toLowerCase();
+        if (email && consent?.email?.toLowerCase() === email.toLowerCase()) {
+          matchReason = 'Same email address';
+        } else if (
+          firstName && lastName &&
+          consent?.firstName?.toLowerCase() === firstName.toLowerCase() &&
+          consent?.lastName?.toLowerCase() === lastName.toLowerCase()
+        ) {
+          matchReason = 'Same first and last name';
+        }
 
-          let matchReason = '';
-          if (caseEmail === email.toLowerCase()) {
-            matchReason = 'Email match';
-          }
-          if (
-            caseFirstName === firstName.toLowerCase() &&
-            caseLastName === lastName.toLowerCase()
-          ) {
-            matchReason = matchReason ? `${matchReason}, Name match` : 'Name match';
-          }
+        if (matchReason) {
+          matches.push({
+            id: caseData.id,
+            client_number: caseData.client_number || undefined,
+            status: caseData.status || undefined,
+            created_at: caseData.created_at || '',
+            matchReason
+          });
+        }
+      });
 
-          if (matchReason) {
-            return {
-              id: c.id,
-              client_number: c.client_number,
-              client_type: c.client_type,
-              status: c.status,
-              created_at: c.created_at,
-              matchReason,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean) as PotentialDuplicate[];
-
-      return { success: true, duplicates };
+      return { success: true, matches };
     } catch (error) {
-      console.error('Exception in duplicate detection:', error);
+      console.error('Exception finding duplicates:', error);
       return { success: false, error: 'Failed to check for duplicates' };
     }
   }
 
   /**
-   * Check if a client should be flagged as a potential duplicate before submission
+   * Check for duplicates before creating a new intake
    */
-  static async shouldWarnDuplicate(
-    email: string,
-    firstName: string,
-    lastName: string
-  ): Promise<boolean> {
-    const result = await this.findPotentialDuplicates(email, firstName, lastName);
-    return result.success && (result.duplicates?.length || 0) > 0;
+  static async checkBeforeIntake(formData: {
+    email?: string;
+    phone?: string;
+    firstName?: string;
+    lastName?: string;
+  }): Promise<{ hasDuplicates: boolean; matches?: PotentialDuplicate[] }> {
+    const result = await this.findPotentialDuplicates(
+      formData.email,
+      formData.phone,
+      formData.firstName,
+      formData.lastName
+    );
+
+    if (!result.success) {
+      return { hasDuplicates: false };
+    }
+
+    return {
+      hasDuplicates: (result.matches?.length || 0) > 0,
+      matches: result.matches
+    };
   }
 }

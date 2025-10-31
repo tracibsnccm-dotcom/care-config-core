@@ -5,22 +5,26 @@ export interface AttorneySLA {
   attorney_code: string;
   response_time_hours: number;
   auto_accept: boolean;
-  fee_amount: number | null;
+  fee_amount?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
+/**
+ * Service for managing attorney service level agreements
+ */
 export class AttorneySLAService {
   /**
    * Get SLA configuration for an attorney
    */
-  static async getSLA(attorneyCode: string): Promise<{ success: boolean; sla?: AttorneySLA; error?: string }> {
+  static async getAttorneySLA(attorneyCode: string): Promise<{ success: boolean; sla?: AttorneySLA; error?: string }> {
     try {
       const { data, error } = await supabase
         .from('attorney_sla')
         .select('*')
         .eq('attorney_code', attorneyCode.toUpperCase())
+        .eq('is_active', true)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -28,28 +32,30 @@ export class AttorneySLAService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, sla: data || undefined };
+      return { success: true, sla: (data as any) || undefined };
     } catch (error) {
       console.error('Exception fetching attorney SLA:', error);
-      return { success: false, error: 'Failed to fetch attorney SLA' };
+      return { success: false, error: 'Failed to fetch SLA' };
     }
   }
 
   /**
-   * Create or update attorney SLA configuration
+   * Create or update attorney SLA
    */
-  static async upsertSLA(sla: Partial<AttorneySLA> & { attorney_code: string }): Promise<{ success: boolean; error?: string }> {
+  static async upsertAttorneySLA(sla: Partial<AttorneySLA>): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
         .from('attorney_sla')
         .upsert({
-          attorney_code: sla.attorney_code.toUpperCase(),
+          attorney_code: sla.attorney_code?.toUpperCase(),
           response_time_hours: sla.response_time_hours || 24,
           auto_accept: sla.auto_accept || false,
           fee_amount: sla.fee_amount,
           is_active: sla.is_active !== undefined ? sla.is_active : true,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'attorney_code' });
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'attorney_code'
+        });
 
       if (error) {
         console.error('Error upserting attorney SLA:', error);
@@ -59,24 +65,29 @@ export class AttorneySLAService {
       return { success: true };
     } catch (error) {
       console.error('Exception upserting attorney SLA:', error);
-      return { success: false, error: 'Failed to save attorney SLA' };
+      return { success: false, error: 'Failed to save SLA' };
     }
   }
 
   /**
-   * Check if an assignment offer has expired based on SLA
+   * Check if assignment offer has expired (default 24 hours)
    */
-  static async isOfferExpired(attorneyCode: string, offeredAt: Date): Promise<boolean> {
-    const result = await this.getSLA(attorneyCode);
-    
-    if (!result.success || !result.sla) {
-      // Default to 24 hours if no SLA found
-      const hoursSinceOffer = (Date.now() - offeredAt.getTime()) / (1000 * 60 * 60);
-      return hoursSinceOffer > 24;
-    }
+  static async isOfferExpired(offerId: string): Promise<boolean> {
+    try {
+      const { data: offer } = await supabase
+        .from('assignment_offers')
+        .select('offered_at, expires_at')
+        .eq('id', offerId)
+        .single();
 
-    const hoursSinceOffer = (Date.now() - offeredAt.getTime()) / (1000 * 60 * 60);
-    return hoursSinceOffer > result.sla.response_time_hours;
+      if (!offer) return true;
+
+      const expiryTime = new Date(offer.expires_at);
+      return new Date() > expiryTime;
+    } catch (error) {
+      console.error('Exception checking offer expiry:', error);
+      return false;
+    }
   }
 
   /**
@@ -88,17 +99,17 @@ export class AttorneySLAService {
         .from('attorney_sla')
         .select('*')
         .eq('is_active', true)
-        .order('attorney_code', { ascending: true });
+        .order('attorney_code');
 
       if (error) {
-        console.error('Error fetching attorney SLAs:', error);
+        console.error('Error fetching SLAs:', error);
         return { success: false, error: error.message };
       }
 
-      return { success: true, slas: data || [] };
+      return { success: true, slas: (data as any) || [] };
     } catch (error) {
-      console.error('Exception fetching attorney SLAs:', error);
-      return { success: false, error: 'Failed to fetch attorney SLAs' };
+      console.error('Exception fetching SLAs:', error);
+      return { success: false, error: 'Failed to fetch SLAs' };
     }
   }
 }
