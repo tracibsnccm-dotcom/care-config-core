@@ -11,6 +11,7 @@ import { ClientJournal } from "@/components/ClientJournal";
 import { MotivationWidget } from "@/components/MotivationWidget";
 import { SupportFooter } from "@/components/SupportFooter";
 import { IntakeReminderBanner } from "@/components/IntakeReminderBanner";
+import { AttorneyNudgeBanner } from "@/components/AttorneyNudgeBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ export default function ClientPortal() {
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
           {/* Intake Reminder Banner */}
+          <AttorneyNudgeBanner />
           <IntakeReminderBanner />
           
           {/* Wellness Snapshot */}
