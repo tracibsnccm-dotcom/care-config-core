@@ -36,6 +36,7 @@ export function DocumentUploadModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCase, setSelectedCase] = useState("");
   const [documentType, setDocumentType] = useState("");
+  const [customDocumentType, setCustomDocumentType] = useState("");
   const [requiresAttention, setRequiresAttention] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -50,6 +51,15 @@ export function DocumentUploadModal({
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (documentType === "Other" && !customDocumentType.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please specify the document type",
         variant: "destructive",
       });
       return;
@@ -84,6 +94,7 @@ export function DocumentUploadModal({
     setSelectedFile(null);
     setSelectedCase("");
     setDocumentType("");
+    setCustomDocumentType("");
     setRequiresAttention(false);
     onClose();
   };
@@ -164,9 +175,28 @@ export function DocumentUploadModal({
                 <SelectItem value="Legal Filing">Legal Filing</SelectItem>
                 <SelectItem value="Client Form">Client Form</SelectItem>
                 <SelectItem value="Provider Note">Provider Note</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {documentType === "Other" && (
+            <div>
+              <Label htmlFor="custom-type">Specify Document Type *</Label>
+              <Input
+                id="custom-type"
+                type="text"
+                placeholder="Enter custom document type (e.g., Insurance Form, Medical Record)"
+                value={customDocumentType}
+                onChange={(e) => setCustomDocumentType(e.target.value)}
+                maxLength={100}
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {customDocumentType.length}/100 characters
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -189,7 +219,13 @@ export function DocumentUploadModal({
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={!selectedFile || !selectedCase || !documentType || uploading}
+            disabled={
+              !selectedFile || 
+              !selectedCase || 
+              !documentType || 
+              (documentType === "Other" && !customDocumentType.trim()) ||
+              uploading
+            }
             className="bg-[#b09837] text-black hover:bg-black hover:text-[#b09837]"
           >
             {uploading ? (

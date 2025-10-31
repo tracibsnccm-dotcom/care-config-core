@@ -88,6 +88,7 @@ export function DocumentFilters({
               <SelectItem value="Legal Filing">Legal Filing</SelectItem>
               <SelectItem value="Client Form">Client Form</SelectItem>
               <SelectItem value="Provider Note">Provider Note</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
