@@ -101,10 +101,34 @@ export function CaraAssistant({ journalText, onApply }: CaraAssistantProps) {
       <div className="border-2 border-[hsl(var(--primary))] rounded-xl p-4 bg-card shadow-sm mb-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <div className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--primary))] animate-pulse" />
             <strong className="text-foreground font-extrabold">CARA</strong>
             <span className="text-muted-foreground font-semibold">— Your Care Reflection Assistant</span>
+            <span 
+              className="inline-flex justify-center items-center w-[18px] h-[18px] rounded-full bg-[hsl(var(--accent))] text-accent-foreground font-extrabold text-[0.75rem] cursor-help ml-1.5 relative group"
+              tabIndex={0}
+              aria-label="Privacy Info"
+            >
+              ?
+              <div 
+                className="absolute left-0 top-[140%] bg-card border border-[hsl(var(--accent))] rounded-lg shadow-lg p-3 max-w-[270px] z-20 hidden group-hover:block group-focus:block"
+                role="tooltip"
+              >
+                <p className="text-sm text-foreground mb-2 leading-snug">
+                  <strong>Privacy Notice:</strong><br />
+                  CARA is HIPAA-aligned and keeps your writing private and encrypted. Entries you edit or create stay only in your case file — never used for AI training. You can change or delete any suggestion before saving.
+                </p>
+                <a 
+                  href="/hipaa-notice" 
+                  target="_blank" 
+                  rel="noopener"
+                  className="text-[hsl(var(--primary))] font-bold text-sm underline hover:opacity-80"
+                >
+                  View full HIPAA policy
+                </a>
+              </div>
+            </span>
           </div>
           <small className="text-muted-foreground text-xs">
             You're always in control. Review edits before saving.
