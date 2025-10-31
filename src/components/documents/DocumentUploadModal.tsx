@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -37,6 +39,7 @@ export function DocumentUploadModal({
   const [selectedCase, setSelectedCase] = useState("");
   const [documentType, setDocumentType] = useState("");
   const [customDocumentType, setCustomDocumentType] = useState("");
+  const [note, setNote] = useState("");
   const [requiresAttention, setRequiresAttention] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -68,9 +71,41 @@ export function DocumentUploadModal({
     setUploading(true);
     
     try {
-      // TODO: Implement actual file upload to Supabase Storage
-      // For now, just show success message
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const user = await supabase.auth.getUser();
+      const finalDocType = documentType === "Other" ? customDocumentType : documentType;
+      const filePath = `${selectedCase}/${Date.now()}_${selectedFile.name}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Create document record
+      const { data: docData, error: dbError } = await supabase.from("documents").insert({
+        case_id: selectedCase,
+        file_name: selectedFile.name,
+        file_path: filePath,
+        document_type: finalDocType,
+        file_size: selectedFile.size,
+        mime_type: selectedFile.type,
+        uploaded_by: user.data.user?.id,
+        requires_attention: requiresAttention,
+        status: 'pending',
+      }).select().single();
+
+      if (dbError) throw dbError;
+
+      // Create case note if note text is provided
+      if (note.trim() && docData) {
+        await supabase.from("case_notes").insert({
+          case_id: selectedCase,
+          note_text: `📎 Document added: ${selectedFile.name}\n${note}`,
+          created_by: user.data.user?.id,
+          visibility: 'private'
+        });
+      }
       
       toast({
         title: "Upload Successful",
@@ -80,6 +115,7 @@ export function DocumentUploadModal({
       onUploadComplete();
       handleClose();
     } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: "There was an error uploading your file",
@@ -95,6 +131,7 @@ export function DocumentUploadModal({
     setSelectedCase("");
     setDocumentType("");
     setCustomDocumentType("");
+    setNote("");
     setRequiresAttention(false);
     onClose();
   };
@@ -197,6 +234,21 @@ export function DocumentUploadModal({
               </p>
             </div>
           )}
+
+          <div>
+            <Label htmlFor="doc-note">Note (mirrored to case)</Label>
+            <Textarea
+              id="doc-note"
+              placeholder="Add context for this document. This will also appear in the case notes."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional: This note will be added to the case notes and linked to this document.
+            </p>
+          </div>
 
           <div className="flex items-center space-x-2">
             <Checkbox
