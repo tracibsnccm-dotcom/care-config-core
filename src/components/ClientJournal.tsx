@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookText, Plus, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CaraAssistant } from "./CaraAssistant";
 
 interface JournalEntry {
   id: string;
@@ -73,12 +74,19 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
     return date.toLocaleDateString() + " at " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleCaraApply = (text: string, isAIAssisted: boolean) => {
+    setNewEntry(text);
+  };
+
   return (
     <Card className="p-6 border-primary/20">
       <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-6">
         <BookText className="w-5 h-5 text-primary" />
         Personal Journal
       </h2>
+
+      {/* CARA Assistant */}
+      <CaraAssistant journalText={newEntry} onApply={handleCaraApply} />
 
       {/* New Entry Form */}
       <div className="mb-6">
