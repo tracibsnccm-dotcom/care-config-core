@@ -21,7 +21,10 @@ import { ProviderContactRequestForm } from "@/components/RNClinicalLiaison/Provi
 import { ActivityTimeline } from "@/components/RNClinicalLiaison/ActivityTimeline";
 import { MetricsDashboard } from "@/components/RNClinicalLiaison/MetricsDashboard";
 import { ClinicalOverview } from "@/components/RNClinicalLiaison/ClinicalOverview";
+import { ClinicalAlertsPanel } from "@/components/RNClinicalLiaison/ClinicalAlertsPanel";
+import { useUserPresence } from "@/hooks/useUserPresence";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function RNClinicalLiaison() {
   const { user } = useAuth();
@@ -30,6 +33,9 @@ export default function RNClinicalLiaison() {
   const [caseDetails, setCaseDetails] = useState<any>(null);
   const [rnCmInfo, setRnCmInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Track RN CM presence
+  const { isTargetOnline, lastSeen } = useUserPresence(rnCmInfo?.user_id);
 
   // Fetch attorney's cases
   useEffect(() => {
@@ -369,18 +375,46 @@ export default function RNClinicalLiaison() {
 
               <Separator />
 
-              {/* Assigned RN CM */}
+              {/* Assigned RN CM with Presence */}
               <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#128f8b10" }}>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: "#128f8b" }}>
-                  <UserCircle className="w-5 h-5" style={{ color: "#ffffff" }} />
+                <div className="relative">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: "#128f8b" }}>
+                    <UserCircle className="w-5 h-5" style={{ color: "#ffffff" }} />
+                  </div>
+                  {/* Online Status Indicator */}
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
+                    style={{
+                      backgroundColor: isTargetOnline ? "#22c55e" : "#94a3b8",
+                    }}
+                    title={isTargetOnline ? "Online" : "Offline"}
+                  />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Assigned RN CM</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">Assigned RN CM</p>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs px-1.5 py-0"
+                      style={{
+                        backgroundColor: isTargetOnline ? "#22c55e20" : "#94a3b820",
+                        color: isTargetOnline ? "#22c55e" : "#94a3b8",
+                        border: "none",
+                      }}
+                    >
+                      {isTargetOnline ? "Online" : "Offline"}
+                    </Badge>
+                  </div>
                   <p className="font-semibold text-foreground">
                     {rnCmInfo?.display_name || rnCmInfo?.full_name || "M. Garcia, RN, CCM"}
                   </p>
                   {rnCmInfo && (
                     <p className="text-xs text-muted-foreground">{rnCmInfo.email}</p>
+                  )}
+                  {!isTargetOnline && lastSeen && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Last seen: {format(new Date(lastSeen), "MMM d, h:mm a")}
+                    </p>
                   )}
                 </div>
               </div>
@@ -426,7 +460,9 @@ export default function RNClinicalLiaison() {
         {selectedCaseId ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content Area */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Clinical Alerts Panel */}
+              <ClinicalAlertsPanel caseId={selectedCaseId} />
               <Tabs defaultValue="messages" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="messages" className="flex items-center gap-2">

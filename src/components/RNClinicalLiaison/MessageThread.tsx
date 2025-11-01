@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "sonner";
-import { Star, Send, Paperclip, Upload, Tag } from "lucide-react";
+import { Star, Send, Paperclip, Upload, Tag, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMessageDraft } from "@/hooks/useMessageDraft";
@@ -35,6 +35,15 @@ const MESSAGE_TAGS = [
   { id: "urgent", label: "Urgent", color: "#e74c3c" },
 ];
 
+const QUICK_REPLIES = [
+  { id: "request_pt_notes", text: "Please provide the most recent PT notes for review." },
+  { id: "request_narrative", text: "Could you prepare a clinical narrative report for this case?" },
+  { id: "schedule_review", text: "Let's schedule a case review meeting. What times work for you?" },
+  { id: "mri_follow_up", text: "Has the patient completed the MRI? Please share results when available." },
+  { id: "treatment_update", text: "Can you provide an update on the current treatment plan and progress?" },
+  { id: "ime_prep", text: "IME is scheduled. Please prepare a summary of treatment history and current status." },
+];
+
 interface MessageThreadProps {
   caseId: string;
 }
@@ -45,9 +54,15 @@ export function MessageThread({ caseId }: MessageThreadProps) {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedTag, setSelectedTag] = useState("general");
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { draft, updateDraft, clearDraft, saveNow } = useMessageDraft(`rn-liaison-${caseId}`, caseId);
+
+  const handleQuickReply = (text: string) => {
+    updateDraft(text);
+    setShowQuickReplies(false);
+  };
 
   // Fetch messages
   const fetchMessages = async () => {
@@ -294,11 +309,50 @@ export function MessageThread({ caseId }: MessageThreadProps) {
 
       {/* Message Input */}
       <div className="p-4 border-t bg-card">
+        {/* Quick Replies Dropdown */}
+        {showQuickReplies && (
+          <div className="mb-3 p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">Quick Replies</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowQuickReplies(false)}
+                className="h-6 px-2"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {QUICK_REPLIES.map((reply) => (
+                <button
+                  key={reply.id}
+                  onClick={() => handleQuickReply(reply.text)}
+                  className="w-full text-left p-2 rounded hover:bg-muted text-xs text-foreground transition-colors"
+                >
+                  {reply.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Message Tag Selector */}
         <div className="mb-3">
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-            Message Category
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Message Category
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowQuickReplies(!showQuickReplies)}
+              className="h-7 text-xs"
+              style={{ borderColor: RCMS.brandTeal, color: RCMS.brandTeal }}
+            >
+              Quick Replies
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {MESSAGE_TAGS.map((tag) => (
               <Button
