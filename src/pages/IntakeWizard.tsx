@@ -27,7 +27,7 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check, Save, HelpCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, Check, Save, HelpCircle, ArrowRight, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskName } from "@/lib/access";
@@ -645,6 +645,22 @@ export default function IntakeWizard() {
             <h3 className="text-lg font-semibold text-foreground mb-4">
               Optional 4Ps & SDOH
             </h3>
+            
+            {/* Scoring Directions */}
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2 mb-6">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                How to Score the 4Ps & SDOH
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Each category measures <strong>distress or impairment</strong>, not wellness:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 pl-4">
+                <li>• <strong>Higher scores (8-10)</strong> = greater concern / worse status</li>
+                <li>• <strong>Lower scores (1-3)</strong> = better or stable functioning</li>
+              </ul>
+            </div>
+
             <TooltipProvider>
               <div className="grid gap-6 sm:grid-cols-2 mb-6">
                 {(["physical", "psychological", "psychosocial", "professional"] as const).map(
