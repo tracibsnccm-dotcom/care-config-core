@@ -27,7 +27,7 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check, Save, HelpCircle } from "lucide-react";
+import { AlertCircle, Check, Save, HelpCircle, ArrowRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskName } from "@/lib/access";
@@ -390,13 +390,14 @@ export default function IntakeWizard() {
 
             <div className="flex flex-wrap gap-3 mb-6">
               <Button
-                onClick={() =>
+                onClick={() => {
                   setConsent((c) => ({
                     ...c,
                     signed: true,
                     signedAt: new Date().toISOString(),
-                  }))
-                }
+                  }));
+                  setStep(1);
+                }}
               >
                 <Check className="w-4 h-4 mr-2" />
                 Agree & Continue
@@ -458,6 +459,16 @@ export default function IntakeWizard() {
                 <AlertDescription>Incident type & date are required.</AlertDescription>
               </Alert>
             )}
+            <div className="mt-6">
+              <Button 
+                onClick={() => setStep(2)}
+                disabled={!requiredIncidentOk}
+                className="w-full sm:w-auto"
+              >
+                Continue to Medical History
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -506,6 +517,22 @@ export default function IntakeWizard() {
               onFilesUploaded={(files) => setUploadedFiles(prev => [...prev, ...files])}
               draftId={draftId || undefined}
             />
+            
+            <div className="mt-6">
+              <Button 
+                onClick={() => setStep(3)}
+                disabled={hasMeds === ''}
+                className="w-full sm:w-auto"
+              >
+                Continue to Mental Health
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              {hasMeds === '' && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Please answer the medication question to continue
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -599,6 +626,16 @@ export default function IntakeWizard() {
                 </Label>
               </div>
             </div>
+            
+            <div className="mt-6">
+              <Button 
+                onClick={() => setStep(4)}
+                className="w-full sm:w-auto"
+              >
+                Continue to 4Ps & SDOH
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -668,6 +705,16 @@ export default function IntakeWizard() {
                   </Label>
                 </div>
               ))}
+            </div>
+            
+            <div className="mt-6">
+              <Button 
+                onClick={() => setStep(5)}
+                className="w-full sm:w-auto"
+              >
+                Continue to Review
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </Card>
         )}
