@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { mode, text, lang, tone } = await req.json();
+    const { mode, type, text, lang, tone, style } = await req.json();
     
     if (!text?.trim()) {
       return new Response(
@@ -25,20 +25,26 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build system prompt based on mode
+    // Build system prompt based on mode or type
+    const requestMode = mode || type;
+    const requestStyle = style || tone || 'simple';
     let systemPrompt = "";
-    switch (mode) {
+    
+    switch (requestMode) {
+      case "explain":
+        systemPrompt = `You are CARA, a Care Reflection Assistant helping people understand their intake forms. Explain the following question or term in a ${requestStyle} and clear way. Keep your explanation brief (2-3 sentences) and helpful for someone filling out a medical/legal intake form.`;
+        break;
       case "rewrite":
-        systemPrompt = `You are CARA, a Care Reflection Assistant. Rewrite the user's journal entry to be clear, simple, and easy to understand. Keep the same meaning but make it more concise and well-structured. Maintain a ${tone} tone.`;
+        systemPrompt = `You are CARA, a Care Reflection Assistant. Rewrite the user's journal entry to be clear, simple, and easy to understand. Keep the same meaning but make it more concise and well-structured. Maintain a ${requestStyle} tone.`;
         break;
       case "expressive":
-        systemPrompt = `You are CARA, a Care Reflection Assistant. Transform the user's journal entry to be more expressive and emotionally supportive. Help them articulate their feelings and experiences more deeply. Use a ${tone} tone that validates their experience.`;
+        systemPrompt = `You are CARA, a Care Reflection Assistant. Transform the user's journal entry to be more expressive and emotionally supportive. Help them articulate their feelings and experiences more deeply. Use a ${requestStyle} tone that validates their experience.`;
         break;
       case "translate":
         systemPrompt = `You are CARA, a Care Reflection Assistant. Translate the following text to English. Preserve the emotional tone and meaning. If already in English, improve clarity while keeping the same message.`;
         break;
       default:
-        systemPrompt = `You are CARA, a helpful Care Reflection Assistant. Help improve the user's journal entry with a ${tone} tone.`;
+        systemPrompt = `You are CARA, a helpful Care Reflection Assistant. Help improve the user's journal entry with a ${requestStyle} tone.`;
     }
 
     // Add language instruction if specified
@@ -87,7 +93,7 @@ Deno.serve(async (req) => {
     const suggestion = data.choices?.[0]?.message?.content || "";
 
     return new Response(
-      JSON.stringify({ suggestion }),
+      JSON.stringify({ suggestion, answer: suggestion }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

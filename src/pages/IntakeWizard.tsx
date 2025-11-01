@@ -32,6 +32,8 @@ import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
+import { IntakeSaveBar } from "@/components/IntakeSaveBar";
+import { CaraFloatingButton } from "@/components/CaraFloatingButton";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -161,8 +163,21 @@ export default function IntakeWizard() {
 
   const progressPercent = useIntakePercent(intakeMeta);
 
+  const formData = useMemo(() => ({
+    client,
+    consent,
+    intake,
+    fourPs,
+    sdoh,
+    medsBlock,
+    sensitiveTag,
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag]);
+
   return (
     <AppLayout>
+      {!showWelcome && (
+        <IntakeSaveBar formData={formData} onSaveExit={() => navigate('/dashboard')} />
+      )}
       <div className="p-8 max-w-5xl mx-auto">
         {showWelcome ? (
           <IntakeWelcome
@@ -511,6 +526,7 @@ export default function IntakeWizard() {
           </>
         )}
       </div>
+      <CaraFloatingButton />
     </AppLayout>
   );
 }
