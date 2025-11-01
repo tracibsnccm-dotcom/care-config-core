@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 interface IntakeStatus {
   intake_complete: boolean;
@@ -70,11 +71,18 @@ export const AttorneyNudgeBanner = () => {
     window.location.href = resumeUrl;
   };
 
+  const handleTalkWithCara = () => {
+    const caraModal = document.getElementById('cara-intake-modal');
+    if (caraModal) {
+      caraModal.setAttribute('aria-hidden', 'false');
+    }
+  };
+
   if (!visible) return null;
 
   return (
     <div 
-      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-blue-50 border-l-4 border-primary rounded-lg p-3 mb-3 shadow-sm animate-in slide-in-from-top-2"
+      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-primary rounded-lg p-3 mb-3 shadow-sm animate-in slide-in-from-top-2"
       role="region"
       aria-live="polite"
       aria-label="Intake reminder"
@@ -89,11 +97,14 @@ export const AttorneyNudgeBanner = () => {
         </div>
       </div>
       <div className="flex gap-2 items-center flex-wrap">
-        <Button onClick={handleResume} size="sm" className="font-bold">
+        <Button onClick={handleResume} size="sm">
           Resume Intake
         </Button>
-        <Button onClick={handleDismiss} variant="ghost" size="icon" aria-label="Dismiss reminder">
-          ×
+        <Button onClick={handleTalkWithCara} variant="outline" size="sm">
+          Talk with CARA
+        </Button>
+        <Button onClick={handleDismiss} variant="ghost" size="sm">
+          Dismiss
         </Button>
       </div>
     </div>
