@@ -657,7 +657,7 @@ export default function IntakeWizard() {
         {/* Step 4: 4Ps & SDOH */}
         {step === 4 && (
           <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
               Optional 4Ps & SDOH
             </h3>
             
