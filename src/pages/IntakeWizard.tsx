@@ -93,10 +93,10 @@ export default function IntakeWizard() {
   });
 
   const [fourPs, setFourPs] = useState<FourPs>({
-    physical: 50,
-    psychological: 50,
-    psychosocial: 50,
-    professional: 50,
+    physical: 0,
+    psychological: 0,
+    psychosocial: 0,
+    professional: 0,
   });
 
   const [sdoh, setSdoh] = useState<SDOH>({
@@ -181,7 +181,7 @@ export default function IntakeWizard() {
       consent: consent.signed,
     },
     optional: {
-      fourPs: fourPs.physical !== 50 || fourPs.psychological !== 50 || fourPs.psychosocial !== 50 || fourPs.professional !== 50,
+      fourPs: fourPs.physical !== 0 || fourPs.psychological !== 0 || fourPs.psychosocial !== 0 || fourPs.professional !== 0,
       sdoh: sdoh.housing || sdoh.food || sdoh.transport || sdoh.insuranceGap,
     },
   }), [intake, consent, fourPs, sdoh]);
@@ -216,6 +216,21 @@ export default function IntakeWizard() {
     timeoutMs: 15 * 60 * 1000, // 15 minutes
   });
 
+  // Normalize legacy 0-100 fourPs values to 0-4 scale
+  const normalizeFourPs = (fp: FourPs): FourPs => {
+    const to04 = (v: number) => {
+      if (v <= 4) return Math.max(0, Math.min(4, Math.round(v)));
+      // Legacy 0-100 -> map to 0-4
+      return Math.max(0, Math.min(4, Math.round(v / 25)));
+    };
+    return {
+      physical: to04(fp.physical as number),
+      psychological: to04(fp.psychological as number),
+      psychosocial: to04(fp.psychosocial as number),
+      professional: to04(fp.professional as number),
+    };
+  };
+
   // Load draft on mount
   useEffect(() => {
     async function loadSavedDraft() {
@@ -225,7 +240,7 @@ export default function IntakeWizard() {
         if (data.client) setClient(data.client);
         if (data.consent) setConsent(data.consent);
         if (data.intake) setIntake(data.intake);
-        if (data.fourPs) setFourPs(data.fourPs);
+        if (data.fourPs) setFourPs(normalizeFourPs(data.fourPs));
         if (data.sdoh) setSdoh(data.sdoh);
         if (data.medsBlock) setMedsBlock(data.medsBlock);
         if (data.medications) setMedications(data.medications);
