@@ -649,25 +649,32 @@ export default function IntakeWizard() {
               <div className="grid gap-6 sm:grid-cols-2 mb-6">
                 {(["physical", "psychological", "psychosocial", "professional"] as const).map(
                   (k) => {
+                    const labels = {
+                      physical: "Physical (pain, fatigue, sleep, mobility)",
+                      psychological: "Psychological (mood, focus, stress, coping)",
+                      psychosocial: "Psychosocial (relationships, finances, transportation, support)",
+                      professional: "Professional (job, school, or home-based role)"
+                    };
+                    
                     const tooltips = {
-                      physical: "Physical health impact and functioning - Rate your current physical condition and ability to perform daily activities",
-                      psychological: "Mental and emotional wellbeing - Rate your current mental health, mood, and emotional state",
-                      psychosocial: "Social relationships and support systems - Rate your social connections, family support, and community involvement",
-                      professional: "Work/career impact and employment status - Rate your ability to work and career satisfaction"
+                      physical: "Physical relates to your body's comfort and energy level — pain, fatigue, sleep quality, and mobility.",
+                      psychological: "Psychological reflects your emotional and mental wellbeing — your mood, focus, stress level, and coping ability.",
+                      psychosocial: "Psychosocial covers your social and environmental stability — relationships, finances, transportation, and support systems.",
+                      professional: "Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. It reflects satisfaction, stress, workload, and burnout risk in that environment."
                     };
                     
                     return (
                       <div key={k}>
                         <div className="flex items-center gap-2 mb-2">
-                          <Label className="text-sm font-medium capitalize">
-                            {k}: {fourPs[k]}
+                          <Label className="text-sm font-medium">
+                            {labels[k]}: {fourPs[k]}
                           </Label>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                              <p>{tooltips[k]}</p>
+                              <p className="text-sm">{tooltips[k]}</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
