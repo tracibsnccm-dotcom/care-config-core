@@ -1446,6 +1446,86 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_drafts: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          expires_at: string
+          form_data: Json
+          id: string
+          step: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          expires_at?: string
+          form_data?: Json
+          id?: string
+          step?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          expires_at?: string
+          form_data?: Json
+          id?: string
+          step?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      intake_uploads: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          intake_draft_id: string | null
+          mime_type: string
+          upload_status: string
+          uploaded_by: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          intake_draft_id?: string | null
+          mime_type: string
+          upload_status?: string
+          uploaded_by: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          intake_draft_id?: string | null
+          mime_type?: string
+          upload_status?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_uploads_intake_draft_id_fkey"
+            columns: ["intake_draft_id"]
+            isOneToOne: false
+            referencedRelation: "intake_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intakes: {
         Row: {
           case_id: string
@@ -1501,6 +1581,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      medications_reference: {
+        Row: {
+          created_at: string
+          form: string | null
+          generic_name: string | null
+          id: string
+          name: string
+          search_text: string | null
+          strength: string | null
+        }
+        Insert: {
+          created_at?: string
+          form?: string | null
+          generic_name?: string | null
+          id?: string
+          name: string
+          search_text?: string | null
+          strength?: string | null
+        }
+        Update: {
+          created_at?: string
+          form?: string | null
+          generic_name?: string | null
+          id?: string
+          name?: string
+          search_text?: string | null
+          strength?: string | null
+        }
+        Relationships: []
       }
       message_drafts: {
         Row: {

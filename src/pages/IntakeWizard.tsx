@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/Stepper";
 import { WizardNav } from "@/components/WizardNav";
@@ -12,6 +12,8 @@ import { RestrictedBanner } from "@/components/RestrictedBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import {
@@ -25,7 +27,7 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle, Check, Save } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
@@ -35,14 +37,34 @@ import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
 import { CaraFloatingButton } from "@/components/CaraFloatingButton";
 import { CaraGate } from "@/components/CaraGate";
+import { useAutosave } from "@/hooks/useAutosave";
+import { useInactivityDetection } from "@/hooks/useInactivityDetection";
+import { MedicationAutocomplete } from "@/components/MedicationAutocomplete";
+import { FileUploadZone } from "@/components/FileUploadZone";
+import { InactivityModal } from "@/components/InactivityModal";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
   const { setCases, log } = useApp();
+  const { toast } = useToast();
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
   const [sensitiveTag, setSensitiveTag] = useState(false);
   const [showCaraModal, setShowCaraModal] = useState(false);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [hasMeds, setHasMeds] = useState<string>('');
+  
+  // Mental health screening
+  const [mentalHealth, setMentalHealth] = useState({
+    depression: '',
+    selfHarm: '',
+    anxiety: '',
+    wantHelp: false,
+  });
 
   const [intake, setIntake] = useState<Intake>({
     incidentType: "MVA",
@@ -173,7 +195,90 @@ export default function IntakeWizard() {
     sdoh,
     medsBlock,
     sensitiveTag,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag]);
+    medications,
+    uploadedFiles,
+    mentalHealth,
+    hasMeds,
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, uploadedFiles, mentalHealth, hasMeds]);
+
+  // Autosave functionality
+  const { loadDraft, deleteDraft, saveNow } = useAutosave({
+    formData,
+    step,
+    enabled: !showWelcome,
+    debounceMs: 3000,
+  });
+
+  // Inactivity detection
+  const { isInactive, dismissInactivity } = useInactivityDetection({
+    enabled: !showWelcome,
+    timeoutMs: 15 * 60 * 1000, // 15 minutes
+  });
+
+  // Load draft on mount
+  useEffect(() => {
+    async function loadSavedDraft() {
+      const draft = await loadDraft();
+      if (draft && draft.formData) {
+        const data = draft.formData as any;
+        if (data.client) setClient(data.client);
+        if (data.consent) setConsent(data.consent);
+        if (data.intake) setIntake(data.intake);
+        if (data.fourPs) setFourPs(data.fourPs);
+        if (data.sdoh) setSdoh(data.sdoh);
+        if (data.medsBlock) setMedsBlock(data.medsBlock);
+        if (data.medications) setMedications(data.medications);
+        if (data.mentalHealth) setMentalHealth(data.mentalHealth);
+        if (data.hasMeds) setHasMeds(data.hasMeds);
+        if (typeof data.sensitiveTag === 'boolean') setSensitiveTag(data.sensitiveTag);
+        if (typeof data.step === 'number') setStep(data.step);
+        
+        toast({
+          title: "Draft Loaded",
+          description: `Resuming from ${new Date(draft.updatedAt).toLocaleString()}`,
+        });
+      }
+    }
+    loadSavedDraft();
+  }, []);
+
+  // Monitor mental health responses for risk flagging
+  useEffect(() => {
+    if (mentalHealth.selfHarm === 'yes' || mentalHealth.selfHarm === 'unsure') {
+      // Create urgent task for RN follow-up
+      const flagRisk = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Create alert in database
+          const { error } = await supabase.from('case_alerts').insert({
+            case_id: null, // Will be associated when case is created
+            alert_type: 'mental_health_crisis',
+            severity: 'high',
+            message: 'Client indicated potential self-harm during intake. Immediate RN follow-up required.',
+            created_by: user.id,
+            disclosure_scope: 'internal',
+            metadata: {
+              response: mentalHealth.selfHarm,
+              consent_attorney: consent.scope.shareWithAttorney,
+            },
+          });
+
+          if (error) throw error;
+
+          toast({
+            title: "Response Flagged",
+            description: "Your response has been flagged for immediate RN Care Manager attention. If you're in danger, call 911 or 988 now.",
+            variant: "destructive",
+          });
+        } catch (error) {
+          console.error('Failed to flag risk:', error);
+        }
+      };
+      flagRisk();
+    }
+  }, [mentalHealth.selfHarm]);
 
   return (
     <AppLayout>
@@ -203,7 +308,7 @@ export default function IntakeWizard() {
             <Stepper
               step={step}
               setStep={setStep}
-              labels={["Consent", "Incident", "Treatment", "Medical Info", "4Ps + SDOH", "Review"]}
+              labels={["Consent", "Incident", "Medical", "Mental Health", "4Ps + SDOH", "Review"]}
             />
             
             {/* Client Type & Attorney Code */}
@@ -355,67 +460,144 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        {/* Step 2: Injuries & Severity */}
+        {/* Step 2: Medical History */}
         {step === 2 && (
-          <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Injuries & Severity</h3>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {["Head injury", "Back pain", "Whiplash", "Concussion", "Laceration"].map(
-                (chip) => (
-                  <Chip
-                    key={chip}
-                    active={intake.injuries.includes(chip)}
-                    onClick={() => addOrRemoveInjury(chip)}
-                    label={chip}
-                  />
-                )
+          <div className="space-y-6">
+            <Card className="p-6 border-border">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                Medical History & Medications
+              </h3>
+              
+              <div className="mb-6">
+                <Label className="mb-3 block">Do you currently take any medications?</Label>
+                <RadioGroup value={hasMeds} onValueChange={setHasMeds}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="meds-yes" />
+                    <Label htmlFor="meds-yes" className="cursor-pointer">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="meds-no" />
+                    <Label htmlFor="meds-no" className="cursor-pointer">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="unsure" id="meds-unsure" />
+                    <Label htmlFor="meds-unsure" className="cursor-pointer">I'm not sure</Label>
+                  </div>
+                </RadioGroup>
+                {hasMeds === 'unsure' && (
+                  <Alert className="mt-3">
+                    <AlertDescription>
+                      No problem! You can add what you remember or upload a photo of your medication bottles later.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {hasMeds === 'yes' && (
+                <MedicationAutocomplete 
+                  medications={medications}
+                  onMedicationsChange={setMedications}
+                />
               )}
-            </div>
+            </Card>
 
-            <LabeledInput
-              className="mb-6"
-              label="Other injuries (comma-separated)"
-              placeholder="e.g., shoulder strain, knee pain"
-              value=""
-              onChange={(v) => {
-                const parts = v
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                setIntake((prev) => ({
-                  ...prev,
-                  injuries: Array.from(new Set([...prev.injuries, ...parts])),
-                }));
-              }}
+            <FileUploadZone
+              onFilesUploaded={(files) => setUploadedFiles(prev => [...prev, ...files])}
+              draftId={draftId || undefined}
             />
-
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Self-reported severity: {intake.severitySelfScore}/10
-              </Label>
-              <Slider
-                value={[intake.severitySelfScore]}
-                onValueChange={([value]) =>
-                  setIntake((x) => ({
-                    ...x,
-                    severitySelfScore: value as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
-                  }))
-                }
-                max={10}
-                step={1}
-                className="w-full"
-              />
-            </div>
-          </Card>
+          </div>
         )}
 
-        {/* Step 3: Medical Info (Conditions, Medications, Allergies) */}
+        {/* Step 3: Mental Health & Well-Being */}
         {step === 3 && (
           <Card className="p-6 border-border">
-            <IntakeMedConditionsSection
-              initial={medsBlock}
-              onValidChange={setMedsBlock}
-            />
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Mental Health & Well-Being Check-In
+            </h3>
+            
+            {(mentalHealth.selfHarm === 'yes' || mentalHealth.selfHarm === 'unsure') && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>We've flagged your response for immediate RN Care Manager attention.</strong>
+                  <br />
+                  If you're in danger, please call <strong>911</strong> or <strong>988</strong> (Suicide & Crisis Lifeline) now.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-6">
+              <div>
+                <Label className="mb-3 block">
+                  In the past 2 weeks, have you felt down, depressed, or hopeless?
+                </Label>
+                <RadioGroup value={mentalHealth.depression} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, depression: v }))}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="dep-yes" />
+                    <Label htmlFor="dep-yes" className="cursor-pointer">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="dep-no" />
+                    <Label htmlFor="dep-no" className="cursor-pointer">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="unsure" id="dep-unsure" />
+                    <Label htmlFor="dep-unsure" className="cursor-pointer">Not sure</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="mb-3 block">
+                  Have you had thoughts about harming yourself?
+                </Label>
+                <RadioGroup value={mentalHealth.selfHarm} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, selfHarm: v }))}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="harm-yes" />
+                    <Label htmlFor="harm-yes" className="cursor-pointer">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="harm-no" />
+                    <Label htmlFor="harm-no" className="cursor-pointer">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="unsure" id="harm-unsure" />
+                    <Label htmlFor="harm-unsure" className="cursor-pointer">Not sure</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="mb-3 block">
+                  In the past 2 weeks, have you felt nervous, anxious, or on edge?
+                </Label>
+                <RadioGroup value={mentalHealth.anxiety} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, anxiety: v }))}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="anx-yes" />
+                    <Label htmlFor="anx-yes" className="cursor-pointer">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="anx-no" />
+                    <Label htmlFor="anx-no" className="cursor-pointer">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="unsure" id="anx-unsure" />
+                    <Label htmlFor="anx-unsure" className="cursor-pointer">Not sure</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="flex items-center space-x-3 p-4 bg-accent rounded-lg">
+                <Checkbox
+                  id="want-help"
+                  checked={mentalHealth.wantHelp}
+                  onCheckedChange={(checked) => setMentalHealth(prev => ({ ...prev, wantHelp: checked as boolean }))}
+                />
+                <Label htmlFor="want-help" className="cursor-pointer">
+                  Would you like RN Care Management to assist with mental health resources?
+                </Label>
+              </div>
+            </div>
           </Card>
         )}
 
@@ -525,7 +707,16 @@ export default function IntakeWizard() {
               step={step} 
               setStep={setStep} 
               last={5}
-              canAdvance={step === 3 ? medsBlock.valid : true}
+              canAdvance={step === 2 ? hasMeds !== '' : true}
+            />
+            
+            <InactivityModal
+              isOpen={isInactive}
+              onContinue={dismissInactivity}
+              onSaveExit={async () => {
+                await saveNow();
+                navigate('/dashboard');
+              }}
             />
           </>
         )}
