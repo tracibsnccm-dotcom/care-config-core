@@ -161,7 +161,6 @@ export default function RNClinicalLiaison() {
         title: "Clinical Narrative Report Requested",
         description: "Attorney requested a clinical narrative report for case review",
         status: "pending",
-        priority: "high",
         assigned_to: rnCmInfo?.user_id || null,
         created_by: user.id,
       });
@@ -197,7 +196,6 @@ export default function RNClinicalLiaison() {
         title: "Case Review Scheduled",
         description: "Attorney requested to schedule a case review meeting",
         status: "pending",
-        priority: "medium",
         assigned_to: rnCmInfo?.user_id || null,
         created_by: user.id,
       });
@@ -230,10 +228,9 @@ export default function RNClinicalLiaison() {
       // Create an urgent task
       const { error } = await supabase.from("case_tasks").insert({
         case_id: selectedCaseId,
-        title: "URGENT: Concern Reported",
+        title: "🚨 URGENT: Concern Reported",
         description: "Attorney reported an urgent concern requiring immediate RN CM attention",
         status: "pending",
-        priority: "urgent",
         assigned_to: rnCmInfo?.user_id || null,
         created_by: user.id,
       });
