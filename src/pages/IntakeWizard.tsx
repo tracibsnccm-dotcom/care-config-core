@@ -653,7 +653,7 @@ export default function IntakeWizard() {
                 How to Score the 4Ps & SDOH
               </h4>
               <p className="text-sm text-muted-foreground">
-                Each category measures <strong>distress or impairment</strong>, not wellness. Use this scale:
+                Each category measures <strong>distress or impairment</strong>, not wellness. How to Use this scale to rate your impairment:
               </p>
               <div className="space-y-2 text-sm">
                 <div className="grid grid-cols-[auto,1fr,1fr] gap-x-3 gap-y-2 items-start">
@@ -718,7 +718,7 @@ export default function IntakeWizard() {
                           onValueChange={([value]) =>
                             setFourPs((p) => ({ ...p, [k]: value }))
                           }
-                          max={100}
+                          max={4}
                           step={1}
                           className="w-full"
                         />
