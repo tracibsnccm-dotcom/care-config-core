@@ -698,7 +698,7 @@ export default function IntakeWizard() {
                       professional: "Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. This includes (but is not limited to) satisfaction, stress, workload, and burnout risk in that environment."
                     };
                     
-                    return (
+                     return (
                       <div key={k}>
                         <div className="flex items-center gap-2 mb-2">
                           <Label className="text-sm font-medium">
@@ -722,6 +722,13 @@ export default function IntakeWizard() {
                           step={1}
                           className="w-full"
                         />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>0</span>
+                          <span>1</span>
+                          <span>2</span>
+                          <span>3</span>
+                          <span>4</span>
+                        </div>
                       </div>
                     );
                   }
