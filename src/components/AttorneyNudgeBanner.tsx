@@ -2,56 +2,63 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
+interface IntakeStatus {
+  intake_complete: boolean;
+  last_nudged_iso: string | null;
+  expires_iso: string | null;
+  resume_url?: string;
+}
+
 export const AttorneyNudgeBanner = () => {
   const [visible, setVisible] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState("");
+  const [resumeUrl, setResumeUrl] = useState("/intake");
 
   useEffect(() => {
     checkNudgeStatus();
-    const interval = setInterval(updateTimeRemaining, 60000);
+    const interval = setInterval(checkNudgeStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  const ttlLabel = (iso: string | null): string => {
+    if (!iso) return '';
+    const ms = new Date(iso).getTime() - Date.now();
+    if (ms <= 0) return 'expires soon';
+    const days = Math.floor(ms / 86400000);
+    const hours = Math.floor((ms % 86400000) / 3600000);
+    return days > 0 ? `${days} day${days > 1 ? 's' : ''} ${hours}h remaining` : `${hours} hours remaining`;
+  };
+
   const checkNudgeStatus = async () => {
     try {
-      // Check if dismissed in last 24h
       const dismissedUntil = Number(localStorage.getItem('rcms_nudge_dismiss_until') || 0);
       if (Date.now() < dismissedUntil) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-      // Check for recent nudge notification
-      const { data: notifications } = await supabase
-        .from('notifications')
-        .select('created_at')
-        .eq('user_id', user.id)
-        .eq('title', 'Complete Your Intake')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-intake-status`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (notifications && notifications.length > 0) {
-        setVisible(true);
-        updateTimeRemaining();
+      if (!response.ok) return;
+
+      const data: IntakeStatus = await response.json();
+
+      if (data.intake_complete || !data.last_nudged_iso) {
+        setVisible(false);
+        return;
       }
+
+      const ttl = ttlLabel(data.expires_iso);
+      setTimeRemaining(ttl);
+      setResumeUrl(data.resume_url || localStorage.getItem('rcms_resume_url') || '/intake');
+      setVisible(true);
     } catch (error) {
       console.error('Failed to check nudge status:', error);
     }
-  };
-
-  const updateTimeRemaining = () => {
-    const expiryIso = localStorage.getItem('rcms_expiry_iso');
-    if (!expiryIso) return;
-
-    const ms = new Date(expiryIso).getTime() - Date.now();
-    if (ms <= 0) {
-      setTimeRemaining('expires soon');
-      return;
-    }
-
-    const days = Math.floor(ms / 86400000);
-    const hours = Math.floor((ms % 86400000) / 3600000);
-    setTimeRemaining(days > 0 ? `${days} day${days > 1 ? 's' : ''} ${hours}h remaining` : `${hours} hours remaining`);
   };
 
   const handleDismiss = () => {
@@ -60,7 +67,6 @@ export const AttorneyNudgeBanner = () => {
   };
 
   const handleResume = () => {
-    const resumeUrl = localStorage.getItem('rcms_resume_url') || '/intake';
     window.location.href = resumeUrl;
   };
 
