@@ -20,6 +20,7 @@ import { FollowUpTracker } from "@/components/RNClinicalLiaison/FollowUpTracker"
 import { ProviderContactRequestForm } from "@/components/RNClinicalLiaison/ProviderContactRequestForm";
 import { ActivityTimeline } from "@/components/RNClinicalLiaison/ActivityTimeline";
 import { MetricsDashboard } from "@/components/RNClinicalLiaison/MetricsDashboard";
+import { ClinicalOverview } from "@/components/RNClinicalLiaison/ClinicalOverview";
 import { format } from "date-fns";
 
 export default function RNClinicalLiaison() {
@@ -421,44 +422,54 @@ export default function RNClinicalLiaison() {
           </Card>
         )}
 
-        {/* Main Content Tabs */}
+        {/* Main Content - Two Column Layout */}
         {selectedCaseId ? (
-          <Tabs defaultValue="messages" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="messages" className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                Messages
-              </TabsTrigger>
-              <TabsTrigger value="followups" className="flex items-center gap-2">
-                <FileCheck className="w-4 h-4" />
-                Follow-ups
-              </TabsTrigger>
-              <TabsTrigger value="providers" className="flex items-center gap-2">
-                <UserCircle className="w-4 h-4" />
-                Provider Contacts
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Activity
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content Area */}
+            <div className="lg:col-span-2">
+              <Tabs defaultValue="messages" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="messages" className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" />
+                    Messages
+                  </TabsTrigger>
+                  <TabsTrigger value="followups" className="flex items-center gap-2">
+                    <FileCheck className="w-4 h-4" />
+                    Follow-ups
+                  </TabsTrigger>
+                  <TabsTrigger value="providers" className="flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" />
+                    Provider Contacts
+                  </TabsTrigger>
+                  <TabsTrigger value="activity" className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Activity
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="messages">
-              <MessageThread caseId={selectedCaseId} />
-            </TabsContent>
+                <TabsContent value="messages">
+                  <MessageThread caseId={selectedCaseId} />
+                </TabsContent>
 
-            <TabsContent value="followups">
-              <FollowUpTracker caseId={selectedCaseId} />
-            </TabsContent>
+                <TabsContent value="followups">
+                  <FollowUpTracker caseId={selectedCaseId} />
+                </TabsContent>
 
-            <TabsContent value="providers">
-              <ProviderContactRequestForm caseId={selectedCaseId} />
-            </TabsContent>
+                <TabsContent value="providers">
+                  <ProviderContactRequestForm caseId={selectedCaseId} />
+                </TabsContent>
 
-            <TabsContent value="activity">
-              <ActivityTimeline caseId={selectedCaseId} />
-            </TabsContent>
-          </Tabs>
+                <TabsContent value="activity">
+                  <ActivityTimeline caseId={selectedCaseId} />
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Sidebar - Clinical Overview */}
+            <div className="lg:col-span-1">
+              <ClinicalOverview caseId={selectedCaseId} />
+            </div>
+          </div>
         ) : (
           <Card className="p-12 text-center rounded-2xl">
             <p className="text-muted-foreground">Select a case to begin communication</p>

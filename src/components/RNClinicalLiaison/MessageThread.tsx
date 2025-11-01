@@ -5,12 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "sonner";
-import { Star, Send, Paperclip, Upload } from "lucide-react";
+import { Star, Send, Paperclip, Upload, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMessageDraft } from "@/hooks/useMessageDraft";
 import { Input } from "@/components/ui/input";
 import { RCMS } from "@/constants/brand";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   id: string;
@@ -19,11 +20,20 @@ interface Message {
   message_text: string;
   is_important: boolean;
   created_at: string;
+  attachments?: any;
   profiles?: {
     display_name: string;
     full_name: string;
   };
 }
+
+const MESSAGE_TAGS = [
+  { id: "general", label: "General", color: "#95a5a6" },
+  { id: "clinical_update", label: "Clinical Update", color: "#3498db" },
+  { id: "treatment_request", label: "Treatment Request", color: "#2ecc71" },
+  { id: "records_review", label: "Records Review", color: "#f39c12" },
+  { id: "urgent", label: "Urgent", color: "#e74c3c" },
+];
 
 interface MessageThreadProps {
   caseId: string;
@@ -34,6 +44,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedTag, setSelectedTag] = useState("general");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { draft, updateDraft, clearDraft, saveNow } = useMessageDraft(`rn-liaison-${caseId}`, caseId);
@@ -119,7 +130,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         .single();
 
       // TODO: Handle file upload to storage if selectedFile exists
-      // For now, just send the text message
+      // For now, just send the text message with tag in attachments
 
       const { error, data: messageData } = await supabase
         .from("attorney_rn_messages")
@@ -128,7 +139,8 @@ export function MessageThread({ caseId }: MessageThreadProps) {
           sender_id: user.id,
           sender_role: roleData?.role || "ATTORNEY",
           message_text: draft.trim(),
-          is_important: false,
+          is_important: selectedTag === "urgent",
+          attachments: { tag: selectedTag },
         })
         .select()
         .single();
@@ -156,6 +168,7 @@ export function MessageThread({ caseId }: MessageThreadProps) {
 
       await clearDraft();
       setSelectedFile(null);
+      setSelectedTag("general");
       toast.success("Message sent and RN CM notified");
     } catch (error: any) {
       console.error("Error sending message:", error);
@@ -247,6 +260,23 @@ export function MessageThread({ caseId }: MessageThreadProps) {
                       </button>
                     )}
                   </div>
+                  {/* Message Tag Badge */}
+                  {msg.attachments?.tag && (
+                    <Badge
+                      variant="secondary"
+                      className="mb-2 text-xs"
+                      style={{
+                        backgroundColor: `${
+                          MESSAGE_TAGS.find((t) => t.id === msg.attachments.tag)?.color || "#95a5a6"
+                        }20`,
+                        color: MESSAGE_TAGS.find((t) => t.id === msg.attachments.tag)?.color || "#95a5a6",
+                        border: "none",
+                      }}
+                    >
+                      <Tag className="w-3 h-3 mr-1" />
+                      {MESSAGE_TAGS.find((t) => t.id === msg.attachments.tag)?.label || "General"}
+                    </Badge>
+                  )}
                   <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
                   {msg.is_important && (
                     <div className="mt-2 flex items-center gap-1 text-xs opacity-90">
@@ -264,6 +294,39 @@ export function MessageThread({ caseId }: MessageThreadProps) {
 
       {/* Message Input */}
       <div className="p-4 border-t bg-card">
+        {/* Message Tag Selector */}
+        <div className="mb-3">
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">
+            Message Category
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {MESSAGE_TAGS.map((tag) => (
+              <Button
+                key={tag.id}
+                size="sm"
+                variant={selectedTag === tag.id ? "default" : "outline"}
+                onClick={() => setSelectedTag(tag.id)}
+                className="text-xs"
+                style={
+                  selectedTag === tag.id
+                    ? {
+                        backgroundColor: tag.color,
+                        color: "#ffffff",
+                        border: "none",
+                      }
+                    : {
+                        borderColor: tag.color,
+                        color: tag.color,
+                      }
+                }
+              >
+                <Tag className="w-3 h-3 mr-1" />
+                {tag.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
         {selectedFile && (
           <div className="mb-2 p-2 bg-muted/50 rounded flex items-center justify-between">
             <div className="flex items-center gap-2">
