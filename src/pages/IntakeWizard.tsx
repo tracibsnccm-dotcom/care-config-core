@@ -647,18 +647,37 @@ export default function IntakeWizard() {
             </h3>
             
             {/* Scoring Directions */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2 mb-6">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3 mb-6">
               <h4 className="font-semibold text-sm flex items-center gap-2">
                 <Info className="h-4 w-4" />
                 How to Score the 4Ps & SDOH
               </h4>
               <p className="text-sm text-muted-foreground">
-                Each category measures <strong>distress or impairment</strong>, not wellness:
+                Each category measures <strong>distress or impairment</strong>, not wellness. Use this scale:
               </p>
-              <ul className="text-sm text-muted-foreground space-y-1 pl-4">
-                <li>• <strong>Higher scores (8-10)</strong> = greater concern / worse status</li>
-                <li>• <strong>Lower scores (1-3)</strong> = better or stable functioning</li>
-              </ul>
+              <div className="space-y-2 text-sm">
+                <div className="grid grid-cols-[auto,1fr,1fr] gap-x-3 gap-y-2 items-start">
+                  <span className="font-semibold">0</span>
+                  <span className="text-muted-foreground">No issues or fully resolved</span>
+                  <span className="text-muted-foreground italic">Optimal / fully functional</span>
+                  
+                  <span className="font-semibold">1</span>
+                  <span className="text-muted-foreground">Mild concern, doesn't affect daily life</span>
+                  <span className="text-muted-foreground italic">Monitor only</span>
+                  
+                  <span className="font-semibold">2</span>
+                  <span className="text-muted-foreground">Moderate concern, occasional interference</span>
+                  <span className="text-muted-foreground italic">Needs observation / mild support</span>
+                  
+                  <span className="font-semibold">3</span>
+                  <span className="text-muted-foreground">Significant issue, frequent interference</span>
+                  <span className="text-muted-foreground italic">Needs active care management</span>
+                  
+                  <span className="font-semibold">4</span>
+                  <span className="text-muted-foreground">Severe impairment or safety risk</span>
+                  <span className="text-muted-foreground italic">Immediate attention required</span>
+                </div>
+              </div>
             </div>
 
             <TooltipProvider>
