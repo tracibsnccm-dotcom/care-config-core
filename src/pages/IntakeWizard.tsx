@@ -34,6 +34,7 @@ import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
 import { CaraFloatingButton } from "@/components/CaraFloatingButton";
+import { CaraGate } from "@/components/CaraGate";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export default function IntakeWizard() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
   const [sensitiveTag, setSensitiveTag] = useState(false);
+  const [showCaraModal, setShowCaraModal] = useState(false);
 
   const [intake, setIntake] = useState<Intake>({
     incidentType: "MVA",
@@ -191,6 +193,8 @@ export default function IntakeWizard() {
           />
         ) : (
           <>
+            <CaraGate onAskCara={() => setShowCaraModal(true)} />
+            
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground">Client Intake Wizard</h1>
               <p className="text-muted-foreground mt-1">Complete the intake process step by step</p>

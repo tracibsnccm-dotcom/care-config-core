@@ -15,6 +15,7 @@ import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettleme
 import { useAuth } from "@/auth/supabaseAuth";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
+import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -329,14 +330,7 @@ export default function AttorneyLanding() {
         </div>
 
         {/* Pending Intakes Widget */}
-        <PendingIntakesWidget
-          currentFirmId="firm-001"
-          cases={cases as any}
-          onNudge={async (c) => {
-            await sendImmediateNudge(undefined, c);
-            log("NUDGE_SENT", c.id);
-          }}
-        />
+        <AttorneyIntakeTracker />
 
         {/* Case Tracking Sections */}
         <div className="space-y-6">
