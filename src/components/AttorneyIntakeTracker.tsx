@@ -52,22 +52,11 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attorney-intake-tracker?scope=${scope}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setRows(data);
-      }
+      const { data, error } = await supabase.functions.invoke('attorney-intake-tracker', {
+        body: { scope }
+      });
+      if (error) throw error;
+      setRows(data || []);
     } catch (error) {
       console.error('Failed to load intakes:', error);
       toast.error('Failed to load intake data');
@@ -76,27 +65,12 @@ export const AttorneyIntakeTracker = () => {
 
   const handleNudge = async (caseId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attorney-intake-tracker`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ action: 'nudge', case_id: caseId }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success('Nudge sent successfully');
-        loadData();
-      } else {
-        toast.error('Failed to send nudge');
-      }
+      const { error } = await supabase.functions.invoke('attorney-intake-tracker', {
+        body: { action: 'nudge', case_id: caseId }
+      });
+      if (error) throw error;
+      toast.success('Nudge sent successfully');
+      loadData();
     } catch (error) {
       console.error('Nudge error:', error);
       toast.error('Failed to send nudge');
@@ -107,27 +81,12 @@ export const AttorneyIntakeTracker = () => {
     if (!confirm('Escalate this intake to RN CM now?')) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attorney-intake-tracker`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ action: 'escalate', case_id: caseId }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success('Escalated to RN CM');
-        loadData();
-      } else {
-        toast.error('Failed to escalate');
-      }
+      const { error } = await supabase.functions.invoke('attorney-intake-tracker', {
+        body: { action: 'escalate', case_id: caseId }
+      });
+      if (error) throw error;
+      toast.success('Escalated to RN CM');
+      loadData();
     } catch (error) {
       console.error('Escalate error:', error);
       toast.error('Failed to escalate');

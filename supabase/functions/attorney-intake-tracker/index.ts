@@ -21,10 +21,11 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    // Handle GET request for listing
-    if (req.method === 'GET') {
-      const url = new URL(req.url);
-      const scope = url.searchParams.get('scope') || 'mine';
+    const body = await req.json();
+    const { scope, action, case_id } = body;
+
+    // Handle listing
+    if (!action || action === 'list') {
       // Get incomplete intakes with 7-day expiry window
       let query = supabaseClient
         .from('cases')
@@ -65,9 +66,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    // Handle POST requests for actions
-    const { action, case_id } = await req.json();
 
     if (action === 'nudge') {
       // Send notification to client
