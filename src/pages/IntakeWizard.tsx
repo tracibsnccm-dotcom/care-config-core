@@ -27,8 +27,9 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check, Save } from "lucide-react";
+import { AlertCircle, Check, Save, HelpCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
@@ -605,28 +606,49 @@ export default function IntakeWizard() {
         {step === 4 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Optional 4Ps & SDOH (complete within 24–72 hours)
+              Optional 4Ps & SDOH
             </h3>
-            <div className="grid gap-6 sm:grid-cols-2 mb-6">
-              {(["physical", "psychological", "psychosocial", "professional"] as const).map(
-                (k) => (
-                  <div key={k}>
-                    <Label className="text-sm font-medium capitalize mb-2 block">
-                      {k}: {fourPs[k]}
-                    </Label>
-                    <Slider
-                      value={[fourPs[k]]}
-                      onValueChange={([value]) =>
-                        setFourPs((p) => ({ ...p, [k]: value }))
-                      }
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                )
-              )}
-            </div>
+            <TooltipProvider>
+              <div className="grid gap-6 sm:grid-cols-2 mb-6">
+                {(["physical", "psychological", "psychosocial", "professional"] as const).map(
+                  (k) => {
+                    const tooltips = {
+                      physical: "Physical health impact and functioning - Rate your current physical condition and ability to perform daily activities",
+                      psychological: "Mental and emotional wellbeing - Rate your current mental health, mood, and emotional state",
+                      psychosocial: "Social relationships and support systems - Rate your social connections, family support, and community involvement",
+                      professional: "Work/career impact and employment status - Rate your ability to work and career satisfaction"
+                    };
+                    
+                    return (
+                      <div key={k}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="text-sm font-medium capitalize">
+                            {k}: {fourPs[k]}
+                          </Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{tooltips[k]}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Slider
+                          value={[fourPs[k]]}
+                          onValueChange={([value]) =>
+                            setFourPs((p) => ({ ...p, [k]: value }))
+                          }
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </TooltipProvider>
 
             <div className="grid gap-3 sm:grid-cols-2">
               {(["housing", "food", "transport", "insuranceGap"] as const).map((k) => (
