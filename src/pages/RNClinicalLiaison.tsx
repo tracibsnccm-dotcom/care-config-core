@@ -334,7 +334,7 @@ export default function RNClinicalLiaison() {
                   <div>
                     <p className="text-xs text-muted-foreground">Client</p>
                     <p className="font-semibold text-foreground">
-                      {caseDetails.client_label || "J.D."}
+                      {caseDetails?.client_label || "J.D."}
                     </p>
                   </div>
                 </div>
@@ -347,7 +347,7 @@ export default function RNClinicalLiaison() {
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>
                     <p className="font-semibold text-foreground">
-                      {caseDetails.status || "Active"}
+                      {caseDetails?.status || "Active"}
                     </p>
                   </div>
                 </div>
