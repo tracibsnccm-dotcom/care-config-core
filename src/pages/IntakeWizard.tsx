@@ -657,10 +657,10 @@ export default function IntakeWizard() {
                     };
                     
                     const tooltips = {
-                      physical: "Physical relates to your body's comfort and energy level — pain, fatigue, sleep quality, and mobility.",
-                      psychological: "Psychological reflects your emotional and mental wellbeing — your mood, focus, stress level, and coping ability.",
-                      psychosocial: "Psychosocial covers your social and environmental stability — relationships, finances, transportation, and support systems.",
-                      professional: "Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. It reflects satisfaction, stress, workload, and burnout risk in that environment."
+                      physical: "Physical relates to your body's comfort and energy level. This includes (but is not limited to) pain, fatigue, sleep quality, and mobility.",
+                      psychological: "Psychological reflects your emotional and mental wellbeing. This includes (but is not limited to) mood, focus, stress level, and coping ability.",
+                      psychosocial: "Psychosocial covers your social and environmental stability. This includes (but is not limited to) relationships, finances, transportation, and support systems.",
+                      professional: "Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. This includes (but is not limited to) satisfaction, stress, workload, and burnout risk in that environment."
                     };
                     
                     return (
