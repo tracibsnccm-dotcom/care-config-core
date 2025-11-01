@@ -52,14 +52,10 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
 
     if (!id) {
       // Start new draft
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ action: 'start', step: 1 }),
       });
@@ -78,14 +74,11 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
     } else {
       // Load existing draft
       setDraftId(id);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ action: 'status', draft_id: id }),
       });
@@ -107,15 +100,11 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
   const saveDraft = async (showToast = false) => {
     if (!draftId) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           action: 'save',
@@ -140,14 +129,10 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
   const handleExit = async () => {
     await saveDraft();
     if (draftId) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ action: 'exit', draft_id: draftId }),
       });
