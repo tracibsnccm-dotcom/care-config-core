@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -11,11 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity } from "lucide-react";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MessageThread } from "@/components/RNClinicalLiaison/MessageThread";
+import { FollowUpTracker } from "@/components/RNClinicalLiaison/FollowUpTracker";
+import { ProviderContactRequestForm } from "@/components/RNClinicalLiaison/ProviderContactRequestForm";
+import { ActivityTimeline } from "@/components/RNClinicalLiaison/ActivityTimeline";
+import { MetricsDashboard } from "@/components/RNClinicalLiaison/MetricsDashboard";
 import { format } from "date-fns";
 
 export default function RNClinicalLiaison() {
@@ -89,25 +93,30 @@ export default function RNClinicalLiaison() {
         if (caseError) throw caseError;
         setCaseDetails(caseData);
 
-        // Get RN CM assignment
+        // Get RN CM assignment and store user_id with profile
         const { data: rnAssignment, error: rnError } = await supabase
           .from("case_assignments")
-          .select(
-            `
-            user_id,
-            profiles (
-              display_name,
-              email,
-              full_name
-            )
-          `
-          )
+          .select("user_id")
           .eq("case_id", selectedCaseId)
           .eq("role", "RN_CCM")
           .single();
 
         if (!rnError && rnAssignment) {
-          setRnCmInfo(rnAssignment.profiles);
+          // Fetch profile data separately
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("display_name, email, full_name")
+            .eq("user_id", rnAssignment.user_id)
+            .single();
+
+          if (profileData) {
+            setRnCmInfo({
+              user_id: rnAssignment.user_id,
+              ...profileData,
+            });
+          } else {
+            setRnCmInfo({ user_id: rnAssignment.user_id });
+          }
         } else {
           setRnCmInfo(null);
         }
@@ -143,21 +152,111 @@ export default function RNClinicalLiaison() {
 
   // Quick action handlers
   const handleRequestNarrative = async () => {
-    if (!selectedCaseId) return;
-    toast.success("Clinical narrative report requested");
-    // TODO: Create request in database
+    if (!selectedCaseId || !user?.id) return;
+    
+    try {
+      // Create a task for the narrative report request
+      const { error } = await supabase.from("case_tasks").insert({
+        case_id: selectedCaseId,
+        title: "Clinical Narrative Report Requested",
+        description: "Attorney requested a clinical narrative report for case review",
+        status: "pending",
+        priority: "high",
+        assigned_to: rnCmInfo?.user_id || null,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
+
+      // Notify RN CM
+      if (rnCmInfo?.user_id) {
+        await supabase.rpc('notify_user', {
+          target_user_id: rnCmInfo.user_id,
+          notification_title: 'Narrative Report Requested',
+          notification_message: `Attorney requested a clinical narrative report for case ${selectedCaseId.slice(0, 8).toUpperCase()}`,
+          notification_type: 'info',
+          notification_link: `/case-detail/${selectedCaseId}`,
+          notification_metadata: { case_id: selectedCaseId, source: 'rn_liaison' }
+        });
+      }
+
+      toast.success("Clinical narrative report requested successfully");
+    } catch (error: any) {
+      console.error("Error requesting narrative:", error);
+      toast.error("Failed to create request");
+    }
   };
 
   const handleScheduleReview = async () => {
-    if (!selectedCaseId) return;
-    toast.success("Case review scheduled");
-    // TODO: Create calendar event
+    if (!selectedCaseId || !user?.id) return;
+    
+    try {
+      // Create a task for scheduling the review
+      const { error } = await supabase.from("case_tasks").insert({
+        case_id: selectedCaseId,
+        title: "Case Review Scheduled",
+        description: "Attorney requested to schedule a case review meeting",
+        status: "pending",
+        priority: "medium",
+        assigned_to: rnCmInfo?.user_id || null,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
+
+      // Notify RN CM
+      if (rnCmInfo?.user_id) {
+        await supabase.rpc('notify_user', {
+          target_user_id: rnCmInfo.user_id,
+          notification_title: 'Case Review Requested',
+          notification_message: `Attorney requested to schedule a case review for ${selectedCaseId.slice(0, 8).toUpperCase()}`,
+          notification_type: 'info',
+          notification_link: `/case-detail/${selectedCaseId}`,
+          notification_metadata: { case_id: selectedCaseId, source: 'rn_liaison' }
+        });
+      }
+
+      toast.success("Case review request sent successfully");
+    } catch (error: any) {
+      console.error("Error scheduling review:", error);
+      toast.error("Failed to create request");
+    }
   };
 
   const handleReportConcern = async () => {
-    if (!selectedCaseId) return;
-    toast.success("Urgent concern reported to RN CM");
-    // TODO: Send urgent notification
+    if (!selectedCaseId || !user?.id) return;
+    
+    try {
+      // Create an urgent task
+      const { error } = await supabase.from("case_tasks").insert({
+        case_id: selectedCaseId,
+        title: "URGENT: Concern Reported",
+        description: "Attorney reported an urgent concern requiring immediate RN CM attention",
+        status: "pending",
+        priority: "urgent",
+        assigned_to: rnCmInfo?.user_id || null,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
+
+      // Send urgent notification
+      if (rnCmInfo?.user_id) {
+        await supabase.rpc('notify_user', {
+          target_user_id: rnCmInfo.user_id,
+          notification_title: '🚨 URGENT CONCERN',
+          notification_message: `Attorney reported an urgent concern for case ${selectedCaseId.slice(0, 8).toUpperCase()}. Immediate attention required.`,
+          notification_type: 'alert',
+          notification_link: `/case-detail/${selectedCaseId}`,
+          notification_metadata: { case_id: selectedCaseId, source: 'rn_liaison', urgent: true }
+        });
+      }
+
+      toast.success("Urgent concern reported - RN CM notified immediately");
+    } catch (error: any) {
+      console.error("Error reporting concern:", error);
+      toast.error("Failed to report concern");
+    }
   };
 
   if (loading) {
@@ -173,8 +272,8 @@ export default function RNClinicalLiaison() {
   return (
     <AppLayout>
       <div className="p-8 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+      {/* Header */}
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             RN CM / Clinical Liaison
           </h1>
@@ -182,6 +281,13 @@ export default function RNClinicalLiaison() {
             Secure communication and coordination with RN Case Manager
           </p>
         </div>
+
+        {/* Metrics Dashboard */}
+        {selectedCaseId && (
+          <div className="mb-6">
+            <MetricsDashboard caseId={selectedCaseId} />
+          </div>
+        )}
 
         {/* Case Selector */}
         <Card className="p-6 mb-6 border-2 rounded-2xl shadow-lg">
@@ -320,9 +426,42 @@ export default function RNClinicalLiaison() {
 
         {/* Main Content Tabs */}
         {selectedCaseId ? (
-          <div className="w-full">
-            <MessageThread caseId={selectedCaseId} />
-          </div>
+          <Tabs defaultValue="messages" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="messages" className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                Messages
+              </TabsTrigger>
+              <TabsTrigger value="followups" className="flex items-center gap-2">
+                <FileCheck className="w-4 h-4" />
+                Follow-ups
+              </TabsTrigger>
+              <TabsTrigger value="providers" className="flex items-center gap-2">
+                <UserCircle className="w-4 h-4" />
+                Provider Contacts
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Activity
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="messages">
+              <MessageThread caseId={selectedCaseId} />
+            </TabsContent>
+
+            <TabsContent value="followups">
+              <FollowUpTracker caseId={selectedCaseId} />
+            </TabsContent>
+
+            <TabsContent value="providers">
+              <ProviderContactRequestForm caseId={selectedCaseId} />
+            </TabsContent>
+
+            <TabsContent value="activity">
+              <ActivityTimeline caseId={selectedCaseId} />
+            </TabsContent>
+          </Tabs>
         ) : (
           <Card className="p-12 text-center rounded-2xl">
             <p className="text-muted-foreground">Select a case to begin communication</p>
