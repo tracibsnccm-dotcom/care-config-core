@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info } from "lucide-react";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
