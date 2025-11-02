@@ -713,6 +713,14 @@ export default function IntakeWizard() {
                       professional: "Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. This includes (but is not limited to) satisfaction, stress, workload, and burnout risk in that environment."
                     };
                     
+                    const scoreLabels: Record<number, string> = {
+                      0: "Doing just fine - No problems with my daily activities",
+                      1: "A little tricky sometimes - Mostly able to do what I need to",
+                      2: "Pretty difficult at times - Have to push through to get things done",
+                      3: "Really hard most days - Struggle with regular tasks and activities",
+                      4: "Extremely difficult - Can't do normal daily things without help"
+                    };
+                    
                      return (
                       <div key={k}>
                         <div className="flex items-center gap-2 mb-2">
@@ -737,6 +745,9 @@ export default function IntakeWizard() {
                           step={1}
                           className="w-full"
                         />
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          {scoreLabels[fourPs[k]]}
+                        </p>
                       </div>
                     );
                   }
