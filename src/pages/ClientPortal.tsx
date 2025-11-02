@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen } from "lucide-react";
+import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
@@ -257,11 +257,40 @@ export default function ClientPortal() {
             <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">
               <TabsContent value="checkins" className="mt-0">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
-                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                      <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
-                      The Wellness Center
-                    </h2>
+                  <div className="border-b-2 border-rcms-gold pb-4 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
+                        The Wellness Center
+                      </h2>
+                    </div>
+                    {/* Quick Contact Tabs */}
+                    <div className="grid grid-cols-3 gap-3 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
+                      >
+                        <Stethoscope className="w-4 h-4 mr-2" />
+                        Contact RN
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
+                      >
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Message Attorney
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Provider Portal
+                      </Button>
+                    </div>
                   </div>
                   <ClientCheckins />
                   <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
