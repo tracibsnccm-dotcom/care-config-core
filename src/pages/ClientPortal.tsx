@@ -24,8 +24,6 @@ import { ResourceLibrary } from "@/components/ResourceLibrary";
 import { ClientJournal } from "@/components/ClientJournal";
 import { MotivationWidget } from "@/components/MotivationWidget";
 import { SupportFooter } from "@/components/SupportFooter";
-
-import { AttorneyNudgeBanner } from "@/components/AttorneyNudgeBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -164,6 +162,9 @@ export default function ClientPortal() {
 
       {/* Care Team Contact Bar */}
       <CareTeamContactBar caseId={caseId || ""} />
+
+      {/* Crisis Resources Banner */}
+      <CrisisResourcesBanner showAlert={showCrisisAlert} />
 
       {/* Voice Concerns Banner */}
       <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20">
@@ -318,6 +319,13 @@ export default function ClientPortal() {
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Allergies</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="communication"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Communication</span>
               </TabsTrigger>
               <TabsTrigger
                 value="messages"
