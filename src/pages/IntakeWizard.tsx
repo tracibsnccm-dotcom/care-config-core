@@ -61,6 +61,7 @@ import { FileUploadZone } from "@/components/FileUploadZone";
 import { InactivityModal } from "@/components/InactivityModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { IntakeSensitiveExperiences, type SensitiveExperiencesData } from "@/components/IntakeSensitiveExperiences";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -88,6 +89,18 @@ export default function IntakeWizard() {
     selfHarm: '',
     anxiety: '',
     wantHelp: false,
+  });
+
+  // Sensitive experiences
+  const [sensitiveExperiences, setSensitiveExperiences] = useState<SensitiveExperiencesData>({
+    substanceUse: '',
+    alcoholDependency: '',
+    domesticAbuse: '',
+    childAbuse: '',
+    harassment: '',
+    stalking: '',
+    otherTrauma: '',
+    consentToShare: null,
   });
 
   const [intake, setIntake] = useState<Intake>({
@@ -1076,6 +1089,12 @@ export default function IntakeWizard() {
                 </div>
               </div>
             </Card>
+
+            {/* Sensitive or Personal Experiences Section */}
+            <IntakeSensitiveExperiences
+              data={sensitiveExperiences}
+              onChange={setSensitiveExperiences}
+            />
 
             {/* Pre-Accident BH Section */}
             <div className="border-4 border-primary/30 rounded-lg p-6 space-y-6 bg-card/50">
