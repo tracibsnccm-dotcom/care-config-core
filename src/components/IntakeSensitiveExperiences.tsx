@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Shield, Info, AlertCircle, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 
 interface SensitiveExperiencesData {
@@ -12,6 +13,8 @@ interface SensitiveExperiencesData {
   safetyTraumaOptions: string[];
   stressorsOptions: string[];
   consentToShare: boolean | null;
+  additionalDetails?: string;
+  sectionSkipped?: boolean;
 }
 
 interface IntakeSensitiveExperiencesProps {
@@ -29,6 +32,7 @@ const substanceUseOptions = [
   "Currently in recovery or enrolled in a treatment program",
   "Prior participation in a detox, rehab, or support group",
   "None of the above / prefer not to answer",
+  "Not Applicable / N/A",
 ];
 
 const safetyTraumaOptions = [
@@ -42,6 +46,7 @@ const safetyTraumaOptions = [
   "Experience of trafficking or exploitation",
   "Witnessed violence (home, community, or workplace)",
   "None of the above / prefer not to answer",
+  "Not Applicable / N/A",
 ];
 
 const stressorsOptions = [
@@ -56,6 +61,7 @@ const stressorsOptions = [
   "Cultural or language barriers affecting care access",
   "Transportation barriers to appointments",
   "None of the above / prefer not to answer",
+  "Not Applicable / N/A",
 ];
 
 export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveExperiencesProps) {
@@ -66,13 +72,14 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
   const toggleOption = (field: 'substanceUseOptions' | 'safetyTraumaOptions' | 'stressorsOptions', option: string) => {
     const current = data[field] || [];
     const noneOption = "None of the above / prefer not to answer";
+    const naOption = "Not Applicable / N/A";
     
-    if (option === noneOption) {
-      // If selecting "None", clear all other options
-      onChange({ ...data, [field]: [noneOption] });
+    if (option === noneOption || option === naOption) {
+      // If selecting "None" or "N/A", clear all other options
+      onChange({ ...data, [field]: [option] });
     } else {
-      // If selecting any other option, remove "None" if it exists
-      const filtered = current.filter(o => o !== noneOption);
+      // If selecting any other option, remove "None" and "N/A" if they exist
+      const filtered = current.filter(o => o !== noneOption && o !== naOption);
       
       if (current.includes(option)) {
         onChange({ ...data, [field]: filtered.filter(o => o !== option) });
@@ -80,6 +87,30 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
         onChange({ ...data, [field]: [...filtered, option] });
       }
     }
+  };
+
+  const handleSkipSection = () => {
+    onChange({ 
+      ...data, 
+      sectionSkipped: true,
+      substanceUseOptions: [],
+      safetyTraumaOptions: [],
+      stressorsOptions: [],
+      additionalDetails: '',
+      consentToShare: null
+    });
+  };
+
+  const shouldShowAdditionalDetails = () => {
+    const allOptions = [
+      ...(data.substanceUseOptions || []),
+      ...(data.safetyTraumaOptions || []),
+      ...(data.stressorsOptions || [])
+    ];
+    return allOptions.some(option => 
+      option === "None of the above / prefer not to answer" || 
+      option === "Not Applicable / N/A"
+    );
   };
 
   return (
@@ -115,6 +146,23 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
         <p className="text-sm text-muted-foreground">
           Your answers are confidential and will not be shared with anyone outside the Reconcile C.A.R.E. team without your permission.
         </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          If you prefer not to complete this section, click "Skip Section" below.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          For each question, you may also select "Not Applicable / N/A" if it doesn't apply to you.
+        </p>
+      </div>
+
+      {/* Skip Section Button */}
+      <div className="mb-6 flex justify-end">
+        <Button 
+          variant="outline" 
+          onClick={handleSkipSection}
+          className="text-muted-foreground border-muted-foreground/30 hover:bg-muted/50"
+        >
+          Skip Section
+        </Button>
       </div>
 
       {/* Dropdown Sections */}
@@ -284,6 +332,29 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
           )}
         </div>
       </div>
+
+      {/* Optional Additional Details */}
+      {shouldShowAdditionalDetails() && (
+        <div className="space-y-3 mb-6">
+          <Label htmlFor="additional-details" className="text-sm font-medium text-foreground">
+            Optional: If you experienced something not listed above or want to provide more details, please describe it here.
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            (You may leave this blank if you prefer.)
+          </p>
+          <Textarea
+            id="additional-details"
+            value={data.additionalDetails || ''}
+            onChange={(e) => onChange({ ...data, additionalDetails: e.target.value })}
+            placeholder="Enter additional details here..."
+            maxLength={250}
+            className="min-h-[100px] resize-none"
+          />
+          <p className="text-xs text-muted-foreground text-right">
+            {(data.additionalDetails || '').length}/250 characters
+          </p>
+        </div>
+      )}
 
       {/* Consent Section - Only show if sensitive items are selected */}
       {(() => {
