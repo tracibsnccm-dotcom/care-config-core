@@ -816,6 +816,9 @@ export default function IntakeWizard() {
             {/* SDOH Domains with 0-4 Scale */}
             <div className="space-y-6">
               <h4 className="font-semibold text-foreground">Social Determinants of Health (SDOH)</h4>
+              <p className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md border border-border/50">
+                Answers to these questions are strictly voluntary and are only used to help determine if we can help provide access and information to resources you may be eligible for and benefit from.
+              </p>
               
               {[
                 { key: 'housing', label: 'Housing Stability' },
