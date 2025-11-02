@@ -274,14 +274,33 @@ export function IntakeMedicationRecord({
             List any known medication allergies or sensitivities (CRITICAL for safe care)
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Textarea
             value={allergies}
             onChange={(e) => onAllergiesChange(e.target.value)}
-            placeholder="e.g., Penicillin (causes rash), Codeine (nausea), None known"
+            placeholder="e.g., Penicillin (causes rash), Codeine (nausea), or type 'None known'"
             rows={4}
             className="w-full"
           />
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground">
+              Please list all known allergies and the reactions they cause
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (allergies.trim()) {
+                  onAllergiesChange(allergies + '\n');
+                }
+              }}
+              className="whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Entry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
