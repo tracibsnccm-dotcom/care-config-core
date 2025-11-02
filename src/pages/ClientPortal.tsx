@@ -35,7 +35,7 @@ export default function ClientPortal() {
   const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("careplans");
+  const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
 
   // Check for crisis indicators
@@ -158,28 +158,41 @@ export default function ClientPortal() {
       {/* Care Team Contact Bar */}
       <CareTeamContactBar caseId={caseId || ""} />
 
-      {/* SECTION 2 - SNAPSHOT + TABS (navy→teal gradient) */}
+      {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
           {/* Wellness Snapshot */}
           <WellnessSnapshot 
             caseId={caseId || ""} 
-            onViewProgress={() => setActiveTab("wellness")} 
+            onViewProgress={() => setActiveTab("checkins")} 
           />
           
           {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
 
-          {/* Comprehensive Tabs */}
+          {/* Motivation Widget */}
+          <MotivationWidget caseId={caseId || ""} />
+
+          {/* New Sections: Goals, Medications, Action Items */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <ClientGoalTracker caseId={caseId || ""} />
+            <ClientMedicationTracker caseId={caseId || ""} />
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            <ClientActionItems caseId={caseId || ""} />
+            <ClientAppointmentCalendar caseId={caseId || ""} />
+          </div>
+          
+          <ClientQuickMessage caseId={caseId || ""} />
+        </div>
+      </section>
+
+      {/* SECTION 3 - DATA & CHECK-INS (mint background) */}
+      <section className="bg-rcms-mint py-12">
+        <div className="max-w-7xl mx-auto px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-11 bg-white border-2 border-rcms-gold shadow-lg">
-              <TabsTrigger 
-                value="wellness"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Wellness</span>
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 bg-white border-2 border-rcms-gold shadow-lg">
               <TabsTrigger 
                 value="careplans"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
@@ -237,13 +250,6 @@ export default function ClientPortal() {
                 <span className="hidden sm:inline">Medications</span>
               </TabsTrigger>
               <TabsTrigger 
-                value="journal"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Personal Journal</span>
-              </TabsTrigger>
-              <TabsTrigger 
                 value="messages"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
               >
@@ -254,7 +260,7 @@ export default function ClientPortal() {
 
             {/* Tab Content with white cards */}
             <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">
-              <TabsContent value="wellness" className="mt-0">
+              <TabsContent value="checkins" className="mt-0">
                 <div className="space-y-4">
                   <div className="border-b-2 border-rcms-gold pb-4 mb-6">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -263,6 +269,9 @@ export default function ClientPortal() {
                     </h2>
                   </div>
                   <ClientCheckins />
+                  <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
+                    <ClientJournal caseId={caseId || ""} />
+                  </div>
                 </div>
               </TabsContent>
 
@@ -274,6 +283,16 @@ export default function ClientPortal() {
                   </h2>
                 </div>
                 <CarePlansViewer caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="communication" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <MessageSquare className="w-6 h-6 text-rcms-teal" />
+                    Messages / Communication Center
+                  </h2>
+                </div>
+                <ClientMessaging caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="documents" className="mt-0">
@@ -340,16 +359,6 @@ export default function ClientPortal() {
                 <ClientMedicationTracker caseId={caseId || ""} />
               </TabsContent>
 
-              <TabsContent value="journal" className="mt-0">
-                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
-                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                    <BookOpen className="w-6 h-6 text-rcms-teal" />
-                    Personal Journal
-                  </h2>
-                </div>
-                <ClientJournal caseId={caseId || ""} />
-              </TabsContent>
-
               <TabsContent value="messages" className="mt-0">
                 <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -364,14 +373,14 @@ export default function ClientPortal() {
         </div>
       </section>
 
-      {/* SECTION 3 - SUPPORT FOOTER (pale gold background) */}
+      {/* SECTION 4 - SUPPORT FOOTER (pale gold background) */}
       <section className="bg-rcms-pale-gold py-8">
         <div className="max-w-7xl mx-auto px-6">
           <SupportFooter />
         </div>
       </section>
 
-      {/* SECTION 4 - FOOTER (deep navy) */}
+      {/* SECTION 5 - FOOTER (deep navy) */}
       <footer className="bg-rcms-navy py-6 border-t-4 border-rcms-gold">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-white text-sm">
