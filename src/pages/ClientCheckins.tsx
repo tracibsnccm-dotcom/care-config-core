@@ -379,7 +379,7 @@ export default function ClientCheckins() {
 
               <div className="rounded-lg border border-border bg-card p-4 mb-4">
                 <h3 className="text-sm font-semibold text-foreground">How to Score the 4Ps &amp; SDOH</h3>
-                <p className="text-xs text-muted-foreground mt-1">Each category measures distress or impairment, not wellness. Use this scale to rate your impairment:</p>
+                <p className="text-xs text-muted-foreground mt-1">Each category measures <strong>distress or impairment</strong>, not wellness. Use this scale to rate your impairment:</p>
                 <ul className="mt-3 space-y-1 text-xs text-foreground">
                   <li><span className="font-semibold">0</span> — Doing just fine - No problems with my daily activities</li>
                   <li><span className="font-semibold">1</span> — A little tricky sometimes - Mostly able to do what I need to</li>
