@@ -27,10 +27,10 @@ export default function ClientCheckins() {
   const [anxiety, setAnxiety] = useState(0);
   const [note, setNote] = useState("");
   const [quick4ps, setQuick4ps] = useState<FourPs>({
-    physical: 50,
-    psychological: 50,
-    psychosocial: 50,
-    professional: 50,
+    physical: 2,
+    psychological: 2,
+    psychosocial: 2,
+    professional: 2,
   });
 
   // SDOH state (0-4 scale)
@@ -63,10 +63,10 @@ export default function ClientCheckins() {
           pain_scale: pain,
           depression_scale: depression,
           anxiety_scale: anxiety,
-          p_physical: quick4ps.physical,
-          p_psychological: quick4ps.psychological,
-          p_psychosocial: quick4ps.psychosocial,
-          p_purpose: quick4ps.professional,
+          p_physical: quick4ps.physical * 25,
+          p_psychological: quick4ps.psychological * 25,
+          p_psychosocial: quick4ps.psychosocial * 25,
+          p_purpose: quick4ps.professional * 25,
           // Add SDOH tracking
           sdoh_housing: sdohScores.housing,
           sdoh_food: sdohScores.food,
@@ -123,8 +123,8 @@ export default function ClientCheckins() {
         });
       }
 
-      // Check 4P scores
-      const low4Ps = Object.entries(quick4ps).filter(([_, value]) => value <= 30);
+      // Check 4P scores (convert to 0-100 for thresholding)
+      const low4Ps = Object.entries(quick4ps).filter(([_, value]) => (value * 25) <= 30);
       if (low4Ps.length > 0) {
         const dimensions = low4Ps.map(([key]) => key).join(", ");
         alerts.push({
@@ -217,7 +217,7 @@ export default function ClientCheckins() {
       setDepression(0);
       setAnxiety(0);
       setNote("");
-      setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
+      setQuick4ps({ physical: 2, psychological: 2, psychosocial: 2, professional: 2 });
       setSdohScores({
         housing: 0,
         food: 0,
@@ -281,10 +281,10 @@ export default function ClientCheckins() {
         pain: Math.round((items.reduce((sum, i) => sum + (i.pain || 0), 0) / items.length) * 10) / 10,
         depression: Math.round((items.reduce((sum, i) => sum + (i.depression || 0), 0) / items.length) * 10) / 10,
         anxiety: Math.round((items.reduce((sum, i) => sum + (i.anxiety || 0), 0) / items.length) * 10) / 10,
-        physical: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.physical || 0), 0) / items.length),
-        psychological: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.psychological || 0), 0) / items.length),
-        psychosocial: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.psychosocial || 0), 0) / items.length),
-        professional: Math.round(items.reduce((sum, i) => sum + (i.fourPs?.professional || 0), 0) / items.length),
+        physical: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.physical || 0) > 4 ? (i.fourPs?.physical || 0) / 25 : (i.fourPs?.physical || 0))), 0) / items.length) * 10) / 10,
+        psychological: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.psychological || 0) > 4 ? (i.fourPs?.psychological || 0) / 25 : (i.fourPs?.psychological || 0))), 0) / items.length) * 10) / 10,
+        psychosocial: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.psychosocial || 0) > 4 ? (i.fourPs?.psychosocial || 0) / 25 : (i.fourPs?.psychosocial || 0))), 0) / items.length) * 10) / 10,
+        professional: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.professional || 0) > 4 ? (i.fourPs?.professional || 0) / 25 : (i.fourPs?.professional || 0))), 0) / items.length) * 10) / 10,
       }));
   }
 
@@ -304,7 +304,7 @@ export default function ClientCheckins() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Client Check-ins</h1>
-          <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and The 4Ps of Wellness (Physical, Psychological, Psychosocial, and Professional).</p>
+          <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and The 4Ps of Wellness (Physical, Psychosocial, Profession, and Protection).</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -384,7 +384,7 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Physical (pain, fatigue, sleep, mobility): {quick4ps.physical}
+                          Physical (pain, fatigue, sleep, mobility): {quick4ps.physical}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
@@ -400,7 +400,7 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, physical: value }))
                         }
-                        max={100}
+                        max={4}
                         step={1}
                         className="w-full"
                       />
@@ -409,14 +409,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Psychological (mood, focus, stress, coping): {quick4ps.psychological}
+                          Protection (safety, adherence, coping): {quick4ps.psychological}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Psychological reflects your emotional and mental wellbeing — your mood, focus, stress level, and coping ability.</p>
+                            <p className="text-sm">Protection reflects safety, adherence to care, and coping strategies that help prevent setbacks.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
@@ -425,7 +425,7 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, psychological: value }))
                         }
-                        max={100}
+                        max={4}
                         step={1}
                         className="w-full"
                       />
@@ -434,14 +434,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Psychosocial (relationships, finances, transportation, support): {quick4ps.psychosocial}
+                          Psychosocial (relationships, finances, transportation, support): {quick4ps.psychosocial}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Psychosocial covers your social and environmental stability — relationships, finances, transportation, and support systems.</p>
+                            <p className="text-sm">Psychosocial covers social and environmental stability — relationships, finances, transportation, and support systems.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
@@ -450,7 +450,7 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, psychosocial: value }))
                         }
-                        max={100}
+                        max={4}
                         step={1}
                         className="w-full"
                       />
@@ -459,14 +459,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Professional (job, school, or home-based role): {quick4ps.professional}
+                          Profession (job, school, or home-based role): {quick4ps.professional}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties for stay-at-home parents or spouses. It reflects satisfaction, stress, workload, and burnout risk in that environment.</p>
+                            <p className="text-sm">Profession relates to your main occupational role — including your job, school responsibilities, or home-based duties.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
@@ -475,7 +475,7 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, professional: value }))
                         }
-                        max={100}
+                        max={4}
                         step={1}
                         className="w-full"
                       />
@@ -704,20 +704,20 @@ export default function ClientCheckins() {
                         {/* 4Ps Progress */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold text-foreground">4Ps Progress (0-100)</h3>
+                            <h3 className="text-sm font-semibold text-foreground">4Ps Progress (0-4)</h3>
                             {latest && (
                               <div className="flex gap-2 text-xs">
-                                <span className={latest.physical <= 30 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.physical <= 1 ? "text-destructive font-semibold" : ""}>
                                   Physical: {latest.physical}
                                 </span>
-                                <span className={latest.psychological <= 30 ? "text-destructive font-semibold" : ""}>
-                                  Psych: {latest.psychological}
+                                <span className={latest.psychological <= 1 ? "text-destructive font-semibold" : ""}>
+                                  Protection: {latest.psychological}
                                 </span>
-                                <span className={latest.psychosocial <= 30 ? "text-destructive font-semibold" : ""}>
-                                  Social: {latest.psychosocial}
+                                <span className={latest.psychosocial <= 1 ? "text-destructive font-semibold" : ""}>
+                                  Psychosocial: {latest.psychosocial}
                                 </span>
-                                <span className={latest.professional <= 30 ? "text-destructive font-semibold" : ""}>
-                                  Purpose: {latest.professional}
+                                <span className={latest.professional <= 1 ? "text-destructive font-semibold" : ""}>
+                                  Profession: {latest.professional}
                                 </span>
                               </div>
                             )}
@@ -731,7 +731,7 @@ export default function ClientCheckins() {
                                 style={{ fontSize: '12px' }}
                               />
                               <YAxis 
-                                domain={[0, 100]} 
+                                domain={[0, 4]} 
                                 stroke="hsl(var(--muted-foreground))"
                                 style={{ fontSize: '12px' }}
                               />
@@ -757,7 +757,7 @@ export default function ClientCheckins() {
                                 dataKey="psychological" 
                                 stroke="#3b82f6" 
                                 strokeWidth={2}
-                                name="Psychological"
+                                name="Protection"
                                 dot={{ fill: '#3b82f6', r: 4 }}
                               />
                               <Line 
@@ -773,7 +773,7 @@ export default function ClientCheckins() {
                                 dataKey="professional" 
                                 stroke="#6366f1" 
                                 strokeWidth={2}
-                                name="Purpose"
+                                name="Profession"
                                 dot={{ fill: '#6366f1', r: 4 }}
                               />
                             </LineChart>
@@ -784,13 +784,13 @@ export default function ClientCheckins() {
                                 Physical {latest.physical > previous.physical ? '↑' : latest.physical < previous.physical ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.psychological, previous.psychological, true) }}>
-                                Psychological {latest.psychological > previous.psychological ? '↑' : latest.psychological < previous.psychological ? '↓' : '→'}
+                                Protection {latest.psychological > previous.psychological ? '↑' : latest.psychological < previous.psychological ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.psychosocial, previous.psychosocial, true) }}>
                                 Psychosocial {latest.psychosocial > previous.psychosocial ? '↑' : latest.psychosocial < previous.psychosocial ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.professional, previous.professional, true) }}>
-                                Purpose {latest.professional > previous.professional ? '↑' : latest.professional < previous.professional ? '↓' : '→'}
+                                Profession {latest.professional > previous.professional ? '↑' : latest.professional < previous.professional ? '↓' : '→'}
                               </span>
                             </div>
                           )}
