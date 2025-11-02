@@ -33,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
+import { IntakeMedicationRecord, type MedicationEntry } from "@/components/IntakeMedicationRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
@@ -55,6 +56,9 @@ export default function IntakeWizard() {
   const [sensitiveTag, setSensitiveTag] = useState(false);
   const [showCaraModal, setShowCaraModal] = useState(false);
   const [medications, setMedications] = useState<any[]>([]);
+  const [preInjuryMeds, setPreInjuryMeds] = useState<MedicationEntry[]>([]);
+  const [postInjuryMeds, setPostInjuryMeds] = useState<MedicationEntry[]>([]);
+  const [medAllergies, setMedAllergies] = useState<string>("");
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [hasMeds, setHasMeds] = useState<string>('');
@@ -295,10 +299,13 @@ export default function IntakeWizard() {
     medsBlock,
     sensitiveTag,
     medications,
+    preInjuryMeds,
+    postInjuryMeds,
+    medAllergies,
     uploadedFiles,
     mentalHealth,
     hasMeds,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, uploadedFiles, mentalHealth, hasMeds]);
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, medAllergies, uploadedFiles, mentalHealth, hasMeds]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -334,7 +341,7 @@ export default function IntakeWizard() {
     async function loadSavedDraft() {
       const draft = await loadDraft();
       if (draft && draft.formData) {
-        const data = draft.formData as any;
+      const data = draft.formData as any;
         if (data.client) setClient(data.client);
         if (data.consent) setConsent(data.consent);
         if (data.intake) setIntake(data.intake);
@@ -342,6 +349,9 @@ export default function IntakeWizard() {
         if (data.sdoh) setSdoh(data.sdoh);
         if (data.medsBlock) setMedsBlock(data.medsBlock);
         if (data.medications) setMedications(data.medications);
+        if (data.preInjuryMeds) setPreInjuryMeds(data.preInjuryMeds);
+        if (data.postInjuryMeds) setPostInjuryMeds(data.postInjuryMeds);
+        if (data.medAllergies) setMedAllergies(data.medAllergies);
         if (data.mentalHealth) setMentalHealth(data.mentalHealth);
         if (data.hasMeds) setHasMeds(data.hasMeds);
         if (typeof data.sensitiveTag === 'boolean') setSensitiveTag(data.sensitiveTag);
@@ -588,43 +598,14 @@ export default function IntakeWizard() {
         {/* Step 2: Medical History */}
         {step === 2 && (
           <div className="space-y-6">
-            <Card className="p-6 border-border">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                Medical History & Medications
-              </h3>
-              
-              <div className="mb-6">
-                <Label className="mb-3 block">Do you currently take any medications?</Label>
-                <RadioGroup value={hasMeds} onValueChange={setHasMeds}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="meds-yes" />
-                    <Label htmlFor="meds-yes" className="cursor-pointer">Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="meds-no" />
-                    <Label htmlFor="meds-no" className="cursor-pointer">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unsure" id="meds-unsure" />
-                    <Label htmlFor="meds-unsure" className="cursor-pointer">I'm not sure</Label>
-                  </div>
-                </RadioGroup>
-                {hasMeds === 'unsure' && (
-                  <Alert className="mt-3">
-                    <AlertDescription>
-                      No problem! You can add what you remember or upload a photo of your medication bottles later.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-
-              {hasMeds === 'yes' && (
-                <MedicationAutocomplete 
-                  medications={medications}
-                  onMedicationsChange={setMedications}
-                />
-              )}
-            </Card>
+            <IntakeMedicationRecord
+              preInjuryMeds={preInjuryMeds}
+              postInjuryMeds={postInjuryMeds}
+              allergies={medAllergies}
+              onPreInjuryChange={setPreInjuryMeds}
+              onPostInjuryChange={setPostInjuryMeds}
+              onAllergiesChange={setMedAllergies}
+            />
 
             <FileUploadZone
               onFilesUploaded={(files) => setUploadedFiles(prev => [...prev, ...files])}
@@ -634,17 +615,11 @@ export default function IntakeWizard() {
             <div className="mt-6">
               <Button 
                 onClick={() => setStep(3)}
-                disabled={hasMeds === ''}
                 className="w-full sm:w-auto"
               >
                 Continue to Mental Health
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              {hasMeds === '' && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Please answer the medication question to continue
-                </p>
-              )}
             </div>
           </div>
         )}

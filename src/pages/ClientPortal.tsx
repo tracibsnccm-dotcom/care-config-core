@@ -3,6 +3,7 @@ import { CarePlansViewer } from "@/components/CarePlansViewer";
 import { ClientMessaging } from "@/components/ClientMessaging";
 import { ReportConcernDialog } from "@/components/ReportConcernDialog";
 import { FileComplaintForm } from "@/components/FileComplaintForm";
+import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 import { WellnessSnapshot } from "@/components/WellnessSnapshot";
 import { HealthSummaryChips } from "@/components/HealthSummaryChips";
 import { ClientGoalTracker } from "@/components/ClientGoalTracker";
@@ -25,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
@@ -35,6 +37,7 @@ export default function ClientPortal() {
   const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
+  const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
 
@@ -157,6 +160,42 @@ export default function ClientPortal() {
 
       {/* Care Team Contact Bar */}
       <CareTeamContactBar caseId={caseId || ""} />
+
+      {/* Voice Concerns Banner */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <div>
+                <p className="font-semibold text-foreground">Have concerns about your provider care?</p>
+                <p className="text-sm text-muted-foreground">
+                  Your RN Care Manager is here to help. Share any issues confidentially.
+                </p>
+              </div>
+            </div>
+            <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default" size="sm" className="whitespace-nowrap">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Voice Your Concerns
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                {caseId ? (
+                  <VoiceConcernsForm caseId={caseId} />
+                ) : (
+                  <Alert>
+                    <AlertDescription>
+                      No active case found. Please complete intake first.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
 
       {/* SECTION 2 - SNAPSHOT + TABS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">

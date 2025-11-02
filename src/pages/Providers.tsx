@@ -4,11 +4,18 @@ import { ProviderCard } from "@/components/ProviderCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, MessageSquare } from "lucide-react";
+import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useCases } from "@/hooks/useSupabaseData";
 
 export default function Providers() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const { providers } = useApp();
+  const { cases: userCases } = useCases();
+  const caseId = userCases?.[0]?.id as string | undefined;
 
   const filteredProviders = providers.filter(
     (p) =>
@@ -25,11 +32,42 @@ export default function Providers() {
             <h1 className="text-3xl font-bold text-foreground">Provider Directory</h1>
             <p className="text-muted-foreground mt-1">Find and manage healthcare providers</p>
           </div>
-          <Button className="bg-primary hover:bg-primary-dark">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Provider
-          </Button>
+          <div className="flex gap-3">
+            <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="bg-primary/10 hover:bg-primary/20 border-primary">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Voice Your Concerns
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                {caseId ? (
+                  <VoiceConcernsForm caseId={caseId} />
+                ) : (
+                  <Alert>
+                    <AlertDescription>
+                      No active case found. Please complete intake first.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </DialogContent>
+            </Dialog>
+            <Button className="bg-primary hover:bg-primary-dark">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Provider
+            </Button>
+          </div>
         </div>
+
+        {/* Voice Concerns Explainer */}
+        <Alert className="mb-6">
+          <MessageSquare className="w-4 h-4" />
+          <AlertDescription>
+            <strong>Voice Your Concerns:</strong> If you've had any issues or concerns about your
+            care or interactions with a provider, use the "Voice Your Concerns" button above. Your
+            RN Care Manager will review and follow up with you through secure messaging.
+          </AlertDescription>
+        </Alert>
 
         {/* Search */}
         <div className="mb-6">

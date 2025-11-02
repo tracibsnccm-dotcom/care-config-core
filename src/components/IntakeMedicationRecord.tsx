@@ -1,0 +1,289 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, Pill } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export interface MedicationEntry {
+  id: string;
+  name: string;
+  dose: string;
+  purpose: string;
+  prescriber: string;
+  startDate: string;
+  notes: string;
+}
+
+interface IntakeMedicationRecordProps {
+  preInjuryMeds: MedicationEntry[];
+  postInjuryMeds: MedicationEntry[];
+  allergies: string;
+  onPreInjuryChange: (meds: MedicationEntry[]) => void;
+  onPostInjuryChange: (meds: MedicationEntry[]) => void;
+  onAllergiesChange: (allergies: string) => void;
+}
+
+export function IntakeMedicationRecord({
+  preInjuryMeds,
+  postInjuryMeds,
+  allergies,
+  onPreInjuryChange,
+  onPostInjuryChange,
+  onAllergiesChange,
+}: IntakeMedicationRecordProps) {
+  const createEmptyMed = (): MedicationEntry => ({
+    id: `med-${Date.now()}-${Math.random()}`,
+    name: "",
+    dose: "",
+    purpose: "",
+    prescriber: "",
+    startDate: "",
+    notes: "",
+  });
+
+  const addPreInjuryMed = () => {
+    onPreInjuryChange([...preInjuryMeds, createEmptyMed()]);
+  };
+
+  const addPostInjuryMed = () => {
+    onPostInjuryChange([...postInjuryMeds, createEmptyMed()]);
+  };
+
+  const removePreInjuryMed = (id: string) => {
+    onPreInjuryChange(preInjuryMeds.filter((m) => m.id !== id));
+  };
+
+  const removePostInjuryMed = (id: string) => {
+    onPostInjuryChange(postInjuryMeds.filter((m) => m.id !== id));
+  };
+
+  const updatePreInjuryMed = (id: string, field: keyof MedicationEntry, value: string) => {
+    onPreInjuryChange(
+      preInjuryMeds.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+    );
+  };
+
+  const updatePostInjuryMed = (id: string, field: keyof MedicationEntry, value: string) => {
+    onPostInjuryChange(
+      postInjuryMeds.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+    );
+  };
+
+  const MedicationForm = ({
+    med,
+    onUpdate,
+    onRemove,
+  }: {
+    med: MedicationEntry;
+    onUpdate: (field: keyof MedicationEntry, value: string) => void;
+    onRemove: () => void;
+  }) => (
+    <div className="p-4 border border-border rounded-lg space-y-3 bg-card">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Pill className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold">Medication Entry</span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-name`} className="text-xs">
+            Medication Name *
+          </Label>
+          <Input
+            id={`${med.id}-name`}
+            value={med.name}
+            onChange={(e) => onUpdate("name", e.target.value)}
+            placeholder="e.g., Ibuprofen"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-dose`} className="text-xs">
+            Dose/Strength
+          </Label>
+          <Input
+            id={`${med.id}-dose`}
+            value={med.dose}
+            onChange={(e) => onUpdate("dose", e.target.value)}
+            placeholder="e.g., 400mg"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-purpose`} className="text-xs">
+            Purpose/Condition
+          </Label>
+          <Input
+            id={`${med.id}-purpose`}
+            value={med.purpose}
+            onChange={(e) => onUpdate("purpose", e.target.value)}
+            placeholder="e.g., Pain management"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-prescriber`} className="text-xs">
+            Prescriber
+          </Label>
+          <Input
+            id={`${med.id}-prescriber`}
+            value={med.prescriber}
+            onChange={(e) => onUpdate("prescriber", e.target.value)}
+            placeholder="e.g., Dr. Smith"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-startDate`} className="text-xs">
+            Start Date
+          </Label>
+          <Input
+            id={`${med.id}-startDate`}
+            type="date"
+            value={med.startDate}
+            onChange={(e) => onUpdate("startDate", e.target.value)}
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1 md:col-span-2">
+          <Label htmlFor={`${med.id}-notes`} className="text-xs">
+            Additional Notes
+          </Label>
+          <Textarea
+            id={`${med.id}-notes`}
+            value={med.notes}
+            onChange={(e) => onUpdate("notes", e.target.value)}
+            placeholder="Any additional information about this medication..."
+            rows={2}
+            className="text-sm"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Alert>
+        <AlertDescription>
+          <strong>Medication & Treatment History:</strong> Please provide details about medications
+          you were taking BEFORE your injury/illness and any NEW medications started AFTER. This
+          helps your care team understand your complete treatment picture and identify any medication
+          interactions or changes.
+        </AlertDescription>
+      </Alert>
+
+      {/* Pre-Injury Medications */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Pill className="w-5 h-5 text-primary" />
+            Pre-Injury Medications
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List all medications you were taking BEFORE your injury/illness occurred
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {preInjuryMeds.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              No pre-injury medications added yet. Click "Add Medication" to add one.
+            </p>
+          )}
+          {preInjuryMeds.map((med) => (
+            <MedicationForm
+              key={med.id}
+              med={med}
+              onUpdate={(field, value) => updatePreInjuryMed(med.id, field, value)}
+              onRemove={() => removePreInjuryMed(med.id)}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addPreInjuryMed}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Pre-Injury Medication
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Post-Injury Medications */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Pill className="w-5 h-5 text-primary" />
+            Post-Injury Medications
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List all NEW medications started AFTER your injury/illness occurred
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {postInjuryMeds.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              No post-injury medications added yet. Click "Add Medication" to add one.
+            </p>
+          )}
+          {postInjuryMeds.map((med) => (
+            <MedicationForm
+              key={med.id}
+              med={med}
+              onUpdate={(field, value) => updatePostInjuryMed(med.id, field, value)}
+              onRemove={() => removePostInjuryMed(med.id)}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addPostInjuryMed}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Post-Injury Medication
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Allergies */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Medication Allergies & Sensitivities</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List any known medication allergies or sensitivities (CRITICAL for safe care)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={allergies}
+            onChange={(e) => onAllergiesChange(e.target.value)}
+            placeholder="e.g., Penicillin (causes rash), Codeine (nausea), None known"
+            rows={4}
+            className="w-full"
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
