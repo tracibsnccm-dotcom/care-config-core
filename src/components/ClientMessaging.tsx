@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Clock, CheckCircle, User } from "lucide-react";
+import { MessageSquare, Send, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -17,17 +15,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
   id: string;
-  subject: string;
   message_text: string;
-  response_text: string | null;
-  recipient_role: string;
-  status: string;
   created_at: string;
-  responded_at: string | null;
+  read_at: string | null;
+  sender_id: string;
+  recipient_id: string;
   sender_profile?: {
     display_name: string | null;
   } | null;
-  responder_profile?: {
+  recipient_profile?: {
+    display_name: string | null;
+  } | null;
+}
+
+interface TeamMember {
+  user_id: string;
+  role: string;
+  profile: {
     display_name: string | null;
   } | null;
 }
@@ -40,30 +44,43 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
   const { toast } = useToast();
   const { tier } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // New message form
-  const [recipientRole, setRecipientRole] = useState<string>("");
-  const [subject, setSubject] = useState("");
+  const [recipientId, setRecipientId] = useState<string>("");
   const [messageText, setMessageText] = useState("");
 
   // Check if messaging is allowed for current tier
   const messagingAllowed = tier === "Mid-Sized" || tier === "Enterprise";
 
   useEffect(() => {
-    if (messagingAllowed) {
+    const initializeMessaging = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    
+    initializeMessaging();
+  }, []);
+
+  useEffect(() => {
+    if (messagingAllowed && currentUserId) {
+      fetchTeamMembers();
       fetchMessages();
       
       // Set up realtime subscription
       const channel = supabase
-        .channel('messages-changes')
+        .channel('direct-messages-changes')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'messages',
+            table: 'client_direct_messages',
             filter: `case_id=eq.${caseId}`
           },
           () => {
@@ -76,27 +93,73 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
         supabase.removeChannel(channel);
       };
     }
-  }, [caseId, messagingAllowed]);
+  }, [caseId, messagingAllowed, currentUserId]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data: assignments, error } = await supabase
+        .from("case_assignments")
+        .select("user_id, role")
+        .eq("case_id", caseId)
+        .neq("user_id", currentUserId);
+
+      if (error) throw error;
+      
+      if (assignments && assignments.length > 0) {
+        const userIds = assignments.map(a => a.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds);
+        
+        const membersWithProfiles = assignments.map(assignment => ({
+          user_id: assignment.user_id,
+          role: assignment.role,
+          profile: profiles?.find(p => p.user_id === assignment.user_id) || null
+        }));
+        
+        setTeamMembers(membersWithProfiles);
+      }
+    } catch (err: any) {
+      console.error("Error fetching team members:", err);
+    }
+  };
 
   const fetchMessages = async () => {
+    if (!currentUserId) return;
+    
     try {
       setLoading(true);
-      const { data, error} = await supabase
-        .from("messages")
-        .select(`
-          *,
-          sender_profile:profiles!messages_sender_id_fkey (
-            display_name
-          ),
-          responder_profile:profiles!messages_responded_by_fkey (
-            display_name
-          )
-        `)
+      const { data: messages, error } = await supabase
+        .from("client_direct_messages")
+        .select("*")
         .eq("case_id", caseId)
+        .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      if (messages && messages.length > 0) {
+        const allUserIds = [...new Set([
+          ...messages.map(m => m.sender_id),
+          ...messages.map(m => m.recipient_id)
+        ])];
+        
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", allUserIds);
+        
+        const messagesWithProfiles = messages.map(msg => ({
+          ...msg,
+          sender_profile: profiles?.find(p => p.user_id === msg.sender_id) || null,
+          recipient_profile: profiles?.find(p => p.user_id === msg.recipient_id) || null
+        }));
+        
+        setMessages(messagesWithProfiles);
+      } else {
+        setMessages([]);
+      }
     } catch (err: any) {
       console.error("Error fetching messages:", err);
       toast({
@@ -110,10 +173,19 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
   };
 
   const handleSendMessage = async () => {
-    if (!recipientRole || !subject.trim() || !messageText.trim()) {
+    if (!recipientId || !messageText.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields",
+        description: "Please select a recipient and enter a message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentUserId) {
+      toast({
+        title: "Error",
+        description: "Not authenticated",
         variant: "destructive",
       });
       return;
@@ -121,17 +193,12 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
 
     try {
       setSending(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("messages").insert({
+      const { error } = await supabase.from("client_direct_messages").insert({
         case_id: caseId,
-        sender_id: user.id,
-        recipient_role: recipientRole,
-        subject: subject.trim(),
+        sender_id: currentUserId,
+        recipient_id: recipientId,
         message_text: messageText.trim(),
-        status: "pending",
       });
 
       if (error) throw error;
@@ -142,8 +209,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
       });
 
       // Reset form
-      setRecipientRole("");
-      setSubject("");
+      setRecipientId("");
       setMessageText("");
       
       // Refresh messages
@@ -190,18 +256,8 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
       case "RN_CCM": return "RN Case Manager";
       case "ATTORNEY": return "Attorney";
       case "PROVIDER": return "Provider";
+      case "STAFF": return "Staff";
       default: return role;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="flex items-center gap-1"><Clock className="w-3 h-3" />Pending</Badge>;
-      case "responded":
-        return <Badge variant="default" className="flex items-center gap-1"><CheckCircle className="w-3 h-3" />Responded</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -215,39 +271,37 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
             Send a Message
           </CardTitle>
           <CardDescription>
-            Ask questions to your RN Case Manager, Attorney, or Provider
+            Send a direct message to your care team
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="recipient">Send To</Label>
-            <Select value={recipientRole} onValueChange={setRecipientRole}>
+            <Select value={recipientId} onValueChange={setRecipientId}>
               <SelectTrigger id="recipient">
                 <SelectValue placeholder="Select recipient" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="RN_CCM">RN Case Manager</SelectItem>
-                <SelectItem value="ATTORNEY">Attorney</SelectItem>
-                <SelectItem value="PROVIDER">Provider</SelectItem>
+                {teamMembers.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    No team members assigned yet
+                  </div>
+                ) : (
+                  teamMembers.map((member) => (
+                    <SelectItem key={member.user_id} value={member.user_id}>
+                      {member.profile?.display_name || "Unknown"} ({getRoleName(member.role)})
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input
-              id="subject"
-              placeholder="Brief subject line"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="message">Your Question</Label>
+            <Label htmlFor="message">Your Message</Label>
             <Textarea
               id="message"
-              placeholder="Type your question or message here..."
+              placeholder="Type your message here..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               rows={6}
@@ -256,7 +310,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
 
           <Button 
             onClick={handleSendMessage} 
-            disabled={sending}
+            disabled={sending || teamMembers.length === 0}
             className="w-full"
           >
             <Send className="w-4 h-4 mr-2" />
@@ -270,7 +324,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
         <CardHeader>
           <CardTitle>Message History</CardTitle>
           <CardDescription>
-            Your previous messages and responses
+            Your conversation with your care team
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -282,49 +336,42 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
             </Alert>
           ) : (
             <div className="space-y-4">
-              {messages.map((msg) => (
-                <Card key={msg.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-base">{msg.subject}</CardTitle>
-                        <CardDescription className="text-xs">
-                          To: {getRoleName(msg.recipient_role)} • {format(new Date(msg.created_at), "PPp")}
-                        </CardDescription>
-                      </div>
-                      {getStatusBadge(msg.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium mb-1">Your Message:</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {msg.message_text}
-                      </p>
-                    </div>
-
-                    {msg.response_text && (
-                      <>
-                        <Separator />
-                        <div>
-                          <p className="text-sm font-medium mb-1 flex items-center gap-2">
+              {messages.map((msg) => {
+                const isSentByMe = msg.sender_id === currentUserId;
+                const otherPerson = isSentByMe 
+                  ? msg.recipient_profile?.display_name || "Team Member"
+                  : msg.sender_profile?.display_name || "Team Member";
+                
+                return (
+                  <Card key={msg.id} className={isSentByMe ? "border-primary/20" : ""}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
                             <User className="w-4 h-4" />
-                            Response:
-                            {msg.responded_at && (
-                              <span className="text-xs text-muted-foreground font-normal">
-                                {format(new Date(msg.responded_at), "PPp")}
-                              </span>
-                            )}
-                          </p>
-                          <div className="bg-muted p-3 rounded-md">
-                            <p className="text-sm whitespace-pre-wrap">{msg.response_text}</p>
+                            <span className="text-sm font-medium">
+                              {isSentByMe ? "You" : otherPerson}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {isSentByMe ? `to ${otherPerson}` : ""}
+                            </span>
                           </div>
+                          <CardDescription className="text-xs">
+                            {format(new Date(msg.created_at), "PPp")}
+                          </CardDescription>
                         </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`p-3 rounded-md ${isSentByMe ? "bg-primary/5" : "bg-muted"}`}>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {msg.message_text}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>
