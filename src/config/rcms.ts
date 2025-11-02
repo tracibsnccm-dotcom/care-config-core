@@ -103,6 +103,12 @@ export interface Intake {
   medList?: string;
   allergies?: string;
   medsAttested?: boolean;
+  // Incident narrative
+  incidentNarrative?: string;
+  incidentNarrativeExtra?: string;
+  // Diagnoses
+  selectedDiagnoses?: string[];
+  diagnosisNotes?: string;
 }
 
 export interface FourPs {

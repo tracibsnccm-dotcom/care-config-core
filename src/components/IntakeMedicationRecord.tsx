@@ -227,81 +227,7 @@ export function IntakeMedicationRecord({
         </AlertDescription>
       </Alert>
 
-      {/* Pre-Injury Medications */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Pill className="w-5 h-5 text-primary" />
-            Pre-Injury Medications
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            List all medications you were taking BEFORE your injury/illness occurred
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {preInjuryMeds.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
-              No pre-injury medications added yet. Click "Add Medication" to add one.
-            </p>
-          )}
-          {preInjuryMeds.map((med) => (
-            <MedicationForm
-              key={med.id}
-              med={med}
-              onUpdate={(field, value) => updatePreInjuryMed(med.id, field, value)}
-              onRemove={() => removePreInjuryMed(med.id)}
-            />
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addPreInjuryMed}
-            className="w-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Pre-Injury Medication
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Post-Injury Medications */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Pill className="w-5 h-5 text-primary" />
-            Post-Injury Medications
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            List all NEW medications started AFTER your injury/illness occurred
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {postInjuryMeds.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
-              No post-injury medications added yet. Click "Add Medication" to add one.
-            </p>
-          )}
-          {postInjuryMeds.map((med) => (
-            <MedicationForm
-              key={med.id}
-              med={med}
-              onUpdate={(field, value) => updatePostInjuryMed(med.id, field, value)}
-              onRemove={() => removePostInjuryMed(med.id)}
-            />
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addPostInjuryMed}
-            className="w-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Post-Injury Medication
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Allergies */}
+      {/* Allergies - MOVED TO TOP */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -397,6 +323,80 @@ export function IntakeMedicationRecord({
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Allergy
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Pre-Injury Medications */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Pill className="w-5 h-5 text-primary" />
+            Pre-Injury Medications
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List all medications you were taking BEFORE your injury/illness occurred
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {preInjuryMeds.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              No pre-injury medications added yet. Click "Add Medication" to add one.
+            </p>
+          )}
+          {preInjuryMeds.map((med) => (
+            <MedicationForm
+              key={med.id}
+              med={med}
+              onUpdate={(field, value) => updatePreInjuryMed(med.id, field, value)}
+              onRemove={() => removePreInjuryMed(med.id)}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addPreInjuryMed}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Pre-Injury Medication
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Post-Injury Medications */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Pill className="w-5 h-5 text-primary" />
+            Post-Injury Medications
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List all NEW medications started AFTER your injury/illness occurred
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {postInjuryMeds.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              No post-injury medications added yet. Click "Add Medication" to add one.
+            </p>
+          )}
+          {postInjuryMeds.map((med) => (
+            <MedicationForm
+              key={med.id}
+              med={med}
+              onUpdate={(field, value) => updatePostInjuryMed(med.id, field, value)}
+              onRemove={() => removePostInjuryMed(med.id)}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addPostInjuryMed}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Post-Injury Medication
           </Button>
         </CardContent>
       </Card>

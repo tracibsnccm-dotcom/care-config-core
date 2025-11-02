@@ -36,6 +36,8 @@ import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 import { IntakeMedicationRecord, type MedicationEntry, type AllergyEntry } from "@/components/IntakeMedicationRecord";
 import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
+import { IntakeDiagnosisSelector } from "@/components/IntakeDiagnosisSelector";
+import { LabeledTextarea } from "@/components/LabeledTextarea";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
 import { IntakeCompletionChecklist } from "@/components/IntakeCompletionChecklist";
@@ -86,6 +88,14 @@ export default function IntakeWizard() {
     injuries: [],
     severitySelfScore: 5,
   });
+
+  // Incident narrative state
+  const [incidentNarrative, setIncidentNarrative] = useState("");
+  const [incidentNarrativeExtra, setIncidentNarrativeExtra] = useState("");
+  
+  // Diagnosis state
+  const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
+  const [diagnosisNotes, setDiagnosisNotes] = useState("");
 
   const [client, setClient] = useState<Client>({
     rcmsId: "RCMS-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
@@ -219,6 +229,11 @@ export default function IntakeWizard() {
         medList: medsBlock.meds,
         allergies: medsBlock.allergies,
         medsAttested: medsBlock.attested,
+        // Include new fields
+        incidentNarrative,
+        incidentNarrativeExtra,
+        selectedDiagnoses,
+        diagnosisNotes,
       },
       fourPs,
       sdoh,
@@ -525,7 +540,11 @@ export default function IntakeWizard() {
     uploadedFiles,
     mentalHealth,
     hasMeds,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds]);
+    incidentNarrative,
+    incidentNarrativeExtra,
+    selectedDiagnoses,
+    diagnosisNotes,
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, selectedDiagnoses, diagnosisNotes]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -576,6 +595,10 @@ export default function IntakeWizard() {
         if (data.medAllergies) setMedAllergies(data.medAllergies);
         if (data.mentalHealth) setMentalHealth(data.mentalHealth);
         if (data.hasMeds) setHasMeds(data.hasMeds);
+        if (data.incidentNarrative) setIncidentNarrative(data.incidentNarrative);
+        if (data.incidentNarrativeExtra) setIncidentNarrativeExtra(data.incidentNarrativeExtra);
+        if (data.selectedDiagnoses) setSelectedDiagnoses(data.selectedDiagnoses);
+        if (data.diagnosisNotes) setDiagnosisNotes(data.diagnosisNotes);
         if (typeof data.sensitiveTag === 'boolean') setSensitiveTag(data.sensitiveTag);
         if (typeof data.step === 'number') setStep(data.step);
         
@@ -776,7 +799,7 @@ export default function IntakeWizard() {
         {step === 1 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3 mb-6">
               <LabeledSelect
                 label="Incident Type"
                 value={intake.incidentType}
@@ -798,6 +821,40 @@ export default function IntakeWizard() {
                 options={["ED", "UrgentCare", "PCP", "Chiro", "None"]}
               />
             </div>
+
+            {/* Incident Narrative */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-sm mb-1">Tell Us What Happened</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Describe the incident in your own words. Include important details like what happened, where, and any immediate effects you experienced.
+                  </p>
+                </div>
+              </div>
+
+              <LabeledTextarea
+                label="What Happened?"
+                value={incidentNarrative}
+                onChange={setIncidentNarrative}
+                placeholder="Please describe what happened during the incident in your own words. Include details about the circumstances, what you were doing, any injuries sustained, and how you felt immediately after..."
+                maxLength={10000}
+                rows={8}
+              />
+
+              {incidentNarrative.length > 9000 && (
+                <LabeledTextarea
+                  label="Additional Details (Optional)"
+                  value={incidentNarrativeExtra}
+                  onChange={setIncidentNarrativeExtra}
+                  placeholder="If you need to provide more details, use this space to continue your description..."
+                  maxLength={5000}
+                  rows={6}
+                />
+              )}
+            </div>
+
             {!requiredIncidentOk && (
               <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
@@ -827,6 +884,13 @@ export default function IntakeWizard() {
               onPreInjuryChange={setPreInjuryMeds}
               onPostInjuryChange={setPostInjuryMeds}
               onAllergiesChange={setMedAllergies}
+            />
+
+            <IntakeDiagnosisSelector
+              selectedDiagnoses={selectedDiagnoses}
+              additionalNotes={diagnosisNotes}
+              onDiagnosesChange={setSelectedDiagnoses}
+              onNotesChange={setDiagnosisNotes}
             />
 
             <IntakeTreatmentRecord
