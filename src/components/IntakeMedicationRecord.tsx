@@ -219,9 +219,9 @@ export function IntakeMedicationRecord({
   return (
     <div className="space-y-6">
       <Alert>
-        <AlertDescription>
+        <AlertDescription className="text-base">
           <strong>Medication & Treatment History:</strong> Please provide details about medications
-          you were taking BEFORE your injury/illness and any NEW medications started AFTER. This
+          you were taking <strong>BEFORE</strong> your injury/illness and any <strong>NEW</strong> medications started <strong>AFTER</strong>. This
           helps your care team understand your complete treatment picture and identify any medication
           interactions or changes.
         </AlertDescription>
@@ -378,6 +378,7 @@ export function IntakeMedicationRecord({
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="mild">Mild (minor discomfort)</SelectItem>
                       <SelectItem value="moderate">Moderate (significant reaction)</SelectItem>
                       <SelectItem value="severe">Severe (life-threatening)</SelectItem>
