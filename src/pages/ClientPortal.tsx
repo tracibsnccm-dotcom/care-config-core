@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText } from "lucide-react";
+import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,7 +166,10 @@ export default function ClientPortal() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Megaphone className="w-5 h-5 text-primary" />
+              <div className="flex items-center gap-1">
+                <UserRound className="w-5 h-5 text-primary" />
+                <Megaphone className="w-5 h-5 text-primary" />
+              </div>
               <div>
                 <p className="font-semibold text-foreground">Have concerns about your provider care?</p>
                 <p className="text-sm text-muted-foreground">
@@ -177,7 +180,10 @@ export default function ClientPortal() {
             <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" size="sm" className="whitespace-nowrap">
-                  <Megaphone className="w-4 h-4 mr-2 text-primary-foreground" />
+                  <div className="flex items-center gap-1 mr-2">
+                    <UserRound className="w-4 h-4" />
+                    <Megaphone className="w-4 h-4" />
+                  </div>
                   Voice Your Concerns
                 </Button>
               </DialogTrigger>

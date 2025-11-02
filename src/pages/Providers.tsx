@@ -4,7 +4,7 @@ import { ProviderCard } from "@/components/ProviderCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
-import { Plus, Search, Megaphone } from "lucide-react";
+import { Plus, Search, Megaphone, UserRound } from "lucide-react";
 import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +36,10 @@ export default function Providers() {
             <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="bg-primary/10 hover:bg-primary/20 border-primary">
-                  <Megaphone className="w-4 h-4 mr-2 text-primary" />
+                  <div className="flex items-center gap-1 mr-2">
+                    <UserRound className="w-4 h-4 text-primary" />
+                    <Megaphone className="w-4 h-4 text-primary" />
+                  </div>
                   Voice Your Concerns
                 </Button>
               </DialogTrigger>
@@ -61,7 +64,10 @@ export default function Providers() {
 
         {/* Voice Concerns Explainer */}
         <Alert className="mb-6">
-          <Megaphone className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-1">
+            <UserRound className="w-4 h-4 text-primary" />
+            <Megaphone className="w-4 h-4 text-primary" />
+          </div>
           <AlertDescription>
             <strong>Voice Your Concerns:</strong> If you've had any issues or concerns about your
             care or interactions with a provider, use the "Voice Your Concerns" button above. Your
