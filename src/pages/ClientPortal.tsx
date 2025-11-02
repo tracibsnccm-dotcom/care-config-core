@@ -172,85 +172,87 @@ export default function ClientPortal() {
 
           {/* Comprehensive Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 bg-white border-2 border-rcms-gold shadow-lg">
-              <TabsTrigger 
-                value="checkins"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Wellness</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="journal"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <BookText className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Journal</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="careplans"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Care Plans</span>
-              </TabsTrigger>
+            <div className="overflow-x-auto -mx-6 px-6 scrollbar-hide">
+              <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5 lg:grid-cols-10 bg-white border-2 border-rcms-gold shadow-lg">
+                <TabsTrigger 
+                  value="checkins"
+                  className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+                >
+                  <ClipboardCheck className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Wellness</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="journal"
+                  className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+                >
+                  <BookText className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Journal</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="careplans"
+                  className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Care Plans</span>
+                </TabsTrigger>
               <TabsTrigger 
                 value="documents"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Documents</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="timeline"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <Clock className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Timeline</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="resources"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <BookOpen className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Resources</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="goals"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <ClipboardCheck className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">My Goals</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="actions"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Action Items</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="appointments"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <Clock className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Appointments</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="medications"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <Stethoscope className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Medications</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="messages"
-                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Quick Message</span>
               </TabsTrigger>
             </TabsList>
+            </div>
 
             {/* Tab Content with white cards */}
             <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">

@@ -185,6 +185,40 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     );
   }
 
+  if (recentCheckins.length === 0) {
+    return (
+      <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-rcms-teal" />
+              Wellness Snapshot
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">Track your progress over time</p>
+          </div>
+        </div>
+        
+        <div className="text-center py-12">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-rcms-pale-gold flex items-center justify-center">
+            <TrendingUp className="w-10 h-10 text-rcms-gold" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            No Check-ins Yet
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Complete your first wellness check-in to start tracking your progress. Your wellness snapshot will show 7-day averages of your pain, mood, and overall health metrics.
+          </p>
+          <Button 
+            onClick={onViewProgress}
+            className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            Complete First Check-in
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
       <div className="flex items-center justify-between mb-6">

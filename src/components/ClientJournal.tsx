@@ -131,10 +131,16 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <BookText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No journal entries yet</p>
-          <p className="text-sm mt-1">Start writing to track your thoughts and progress</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rcms-pale-gold flex items-center justify-center">
+            <BookText className="w-8 h-8 text-rcms-gold" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Your Journal is Empty
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Start documenting your journey! Journal entries help your care team understand your progress and experiences better.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

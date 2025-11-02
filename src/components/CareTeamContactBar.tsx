@@ -39,6 +39,14 @@ export function CareTeamContactBar({ caseId }: CareTeamContactBarProps) {
   async function fetchTeamMembers() {
     try {
       setLoading(true);
+      
+      // Check if caseId is valid before querying
+      if (!caseId || caseId.trim() === '') {
+        setTeamMembers([]);
+        setLoading(false);
+        return;
+      }
+      
       const currentUser = await supabase.auth.getUser();
 
       // Get team members assigned to this case
@@ -135,8 +143,24 @@ export function CareTeamContactBar({ caseId }: CareTeamContactBarProps) {
     // Navigate to messaging or open modal
   }
 
-  if (loading || teamMembers.length === 0) {
-    return null;
+  if (loading) {
+    return (
+      <div className="bg-white border-b-2 border-rcms-gold shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="h-4 w-32 bg-muted rounded"></div>
+            <div className="flex gap-2">
+              <div className="h-10 w-40 bg-muted rounded-lg"></div>
+              <div className="h-10 w-40 bg-muted rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (teamMembers.length === 0) {
+    return null; // Don't show anything if no team members
   }
 
   return (
