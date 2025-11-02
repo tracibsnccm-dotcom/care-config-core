@@ -9,10 +9,12 @@ import { User, Mail, Phone, Bell, Lock, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "sonner";
+import { PasswordChangeDialog } from "./PasswordChangeDialog";
 
 export function ClientProfileSettings() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profile, setProfile] = useState({
     display_name: "",
     email: "",
@@ -125,6 +127,9 @@ export function ClientProfileSettings() {
         .from("user_preferences")
         .upsert({
           user_id: user.id,
+          email_notifications: preferences.email_notifications,
+          sms_notifications: preferences.sms_notifications,
+          checkin_reminders: preferences.checkin_reminders,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
@@ -271,10 +276,19 @@ export function ClientProfileSettings() {
             Your data is protected with industry-standard encryption and HIPAA-compliant security measures.
           </p>
           
-          <Button variant="outline" className="w-full">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => setPasswordDialogOpen(true)}
+          >
             <Lock className="w-4 h-4 mr-2" />
             Change Password
           </Button>
+          
+          <PasswordChangeDialog 
+            open={passwordDialogOpen} 
+            onOpenChange={setPasswordDialogOpen}
+          />
           
           <Button variant="outline" className="w-full">
             Download My Data
