@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Shield, FileText, CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react";
+import { Shield, FileText, CheckCircle, XCircle, AlertTriangle, Info, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ export function ClientConsentManagement({ caseId }: { caseId: string }) {
   const [consentData, setConsentData] = useState<any>(null);
   const [sensitiveDisclosures, setSensitiveDisclosures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadConsentData();
@@ -22,20 +23,31 @@ export function ClientConsentManagement({ caseId }: { caseId: string }) {
   }, [caseId, user?.id]);
 
   async function loadConsentData() {
-    if (!caseId) return;
+    if (!caseId) {
+      setLoading(false);
+      return;
+    }
     
+    setError(null);
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("cases")
         .select("consent_signed, consent_signed_at, consent_attorney, consent_providers")
         .eq("id", caseId)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error loading consent data:", fetchError);
+        setError("Failed to load consent information");
+        return;
+      }
+
+      if (data) {
         setConsentData(data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading consent data:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -93,6 +105,39 @@ export function ClientConsentManagement({ caseId }: { caseId: string }) {
           <div className="h-4 bg-muted rounded"></div>
         </div>
       </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              loadConsentData();
+              loadSensitiveDisclosures();
+            }}
+            className="ml-4"
+          >
+            Retry
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!consentData && !caseId) {
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          No case found. Please complete your intake or contact your RN Case Manager.
+        </AlertDescription>
+      </Alert>
     );
   }
 

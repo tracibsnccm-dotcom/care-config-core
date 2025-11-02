@@ -37,13 +37,25 @@ export function ClientProfileSettings() {
         .from("profiles")
         .select("display_name, email, full_name")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error loading profile:", error);
+        return;
+      }
+
+      if (data) {
         setProfile({
           display_name: data.display_name || "",
           email: data.email || user.email || "",
           full_name: data.full_name || "",
+        });
+      } else {
+        // No profile exists yet, use defaults
+        setProfile({
+          display_name: "",
+          email: user.email || "",
+          full_name: "",
         });
       }
     } catch (err) {
@@ -59,10 +71,15 @@ export function ClientProfileSettings() {
         .from("user_preferences")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
-        // User preferences table structure may vary, using defaults
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error loading preferences:", error);
+        return;
+      }
+
+      // Use defaults if no preferences exist
+      if (data) {
         setPreferences({
           email_notifications: true,
           sms_notifications: false,

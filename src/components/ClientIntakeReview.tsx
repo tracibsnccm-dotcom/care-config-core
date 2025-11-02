@@ -3,36 +3,51 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileText, Calendar, MapPin, Stethoscope, Activity, Info, Shield } from "lucide-react";
+import { FileText, Calendar, MapPin, Stethoscope, Activity, Info, Shield, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 export function ClientIntakeReview({ caseId }: { caseId: string }) {
   const { user } = useAuth();
   const [caseData, setCaseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadIntakeData();
   }, [caseId, user?.id]);
 
   async function loadIntakeData() {
-    if (!caseId || !user?.id) return;
+    if (!caseId || !user?.id) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("cases")
         .select("*")
         .eq("id", caseId)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
-        setCaseData(data);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error loading intake data:", fetchError);
+        setError("Failed to load intake information");
+        return;
       }
-    } catch (err) {
+
+      if (data) {
+        setCaseData(data);
+      } else {
+        setError("No intake data found");
+      }
+    } catch (err: any) {
       console.error("Error loading intake data:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -50,12 +65,31 @@ export function ClientIntakeReview({ caseId }: { caseId: string }) {
     );
   }
 
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadIntakeData}
+            className="ml-4"
+          >
+            Retry
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (!caseData) {
     return (
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          No intake information available yet. Please complete your intake form.
+          No intake information available yet. Please complete your intake form or contact your RN Case Manager if you believe this is an error.
         </AlertDescription>
       </Alert>
     );
