@@ -166,9 +166,9 @@ export default function ClientPortal() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="relative flex items-center">
-                <UserRound className="w-6 h-6 text-primary" />
-                <Megaphone className="w-4 h-4 text-primary absolute left-4 top-3" />
+              <div className="flex items-center gap-1">
+                <UserRound className="w-5 h-5 text-primary" />
+                <Megaphone className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="font-semibold text-foreground">Have concerns about your provider care?</p>
@@ -180,9 +180,9 @@ export default function ClientPortal() {
             <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" size="sm" className="whitespace-nowrap">
-                  <div className="relative flex items-center mr-2">
-                    <UserRound className="w-5 h-5 text-primary-foreground" />
-                    <Megaphone className="w-3 h-3 text-primary-foreground absolute left-3 top-2.5" />
+                  <div className="flex items-center gap-1 mr-2">
+                    <UserRound className="w-4 h-4 text-primary-foreground" />
+                    <Megaphone className="w-4 h-4 text-primary-foreground" />
                   </div>
                   Voice Your Concerns
                 </Button>
