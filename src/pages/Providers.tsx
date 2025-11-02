@@ -37,8 +37,8 @@ export default function Providers() {
               <DialogTrigger asChild>
                 <Button variant="outline" className="bg-primary/10 hover:bg-primary/20 border-primary">
                   <div className="flex items-center gap-1 mr-2">
-                    <UserRound className="w-4 h-4 text-primary" />
-                    <Megaphone className="w-4 h-4 text-primary" />
+                    <UserRound className="w-4 h-4 text-rcms-purple" />
+                    <Megaphone className="w-4 h-4 text-rcms-purple" />
                   </div>
                   Voice Your Concerns
                 </Button>
@@ -65,8 +65,8 @@ export default function Providers() {
         {/* Voice Concerns Explainer */}
         <Alert className="mb-6">
           <div className="flex items-center gap-1">
-            <UserRound className="w-4 h-4 text-primary" />
-            <Megaphone className="w-4 h-4 text-primary" />
+            <UserRound className="w-4 h-4 text-rcms-purple" />
+            <Megaphone className="w-4 h-4 text-rcms-purple" />
           </div>
           <AlertDescription>
             <strong>Voice Your Concerns:</strong> If you've had any issues or concerns about your

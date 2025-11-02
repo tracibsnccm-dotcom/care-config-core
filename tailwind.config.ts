@@ -85,6 +85,7 @@ export default {
           coral: "hsl(var(--rcms-coral))",
           white: "hsl(var(--rcms-white))",
           black: "hsl(var(--rcms-black))",
+          purple: "hsl(var(--rcms-purple))",
         },
       },
       backgroundImage: {
