@@ -46,7 +46,6 @@ export default function ClientCheckins() {
     safety: 0,
     healthcare_access: 0,
   });
-  const [incomeRange, setIncomeRange] = useState("");
 
   async function submit() {
     if (!forCase) {
@@ -78,7 +77,6 @@ export default function ClientCheckins() {
           sdoh_social_support: sdohScores.social_support,
           sdoh_safety: sdohScores.safety,
           sdoh_healthcare_access: sdohScores.healthcare_access,
-          sdoh_income_range: incomeRange || null,
           note: note || null,
         })
         .select()
@@ -230,7 +228,6 @@ export default function ClientCheckins() {
         safety: 0,
         healthcare_access: 0,
       });
-      setIncomeRange("");
     } catch (error) {
       console.error("Error submitting check-in:", error);
       toast.error("Failed to submit check-in. Please try again.");
@@ -521,24 +518,6 @@ export default function ClientCheckins() {
                       />
                     </div>
                   ))}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="income-range-checkin" className="text-xs">Income Range (optional)</Label>
-                    <select
-                      id="income-range-checkin"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={incomeRange}
-                      onChange={(e) => setIncomeRange(e.target.value)}
-                    >
-                      <option value="">Prefer not to say</option>
-                      <option value="Under $15,000">Under $15,000</option>
-                      <option value="$15,000 - $29,999">$15,000 - $29,999</option>
-                      <option value="$30,000 - $49,999">$30,000 - $49,999</option>
-                      <option value="$50,000 - $74,999">$50,000 - $74,999</option>
-                      <option value="$75,000 - $99,999">$75,000 - $99,999</option>
-                      <option value="$100,000+">$100,000+</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 
