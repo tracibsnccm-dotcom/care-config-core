@@ -6,6 +6,7 @@ import { FileComplaintForm } from "@/components/FileComplaintForm";
 import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 import { WellnessSnapshot } from "@/components/WellnessSnapshot";
 import { HealthSummaryChips } from "@/components/HealthSummaryChips";
+import { AssessmentSnapshotExplainer } from "@/components/AssessmentSnapshotExplainer";
 import { ClientGoalTracker } from "@/components/ClientGoalTracker";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientActionItems } from "@/components/ClientActionItems";
@@ -206,6 +207,15 @@ export default function ClientPortal() {
       {/* SECTION 2 - SNAPSHOT + TABS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
+          {/* Assessment Snapshot Explainer */}
+          <AssessmentSnapshotExplainer 
+            onUpdateSnapshot={() => setActiveTab("checkins")}
+            onAskCara={() => {
+              // Could trigger CARA modal here if implemented
+              setActiveTab("communication");
+            }}
+          />
+          
           {/* Wellness Snapshot */}
           <WellnessSnapshot 
             caseId={caseId || ""} 

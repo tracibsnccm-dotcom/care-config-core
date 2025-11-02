@@ -40,6 +40,7 @@ import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
 import { CaraFloatingButton } from "@/components/CaraFloatingButton";
 import { CaraGate } from "@/components/CaraGate";
+import { AssessmentSnapshotExplainer } from "@/components/AssessmentSnapshotExplainer";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useInactivityDetection } from "@/hooks/useInactivityDetection";
 import { MedicationAutocomplete } from "@/components/MedicationAutocomplete";
@@ -1031,6 +1032,13 @@ export default function IntakeWizard() {
                 </span>
               </div>
             </div>
+
+            {/* Assessment Snapshot Explainer */}
+            <AssessmentSnapshotExplainer 
+              onUpdateSnapshot={() => setStep(4)}
+              onAskCara={() => setShowCaraModal(true)}
+              showUpdateButton={false}
+            />
 
             {/* Snapshot Summary */}
             <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20">
