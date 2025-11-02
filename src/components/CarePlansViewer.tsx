@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileText, Calendar, User } from "lucide-react";
+import { FileText, Calendar, User, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -23,8 +23,20 @@ interface CarePlansViewerProps {
   caseId: string;
 }
 
+interface BaselineScores {
+  fourPs: {
+    physical: number;
+    psychological: number;
+    psychosocial: number;
+    professional: number;
+  };
+  sdoh: Record<string, number>;
+  baselineDate: string;
+}
+
 export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
+  const [baseline, setBaseline] = useState<BaselineScores | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +47,8 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
   const fetchCarePlans = async () => {
     try {
       setLoading(true);
+      
+      // Fetch care plans
       const { data, error } = await supabase
         .from("care_plans")
         .select(`
@@ -48,6 +62,21 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
 
       if (error) throw error;
       setCarePlans(data || []);
+
+      // Fetch baseline scores
+      const { data: caseData, error: caseError } = await supabase
+        .from("cases")
+        .select("fourps, sdoh, created_at")
+        .eq("id", caseId)
+        .single();
+
+      if (!caseError && caseData?.fourps && caseData?.sdoh) {
+        setBaseline({
+          fourPs: caseData.fourps as any,
+          sdoh: caseData.sdoh as any,
+          baselineDate: caseData.created_at
+        });
+      }
     } catch (err: any) {
       console.error("Error fetching care plans:", err);
       setError(err.message);
@@ -112,6 +141,44 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Baseline Scores Reference */}
+        {baseline && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Baseline Assessment Reference
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Intake completed on {format(new Date(baseline.baselineDate), "PPP")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <h5 className="text-xs font-semibold mb-2 text-foreground">4Ps of Wellness</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { label: "Physical", value: baseline.fourPs.physical },
+                      { label: "Psychological", value: baseline.fourPs.psychological },
+                      { label: "Psychosocial", value: baseline.fourPs.psychosocial },
+                      { label: "Professional", value: baseline.fourPs.professional }
+                    ].map((item) => (
+                      <div key={item.label} className="text-center p-2 bg-background rounded">
+                        <div className="text-lg font-bold text-foreground">{item.value}</div>
+                        <div className="text-xs text-muted-foreground">{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 border-t">
+                  <strong>Note:</strong> These baseline scores guide your care plan and track progress throughout your recovery journey.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {carePlans.map((plan, index) => (
           <Card key={plan.id} className={index === 0 ? "border-primary" : ""}>
             <CardHeader>

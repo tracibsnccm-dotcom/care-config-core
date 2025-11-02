@@ -5,6 +5,7 @@ import { ReportConcernDialog } from "@/components/ReportConcernDialog";
 import { FileComplaintForm } from "@/components/FileComplaintForm";
 import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 import { WellnessSnapshot } from "@/components/WellnessSnapshot";
+import { BaselineProgressComparison } from "@/components/BaselineProgressComparison";
 import { HealthSummaryChips } from "@/components/HealthSummaryChips";
 import { AssessmentSnapshotExplainer } from "@/components/AssessmentSnapshotExplainer";
 import { ClientGoalTracker } from "@/components/ClientGoalTracker";
@@ -221,6 +222,9 @@ export default function ClientPortal() {
             caseId={caseId || ""} 
             onViewProgress={() => setActiveTab("checkins")} 
           />
+          
+          {/* Baseline Progress Comparison */}
+          <BaselineProgressComparison caseId={caseId || ""} />
           
           {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
