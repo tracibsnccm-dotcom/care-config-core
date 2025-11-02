@@ -337,8 +337,26 @@ export default function IntakeWizard() {
 
         // Save allergies if provided
         if (medAllergies && medAllergies.length > 0) {
-          // Could be expanded to separate table in future
-          console.log("Allergies recorded:", medAllergies);
+          const allergiesData = medAllergies.filter(a => a.medication.trim()).map(allergy => ({
+            case_id: newCase.id,
+            client_id: userData.user.id,
+            allergen_name: allergy.medication,
+            reaction: allergy.reaction || null,
+            severity: allergy.severity || null,
+            notes: null,
+            reported_date: new Date().toISOString().split('T')[0],
+            is_active: true,
+          }));
+
+          if (allergiesData.length > 0) {
+            const { error: allergiesError } = await supabase
+              .from("client_allergies")
+              .insert(allergiesData);
+            
+            if (allergiesError) {
+              console.error("Error saving allergies:", allergiesError);
+            }
+          }
         }
       }
     } catch (error) {

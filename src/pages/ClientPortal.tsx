@@ -10,6 +10,8 @@ import { HealthSummaryChips } from "@/components/HealthSummaryChips";
 import { AssessmentSnapshotExplainer } from "@/components/AssessmentSnapshotExplainer";
 import { ClientGoalTracker } from "@/components/ClientGoalTracker";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
+import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
+import { ClientAllergyTracker } from "@/components/ClientAllergyTracker";
 import { ClientActionItems } from "@/components/ClientActionItems";
 import { CareTeamContactBar } from "@/components/CareTeamContactBar";
 import { CrisisResourcesBanner } from "@/components/CrisisResourcesBanner";
@@ -29,7 +31,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound } from "lucide-react";
+import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,6 +306,20 @@ export default function ClientPortal() {
                 <span className="hidden sm:inline">Medications</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="treatments"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Treatments</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="allergies"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Allergies</span>
+              </TabsTrigger>
+              <TabsTrigger
                 value="messages"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
               >
@@ -412,6 +428,26 @@ export default function ClientPortal() {
                   </h2>
                 </div>
                 <ClientMedicationTracker caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="treatments" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Activity className="w-6 h-6 text-rcms-teal" />
+                    My Treatments
+                  </h2>
+                </div>
+                <ClientTreatmentTracker caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="allergies" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <AlertTriangle className="w-6 h-6 text-rcms-teal" />
+                    My Allergies
+                  </h2>
+                </div>
+                <ClientAllergyTracker caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="messages" className="mt-0">

@@ -787,6 +787,48 @@ export type Database = {
         }
         Relationships: []
       }
+      client_allergies: {
+        Row: {
+          allergen_name: string
+          case_id: string
+          client_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          reaction: string | null
+          reported_date: string | null
+          severity: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergen_name: string
+          case_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          reaction?: string | null
+          reported_date?: string | null
+          severity?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergen_name?: string
+          case_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          reaction?: string | null
+          reported_date?: string | null
+          severity?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_appointments: {
         Row: {
           appointment_date: string
