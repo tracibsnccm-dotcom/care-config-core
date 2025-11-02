@@ -5,15 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { User, Mail, Phone, Bell, Lock, Shield } from "lucide-react";
+import { User, Mail, Phone, Bell, Lock, Shield, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
 import { toast } from "sonner";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
+import { exportClientData } from "@/lib/clientDataExport";
 
 export function ClientProfileSettings() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [profile, setProfile] = useState({
     display_name: "",
@@ -140,6 +142,25 @@ export function ClientProfileSettings() {
       toast.error("Failed to save preferences");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleExportData() {
+    if (!user?.id) return;
+    
+    setExportLoading(true);
+    try {
+      const result = await exportClientData(user.id);
+      if (result.success) {
+        toast.success("Your data has been downloaded successfully");
+      } else {
+        throw new Error("Export failed");
+      }
+    } catch (err: any) {
+      console.error("Error exporting data:", err);
+      toast.error("Failed to export data");
+    } finally {
+      setExportLoading(false);
     }
   }
 
@@ -290,8 +311,14 @@ export function ClientProfileSettings() {
             onOpenChange={setPasswordDialogOpen}
           />
           
-          <Button variant="outline" className="w-full">
-            Download My Data
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={handleExportData}
+            disabled={exportLoading}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {exportLoading ? "Exporting..." : "Download My Data"}
           </Button>
         </div>
       </Card>
