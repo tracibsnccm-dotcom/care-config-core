@@ -34,6 +34,7 @@ import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 import { IntakeMedicationRecord, type MedicationEntry } from "@/components/IntakeMedicationRecord";
+import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
@@ -58,6 +59,8 @@ export default function IntakeWizard() {
   const [medications, setMedications] = useState<any[]>([]);
   const [preInjuryMeds, setPreInjuryMeds] = useState<MedicationEntry[]>([]);
   const [postInjuryMeds, setPostInjuryMeds] = useState<MedicationEntry[]>([]);
+  const [preInjuryTreatments, setPreInjuryTreatments] = useState<TreatmentEntry[]>([]);
+  const [postInjuryTreatments, setPostInjuryTreatments] = useState<TreatmentEntry[]>([]);
   const [medAllergies, setMedAllergies] = useState<string>("");
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -297,6 +300,40 @@ export default function IntakeWizard() {
           }
         }
 
+        // Save treatments from intake to client_treatments table
+        const allTreatments = [
+          ...preInjuryTreatments.filter(t => t.name.trim()).map(treatment => ({
+            case_id: newCase.id,
+            client_id: userData.user.id,
+            treatment_name: treatment.name,
+            frequency: treatment.frequency || null,
+            start_date: treatment.startDate || null,
+            notes: treatment.notes || null,
+            injury_timing: 'pre_injury',
+            is_active: true,
+          })),
+          ...postInjuryTreatments.filter(t => t.name.trim()).map(treatment => ({
+            case_id: newCase.id,
+            client_id: userData.user.id,
+            treatment_name: treatment.name,
+            frequency: treatment.frequency || null,
+            start_date: treatment.startDate || null,
+            notes: treatment.notes || null,
+            injury_timing: 'post_injury',
+            is_active: true,
+          })),
+        ];
+
+        if (allTreatments.length > 0) {
+          const { error: treatmentsError } = await supabase
+            .from("client_treatments")
+            .insert(allTreatments);
+          
+          if (treatmentsError) {
+            console.error("Error saving treatments:", treatmentsError);
+          }
+        }
+
         // Save allergies if provided
         if (medAllergies && medAllergies.trim()) {
           // Store in a simple text field for now - could be expanded to separate table
@@ -346,11 +383,13 @@ export default function IntakeWizard() {
     medications,
     preInjuryMeds,
     postInjuryMeds,
+    preInjuryTreatments,
+    postInjuryTreatments,
     medAllergies,
     uploadedFiles,
     mentalHealth,
     hasMeds,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, medAllergies, uploadedFiles, mentalHealth, hasMeds]);
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -396,6 +435,8 @@ export default function IntakeWizard() {
         if (data.medications) setMedications(data.medications);
         if (data.preInjuryMeds) setPreInjuryMeds(data.preInjuryMeds);
         if (data.postInjuryMeds) setPostInjuryMeds(data.postInjuryMeds);
+        if (data.preInjuryTreatments) setPreInjuryTreatments(data.preInjuryTreatments);
+        if (data.postInjuryTreatments) setPostInjuryTreatments(data.postInjuryTreatments);
         if (data.medAllergies) setMedAllergies(data.medAllergies);
         if (data.mentalHealth) setMentalHealth(data.mentalHealth);
         if (data.hasMeds) setHasMeds(data.hasMeds);
@@ -650,6 +691,13 @@ export default function IntakeWizard() {
               onPreInjuryChange={setPreInjuryMeds}
               onPostInjuryChange={setPostInjuryMeds}
               onAllergiesChange={setMedAllergies}
+            />
+
+            <IntakeTreatmentRecord
+              preInjuryTreatments={preInjuryTreatments}
+              postInjuryTreatments={postInjuryTreatments}
+              onPreInjuryChange={setPreInjuryTreatments}
+              onPostInjuryChange={setPostInjuryTreatments}
             />
 
             <FileUploadZone
