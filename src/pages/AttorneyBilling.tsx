@@ -326,7 +326,66 @@ export default function AttorneyBilling() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Invoice history coming soon.</p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No invoices yet
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    transactions.slice(0, 10).map((txn) => (
+                      <TableRow key={txn.id}>
+                        <TableCell>
+                          {new Date(txn.created_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>{txn.description}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            txn.transaction_type === "deposit" 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-blue-100 text-blue-800"
+                          }`}>
+                            {txn.transaction_type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          ${txn.total_amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            txn.status === "completed" 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {txn.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm">
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>

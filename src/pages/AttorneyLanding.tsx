@@ -16,6 +16,7 @@ import { useAuth } from "@/auth/supabaseAuth";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
 import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
+import { AttorneyQuickActions } from "@/components/AttorneyQuickActions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -265,6 +266,9 @@ export default function AttorneyLanding() {
             <Button onClick={() => navigate("/attorney/billing")} variant="outline">
               Billing & Subscription
             </Button>
+            <Button onClick={() => navigate("/attorney/settings")} variant="outline">
+              Attorney Settings
+            </Button>
             <Button onClick={() => navigate("/referrals")} variant="outline">
               Referrals
             </Button>
@@ -329,8 +333,11 @@ export default function AttorneyLanding() {
           </Card>
         </div>
 
-        {/* Pending Intakes Widget */}
-        <AttorneyIntakeTracker />
+        {/* Quick Actions Dashboard + Pending Intakes */}
+        <div className="space-y-6 mb-6">
+          <AttorneyQuickActions />
+          <AttorneyIntakeTracker />
+        </div>
 
         {/* Case Tracking Sections */}
         <div className="space-y-6">
