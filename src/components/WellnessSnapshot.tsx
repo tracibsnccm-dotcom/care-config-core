@@ -54,9 +54,9 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     { label: "Anxiety", value: avgAnxiety, max: 10, icon: Brain, color: "text-warning" },
     // 4Ps (0–4) to match Intake Wizard
     { label: "Physical", value: avgPhysical4, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Psychological", value: avgProtection4, max: 4, icon: Activity, color: "text-primary" },
     { label: "Psychosocial", value: avgPsychosocial4, max: 4, icon: Activity, color: "text-primary" },
-    { label: "Profession", value: avgProfession4, max: 4, icon: Activity, color: "text-primary" },
-    { label: "Protection", value: avgProtection4, max: 4, icon: Smile, color: "text-primary" },
+    { label: "Professional", value: avgProfession4, max: 4, icon: Smile, color: "text-primary" },
   ];
 
   // Add SDOH metrics if tracked

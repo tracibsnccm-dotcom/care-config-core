@@ -304,7 +304,7 @@ export default function ClientCheckins() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Client Check-ins</h1>
-          <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and The 4Ps of Wellness (Physical, Psychosocial, Profession, and Protection).</p>
+          <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and The 4Ps of Wellness (Physical, Psychological, Psychosocial, and Professional).</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -420,14 +420,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Protection (safety, adherence, coping): {quick4ps.psychological}/4
+                          Psychological (mood, coping, stress): {quick4ps.psychological}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Protection reflects safety, adherence to care, and coping strategies that help prevent setbacks.</p>
+                            <p className="text-sm">Psychological relates to mood, coping, stress, and emotional wellbeing.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
@@ -470,14 +470,14 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Profession (job, school, or home-based role): {quick4ps.professional}/4
+                          Professional (job, school, or home-based role): {quick4ps.professional}/4
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p className="text-sm">Profession relates to your main occupational role — including your job, school responsibilities, or home-based duties.</p>
+                            <p className="text-sm">Professional relates to your main occupational role — including your job, school responsibilities, or home-based duties.</p>
                           </TooltipContent>
                         </UITooltip>
                       </div>
@@ -722,13 +722,13 @@ export default function ClientCheckins() {
                                   Physical: {latest.physical}
                                 </span>
                                 <span className={latest.psychological <= 1 ? "text-destructive font-semibold" : ""}>
-                                  Protection: {latest.psychological}
+                                  Psychological: {latest.psychological}
                                 </span>
                                 <span className={latest.psychosocial <= 1 ? "text-destructive font-semibold" : ""}>
                                   Psychosocial: {latest.psychosocial}
                                 </span>
                                 <span className={latest.professional <= 1 ? "text-destructive font-semibold" : ""}>
-                                  Profession: {latest.professional}
+                                  Professional: {latest.professional}
                                 </span>
                               </div>
                             )}
@@ -768,7 +768,7 @@ export default function ClientCheckins() {
                                 dataKey="psychological" 
                                 stroke="#3b82f6" 
                                 strokeWidth={2}
-                                name="Protection"
+                                name="Psychological"
                                 dot={{ fill: '#3b82f6', r: 4 }}
                               />
                               <Line 
@@ -784,7 +784,7 @@ export default function ClientCheckins() {
                                 dataKey="professional" 
                                 stroke="#6366f1" 
                                 strokeWidth={2}
-                                name="Profession"
+                                name="Professional"
                                 dot={{ fill: '#6366f1', r: 4 }}
                               />
                             </LineChart>
@@ -795,13 +795,13 @@ export default function ClientCheckins() {
                                 Physical {latest.physical > previous.physical ? '↑' : latest.physical < previous.physical ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.psychological, previous.psychological, true) }}>
-                                Protection {latest.psychological > previous.psychological ? '↑' : latest.psychological < previous.psychological ? '↓' : '→'}
+                                Psychological {latest.psychological > previous.psychological ? '↑' : latest.psychological < previous.psychological ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.psychosocial, previous.psychosocial, true) }}>
                                 Psychosocial {latest.psychosocial > previous.psychosocial ? '↑' : latest.psychosocial < previous.psychosocial ? '↓' : '→'}
                               </span>
                               <span style={{ color: getTrendColor(latest.professional, previous.professional, true) }}>
-                                Profession {latest.professional > previous.professional ? '↑' : latest.professional < previous.professional ? '↓' : '→'}
+                                Professional {latest.professional > previous.professional ? '↑' : latest.professional < previous.professional ? '↓' : '→'}
                               </span>
                             </div>
                           )}

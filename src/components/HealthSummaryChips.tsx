@@ -8,21 +8,21 @@ interface HealthSummaryChipsProps {
 
 const FOUR_PS = [
   { name: 'p_physical', label: 'Physical' },
+  { name: 'p_psychological', label: 'Psychological' },
   { name: 'p_psychosocial', label: 'Psychosocial' },
-  { name: 'p_profession', label: 'Profession' },
-  { name: 'p_protection', label: 'Protection' }
+  { name: 'p_profession', label: 'Professional' }
 ];
 
 const SDOH = [
   { name: 'sdoh_housing', label: 'Housing' },
   { name: 'sdoh_food', label: 'Food' },
   { name: 'sdoh_transport', label: 'Transport' },
-  { name: 'sdoh_finance', label: 'Financial' },
+  { name: 'sdoh_financial', label: 'Financial' },
   { name: 'sdoh_insurance', label: 'Insurance' },
   { name: 'sdoh_employment', label: 'Employment' },
-  { name: 'sdoh_support', label: 'Support' },
+  { name: 'sdoh_social_support', label: 'Support' },
   { name: 'sdoh_safety', label: 'Safety' },
-  { name: 'sdoh_access', label: 'Access to Care' }
+  { name: 'sdoh_healthcare_access', label: 'Access to Care' }
 ];
 
 export function HealthSummaryChips({ caseId }: HealthSummaryChipsProps) {
@@ -54,8 +54,7 @@ export function HealthSummaryChips({ caseId }: HealthSummaryChipsProps) {
   };
 
   const fourPsValues = FOUR_PS.map(f => {
-    const key = f.name === 'p_profession' ? 'p_purpose' : 
-                f.name === 'p_protection' ? 'p_psychological' : f.name;
+    const key = f.name === 'p_profession' ? 'p_purpose' : f.name;
     return getValue(key);
   });
   
@@ -93,8 +92,7 @@ export function HealthSummaryChips({ caseId }: HealthSummaryChipsProps) {
           <h4 className="text-sm font-semibold text-foreground mb-3">4Ps Assessment</h4>
           <div className="flex flex-wrap gap-2">
             {FOUR_PS.map((fp, idx) => {
-              const key = fp.name === 'p_profession' ? 'p_purpose' : 
-                          fp.name === 'p_protection' ? 'p_psychological' : fp.name;
+              const key = fp.name === 'p_profession' ? 'p_purpose' : fp.name;
               const value = getValue(key);
               return (
                 <div
