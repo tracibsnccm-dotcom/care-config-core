@@ -310,7 +310,7 @@ export default function ClientCheckins() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Check-in Form */}
           <Card className="p-6 border-border lg:col-span-2">
-            <h2 className="text-xl font-semibold text-foreground mb-6">Submit Check-in</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-6">How are you feeling today?</h2>
 
             <div className="space-y-6">
               <div>

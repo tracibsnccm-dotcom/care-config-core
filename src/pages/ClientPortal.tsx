@@ -183,7 +183,7 @@ export default function ClientPortal() {
                   <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                       <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
-                      Check-Ins & Updates
+                      The Wellness Center
                     </h2>
                   </div>
                   <ClientCheckins />
