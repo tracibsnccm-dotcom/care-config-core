@@ -671,26 +671,21 @@ export default function IntakeWizard() {
                 Each category measures <strong>distress or impairment</strong>, not wellness. How to Use this scale to rate your impairment:
               </p>
               <div className="space-y-2 text-sm">
-                <div className="grid grid-cols-[auto,1fr,1fr] gap-x-3 gap-y-2 items-start">
+                <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 items-start">
                   <span className="font-semibold">0</span>
-                  <span className="text-muted-foreground">No issues or fully resolved</span>
-                  <span className="text-muted-foreground italic">Optimal / fully functional</span>
-                  
+                  <span className="text-muted-foreground">Doing just fine - No problems with my daily activities</span>
+
                   <span className="font-semibold">1</span>
-                  <span className="text-muted-foreground">Mild concern, doesn't affect daily life</span>
-                  <span className="text-muted-foreground italic">Monitor only</span>
-                  
+                  <span className="text-muted-foreground">A little tricky sometimes - Mostly able to do what I need to</span>
+
                   <span className="font-semibold">2</span>
-                  <span className="text-muted-foreground">Moderate concern, occasional interference</span>
-                  <span className="text-muted-foreground italic">Needs observation / mild support</span>
-                  
+                  <span className="text-muted-foreground">Pretty difficult at times - Have to push through to get things done</span>
+
                   <span className="font-semibold">3</span>
-                  <span className="text-muted-foreground">Significant issue, frequent interference</span>
-                  <span className="text-muted-foreground italic">Needs active care management</span>
-                  
+                  <span className="text-muted-foreground">Really hard most days - Struggle with regular tasks and activities</span>
+
                   <span className="font-semibold">4</span>
-                  <span className="text-muted-foreground">Severe impairment or safety risk</span>
-                  <span className="text-muted-foreground italic">Immediate attention required</span>
+                  <span className="text-muted-foreground">Extremely difficult - Can't do normal daily things without help</span>
                 </div>
               </div>
             </div>
