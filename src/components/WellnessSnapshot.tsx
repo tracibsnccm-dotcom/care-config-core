@@ -1,7 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Heart, Brain, Smile, Activity } from "lucide-react";
+import { TrendingUp, Heart, Brain, Smile, Activity, AlertTriangle } from "lucide-react";
 import { useClientCheckins } from "@/hooks/useClientCheckins";
+import { Progress } from "@/components/ui/progress";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WellnessSnapshotProps {
   caseId: string;
@@ -67,6 +70,106 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     metrics.push({ label: "Food", value: avgFood, max: 4, icon: Activity, color: "text-success" });
   }
 
+  // Calculate Overall Wellness Score (0-100%)
+  // Convert all metrics to 0-10 scale, then average and convert to percentage
+  // Pain, Depression, Anxiety are already 0-10 (inverted: lower is better)
+  // 4Ps and SDOH are 0-4 (higher is better, so we'll scale them up)
+  const calculateOverallScore = () => {
+    if (recentCheckins.length === 0) return 0;
+    
+    // Invert pain/depression/anxiety (lower is better) - convert to 0-10 where 10 is best
+    const painScore = 10 - avgPain;
+    const depressionScore = 10 - avgDepression;
+    const anxietyScore = 10 - avgAnxiety;
+    
+    // Scale 4Ps from 0-4 to 0-10
+    const physicalScore = (avgPhysical4 / 4) * 10;
+    const psychologicalScore = (avgProtection4 / 4) * 10;
+    const psychosocialScore = (avgPsychosocial4 / 4) * 10;
+    const professionalScore = (avgProfession4 / 4) * 10;
+    
+    // Average all scores and convert to percentage
+    const allScores = [painScore, depressionScore, anxietyScore, physicalScore, psychologicalScore, psychosocialScore, professionalScore];
+    
+    // Add SDOH if available
+    if (avgHousing !== null) allScores.push((avgHousing / 4) * 10);
+    if (avgFood !== null) allScores.push((avgFood / 4) * 10);
+    
+    const average = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+    return Math.round(average * 10); // Convert to 0-100 percentage
+  };
+
+  const overallScore = calculateOverallScore();
+  
+  // Determine wellness status
+  const getWellnessStatus = (score: number) => {
+    if (score >= 80) return { label: "Excellent", color: "text-green-600", bgColor: "bg-green-100" };
+    if (score >= 60) return { label: "Good", color: "text-blue-600", bgColor: "bg-blue-100" };
+    if (score >= 40) return { label: "Fair", color: "text-yellow-600", bgColor: "bg-yellow-100" };
+    if (score >= 20) return { label: "Needs Attention", color: "text-orange-600", bgColor: "bg-orange-100" };
+    return { label: "Critical", color: "text-red-600", bgColor: "bg-red-100" };
+  };
+
+  const wellnessStatus = getWellnessStatus(overallScore);
+
+  // Auto-flag critical conditions and spikes
+  useEffect(() => {
+    if (recentCheckins.length === 0 || !caseId) return;
+    
+    const checkCriticalConditions = async () => {
+      const latestCheckin = recentCheckins[0];
+      
+      // Critical thresholds
+      const criticalPain = latestCheckin.pain_scale >= 8;
+      const criticalDepression = (latestCheckin.depression_scale || 0) >= 8;
+      const criticalAnxiety = (latestCheckin.anxiety_scale || 0) >= 8;
+      const lowOverallScore = overallScore < 30;
+      
+      // Check if we need to create alerts (using cooldown to avoid spam)
+      const lastAlertKey = `wellness_alert_${caseId}`;
+      const lastAlertTime = localStorage.getItem(lastAlertKey);
+      const cooldownHours = 24;
+      
+      if (lastAlertTime) {
+        const hoursSinceLastAlert = (Date.now() - new Date(lastAlertTime).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastAlert < cooldownHours) return;
+      }
+      
+      // Create alert if critical condition detected
+      if (criticalPain || criticalDepression || criticalAnxiety || lowOverallScore) {
+        const conditions = [];
+        if (criticalPain) conditions.push(`Pain: ${latestCheckin.pain_scale}/10`);
+        if (criticalDepression) conditions.push(`Depression: ${latestCheckin.depression_scale}/10`);
+        if (criticalAnxiety) conditions.push(`Anxiety: ${latestCheckin.anxiety_scale}/10`);
+        if (lowOverallScore) conditions.push(`Overall Score: ${overallScore}%`);
+        
+        try {
+          // Call edge function to create RN task and alert
+          const { error } = await supabase.functions.invoke('rn-task-automation', {
+            body: {
+              type: 'critical_wellness',
+              case_id: caseId,
+              conditions,
+              overall_score: overallScore
+            }
+          });
+
+          if (!error) {
+            // Mark cooldown only if successful
+            localStorage.setItem(lastAlertKey, new Date().toISOString());
+            console.log('Critical wellness alert created successfully');
+          } else {
+            console.error('Error creating wellness alert:', error);
+          }
+        } catch (err) {
+          console.error('Failed to trigger wellness alert:', err);
+        }
+      }
+    };
+    
+    checkCriticalConditions();
+  }, [recentCheckins, caseId, overallScore]);
+
   if (loading) {
     return (
       <Card className="p-6 border-primary/20">
@@ -84,7 +187,7 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
 
   return (
     <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-rcms-teal" />
@@ -100,6 +203,39 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
           View Progress Charts
         </Button>
       </div>
+
+      {/* Overall Wellness Score */}
+      {recentCheckins.length > 0 && (
+        <div className="mb-6 p-4 rounded-lg border-2 border-rcms-gold bg-gradient-to-r from-rcms-pale-gold to-white">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Overall Wellness Score</h3>
+              <p className="text-xs text-muted-foreground">Composite score from all metrics</p>
+            </div>
+            <div className={`px-4 py-2 rounded-full ${wellnessStatus.bgColor}`}>
+              <span className={`text-sm font-bold ${wellnessStatus.color}`}>
+                {wellnessStatus.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Progress value={overallScore} className="h-3" />
+            </div>
+            <div className="text-3xl font-bold text-foreground">
+              {overallScore}%
+            </div>
+          </div>
+          {overallScore < 40 && (
+            <div className="mt-3 flex items-start gap-2 p-2 rounded bg-orange-50 border border-orange-200">
+              <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5" />
+              <p className="text-xs text-orange-800">
+                Your wellness score indicates you may need additional support. Your care team has been notified.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-6">
         {metrics.map((metric) => (

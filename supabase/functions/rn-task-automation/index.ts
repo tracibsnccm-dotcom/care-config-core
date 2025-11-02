@@ -33,9 +33,9 @@ serve(async (req) => {
       );
     }
 
-    const { type, domain, severity, income_range, case_id, draft_id } = await req.json();
+    const { type, domain, severity, income_range, case_id, draft_id, conditions, overall_score } = await req.json();
 
-    console.log('RN task automation request:', { type, domain, severity, income_range, case_id, draft_id });
+    console.log('RN task automation request:', { type, domain, severity, income_range, case_id, draft_id, conditions, overall_score });
 
     // Map SDOH domain names to readable labels
     const domainLabels: Record<string, string> = {
@@ -99,6 +99,70 @@ serve(async (req) => {
 
       if (notifyError) {
         console.error('Error sending notifications:', notifyError);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, task_id: task.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle critical wellness conditions
+    if (type === 'critical_wellness' && conditions && case_id) {
+      const conditionsList = Array.isArray(conditions) ? conditions.join(', ') : conditions;
+      const scoreText = overall_score ? ` Overall Wellness Score: ${overall_score}%` : '';
+      
+      const taskData = {
+        title: '🚨 CRITICAL: Wellness Alert',
+        description: `Client reported critical wellness indicators requiring immediate attention:\n\n${conditionsList}\n${scoreText}\n\nImmediate RN assessment and intervention required.`,
+        status: 'pending',
+        assigned_role: 'RN_CCM',
+        case_id: case_id,
+        created_by: user.id,
+      };
+
+      const { data: task, error: taskError } = await supabaseClient
+        .from('case_tasks')
+        .insert(taskData)
+        .select()
+        .single();
+
+      if (taskError) {
+        console.error('Error creating critical wellness task:', taskError);
+        throw taskError;
+      }
+
+      console.log('Critical wellness task created:', task);
+
+      // Create urgent case alert
+      const { error: alertError } = await supabaseClient
+        .from('case_alerts')
+        .insert({
+          case_id: case_id,
+          alert_type: 'critical_wellness',
+          severity: 'high',
+          message: `Critical wellness indicators detected: ${conditionsList}${scoreText}`,
+          created_by: user.id,
+          disclosure_scope: 'internal',
+          metadata: { conditions, overall_score }
+        });
+
+      if (alertError) {
+        console.error('Error creating case alert:', alertError);
+      }
+
+      // Notify RN CM team
+      const { error: notifyError } = await supabaseClient.rpc('notify_roles', {
+        role_names: ['RN_CCM', 'RN_CCM_DIRECTOR', 'SUPER_ADMIN'],
+        notification_title: '🚨 CRITICAL Wellness Alert',
+        notification_message: `Client check-in shows critical wellness indicators. Immediate assessment required.`,
+        notification_type: 'alert',
+        notification_link: `/case-detail/${case_id}`,
+        notification_metadata: { task_id: task.id, conditions, overall_score }
+      });
+
+      if (notifyError) {
+        console.error('Error sending critical wellness notification:', notifyError);
       }
 
       return new Response(
