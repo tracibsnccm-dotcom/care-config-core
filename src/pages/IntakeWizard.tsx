@@ -33,7 +33,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
-import { IntakeMedicationRecord, type MedicationEntry, type AllergyEntry } from "@/components/IntakeMedicationRecord";
+import { type MedicationEntry } from "@/components/IntakeMedicationRecord";
+import { IntakeMedicationAllergies, type AllergyEntry } from "@/components/IntakeMedicationAllergies";
+import { IntakePreInjuryMedications } from "@/components/IntakePreInjuryMedications";
+import { IntakePostInjuryMedications } from "@/components/IntakePostInjuryMedications";
+import { IntakeBehavioralHealthMedications, type BHMedicationEntry } from "@/components/IntakeBehavioralHealthMedications";
 import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { IntakePhysicalPreDiagnosisSelector } from "@/components/IntakePhysicalPreDiagnosisSelector";
@@ -71,6 +75,8 @@ export default function IntakeWizard() {
   const [preInjuryTreatments, setPreInjuryTreatments] = useState<TreatmentEntry[]>([]);
   const [postInjuryTreatments, setPostInjuryTreatments] = useState<TreatmentEntry[]>([]);
   const [medAllergies, setMedAllergies] = useState<AllergyEntry[]>([]);
+  const [bhPreMeds, setBhPreMeds] = useState<BHMedicationEntry[]>([]);
+  const [bhPostMeds, setBhPostMeds] = useState<BHMedicationEntry[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [hasMeds, setHasMeds] = useState<string>('');
@@ -558,7 +564,9 @@ export default function IntakeWizard() {
     bhPreDiagnoses,
     bhPostDiagnoses,
     bhNotes,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, physicalPreDiagnoses, physicalPostDiagnoses, physicalPostNotes, bhPreDiagnoses, bhPostDiagnoses, bhNotes]);
+    bhPreMeds,
+    bhPostMeds,
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, physicalPreDiagnoses, physicalPostDiagnoses, physicalPostNotes, bhPreDiagnoses, bhPostDiagnoses, bhNotes, bhPreMeds, bhPostMeds]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -617,6 +625,8 @@ export default function IntakeWizard() {
         if (data.bhPreDiagnoses) setBhPreDiagnoses(data.bhPreDiagnoses);
         if (data.bhPostDiagnoses) setBhPostDiagnoses(data.bhPostDiagnoses);
         if (data.bhNotes) setBhNotes(data.bhNotes);
+        if (data.bhPreMeds) setBhPreMeds(data.bhPreMeds);
+        if (data.bhPostMeds) setBhPostMeds(data.bhPostMeds);
         if (typeof data.sensitiveTag === 'boolean') setSensitiveTag(data.sensitiveTag);
         if (typeof data.step === 'number') setStep(data.step);
         
@@ -895,13 +905,9 @@ export default function IntakeWizard() {
         {/* Step 2: Medical History */}
         {step === 2 && (
           <div className="space-y-6">
-            <IntakeMedicationRecord
-              preInjuryMeds={preInjuryMeds}
-              postInjuryMeds={postInjuryMeds}
+            <IntakeMedicationAllergies
               allergies={medAllergies}
-              onPreInjuryChange={setPreInjuryMeds}
-              onPostInjuryChange={setPostInjuryMeds}
-              onAllergiesChange={setMedAllergies}
+              onChange={setMedAllergies}
             />
 
             <IntakePhysicalPreDiagnosisSelector
@@ -909,11 +915,21 @@ export default function IntakeWizard() {
               onDiagnosesChange={setPhysicalPreDiagnoses}
             />
 
+            <IntakePreInjuryMedications
+              medications={preInjuryMeds}
+              onChange={setPreInjuryMeds}
+            />
+
             <IntakePhysicalPostDiagnosisSelector
               selectedDiagnoses={physicalPostDiagnoses}
               additionalNotes={physicalPostNotes}
               onDiagnosesChange={setPhysicalPostDiagnoses}
               onNotesChange={setPhysicalPostNotes}
+            />
+
+            <IntakePostInjuryMedications
+              medications={postInjuryMeds}
+              onChange={setPostInjuryMeds}
             />
 
             <IntakeTreatmentRecord
@@ -1040,6 +1056,13 @@ export default function IntakeWizard() {
               onPreDiagnosesChange={setBhPreDiagnoses}
               onPostDiagnosesChange={setBhPostDiagnoses}
               onNotesChange={setBhNotes}
+            />
+
+            <IntakeBehavioralHealthMedications
+              preMedications={bhPreMeds}
+              postMedications={bhPostMeds}
+              onPreChange={setBhPreMeds}
+              onPostChange={setBhPostMeds}
             />
             
             <div className="mt-6">
