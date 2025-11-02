@@ -37,7 +37,7 @@ export function useClientCheckins(caseId?: string) {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!caseId || !user) {
+    if (!caseId || !user || !/^[0-9a-fA-F-]{36}$/.test(caseId)) {
       setLoading(false);
       return;
     }
@@ -67,11 +67,18 @@ export function useClientCheckins(caseId?: string) {
 
   async function fetchCheckins() {
     try {
+      // Skip fetch if caseId is missing or not a UUID
+      if (!caseId || !/^[0-9a-fA-F-]{36}$/.test(caseId)) {
+        setCheckins([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const { data, error } = await supabase
         .from('client_checkins')
         .select('*')
-        .eq('case_id', caseId!)
+        .eq('case_id', caseId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
