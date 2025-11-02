@@ -104,12 +104,12 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
               setNewEntry(value);
             }
           }}
-          placeholder="Write your thoughts, reflections, or notes here... These are private by default."
+          placeholder="Write your thoughts, reflections, or notes here... Document your progress and experiences for your care team."
           className="min-h-[120px] mb-3 resize-none"
         />
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Entries are timestamped automatically and private to you
+            Journal entries are part of your secure case file and shared with your care team (RN Case Manager and attorney) to support your treatment and legal case. These entries help document your progress and experiences.
           </p>
           <Button
             onClick={handleSubmit}
