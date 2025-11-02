@@ -67,7 +67,6 @@ export default function ClientCheckins() {
           p_psychological: quick4ps.psychological * 25,
           p_psychosocial: quick4ps.psychosocial * 25,
           p_purpose: quick4ps.professional * 25,
-          // Add SDOH tracking
           sdoh_housing: sdohScores.housing,
           sdoh_food: sdohScores.food,
           sdoh_transport: sdohScores.transport,
@@ -83,6 +82,17 @@ export default function ClientCheckins() {
         .single();
 
       if (checkinError) throw checkinError;
+
+      // Trigger wellness monitoring
+      if (checkinData) {
+        try {
+          await supabase.functions.invoke('wellness-monitor', {
+            body: { checkin: checkinData },
+          });
+        } catch (monitorError) {
+          console.error('Wellness monitoring error:', monitorError);
+        }
+      }
 
       // Check for immediate alerts
       const alerts = [];
