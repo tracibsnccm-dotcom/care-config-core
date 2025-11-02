@@ -4,6 +4,7 @@ import { ClientMessaging } from "@/components/ClientMessaging";
 import { ReportConcernDialog } from "@/components/ReportConcernDialog";
 import { FileComplaintForm } from "@/components/FileComplaintForm";
 import { WellnessSnapshot } from "@/components/WellnessSnapshot";
+import { HealthSummaryChips } from "@/components/HealthSummaryChips";
 import { ClientDocuments } from "@/components/ClientDocuments";
 import { CaseTimeline } from "@/components/CaseTimeline";
 import { ResourceLibrary } from "@/components/ResourceLibrary";
@@ -74,10 +75,13 @@ export default function ClientPortal() {
           
           {/* Wellness Snapshot */}
           {caseId ? (
-            <WellnessSnapshot 
-              caseId={caseId}
-              onViewProgress={() => setActiveTab("checkins")} 
-            />
+            <>
+              <WellnessSnapshot 
+                caseId={caseId}
+                onViewProgress={() => setActiveTab("checkins")} 
+              />
+              <HealthSummaryChips caseId={caseId} />
+            </>
           ) : (
             <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
               <p className="text-muted-foreground">No active case found.</p>
