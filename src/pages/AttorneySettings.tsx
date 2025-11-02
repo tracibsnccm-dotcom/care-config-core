@@ -6,7 +6,11 @@ import { AttorneyCasePerformance } from "@/components/AttorneyCasePerformance";
 import { AttorneyAvailabilitySettings } from "@/components/AttorneyAvailabilitySettings";
 import { AttorneyPracticeAreas } from "@/components/AttorneyPracticeAreas";
 import { AttorneySecuritySettings } from "@/components/AttorneySecuritySettings";
-import { User, History, BarChart3, Calendar, Scale, Shield } from "lucide-react";
+import { AttorneyDataExport } from "@/components/AttorneyDataExport";
+import { AttorneySessionManagement } from "@/components/AttorneySessionManagement";
+import { AttorneyCommunicationPreferences } from "@/components/AttorneyCommunicationPreferences";
+import { AttorneyActivityLog } from "@/components/AttorneyActivityLog";
+import { User, History, BarChart3, Calendar, Scale, Shield, Download, Monitor, MessageSquare, Activity } from "lucide-react";
 
 export default function AttorneySettings() {
   return (
@@ -20,7 +24,7 @@ export default function AttorneySettings() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-2">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -31,11 +35,19 @@ export default function AttorneySettings() {
             </TabsTrigger>
             <TabsTrigger value="practice" className="flex items-center gap-2">
               <Scale className="w-4 h-4" />
-              <span className="hidden sm:inline">Practice Areas</span>
+              <span className="hidden sm:inline">Practice</span>
+            </TabsTrigger>
+            <TabsTrigger value="communication" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Communication</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="flex items-center gap-2">
+              <Monitor className="w-4 h-4" />
+              <span className="hidden sm:inline">Sessions</span>
             </TabsTrigger>
             <TabsTrigger value="performance" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -44,6 +56,14 @@ export default function AttorneySettings() {
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Activity</span>
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
             </TabsTrigger>
           </TabsList>
 
@@ -59,8 +79,16 @@ export default function AttorneySettings() {
             <AttorneyPracticeAreas />
           </TabsContent>
 
+          <TabsContent value="communication">
+            <AttorneyCommunicationPreferences />
+          </TabsContent>
+
           <TabsContent value="security">
             <AttorneySecuritySettings />
+          </TabsContent>
+
+          <TabsContent value="sessions">
+            <AttorneySessionManagement />
           </TabsContent>
 
           <TabsContent value="performance">
@@ -69,6 +97,14 @@ export default function AttorneySettings() {
 
           <TabsContent value="history">
             <AttorneyAssignmentHistory />
+          </TabsContent>
+
+          <TabsContent value="activity">
+            <AttorneyActivityLog />
+          </TabsContent>
+
+          <TabsContent value="export">
+            <AttorneyDataExport />
           </TabsContent>
         </Tabs>
       </div>
