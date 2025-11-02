@@ -27,7 +27,7 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check, Save, HelpCircle, ArrowRight, Info } from "lucide-react";
+import { AlertCircle, Check, Save, HelpCircle, ArrowRight, Info, Shield, FileText, Phone } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskName } from "@/lib/access";
@@ -997,12 +997,33 @@ export default function IntakeWizard() {
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
 
+            {/* Crisis Resources Banner */}
+            <Alert className="mb-6 bg-destructive/10 border-destructive/30">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <AlertDescription className="text-sm">
+                <strong className="font-bold">In Case of Emergency:</strong> If you are experiencing a medical or mental health crisis, please call <strong>911</strong> or the National Suicide Prevention Lifeline at <strong className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />988</strong> immediately. Do not wait for your RN Care Manager to contact you.
+              </AlertDescription>
+            </Alert>
+
             {/* Assessment Snapshot Explainer */}
             <AssessmentSnapshotExplainer 
               onUpdateSnapshot={() => setStep(4)}
               onAskCara={() => setShowCaraModal(true)}
               showUpdateButton={false}
             />
+
+            {/* Document Preparation Tip */}
+            <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
+              <div className="flex gap-3">
+                <FileText className="w-5 h-5 text-accent-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <h5 className="font-semibold text-sm text-foreground mb-1">Prepare Your Documents</h5>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    To help your RN Care Manager provide the best support, consider gathering any medical records, bills, treatment notes, or photos related to your injuries. Having these ready when your RN reaches out will help expedite your care coordination.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Snapshot Summary */}
             <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20">
@@ -1197,6 +1218,19 @@ export default function IntakeWizard() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   If you have not been contacted within that time, please log in to your Client Portal and click the "Contact RN Care Manager" button to notify our team directly.
                 </p>
+              </div>
+            </div>
+
+            {/* Privacy Reassurance */}
+            <div className="mt-6 p-4 bg-secondary/10 border border-secondary/30 rounded-lg">
+              <div className="flex gap-3">
+                <Shield className="w-5 h-5 text-secondary-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <h5 className="font-semibold text-sm text-foreground mb-1">Your Privacy is Protected</h5>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    All information you provide is securely encrypted and HIPAA-compliant. Your personal health information is protected and will only be shared with your authorized care team members.
+                  </p>
+                </div>
               </div>
             </div>
 
