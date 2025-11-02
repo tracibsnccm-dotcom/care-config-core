@@ -18,7 +18,7 @@ import { ResourceLibrary } from "@/components/ResourceLibrary";
 import { ClientJournal } from "@/components/ClientJournal";
 import { MotivationWidget } from "@/components/MotivationWidget";
 import { SupportFooter } from "@/components/SupportFooter";
-import { IntakeReminderBanner } from "@/components/IntakeReminderBanner";
+
 import { AttorneyNudgeBanner } from "@/components/AttorneyNudgeBanner";
 import { IntakeReminderDashboard } from "@/components/IntakeReminderDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,7 +113,7 @@ export default function ClientPortal() {
           {/* Intake Reminders */}
           <IntakeReminderDashboard />
           <AttorneyNudgeBanner />
-          <IntakeReminderBanner />
+          
           
           {/* Wellness Snapshot */}
           {caseId ? (
@@ -125,9 +125,29 @@ export default function ClientPortal() {
               <HealthSummaryChips caseId={caseId} />
             </>
           ) : (
+            <>
             <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
               <p className="text-muted-foreground">No active case found.</p>
             </Card>
+            <div className="grid gap-6 md:grid-cols-2 mt-4">
+              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
+                <h3 className="font-bold mb-2 text-foreground">Goals & Milestones</h3>
+                <p className="text-sm text-muted-foreground">Set recovery goals and track progress. Assignments will appear here once a case is active.</p>
+              </Card>
+              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
+                <h3 className="font-bold mb-2 text-foreground">Medication Tracker</h3>
+                <p className="text-sm text-muted-foreground">Track current and past medications. This will be enabled once a case is active.</p>
+              </Card>
+              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
+                <h3 className="font-bold mb-2 text-foreground">Action Items</h3>
+                <p className="text-sm text-muted-foreground">Tasks from your care team will show here. Activate a case to begin.</p>
+              </Card>
+              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
+                <h3 className="font-bold mb-2 text-foreground">Appointments</h3>
+                <p className="text-sm text-muted-foreground">Upcoming visits and reminders will display here once a case is active.</p>
+              </Card>
+            </div>
+            </>
           )}
 
           {/* Quick Actions Row */}

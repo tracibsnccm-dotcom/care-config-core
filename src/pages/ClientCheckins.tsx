@@ -549,7 +549,10 @@ export default function ClientCheckins() {
                     return (
                       <div
                         key={idx}
-                        className="p-3 bg-muted rounded-lg border border-border"
+                        onClick={() => document.getElementById('progress-tracker')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="p-3 bg-muted rounded-lg border border-border cursor-pointer hover:bg-muted/80 transition-colors"
+                        role="button"
+                        aria-label={`View details for ${fmtDate(checkin.ts)}`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-xs text-muted-foreground">
@@ -585,7 +588,7 @@ export default function ClientCheckins() {
             </Card>
 
             {/* 📈 Progress Tracker */}
-            <Card className="p-6 border-border">
+            <Card id="progress-tracker" className="p-6 border-border">
               <h2 className="text-lg font-semibold text-foreground mb-4">📈 Progress Tracker</h2>
               {!selectedCase || (selectedCase.checkins || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No data yet</p>
