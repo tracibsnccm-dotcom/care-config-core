@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users } from "lucide-react";
+import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
@@ -172,7 +172,21 @@ export default function ClientPortal() {
 
           {/* Comprehensive Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 bg-white border-2 border-rcms-gold shadow-lg">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 bg-white border-2 border-rcms-gold shadow-lg">
+              <TabsTrigger 
+                value="checkins"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Wellness</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="journal"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+              >
+                <BookText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Journal</span>
+              </TabsTrigger>
               <TabsTrigger 
                 value="careplans"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
@@ -347,6 +361,16 @@ export default function ClientPortal() {
                   </h2>
                 </div>
                 <ClientQuickMessage caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="journal" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <BookText className="w-6 h-6 text-rcms-teal" />
+                    Personal Journal
+                  </h2>
+                </div>
+                <ClientJournal caseId={caseId || ""} />
               </TabsContent>
             </div>
           </Tabs>
