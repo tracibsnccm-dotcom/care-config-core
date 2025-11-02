@@ -32,6 +32,7 @@ interface Medication {
   frequency: string | null;
   prescribing_doctor: string | null;
   start_date: string | null;
+  end_date: string | null;
   side_effects: string | null;
   is_active: boolean;
   created_at: string;
@@ -85,7 +86,12 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMedications(data || []);
+      // Map data and ensure change_history is properly typed
+      const medicationsWithHistory = (data || []).map(med => ({
+        ...med,
+        change_history: [] as MedicationChange[] // We'll load this separately when needed
+      }));
+      setMedications(medicationsWithHistory as Medication[]);
     } catch (err: any) {
       console.error("Error fetching medications:", err);
     } finally {
@@ -420,13 +426,24 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                 {inactiveMeds.map((med) => (
                   <div key={med.id} className="p-3 border border-border rounded-lg bg-muted/20">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground line-through">{med.medication_name}</p>
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground line-through">{med.medication_name}</p>
+                        {med.end_date && (
+                          <p className="text-xs text-muted-foreground">
+                            Discontinued: {new Date(med.end_date).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => toggleMedication(med.id, med.is_active)}
+                        onClick={() => {
+                          setSelectedMed(med);
+                          loadMedicationHistory(med.id);
+                          setShowHistoryDialog(true);
+                        }}
                       >
-                        Resume
+                        <History className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
