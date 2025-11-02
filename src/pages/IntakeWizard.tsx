@@ -1012,19 +1012,6 @@ export default function IntakeWizard() {
               showUpdateButton={false}
             />
 
-            {/* Document Preparation Tip */}
-            <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
-              <div className="flex gap-3">
-                <FileText className="w-5 h-5 text-accent-foreground flex-shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="font-semibold text-sm text-foreground mb-1">Prepare Your Documents</h5>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    To help your RN Care Manager provide the best support, consider gathering any medical records, bills, treatment notes, or photos related to your injuries. Having these ready when your RN reaches out will help expedite your care coordination.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Snapshot Summary */}
             <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20">
               <h4 className="text-xl font-bold mb-6 text-foreground">Assessment Snapshot</h4>
@@ -1218,6 +1205,19 @@ export default function IntakeWizard() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   If you have not been contacted within that time, please log in to your Client Portal and click the "Contact RN Care Manager" button to notify our team directly.
                 </p>
+              </div>
+
+              {/* Document Preparation Tip */}
+              <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
+                <div className="flex gap-3">
+                  <FileText className="w-5 h-5 text-accent-foreground flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h5 className="font-semibold text-sm text-foreground mb-1">Prepare Your Documents</h5>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      To help your RN Care Manager provide the best support, consider gathering any medical records, bills, treatment notes, or photos related to your injuries. Having these ready when your RN reaches out will help expedite your care coordination.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
