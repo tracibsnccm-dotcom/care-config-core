@@ -21,7 +21,6 @@ import ClientPortal from "./pages/ClientPortal";
 import ProviderPortal from "./pages/ProviderPortal";
 import RNPortal from "./pages/rn/RNPortal";
 import RNPortalLanding from "./pages/RNPortalLanding";
-import ClientJournal from "./pages/ClientJournal";
 import ClientJournalDashboard from "./pages/ClientJournalDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Reports from "./pages/Reports";
@@ -126,10 +125,6 @@ const App = () => (
             <Route
               path="/client-portal-legacy"
               element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortalRoute /></ProtectedRoute>}
-            />
-            <Route
-              path="/journal"
-              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournal /></ProtectedRoute>}
             />
             <Route
               path="/journal-analytics"

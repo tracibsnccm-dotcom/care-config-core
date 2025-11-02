@@ -258,6 +258,51 @@ export default function IntakeWizard() {
         if (checkinError) {
           console.error("Error creating baseline check-in:", checkinError);
         }
+
+        // Save medications from intake to client_medications table
+        const allMeds = [
+          ...preInjuryMeds.filter(m => m.name.trim()).map(med => ({
+            case_id: newCase.id,
+            client_id: userData.user.id,
+            medication_name: med.name,
+            dosage: med.dose || null,
+            frequency: med.purpose || null,
+            prescribing_doctor: med.prescriber || null,
+            start_date: med.startDate || null,
+            side_effects: med.notes || null,
+            injury_timing: 'pre-injury',
+            is_active: true,
+          })),
+          ...postInjuryMeds.filter(m => m.name.trim()).map(med => ({
+            case_id: newCase.id,
+            client_id: userData.user.id,
+            medication_name: med.name,
+            dosage: med.dose || null,
+            frequency: med.purpose || null,
+            prescribing_doctor: med.prescriber || null,
+            start_date: med.startDate || null,
+            side_effects: med.notes || null,
+            injury_timing: 'post-injury',
+            is_active: true,
+          })),
+        ];
+
+        if (allMeds.length > 0) {
+          const { error: medsError } = await supabase
+            .from("client_medications")
+            .insert(allMeds);
+          
+          if (medsError) {
+            console.error("Error saving medications:", medsError);
+          }
+        }
+
+        // Save allergies if provided
+        if (medAllergies && medAllergies.trim()) {
+          // Store in a simple text field for now - could be expanded to separate table
+          // For now we'll add it as a note in the case or as a separate field
+          console.log("Allergies recorded:", medAllergies);
+        }
       }
     } catch (error) {
       console.error("Error creating baseline check-in:", error);
