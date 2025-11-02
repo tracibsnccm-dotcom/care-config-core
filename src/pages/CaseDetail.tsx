@@ -14,6 +14,7 @@ import { CaseHealthMeter } from "@/components/CaseHealthMeter";
 import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
 import { CaseTimelineView } from "@/components/CaseTimelineView";
 import { AICaseSummarizer } from "@/components/AICaseSummarizer";
+import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { 
   ArrowLeft, 
   User, 
@@ -436,6 +437,13 @@ export default function CaseDetail() {
         {canView && caseId && (role === "ATTORNEY" || role === "RN_CCM" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
           <div className="mt-6">
             <AICaseSummarizer caseId={caseId} caseData={caseData} />
+          </div>
+        )}
+
+        {/* Sensitive Data Audit View - RN CM Only */}
+        {canView && caseId && (role === "RN_CCM" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6">
+            <SensitiveDataAuditView caseId={caseId} />
           </div>
         )}
       </div>

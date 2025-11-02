@@ -145,8 +145,10 @@ import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 6. Can clear all selections with "Clear All" button
 
 ### For RN Case Managers:
-1. View client selections in case detail
-2. See `SensitiveDataAuditView` component for full audit trail
+1. View client selections in case detail page
+2. Access `SensitiveDataAuditView` in two locations:
+   - Case Detail page (bottom of page)
+   - RN Clinical Liaison portal (Sensitive Data tab)
 3. Receive immediate notifications for RED/ORANGE risk items
 4. Access complete disclosure history with consent status
 5. Review who reported what and when
@@ -201,6 +203,7 @@ await generateCaseSummaryPDF({
 
 ## Testing Checklist
 
+✅ **Implementation Complete:**
 - [x] Mobile responsive (test phone/tablet views)
 - [x] Touch targets adequate size
 - [x] Auto-save working (1.5s after typing stops)
@@ -209,9 +212,38 @@ await generateCaseSummaryPDF({
 - [x] Bulk clear works correctly
 - [x] RN notifications created for RED/ORANGE
 - [x] Export filters respect disclosure_scope
-- [x] Audit view shows complete history
+- [x] Audit view integrated (CaseDetail + RN Clinical Liaison)
 - [x] Error handling with retry
 - [x] Accessibility (ARIA labels, keyboard nav)
+
+📋 **Manual Testing Required:**
+
+1. **Test RN Alert Flow:**
+   - Log in as a client
+   - Complete intake wizard to "Sensitive Experiences" section
+   - Select a RED risk item (e.g., "Self-harm" or "Suicide thoughts")
+   - Log in as RN CM assigned to that case
+   - Check NotificationBell - should see critical alert
+   - Verify notification metadata includes case_id and risk_level
+
+2. **Test Audit View:**
+   - Log in as RN CM
+   - Navigate to Case Detail page
+   - Scroll to bottom - verify "Sensitive Information Audit Trail" appears
+   - Or go to RN Clinical Liaison portal → Select case → "Sensitive Data" tab
+   - Verify all disclosures, consent status, and history displayed
+
+3. **Test Export Filtering:**
+   - Log in as Attorney
+   - Export case PDF from Case Detail page
+   - Verify sensitive data section respects consent settings
+   - Only see items where consent_attorney = 'share'
+
+4. **Test Consent Flow:**
+   - Client selects sensitive items
+   - Client denies attorney consent
+   - Log in as Attorney
+   - Export PDF - verify sensitive items are redacted
 
 ---
 
