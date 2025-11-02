@@ -35,7 +35,7 @@ export default function ClientPortal() {
   const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("checkins");
+  const [activeTab, setActiveTab] = useState("careplans");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
 
   // Check for crisis indicators
@@ -158,41 +158,28 @@ export default function ClientPortal() {
       {/* Care Team Contact Bar */}
       <CareTeamContactBar caseId={caseId || ""} />
 
-      {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
+      {/* SECTION 2 - SNAPSHOT + TABS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
           {/* Wellness Snapshot */}
           <WellnessSnapshot 
             caseId={caseId || ""} 
-            onViewProgress={() => setActiveTab("checkins")} 
+            onViewProgress={() => setActiveTab("wellness")} 
           />
           
           {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
 
-          {/* Wellness Center - Check-ins and Journal */}
-          <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">
-            <div className="space-y-4">
-              <div className="border-b-2 border-rcms-gold pb-4 mb-6">
-                <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
-                  The Wellness Center
-                </h2>
-              </div>
-              <ClientCheckins />
-              <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
-                <ClientJournal caseId={caseId || ""} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3 - COMPREHENSIVE TABS (mint background) */}
-      <section className="bg-rcms-mint py-12">
-        <div className="max-w-7xl mx-auto px-6">
+          {/* Comprehensive Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 bg-white border-2 border-rcms-gold shadow-lg">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-11 bg-white border-2 border-rcms-gold shadow-lg">
+              <TabsTrigger 
+                value="wellness"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Wellness</span>
+              </TabsTrigger>
               <TabsTrigger 
                 value="careplans"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
@@ -250,6 +237,13 @@ export default function ClientPortal() {
                 <span className="hidden sm:inline">Medications</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="journal"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Personal Journal</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="messages"
                 className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300"
               >
@@ -260,6 +254,17 @@ export default function ClientPortal() {
 
             {/* Tab Content with white cards */}
             <div className="bg-white rounded-xl border-2 border-rcms-gold shadow-xl p-6">
+              <TabsContent value="wellness" className="mt-0">
+                <div className="space-y-4">
+                  <div className="border-b-2 border-rcms-gold pb-4 mb-6">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
+                      The Wellness Center
+                    </h2>
+                  </div>
+                  <ClientCheckins />
+                </div>
+              </TabsContent>
 
               <TabsContent value="careplans" className="mt-0">
                 <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
@@ -335,6 +340,16 @@ export default function ClientPortal() {
                 <ClientMedicationTracker caseId={caseId || ""} />
               </TabsContent>
 
+              <TabsContent value="journal" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="w-6 h-6 text-rcms-teal" />
+                    Personal Journal
+                  </h2>
+                </div>
+                <ClientJournal caseId={caseId || ""} />
+              </TabsContent>
+
               <TabsContent value="messages" className="mt-0">
                 <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -349,14 +364,14 @@ export default function ClientPortal() {
         </div>
       </section>
 
-      {/* SECTION 4 - SUPPORT FOOTER (pale gold background) */}
+      {/* SECTION 3 - SUPPORT FOOTER (pale gold background) */}
       <section className="bg-rcms-pale-gold py-8">
         <div className="max-w-7xl mx-auto px-6">
           <SupportFooter />
         </div>
       </section>
 
-      {/* SECTION 5 - FOOTER (deep navy) */}
+      {/* SECTION 4 - FOOTER (deep navy) */}
       <footer className="bg-rcms-navy py-6 border-t-4 border-rcms-gold">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-white text-sm">
