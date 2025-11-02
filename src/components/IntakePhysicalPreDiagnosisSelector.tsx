@@ -1,11 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Info } from "lucide-react";
 
 interface IntakePhysicalPreDiagnosisSelectorProps {
   selectedDiagnoses: string[];
+  additionalNotes: string;
   onDiagnosesChange: (diagnoses: string[]) => void;
+  onNotesChange: (notes: string) => void;
 }
 
 const PHYSICAL_PRE_DIAGNOSES = [
@@ -35,7 +38,9 @@ const PHYSICAL_PRE_DIAGNOSES = [
 
 export function IntakePhysicalPreDiagnosisSelector({
   selectedDiagnoses,
+  additionalNotes,
   onDiagnosesChange,
+  onNotesChange,
 }: IntakePhysicalPreDiagnosisSelectorProps) {
   const toggleDiagnosis = (diagnosis: string) => {
     if (selectedDiagnoses.includes(diagnosis)) {
@@ -58,7 +63,7 @@ export function IntakePhysicalPreDiagnosisSelector({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {PHYSICAL_PRE_DIAGNOSES.map((option) => (
             <div key={option} className="flex items-start space-x-3 p-2 hover:bg-accent/50 rounded-md transition-colors">
               <Checkbox
@@ -75,6 +80,29 @@ export function IntakePhysicalPreDiagnosisSelector({
               </Label>
             </div>
           ))}
+        </div>
+
+        <div className="space-y-3 pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="pre-physical-additional-conditions" className="font-semibold">
+              Additional Pre-Injury Physical Conditions or Notes
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {additionalNotes.length} / 1000
+            </span>
+          </div>
+          <Textarea
+            id="pre-physical-additional-conditions"
+            value={additionalNotes}
+            onChange={(e) => {
+              if (e.target.value.length <= 1000) {
+                onNotesChange(e.target.value);
+              }
+            }}
+            placeholder="Please describe any additional pre-injury physical conditions, diagnoses, or relevant health information not listed above..."
+            rows={4}
+            className="resize-none"
+          />
         </div>
       </CardContent>
     </Card>

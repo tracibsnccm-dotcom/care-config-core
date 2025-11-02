@@ -108,6 +108,7 @@ export interface Intake {
   incidentNarrativeExtra?: string;
   // Diagnoses - split by category
   physicalPreDiagnoses?: string[];
+  physicalPreNotes?: string;
   physicalPostDiagnoses?: string[];
   physicalPostNotes?: string;
   bhPreDiagnoses?: string[];

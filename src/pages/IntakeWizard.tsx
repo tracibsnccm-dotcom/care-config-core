@@ -37,8 +37,9 @@ import { type MedicationEntry } from "@/components/IntakeMedicationRecord";
 import { IntakeMedicationAllergies, type AllergyEntry } from "@/components/IntakeMedicationAllergies";
 import { IntakePreInjuryMedications } from "@/components/IntakePreInjuryMedications";
 import { IntakePostInjuryMedications } from "@/components/IntakePostInjuryMedications";
+import { IntakePreInjuryTreatments, type TreatmentEntry } from "@/components/IntakePreInjuryTreatments";
+import { IntakePostInjuryTreatments } from "@/components/IntakePostInjuryTreatments";
 import { IntakeBehavioralHealthMedications, type BHMedicationEntry } from "@/components/IntakeBehavioralHealthMedications";
-import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { IntakePhysicalPreDiagnosisSelector } from "@/components/IntakePhysicalPreDiagnosisSelector";
 import { IntakePhysicalPostDiagnosisSelector } from "@/components/IntakePhysicalPostDiagnosisSelector";
@@ -103,6 +104,7 @@ export default function IntakeWizard() {
   
   // Diagnosis state - split by category
   const [physicalPreDiagnoses, setPhysicalPreDiagnoses] = useState<string[]>([]);
+  const [physicalPreNotes, setPhysicalPreNotes] = useState("");
   const [physicalPostDiagnoses, setPhysicalPostDiagnoses] = useState<string[]>([]);
   const [physicalPostNotes, setPhysicalPostNotes] = useState("");
   const [bhPreDiagnoses, setBhPreDiagnoses] = useState<string[]>([]);
@@ -245,6 +247,7 @@ export default function IntakeWizard() {
         incidentNarrative,
         incidentNarrativeExtra,
         physicalPreDiagnoses,
+        physicalPreNotes,
         physicalPostDiagnoses,
         physicalPostNotes,
         bhPreDiagnoses,
@@ -338,20 +341,22 @@ export default function IntakeWizard() {
 
         // Save treatments from intake to client_treatments table
         const allTreatments = [
-          ...preInjuryTreatments.filter(t => t.name.trim()).map(treatment => ({
+          ...preInjuryTreatments.filter(t => t.provider.trim() || t.type.trim()).map(treatment => ({
             case_id: newCase.id,
             client_id: userData.user.id,
-            treatment_name: treatment.name,
+            treatment_name: `${treatment.type}${treatment.provider ? ' - ' + treatment.provider : ''}`,
+            provider: treatment.provider || null,
             frequency: treatment.frequency || null,
             start_date: treatment.startDate || null,
             notes: treatment.notes || null,
             injury_timing: 'pre_injury',
             is_active: true,
           })),
-          ...postInjuryTreatments.filter(t => t.name.trim()).map(treatment => ({
+          ...postInjuryTreatments.filter(t => t.provider.trim() || t.type.trim()).map(treatment => ({
             case_id: newCase.id,
             client_id: userData.user.id,
-            treatment_name: treatment.name,
+            treatment_name: `${treatment.type}${treatment.provider ? ' - ' + treatment.provider : ''}`,
+            provider: treatment.provider || null,
             frequency: treatment.frequency || null,
             start_date: treatment.startDate || null,
             notes: treatment.notes || null,
@@ -559,6 +564,7 @@ export default function IntakeWizard() {
     incidentNarrative,
     incidentNarrativeExtra,
     physicalPreDiagnoses,
+    physicalPreNotes,
     physicalPostDiagnoses,
     physicalPostNotes,
     bhPreDiagnoses,
@@ -566,7 +572,7 @@ export default function IntakeWizard() {
     bhNotes,
     bhPreMeds,
     bhPostMeds,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, physicalPreDiagnoses, physicalPostDiagnoses, physicalPostNotes, bhPreDiagnoses, bhPostDiagnoses, bhNotes, bhPreMeds, bhPostMeds]);
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, physicalPreDiagnoses, physicalPreNotes, physicalPostDiagnoses, physicalPostNotes, bhPreDiagnoses, bhPostDiagnoses, bhNotes, bhPreMeds, bhPostMeds]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -620,6 +626,7 @@ export default function IntakeWizard() {
         if (data.incidentNarrative) setIncidentNarrative(data.incidentNarrative);
         if (data.incidentNarrativeExtra) setIncidentNarrativeExtra(data.incidentNarrativeExtra);
         if (data.physicalPreDiagnoses) setPhysicalPreDiagnoses(data.physicalPreDiagnoses);
+        if (data.physicalPreNotes) setPhysicalPreNotes(data.physicalPreNotes);
         if (data.physicalPostDiagnoses) setPhysicalPostDiagnoses(data.physicalPostDiagnoses);
         if (data.physicalPostNotes) setPhysicalPostNotes(data.physicalPostNotes);
         if (data.bhPreDiagnoses) setBhPreDiagnoses(data.bhPreDiagnoses);
@@ -904,40 +911,60 @@ export default function IntakeWizard() {
 
         {/* Step 2: Medical History */}
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Allergies Section */}
             <IntakeMedicationAllergies
               allergies={medAllergies}
               onChange={setMedAllergies}
             />
 
-            <IntakePhysicalPreDiagnosisSelector
-              selectedDiagnoses={physicalPreDiagnoses}
-              onDiagnosesChange={setPhysicalPreDiagnoses}
-            />
+            {/* Pre-Injury Section */}
+            <div className="border-4 border-primary/30 rounded-lg p-6 space-y-6 bg-card/50">
+              <h3 className="text-xl font-bold text-foreground border-b-2 border-primary pb-2">
+                PRE-INJURY / CHRONIC CONDITIONS
+              </h3>
+              
+              <IntakePhysicalPreDiagnosisSelector
+                selectedDiagnoses={physicalPreDiagnoses}
+                additionalNotes={physicalPreNotes}
+                onDiagnosesChange={setPhysicalPreDiagnoses}
+                onNotesChange={setPhysicalPreNotes}
+              />
 
-            <IntakePreInjuryMedications
-              medications={preInjuryMeds}
-              onChange={setPreInjuryMeds}
-            />
+              <IntakePreInjuryMedications
+                medications={preInjuryMeds}
+                onChange={setPreInjuryMeds}
+              />
 
-            <IntakePhysicalPostDiagnosisSelector
-              selectedDiagnoses={physicalPostDiagnoses}
-              additionalNotes={physicalPostNotes}
-              onDiagnosesChange={setPhysicalPostDiagnoses}
-              onNotesChange={setPhysicalPostNotes}
-            />
+              <IntakePreInjuryTreatments
+                treatments={preInjuryTreatments}
+                onChange={setPreInjuryTreatments}
+              />
+            </div>
 
-            <IntakePostInjuryMedications
-              medications={postInjuryMeds}
-              onChange={setPostInjuryMeds}
-            />
+            {/* Post-Injury Section */}
+            <div className="border-4 border-destructive/30 rounded-lg p-6 space-y-6 bg-card/50">
+              <h3 className="text-xl font-bold text-foreground border-b-2 border-destructive pb-2">
+                POST-INJURY / ACCIDENT-RELATED
+              </h3>
+              
+              <IntakePhysicalPostDiagnosisSelector
+                selectedDiagnoses={physicalPostDiagnoses}
+                additionalNotes={physicalPostNotes}
+                onDiagnosesChange={setPhysicalPostDiagnoses}
+                onNotesChange={setPhysicalPostNotes}
+              />
 
-            <IntakeTreatmentRecord
-              preInjuryTreatments={preInjuryTreatments}
-              postInjuryTreatments={postInjuryTreatments}
-              onPreInjuryChange={setPreInjuryTreatments}
-              onPostInjuryChange={setPostInjuryTreatments}
-            />
+              <IntakePostInjuryMedications
+                medications={postInjuryMeds}
+                onChange={setPostInjuryMeds}
+              />
+
+              <IntakePostInjuryTreatments
+                treatments={postInjuryTreatments}
+                onChange={setPostInjuryTreatments}
+              />
+            </div>
 
             <FileUploadZone
               onFilesUploaded={(files) => setUploadedFiles(prev => [...prev, ...files])}
