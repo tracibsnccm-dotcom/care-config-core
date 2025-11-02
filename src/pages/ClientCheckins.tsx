@@ -537,10 +537,8 @@ export default function ClientCheckins() {
                 Recent Check-ins
               </h2>
 
-              {!selectedCase ? (
-                <p className="text-sm text-muted-foreground">Select a case to view history</p>
-              ) : recentCheckins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No check-ins yet</p>
+              {recentCheckins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No check-ins yet. Submit your first check-in above!</p>
               ) : (
                 <div className="space-y-3">
                   {recentCheckins.map((checkin, idx) => {

@@ -115,9 +115,6 @@ export default function ClientPortal() {
           <AttorneyNudgeBanner />
           <IntakeReminderBanner />
           
-          {/* Progress Highlights */}
-          {caseId && <ProgressHighlights caseId={caseId} />}
-          
           {/* Wellness Snapshot */}
           {caseId ? (
             <>
