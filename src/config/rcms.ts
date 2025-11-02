@@ -106,9 +106,13 @@ export interface Intake {
   // Incident narrative
   incidentNarrative?: string;
   incidentNarrativeExtra?: string;
-  // Diagnoses
-  selectedDiagnoses?: string[];
-  diagnosisNotes?: string;
+  // Diagnoses - split by category
+  physicalPreDiagnoses?: string[];
+  physicalPostDiagnoses?: string[];
+  physicalPostNotes?: string;
+  bhPreDiagnoses?: string[];
+  bhPostDiagnoses?: string[];
+  bhNotes?: string;
 }
 
 export interface FourPs {

@@ -36,7 +36,9 @@ import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
 import { IntakeMedicationRecord, type MedicationEntry, type AllergyEntry } from "@/components/IntakeMedicationRecord";
 import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
-import { IntakeDiagnosisSelector } from "@/components/IntakeDiagnosisSelector";
+import { IntakePhysicalPreDiagnosisSelector } from "@/components/IntakePhysicalPreDiagnosisSelector";
+import { IntakePhysicalPostDiagnosisSelector } from "@/components/IntakePhysicalPostDiagnosisSelector";
+import { IntakeBehavioralHealthDiagnosisSelector } from "@/components/IntakeBehavioralHealthDiagnosisSelector";
 import { LabeledTextarea } from "@/components/LabeledTextarea";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
@@ -93,9 +95,13 @@ export default function IntakeWizard() {
   const [incidentNarrative, setIncidentNarrative] = useState("");
   const [incidentNarrativeExtra, setIncidentNarrativeExtra] = useState("");
   
-  // Diagnosis state
-  const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
-  const [diagnosisNotes, setDiagnosisNotes] = useState("");
+  // Diagnosis state - split by category
+  const [physicalPreDiagnoses, setPhysicalPreDiagnoses] = useState<string[]>([]);
+  const [physicalPostDiagnoses, setPhysicalPostDiagnoses] = useState<string[]>([]);
+  const [physicalPostNotes, setPhysicalPostNotes] = useState("");
+  const [bhPreDiagnoses, setBhPreDiagnoses] = useState<string[]>([]);
+  const [bhPostDiagnoses, setBhPostDiagnoses] = useState<string[]>([]);
+  const [bhNotes, setBhNotes] = useState("");
 
   const [client, setClient] = useState<Client>({
     rcmsId: "RCMS-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
@@ -232,8 +238,12 @@ export default function IntakeWizard() {
         // Include new fields
         incidentNarrative,
         incidentNarrativeExtra,
-        selectedDiagnoses,
-        diagnosisNotes,
+        physicalPreDiagnoses,
+        physicalPostDiagnoses,
+        physicalPostNotes,
+        bhPreDiagnoses,
+        bhPostDiagnoses,
+        bhNotes,
       },
       fourPs,
       sdoh,
@@ -542,9 +552,13 @@ export default function IntakeWizard() {
     hasMeds,
     incidentNarrative,
     incidentNarrativeExtra,
-    selectedDiagnoses,
-    diagnosisNotes,
-  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, selectedDiagnoses, diagnosisNotes]);
+    physicalPreDiagnoses,
+    physicalPostDiagnoses,
+    physicalPostNotes,
+    bhPreDiagnoses,
+    bhPostDiagnoses,
+    bhNotes,
+  }), [client, consent, intake, fourPs, sdoh, medsBlock, sensitiveTag, medications, preInjuryMeds, postInjuryMeds, preInjuryTreatments, postInjuryTreatments, medAllergies, uploadedFiles, mentalHealth, hasMeds, incidentNarrative, incidentNarrativeExtra, physicalPreDiagnoses, physicalPostDiagnoses, physicalPostNotes, bhPreDiagnoses, bhPostDiagnoses, bhNotes]);
 
   // Autosave functionality
   const { loadDraft, deleteDraft, saveNow } = useAutosave({
@@ -597,8 +611,12 @@ export default function IntakeWizard() {
         if (data.hasMeds) setHasMeds(data.hasMeds);
         if (data.incidentNarrative) setIncidentNarrative(data.incidentNarrative);
         if (data.incidentNarrativeExtra) setIncidentNarrativeExtra(data.incidentNarrativeExtra);
-        if (data.selectedDiagnoses) setSelectedDiagnoses(data.selectedDiagnoses);
-        if (data.diagnosisNotes) setDiagnosisNotes(data.diagnosisNotes);
+        if (data.physicalPreDiagnoses) setPhysicalPreDiagnoses(data.physicalPreDiagnoses);
+        if (data.physicalPostDiagnoses) setPhysicalPostDiagnoses(data.physicalPostDiagnoses);
+        if (data.physicalPostNotes) setPhysicalPostNotes(data.physicalPostNotes);
+        if (data.bhPreDiagnoses) setBhPreDiagnoses(data.bhPreDiagnoses);
+        if (data.bhPostDiagnoses) setBhPostDiagnoses(data.bhPostDiagnoses);
+        if (data.bhNotes) setBhNotes(data.bhNotes);
         if (typeof data.sensitiveTag === 'boolean') setSensitiveTag(data.sensitiveTag);
         if (typeof data.step === 'number') setStep(data.step);
         
@@ -886,11 +904,16 @@ export default function IntakeWizard() {
               onAllergiesChange={setMedAllergies}
             />
 
-            <IntakeDiagnosisSelector
-              selectedDiagnoses={selectedDiagnoses}
-              additionalNotes={diagnosisNotes}
-              onDiagnosesChange={setSelectedDiagnoses}
-              onNotesChange={setDiagnosisNotes}
+            <IntakePhysicalPreDiagnosisSelector
+              selectedDiagnoses={physicalPreDiagnoses}
+              onDiagnosesChange={setPhysicalPreDiagnoses}
+            />
+
+            <IntakePhysicalPostDiagnosisSelector
+              selectedDiagnoses={physicalPostDiagnoses}
+              additionalNotes={physicalPostNotes}
+              onDiagnosesChange={setPhysicalPostDiagnoses}
+              onNotesChange={setPhysicalPostNotes}
             />
 
             <IntakeTreatmentRecord
@@ -919,94 +942,105 @@ export default function IntakeWizard() {
 
         {/* Step 3: Mental Health & Well-Being */}
         {step === 3 && (
-          <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Mental Health & Well-Being Check-In
-            </h3>
-            
-            {(mentalHealth.selfHarm === 'yes' || mentalHealth.selfHarm === 'unsure') && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>We've flagged your response for immediate RN Care Manager attention.</strong>
-                  <br />
-                  If you're in danger, please call <strong>911</strong> or <strong>988</strong> (Suicide & Crisis Lifeline) now.
-                </AlertDescription>
-              </Alert>
-            )}
+          <div className="space-y-6">
+            <Card className="p-6 border-border">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                Mental Health & Well-Being Check-In
+              </h3>
+              
+              {(mentalHealth.selfHarm === 'yes' || mentalHealth.selfHarm === 'unsure') && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>We've flagged your response for immediate RN Care Manager attention.</strong>
+                    <br />
+                    If you're in danger, please call <strong>911</strong> or <strong>988</strong> (Suicide & Crisis Lifeline) now.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            <div className="space-y-6">
-              <div>
-                <Label className="mb-3 block">
-                  In the past 2 weeks, have you felt down, depressed, or hopeless?
-                </Label>
-                <RadioGroup value={mentalHealth.depression} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, depression: v }))}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="dep-yes" />
-                    <Label htmlFor="dep-yes" className="cursor-pointer">Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="dep-no" />
-                    <Label htmlFor="dep-no" className="cursor-pointer">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unsure" id="dep-unsure" />
-                    <Label htmlFor="dep-unsure" className="cursor-pointer">Not sure</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+              <div className="space-y-6">
+                <div>
+                  <Label className="mb-3 block">
+                    In the past 2 weeks, have you felt down, depressed, or hopeless?
+                  </Label>
+                  <RadioGroup value={mentalHealth.depression} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, depression: v }))}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="dep-yes" />
+                      <Label htmlFor="dep-yes" className="cursor-pointer">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="dep-no" />
+                      <Label htmlFor="dep-no" className="cursor-pointer">No</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="unsure" id="dep-unsure" />
+                      <Label htmlFor="dep-unsure" className="cursor-pointer">Not sure</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-              <div>
-                <Label className="mb-3 block">
-                  Have you had thoughts about harming yourself?
-                </Label>
-                <RadioGroup value={mentalHealth.selfHarm} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, selfHarm: v }))}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="harm-yes" />
-                    <Label htmlFor="harm-yes" className="cursor-pointer">Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="harm-no" />
-                    <Label htmlFor="harm-no" className="cursor-pointer">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unsure" id="harm-unsure" />
-                    <Label htmlFor="harm-unsure" className="cursor-pointer">Not sure</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                <div>
+                  <Label className="mb-3 block">
+                    Have you had thoughts about harming yourself?
+                  </Label>
+                  <RadioGroup value={mentalHealth.selfHarm} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, selfHarm: v }))}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="harm-yes" />
+                      <Label htmlFor="harm-yes" className="cursor-pointer">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="harm-no" />
+                      <Label htmlFor="harm-no" className="cursor-pointer">No</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="unsure" id="harm-unsure" />
+                      <Label htmlFor="harm-unsure" className="cursor-pointer">Not sure</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-              <div>
-                <Label className="mb-3 block">
-                  In the past 2 weeks, have you felt nervous, anxious, or on edge?
-                </Label>
-                <RadioGroup value={mentalHealth.anxiety} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, anxiety: v }))}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="anx-yes" />
-                    <Label htmlFor="anx-yes" className="cursor-pointer">Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="anx-no" />
-                    <Label htmlFor="anx-no" className="cursor-pointer">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unsure" id="anx-unsure" />
-                    <Label htmlFor="anx-unsure" className="cursor-pointer">Not sure</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                <div>
+                  <Label className="mb-3 block">
+                    In the past 2 weeks, have you felt nervous, anxious, or on edge?
+                  </Label>
+                  <RadioGroup value={mentalHealth.anxiety} onValueChange={(v) => setMentalHealth(prev => ({ ...prev, anxiety: v }))}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="anx-yes" />
+                      <Label htmlFor="anx-yes" className="cursor-pointer">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="anx-no" />
+                      <Label htmlFor="anx-no" className="cursor-pointer">No</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="unsure" id="anx-unsure" />
+                      <Label htmlFor="anx-unsure" className="cursor-pointer">Not sure</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-accent rounded-lg">
-                <Checkbox
-                  id="want-help"
-                  checked={mentalHealth.wantHelp}
-                  onCheckedChange={(checked) => setMentalHealth(prev => ({ ...prev, wantHelp: checked as boolean }))}
-                />
-                <Label htmlFor="want-help" className="cursor-pointer">
-                  Would you like RN Care Management to assist with mental health resources?
-                </Label>
+                <div className="flex items-center space-x-3 p-4 bg-accent rounded-lg">
+                  <Checkbox
+                    id="want-help"
+                    checked={mentalHealth.wantHelp}
+                    onCheckedChange={(checked) => setMentalHealth(prev => ({ ...prev, wantHelp: checked as boolean }))}
+                  />
+                  <Label htmlFor="want-help" className="cursor-pointer">
+                    Would you like RN Care Management to assist with mental health resources?
+                  </Label>
+                </div>
               </div>
-            </div>
+            </Card>
+
+            <IntakeBehavioralHealthDiagnosisSelector
+              selectedPreDiagnoses={bhPreDiagnoses}
+              selectedPostDiagnoses={bhPostDiagnoses}
+              additionalNotes={bhNotes}
+              onPreDiagnosesChange={setBhPreDiagnoses}
+              onPostDiagnosesChange={setBhPostDiagnoses}
+              onNotesChange={setBhNotes}
+            />
             
             <div className="mt-6">
               <Button 
@@ -1017,7 +1051,7 @@ export default function IntakeWizard() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Step 4: 4Ps & SDOH */}
