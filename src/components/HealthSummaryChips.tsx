@@ -65,11 +65,7 @@ export function HealthSummaryChips({ caseId }: HealthSummaryChipsProps) {
   const healthPercentage = Math.min(100, Math.max(0, (overallScore / 4) * 100));
 
   if (!latestCheckin) {
-    return (
-      <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
-        <p className="text-muted-foreground text-center">No check-in data available yet.</p>
-      </Card>
-    );
+    return null;
   }
 
   return (
