@@ -8,6 +8,7 @@ import { HealthSummaryChips } from "@/components/HealthSummaryChips";
 import { ClientGoalTracker } from "@/components/ClientGoalTracker";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientActionItems } from "@/components/ClientActionItems";
+import { CareTeamContactBar } from "@/components/CareTeamContactBar";
 import { CrisisResourcesBanner } from "@/components/CrisisResourcesBanner";
 import { ClientAppointmentCalendar } from "@/components/ClientAppointmentCalendar";
 import { ClientQuickMessage } from "@/components/ClientQuickMessage";
@@ -103,6 +104,9 @@ export default function ClientPortal() {
           </div>
         </div>
       </header>
+
+      {/* Care Team Contact Bar */}
+      {caseId && <CareTeamContactBar caseId={caseId} />}
 
       {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
