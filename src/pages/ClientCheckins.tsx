@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { LabeledSelect } from "@/components/LabeledSelect";
 import { LabeledInput } from "@/components/LabeledInput";
+import { LabeledTextarea } from "@/components/LabeledTextarea";
 import { useApp } from "@/context/AppContext";
 import { FourPs } from "@/config/rcms";
 import { Calendar, TrendingUp, AlertTriangle } from "lucide-react";
@@ -363,11 +364,13 @@ export default function ClientCheckins() {
                 </div>
               </div>
 
-              <LabeledInput
+              <LabeledTextarea
                 label="Note (optional)"
                 value={note}
                 onChange={setNote}
                 placeholder="What's important for us to know about how you're feeling today?"
+                maxLength={1000}
+                rows={4}
               />
 
               <div className="rounded-lg border border-border bg-card p-4 mb-4">
