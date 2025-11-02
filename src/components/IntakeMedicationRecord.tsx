@@ -282,25 +282,22 @@ export function IntakeMedicationRecord({
             rows={4}
             className="w-full"
           />
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Please list all known allergies and the reactions they cause
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (allergies.trim()) {
-                  onAllergiesChange(allergies + '\n');
-                }
-              }}
-              className="whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Entry
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Please list all known allergies and the reactions they cause
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (allergies.trim()) {
+                onAllergiesChange(allergies + '\n');
+              }
+            }}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Allergy Entry
+          </Button>
         </CardContent>
       </Card>
     </div>
