@@ -90,9 +90,20 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
 
       {/* New Entry Form */}
       <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-foreground">New Entry</p>
+          <span className="text-xs text-muted-foreground">
+            {newEntry.length} / 10,000
+          </span>
+        </div>
         <Textarea
           value={newEntry}
-          onChange={(e) => setNewEntry(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value.length <= 10000) {
+              setNewEntry(value);
+            }
+          }}
           placeholder="Write your thoughts, reflections, or notes here... These are private by default."
           className="min-h-[120px] mb-3 resize-none"
         />
