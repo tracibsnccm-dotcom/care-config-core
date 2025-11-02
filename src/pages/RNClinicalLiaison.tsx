@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield } from "lucide-react";
+import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -464,7 +465,7 @@ export default function RNClinicalLiaison() {
               {/* Clinical Alerts Panel */}
               <ClinicalAlertsPanel caseId={selectedCaseId} />
               <Tabs defaultValue="messages" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsList className="grid w-full grid-cols-5 mb-6">
                   <TabsTrigger value="messages" className="flex items-center gap-2">
                     <MessageCircle className="w-4 h-4" />
                     Messages
@@ -480,6 +481,10 @@ export default function RNClinicalLiaison() {
                   <TabsTrigger value="activity" className="flex items-center gap-2">
                     <Activity className="w-4 h-4" />
                     Activity
+                  </TabsTrigger>
+                  <TabsTrigger value="sensitive-audit" className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Sensitive Data
                   </TabsTrigger>
                 </TabsList>
 
@@ -497,6 +502,10 @@ export default function RNClinicalLiaison() {
 
                 <TabsContent value="activity">
                   <ActivityTimeline caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="sensitive-audit">
+                  <SensitiveDataAuditView caseId={selectedCaseId} />
                 </TabsContent>
               </Tabs>
             </div>

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { canSeeSensitive, isBlockedForAttorney, getDisplayName, FEATURE, canAccess, exportAllowed as checkExportAllowed } from "@/lib/access";
-import { exportCSV, exportPDFStub } from "@/lib/export";
+import { exportCSV } from "@/lib/export";
+import { generateCaseSummaryPDF } from "@/lib/pdfCaseSummary";
 import { ProviderConfirmationButton } from "@/components/ProviderConfirmationButton";
 import { CaseHealthMeter } from "@/components/CaseHealthMeter";
 import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
@@ -65,9 +66,46 @@ export default function CaseDetail() {
     log("EXPORT_CSV", caseData.id);
   };
 
-  const handleExportPDF = () => {
-    exportPDFStub(caseData);
-    log("EXPORT_PDF", caseData.id);
+  const handleExportPDF = async () => {
+    try {
+      // Prepare timeline data
+      const timeline = [
+        { date: caseData.consent.signedAt || caseData.createdAt, event: "Case Created" },
+        ...(caseData.checkins?.map(c => ({ date: c.ts, event: `Check-in (Pain: ${c.pain}/10)` })) || [])
+      ];
+
+      // Prepare reports data (stub - replace with actual reports if available)
+      const reports = [
+        { title: "Intake Assessment", date: caseData.createdAt, status: "Complete" }
+      ];
+
+      // Prepare follow-ups data (stub - replace with actual follow-ups if available)
+      const followUps = [
+        { title: "Initial Follow-up", dueDate: caseData.createdAt, status: "Pending" }
+      ];
+
+      // Prepare messages summary (stub - replace with actual message data if available)
+      const messagesSummary = {
+        total: 0,
+        lastMessageDate: caseData.createdAt
+      };
+
+      await generateCaseSummaryPDF({
+        caseId: caseData.id,
+        clientLabel: displayName,
+        status: caseData.status,
+        attyRef: caseData.client.attyRef,
+        timeline,
+        reports,
+        followUps,
+        messagesSummary,
+        viewerRole: role // Pass the viewer's role for filtering sensitive data
+      });
+
+      log("EXPORT_PDF", caseData.id);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
   };
 
   const handleRevokeConsent = () => {
