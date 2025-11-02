@@ -47,10 +47,10 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     { label: "Pain", value: avgPain, max: 10, icon: Heart, color: "text-destructive" },
     { label: "Depression", value: avgDepression, max: 10, icon: Brain, color: "text-warning" },
     { label: "Anxiety", value: avgAnxiety, max: 10, icon: Brain, color: "text-warning" },
-    { label: "Physical", value: avgPhysical, max: 100, icon: Activity, color: "text-primary" },
-    { label: "Psychological", value: avgPsychological, max: 100, icon: Smile, color: "text-primary" },
-    { label: "Psychosocial", value: avgPsychosocial, max: 100, icon: Activity, color: "text-primary" },
-    { label: "Professional", value: avgProfessional, max: 100, icon: Activity, color: "text-primary" },
+    { label: "Physical", value: avgPhysical, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Protection", value: avgPsychological, max: 4, icon: Smile, color: "text-primary" },
+    { label: "Psychosocial", value: avgPsychosocial, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Profession", value: avgProfessional, max: 4, icon: Activity, color: "text-primary" },
   ];
 
   // Add SDOH metrics if tracked
