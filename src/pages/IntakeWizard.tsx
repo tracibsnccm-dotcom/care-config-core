@@ -1130,6 +1130,12 @@ export default function IntakeWizard() {
                   <span className="select-none text-muted-foreground">{client.dobMasked}</span>
                 </div>
                 <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Attorney:</span>
+                  <span className="text-muted-foreground">
+                    {attorneyCode || "—"}
+                  </span>
+                </div>
+                <div className="flex py-2 border-b border-border">
                   <span className="font-medium w-40">Incident:</span>
                   <span className="text-muted-foreground">
                     {intake.incidentType} on {fmtDate(intake.incidentDate)}
@@ -1146,12 +1152,45 @@ export default function IntakeWizard() {
                   </span>
                 </div>
                 <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Assessment Score:</span>
+                  <span className="text-muted-foreground font-semibold">
+                    {(() => {
+                      const allValues = [
+                        fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
+                        typeof sdoh.housing === 'number' ? sdoh.housing : 0,
+                        typeof sdoh.transport === 'number' ? sdoh.transport : 0,
+                        typeof sdoh.food === 'number' ? sdoh.food : 0,
+                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
+                        typeof sdoh.financial === 'number' ? sdoh.financial : 0,
+                        typeof sdoh.employment === 'number' ? sdoh.employment : 0,
+                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
+                        typeof sdoh.safety === 'number' ? sdoh.safety : 0,
+                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                      ];
+                      const sum = allValues.reduce((a, b) => a + b, 0);
+                      const score = (sum / allValues.length).toFixed(1);
+                      return `${score} — ${
+                        parseFloat(score) < 1 ? 'Stable' :
+                        parseFloat(score) < 2 ? 'Mild' :
+                        parseFloat(score) < 3 ? 'Moderate' : 'Critical'
+                      }`;
+                    })()}
+                  </span>
+                </div>
+                <div className="flex py-2 border-b border-border">
                   <span className="font-medium w-40">Consent:</span>
                   <span className="text-muted-foreground">
                     {consent.signed ? "Signed" : "Not signed"}
                     {consent.signed && consent.signedAt && ` @ ${fmtDate(consent.signedAt)}`}
                   </span>
                 </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  <Info className="inline-block w-4 h-4 mr-2 mb-1" />
+                  You will receive additional information about who and how to contact your treatment providers and RN Care Manager.
+                </p>
               </div>
             </div>
 
