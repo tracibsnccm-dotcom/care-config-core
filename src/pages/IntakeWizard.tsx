@@ -985,7 +985,8 @@ export default function IntakeWizard() {
 
         {/* Step 3: Mental Health & Well-Being */}
         {step === 3 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Mental Health Screening Section */}
             <Card className="p-6 border-border">
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 Mental Health & Well-Being Check-In
@@ -1076,21 +1077,55 @@ export default function IntakeWizard() {
               </div>
             </Card>
 
-            <IntakeBehavioralHealthDiagnosisSelector
-              selectedPreDiagnoses={bhPreDiagnoses}
-              selectedPostDiagnoses={bhPostDiagnoses}
-              additionalNotes={bhNotes}
-              onPreDiagnosesChange={setBhPreDiagnoses}
-              onPostDiagnosesChange={setBhPostDiagnoses}
-              onNotesChange={setBhNotes}
-            />
+            {/* Pre-Accident BH Section */}
+            <div className="border-4 border-primary/30 rounded-lg p-6 space-y-6 bg-card/50">
+              <h3 className="text-xl font-bold text-foreground border-b-2 border-primary pb-2">
+                PRE-ACCIDENT BEHAVIORAL HEALTH
+              </h3>
+              
+              <IntakeBehavioralHealthDiagnosisSelector
+                selectedPreDiagnoses={bhPreDiagnoses}
+                selectedPostDiagnoses={[]}
+                additionalNotes=""
+                onPreDiagnosesChange={setBhPreDiagnoses}
+                onPostDiagnosesChange={() => {}}
+                onNotesChange={() => {}}
+                showOnlyPre={true}
+              />
 
-            <IntakeBehavioralHealthMedications
-              preMedications={bhPreMeds}
-              postMedications={bhPostMeds}
-              onPreChange={setBhPreMeds}
-              onPostChange={setBhPostMeds}
-            />
+              <IntakeBehavioralHealthMedications
+                preMedications={bhPreMeds}
+                postMedications={[]}
+                onPreChange={setBhPreMeds}
+                onPostChange={() => {}}
+                showOnlyPre={true}
+              />
+            </div>
+
+            {/* Post-Accident BH Section */}
+            <div className="border-4 border-destructive/30 rounded-lg p-6 space-y-6 bg-card/50">
+              <h3 className="text-xl font-bold text-foreground border-b-2 border-destructive pb-2">
+                POST-ACCIDENT BEHAVIORAL HEALTH
+              </h3>
+              
+              <IntakeBehavioralHealthDiagnosisSelector
+                selectedPreDiagnoses={[]}
+                selectedPostDiagnoses={bhPostDiagnoses}
+                additionalNotes={bhNotes}
+                onPreDiagnosesChange={() => {}}
+                onPostDiagnosesChange={setBhPostDiagnoses}
+                onNotesChange={setBhNotes}
+                showOnlyPost={true}
+              />
+
+              <IntakeBehavioralHealthMedications
+                preMedications={[]}
+                postMedications={bhPostMeds}
+                onPreChange={() => {}}
+                onPostChange={setBhPostMeds}
+                showOnlyPost={true}
+              />
+            </div>
             
             <div className="mt-6">
               <Button 

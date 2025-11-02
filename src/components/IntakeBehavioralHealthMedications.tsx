@@ -19,6 +19,8 @@ interface IntakeBehavioralHealthMedicationsProps {
   postMedications: BHMedicationEntry[];
   onPreChange: (medications: BHMedicationEntry[]) => void;
   onPostChange: (medications: BHMedicationEntry[]) => void;
+  showOnlyPre?: boolean;
+  showOnlyPost?: boolean;
 }
 
 export function IntakeBehavioralHealthMedications({
@@ -26,6 +28,8 @@ export function IntakeBehavioralHealthMedications({
   postMedications,
   onPreChange,
   onPostChange,
+  showOnlyPre = false,
+  showOnlyPost = false,
 }: IntakeBehavioralHealthMedicationsProps) {
   const addPreMedication = () => {
     onPreChange([...preMedications, { id: crypto.randomUUID(), name: '', dose: '', purpose: '', prescriber: '', startDate: '', timing: 'pre' }]);
@@ -58,22 +62,27 @@ export function IntakeBehavioralHealthMedications({
   return (
     <Card className="border-border">
       <CardContent className="p-6">
-        <div className="flex items-start gap-3 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-semibold text-sm mb-1">Behavioral Health Medications</h4>
-            <p className="text-sm text-muted-foreground">
-              List any medications for mental health conditions, both before and after the incident.
-            </p>
+        {!showOnlyPre && !showOnlyPost && (
+          <div className="flex items-start gap-3 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Behavioral Health Medications</h4>
+              <p className="text-sm text-muted-foreground">
+                List any medications for mental health conditions, both before and after the incident.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-8">
           {/* Pre-Accident Section */}
-          <div>
-            <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
-              Pre-Accident Mental Health Medications
-            </h4>
+          {!showOnlyPost && (
+            <div>
+              {!showOnlyPre && (
+                <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
+                  Pre-Accident Mental Health Medications
+                </h4>
+              )}
             <div className="space-y-4">
               {preMedications.map((med, index) => (
                 <div key={index} className="p-4 border rounded-lg space-y-3 bg-card relative">
@@ -144,12 +153,16 @@ export function IntakeBehavioralHealthMedications({
               </Button>
             </div>
           </div>
+          )}
 
           {/* Post-Accident Section */}
-          <div>
-            <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
-              Post-Accident Mental Health Medications
-            </h4>
+          {!showOnlyPre && (
+            <div>
+              {!showOnlyPost && (
+                <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
+                  Post-Accident Mental Health Medications
+                </h4>
+              )}
             <div className="space-y-4">
               {postMedications.map((med, index) => (
                 <div key={index} className="p-4 border rounded-lg space-y-3 bg-card relative">
@@ -220,6 +233,7 @@ export function IntakeBehavioralHealthMedications({
               </Button>
             </div>
           </div>
+          )}
         </div>
       </CardContent>
     </Card>

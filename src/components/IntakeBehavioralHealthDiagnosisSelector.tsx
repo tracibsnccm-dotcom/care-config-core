@@ -11,6 +11,8 @@ interface IntakeBehavioralHealthDiagnosisSelectorProps {
   onPreDiagnosesChange: (diagnoses: string[]) => void;
   onPostDiagnosesChange: (diagnoses: string[]) => void;
   onNotesChange: (notes: string) => void;
+  showOnlyPre?: boolean;
+  showOnlyPost?: boolean;
 }
 
 const BH_PRE_DIAGNOSES = [
@@ -56,6 +58,8 @@ export function IntakeBehavioralHealthDiagnosisSelector({
   onPreDiagnosesChange,
   onPostDiagnosesChange,
   onNotesChange,
+  showOnlyPre = false,
+  showOnlyPost = false,
 }: IntakeBehavioralHealthDiagnosisSelectorProps) {
   const togglePreDiagnosis = (diagnosis: string) => {
     if (selectedPreDiagnoses.includes(diagnosis)) {
@@ -76,87 +80,99 @@ export function IntakeBehavioralHealthDiagnosisSelector({
   return (
     <Card className="border-border">
       <CardContent className="p-6">
-        <div className="flex items-start gap-3 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-semibold text-sm mb-1">Behavioral Health History</h4>
-            <p className="text-sm text-muted-foreground">
-              Select all behavioral health conditions that apply. This helps your care team provide appropriate mental health support.
-            </p>
+        {!showOnlyPre && !showOnlyPost && (
+          <div className="flex items-start gap-3 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Behavioral Health History</h4>
+              <p className="text-sm text-muted-foreground">
+                Select all behavioral health conditions that apply. This helps your care team provide appropriate mental health support.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-8">
-          <div>
-            <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
-              Chronic / Pre-Accident
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {BH_PRE_DIAGNOSES.map((option) => (
-                <div key={option} className="flex items-start space-x-3 p-2 hover:bg-accent/50 rounded-md transition-colors">
-                  <Checkbox
-                    id={`pre-${option}`}
-                    checked={selectedPreDiagnoses.includes(option)}
-                    onCheckedChange={() => togglePreDiagnosis(option)}
-                    className="mt-0.5"
-                  />
-                  <Label
-                    htmlFor={`pre-${option}`}
-                    className="text-sm font-normal cursor-pointer leading-snug flex-1"
-                  >
-                    {option}
-                  </Label>
-                </div>
-              ))}
+          {!showOnlyPost && (
+            <div>
+              {!showOnlyPre && (
+                <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
+                  Chronic / Pre-Accident
+                </h4>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {BH_PRE_DIAGNOSES.map((option) => (
+                  <div key={option} className="flex items-start space-x-3 p-2 hover:bg-accent/50 rounded-md transition-colors">
+                    <Checkbox
+                      id={`pre-${option}`}
+                      checked={selectedPreDiagnoses.includes(option)}
+                      onCheckedChange={() => togglePreDiagnosis(option)}
+                      className="mt-0.5"
+                    />
+                    <Label
+                      htmlFor={`pre-${option}`}
+                      className="text-sm font-normal cursor-pointer leading-snug flex-1"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
-              Post-Accident / New or Worsened
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {BH_POST_DIAGNOSES.map((option) => (
-                <div key={option} className="flex items-start space-x-3 p-2 hover:bg-accent/50 rounded-md transition-colors">
-                  <Checkbox
-                    id={`post-${option}`}
-                    checked={selectedPostDiagnoses.includes(option)}
-                    onCheckedChange={() => togglePostDiagnosis(option)}
-                    className="mt-0.5"
-                  />
-                  <Label
-                    htmlFor={`post-${option}`}
-                    className="text-sm font-normal cursor-pointer leading-snug flex-1"
-                  >
-                    {option}
-                  </Label>
-                </div>
-              ))}
+          {!showOnlyPre && (
+            <div>
+              {!showOnlyPost && (
+                <h4 className="font-semibold text-base mb-4 text-foreground border-b pb-2">
+                  Post-Accident / New or Worsened
+                </h4>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {BH_POST_DIAGNOSES.map((option) => (
+                  <div key={option} className="flex items-start space-x-3 p-2 hover:bg-accent/50 rounded-md transition-colors">
+                    <Checkbox
+                      id={`post-${option}`}
+                      checked={selectedPostDiagnoses.includes(option)}
+                      onCheckedChange={() => togglePostDiagnosis(option)}
+                      className="mt-0.5"
+                    />
+                    <Label
+                      htmlFor={`post-${option}`}
+                      className="text-sm font-normal cursor-pointer leading-snug flex-1"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-3 pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="bh-additional-conditions" className="font-semibold">
-                Additional Behavioral Health Conditions or Notes
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {additionalNotes.length} / 1000
-              </span>
+          {showOnlyPost && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="bh-additional-conditions" className="font-semibold">
+                  Additional Behavioral Health Conditions or Notes
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  {additionalNotes.length} / 1000
+                </span>
+              </div>
+              <Textarea
+                id="bh-additional-conditions"
+                value={additionalNotes}
+                onChange={(e) => {
+                  if (e.target.value.length <= 1000) {
+                    onNotesChange(e.target.value);
+                  }
+                }}
+                placeholder="Please describe any additional behavioral health conditions or relevant mental health information not listed above..."
+                rows={4}
+                className="resize-none"
+              />
             </div>
-            <Textarea
-              id="bh-additional-conditions"
-              value={additionalNotes}
-              onChange={(e) => {
-                if (e.target.value.length <= 1000) {
-                  onNotesChange(e.target.value);
-                }
-              }}
-              placeholder="Please describe any additional behavioral health conditions or relevant mental health information not listed above..."
-              rows={4}
-              className="resize-none"
-            />
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
