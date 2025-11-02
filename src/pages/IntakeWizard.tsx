@@ -27,7 +27,7 @@ import {
   InitialTreatment,
   Gender,
 } from "@/config/rcms";
-import { AlertCircle, Check, Save, HelpCircle, ArrowRight, Info, Shield, FileText, Phone } from "lucide-react";
+import { AlertCircle, Check, Save, HelpCircle, ArrowRight, Info, Shield, FileText, Phone, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskName } from "@/lib/access";
@@ -38,6 +38,10 @@ import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeT
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
+import { IntakeCompletionChecklist } from "@/components/IntakeCompletionChecklist";
+import { IntakeNextStepsTimeline } from "@/components/IntakeNextStepsTimeline";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import { CaraFloatingButton } from "@/components/CaraFloatingButton";
 import { CaraGate } from "@/components/CaraGate";
 import { AssessmentSnapshotExplainer } from "@/components/AssessmentSnapshotExplainer";
@@ -366,6 +370,120 @@ export default function IntakeWizard() {
     alert(`Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Status: ${newCase.status}`);
     navigate("/cases");
   }
+
+  const generatePDFSummary = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(15, 42, 106); // Navy
+    doc.text("Reconcile C.A.R.E. Intake Summary", pageWidth / 2, 20, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: "center" });
+    
+    let yPos = 45;
+    
+    // Client Information
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Client Information", 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`RCMS ID: ${client.rcmsId}`, 20, yPos);
+    yPos += 6;
+    doc.text(`DOB: ${client.dobMasked}`, 20, yPos);
+    yPos += 6;
+    doc.text(`Attorney: ${attorneyCode || "N/A"}`, 20, yPos);
+    yPos += 12;
+    
+    // Incident Details
+    doc.setFontSize(14);
+    doc.text("Incident Details", 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Type: ${intake.incidentType}`, 20, yPos);
+    yPos += 6;
+    doc.text(`Date: ${fmtDate(intake.incidentDate)}`, 20, yPos);
+    yPos += 6;
+    doc.text(`Initial Treatment: ${intake.initialTreatment}`, 20, yPos);
+    yPos += 6;
+    doc.text(`Injuries: ${intake.injuries.join(", ") || "None specified"}`, 20, yPos);
+    yPos += 12;
+    
+    // Assessment Snapshot
+    doc.setFontSize(14);
+    doc.text("Assessment Snapshot", 20, yPos);
+    yPos += 10;
+    
+    const allValues = [
+      fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
+      typeof sdoh.housing === 'number' ? sdoh.housing : 0,
+      typeof sdoh.transport === 'number' ? sdoh.transport : 0,
+      typeof sdoh.food === 'number' ? sdoh.food : 0,
+      typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
+      typeof sdoh.financial === 'number' ? sdoh.financial : 0,
+      typeof sdoh.employment === 'number' ? sdoh.employment : 0,
+      typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
+      typeof sdoh.safety === 'number' ? sdoh.safety : 0,
+      typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+    ];
+    const avgScore = (allValues.reduce((a, b) => a + b, 0) / allValues.length).toFixed(1);
+    const severity = parseFloat(avgScore) < 1 ? 'Stable' :
+                     parseFloat(avgScore) < 2 ? 'Mild' :
+                     parseFloat(avgScore) < 3 ? 'Moderate' : 'Critical';
+    
+    doc.setFontSize(10);
+    doc.text(`Overall Score: ${avgScore} (${severity})`, 20, yPos);
+    yPos += 6;
+    doc.text(`Physical: ${fourPs.physical} | Psychological: ${fourPs.psychological} | Psychosocial: ${fourPs.psychosocial} | Professional: ${fourPs.professional}`, 20, yPos);
+    yPos += 12;
+    
+    // Medications
+    if (preInjuryMeds.length > 0 || postInjuryMeds.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Medications", 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(10);
+      if (preInjuryMeds.length > 0) {
+        doc.text("Pre-Injury:", 20, yPos);
+        yPos += 6;
+        preInjuryMeds.forEach(med => {
+          if (med.name.trim()) {
+            doc.text(`  • ${med.name}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
+            yPos += 5;
+          }
+        });
+      }
+      if (postInjuryMeds.length > 0) {
+        yPos += 3;
+        doc.text("Post-Injury:", 20, yPos);
+        yPos += 6;
+        postInjuryMeds.forEach(med => {
+          if (med.name.trim()) {
+            doc.text(`  • ${med.name}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
+            yPos += 5;
+          }
+        });
+      }
+      yPos += 8;
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    const footerY = doc.internal.pageSize.getHeight() - 15;
+    doc.text("This is a summary of your intake submission. Keep this for your records.", pageWidth / 2, footerY, { align: "center" });
+    doc.text("CONFIDENTIAL - HIPAA Protected Information", pageWidth / 2, footerY + 5, { align: "center" });
+    
+    // Save the PDF
+    doc.save(`Reconcile-CARE-Intake-Summary-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   const requiredIncidentOk = !!intake.incidentDate && !!intake.incidentType;
 
@@ -1023,6 +1141,17 @@ export default function IntakeWizard() {
               </AlertDescription>
             </Alert>
 
+            {/* Completion Checklist */}
+            <div className="mb-6">
+              <IntakeCompletionChecklist
+                hasPersonalInfo={!!(client.rcmsId && client.dobMasked)}
+                hasIncidentDetails={!!(intake.incidentDate && intake.incidentType && intake.injuries.length > 0)}
+                hasAssessment={fourPs.physical !== 0 || fourPs.psychological !== 0 || fourPs.psychosocial !== 0 || fourPs.professional !== 0}
+                hasMedications={preInjuryMeds.length > 0 || postInjuryMeds.length > 0}
+                hasConsent={consent.signed}
+              />
+            </div>
+
             {/* Assessment Snapshot Explainer */}
             <AssessmentSnapshotExplainer 
               onUpdateSnapshot={() => setStep(4)}
@@ -1239,6 +1368,24 @@ export default function IntakeWizard() {
               </div>
             </div>
 
+            {/* What Happens Next Timeline */}
+            <div className="mt-8">
+              <IntakeNextStepsTimeline />
+            </div>
+
+            {/* Editable Information Note */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h5 className="font-semibold text-sm text-foreground mb-1">Need to Update Information Later?</h5>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    You can update your medications, treatments, allergies, and wellness check-ins anytime through your Client Portal. Your baseline assessment will remain unchanged, but you'll be able to track your progress over time.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Privacy Reassurance */}
             <div className="mt-6 p-4 bg-secondary/10 border border-secondary/30 rounded-lg">
               <div className="flex gap-3">
@@ -1255,6 +1402,14 @@ export default function IntakeWizard() {
             <div className="flex gap-3 mt-6">
               <Button onClick={submit} aria-label="Submit intake">
                 Submit Intake
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={generatePDFSummary}
+                aria-label="Save PDF summary"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Save PDF Summary
               </Button>
               <Button variant="secondary" onClick={() => setStep(4)}>
                 Back
