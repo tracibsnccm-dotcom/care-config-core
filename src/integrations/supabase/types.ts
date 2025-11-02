@@ -111,6 +111,57 @@ export type Database = {
           },
         ]
       }
+      attorney_availability: {
+        Row: {
+          available_friday: boolean
+          available_monday: boolean
+          available_saturday: boolean
+          available_sunday: boolean
+          available_thursday: boolean
+          available_tuesday: boolean
+          available_wednesday: boolean
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_friday?: boolean
+          available_monday?: boolean
+          available_saturday?: boolean
+          available_sunday?: boolean
+          available_thursday?: boolean
+          available_tuesday?: boolean
+          available_wednesday?: boolean
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_friday?: boolean
+          available_monday?: boolean
+          available_saturday?: boolean
+          available_sunday?: boolean
+          available_thursday?: boolean
+          available_tuesday?: boolean
+          available_wednesday?: boolean
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attorney_metadata: {
         Row: {
           capacity_available: number
@@ -185,6 +236,35 @@ export type Database = {
           total_referrals?: number | null
         }
         Relationships: []
+      }
+      attorney_practice_areas: {
+        Row: {
+          attorney_id: string
+          created_at: string
+          id: string
+          practice_area_id: string
+        }
+        Insert: {
+          attorney_id: string
+          created_at?: string
+          id?: string
+          practice_area_id: string
+        }
+        Update: {
+          attorney_id?: string
+          created_at?: string
+          id?: string
+          practice_area_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attorney_practice_areas_practice_area_id_fkey"
+            columns: ["practice_area_id"]
+            isOneToOne: false
+            referencedRelation: "practice_areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       attorney_rn_messages: {
         Row: {
@@ -2342,6 +2422,27 @@ export type Database = {
           title?: string | null
           typed_signature_text?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      practice_areas: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }

@@ -26,6 +26,8 @@ export function AttorneyProfileSettings() {
     email_notifications: true,
     sms_notifications: false,
     assignment_alerts: true,
+    case_updates: true,
+    document_alerts: true,
   });
 
   useEffect(() => {
@@ -85,12 +87,16 @@ export function AttorneyProfileSettings() {
         return;
       }
 
-      // Use default values since user_preferences table structure may vary
-      setPreferences({
-        email_notifications: true,
-        sms_notifications: false,
-        assignment_alerts: true,
-      });
+      if (data) {
+        const prefs = data as any;
+        setPreferences({
+          email_notifications: prefs.email_notifications ?? true,
+          sms_notifications: prefs.sms_notifications ?? false,
+          assignment_alerts: prefs.assignment_alerts ?? true,
+          case_updates: prefs.case_updates ?? true,
+          document_alerts: prefs.document_alerts ?? true,
+        });
+      }
     } catch (err) {
       console.error("Error loading preferences:", err);
     }
@@ -126,8 +132,18 @@ export function AttorneyProfileSettings() {
     
     setLoading(true);
     try {
-      // Note: Preferences are stored but table structure may vary
-      // This is a UI-only save for now
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user.id,
+          email_notifications: preferences.email_notifications,
+          sms_notifications: preferences.sms_notifications,
+          assignment_alerts: preferences.assignment_alerts,
+          case_updates: preferences.case_updates,
+          document_alerts: preferences.document_alerts,
+        });
+
+      if (error) throw error;
       toast.success("Preferences saved successfully");
     } catch (err: any) {
       console.error("Error saving preferences:", err);
@@ -264,6 +280,36 @@ export function AttorneyProfileSettings() {
               checked={preferences.assignment_alerts}
               onCheckedChange={(checked) => 
                 setPreferences({ ...preferences, assignment_alerts: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Case Updates</Label>
+              <p className="text-sm text-muted-foreground">
+                Get notified when cases are updated
+              </p>
+            </div>
+            <Switch
+              checked={preferences.case_updates}
+              onCheckedChange={(checked) => 
+                setPreferences({ ...preferences, case_updates: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Document Alerts</Label>
+              <p className="text-sm text-muted-foreground">
+                Get notified when new documents are uploaded
+              </p>
+            </div>
+            <Switch
+              checked={preferences.document_alerts}
+              onCheckedChange={(checked) => 
+                setPreferences({ ...preferences, document_alerts: checked })
               }
             />
           </div>
