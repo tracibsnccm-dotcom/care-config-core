@@ -313,13 +313,6 @@ export default function ClientCheckins() {
             <h2 className="text-xl font-semibold text-foreground mb-6">Submit Check-in</h2>
 
             <div className="space-y-6">
-              <LabeledSelect
-                label="Select Case"
-                value={forCase || "Select a case..."}
-                onChange={setForCase}
-                options={["Select a case...", ...cases.map((c) => c.id)]}
-              />
-
               <div>
                 <Label className="text-sm font-medium mb-3 block">
                   Pain Scale: {pain}/10
