@@ -33,7 +33,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { maskName } from "@/lib/access";
 import { IntakeProgressBar, useIntakePercent, scheduleClientReminders } from "@/modules/rcms-intake-extras";
 import { IntakeMedConditionsSection } from "@/components/MedsConditionsSection";
-import { IntakeMedicationRecord, type MedicationEntry } from "@/components/IntakeMedicationRecord";
+import { IntakeMedicationRecord, type MedicationEntry, type AllergyEntry } from "@/components/IntakeMedicationRecord";
 import { IntakeTreatmentRecord, type TreatmentEntry } from "@/components/IntakeTreatmentRecord";
 import { IntakeWelcome } from "@/components/IntakeWelcome";
 import { ClientIdService, type ClientType } from "@/lib/clientIdService";
@@ -61,7 +61,7 @@ export default function IntakeWizard() {
   const [postInjuryMeds, setPostInjuryMeds] = useState<MedicationEntry[]>([]);
   const [preInjuryTreatments, setPreInjuryTreatments] = useState<TreatmentEntry[]>([]);
   const [postInjuryTreatments, setPostInjuryTreatments] = useState<TreatmentEntry[]>([]);
-  const [medAllergies, setMedAllergies] = useState<string>("");
+  const [medAllergies, setMedAllergies] = useState<AllergyEntry[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [hasMeds, setHasMeds] = useState<string>('');
@@ -335,9 +335,8 @@ export default function IntakeWizard() {
         }
 
         // Save allergies if provided
-        if (medAllergies && medAllergies.trim()) {
-          // Store in a simple text field for now - could be expanded to separate table
-          // For now we'll add it as a note in the case or as a separate field
+        if (medAllergies && medAllergies.length > 0) {
+          // Could be expanded to separate table in future
           console.log("Allergies recorded:", medAllergies);
         }
       }

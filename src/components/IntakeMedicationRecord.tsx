@@ -4,8 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Pill } from "lucide-react";
+import { Plus, Trash2, Pill, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface MedicationEntry {
   id: string;
@@ -17,13 +24,20 @@ export interface MedicationEntry {
   notes: string;
 }
 
+export interface AllergyEntry {
+  id: string;
+  medication: string;
+  reaction: string;
+  severity: string;
+}
+
 interface IntakeMedicationRecordProps {
   preInjuryMeds: MedicationEntry[];
   postInjuryMeds: MedicationEntry[];
-  allergies: string;
+  allergies: AllergyEntry[];
   onPreInjuryChange: (meds: MedicationEntry[]) => void;
   onPostInjuryChange: (meds: MedicationEntry[]) => void;
-  onAllergiesChange: (allergies: string) => void;
+  onAllergiesChange: (allergies: AllergyEntry[]) => void;
 }
 
 export function IntakeMedicationRecord({
@@ -42,6 +56,13 @@ export function IntakeMedicationRecord({
     prescriber: "",
     startDate: "",
     notes: "",
+  });
+
+  const createEmptyAllergy = (): AllergyEntry => ({
+    id: `allergy-${Date.now()}-${Math.random()}`,
+    medication: "",
+    reaction: "",
+    severity: "",
   });
 
   const addPreInjuryMed = () => {
@@ -69,6 +90,20 @@ export function IntakeMedicationRecord({
   const updatePostInjuryMed = (id: string, field: keyof MedicationEntry, value: string) => {
     onPostInjuryChange(
       postInjuryMeds.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+    );
+  };
+
+  const addAllergy = () => {
+    onAllergiesChange([...allergies, createEmptyAllergy()]);
+  };
+
+  const removeAllergy = (id: string) => {
+    onAllergiesChange(allergies.filter((a) => a.id !== id));
+  };
+
+  const updateAllergy = (id: string, field: keyof AllergyEntry, value: string) => {
+    onAllergiesChange(
+      allergies.map((a) => (a.id === id ? { ...a, [field]: value } : a))
     );
   };
 
@@ -269,34 +304,98 @@ export function IntakeMedicationRecord({
       {/* Allergies */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Medication Allergies & Sensitivities</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            Medication Allergies & Sensitivities
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
             List any known medication allergies or sensitivities (CRITICAL for safe care)
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Textarea
-            value={allergies}
-            onChange={(e) => onAllergiesChange(e.target.value)}
-            placeholder="e.g., Penicillin (causes rash), Codeine (nausea), or type 'None known'"
-            rows={4}
-            className="w-full"
-          />
-          <p className="text-xs text-muted-foreground">
-            Please list all known allergies and the reactions they cause
-          </p>
+          {allergies.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              No allergies added yet. Click "Add Allergy" to add one, or skip if none known.
+            </p>
+          )}
+          {allergies.map((allergy) => (
+            <div
+              key={allergy.id}
+              className="p-4 border border-border rounded-lg space-y-3 bg-card"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-semibold">Allergy Entry</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeAllergy(allergy.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor={`${allergy.id}-medication`} className="text-xs">
+                    Medication/Substance *
+                  </Label>
+                  <Input
+                    id={`${allergy.id}-medication`}
+                    value={allergy.medication}
+                    onChange={(e) => updateAllergy(allergy.id, "medication", e.target.value)}
+                    placeholder="e.g., Penicillin"
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor={`${allergy.id}-reaction`} className="text-xs">
+                    Reaction
+                  </Label>
+                  <Input
+                    id={`${allergy.id}-reaction`}
+                    value={allergy.reaction}
+                    onChange={(e) => updateAllergy(allergy.id, "reaction", e.target.value)}
+                    placeholder="e.g., Rash, Nausea"
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor={`${allergy.id}-severity`} className="text-xs">
+                    Severity *
+                  </Label>
+                  <Select
+                    value={allergy.severity}
+                    onValueChange={(value) => updateAllergy(allergy.id, "severity", value)}
+                  >
+                    <SelectTrigger id={`${allergy.id}-severity`} className="h-9">
+                      <SelectValue placeholder="Select severity" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="mild">Mild (minor discomfort)</SelectItem>
+                      <SelectItem value="moderate">Moderate (significant reaction)</SelectItem>
+                      <SelectItem value="severe">Severe (life-threatening)</SelectItem>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ))}
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              if (allergies.trim()) {
-                onAllergiesChange(allergies + '\n');
-              }
-            }}
+            onClick={addAllergy}
             className="w-full"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Allergy Entry
+            Add Allergy
           </Button>
         </CardContent>
       </Card>
