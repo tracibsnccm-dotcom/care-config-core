@@ -73,7 +73,7 @@ export default function ClientPortal() {
       {/* SECTION 1 - HEADER BAR */}
       <header className="bg-rcms-navy border-b-4 border-rcms-gold shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2 tracking-tight">
                 <span className="text-white">Reconcile </span>
@@ -84,21 +84,72 @@ export default function ClientPortal() {
                 Your care, communication, and progress in one place
               </p>
             </div>
-            <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:self-end md:mb-1">
-              <Button 
-                onClick={() => setActiveTab("checkins")}
-                className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 font-medium"
-              >
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                Check-Ins
-              </Button>
-              <Button 
-                onClick={() => setActiveTab("communication")}
-                className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 font-medium"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Messages
-              </Button>
+            <div className="flex flex-col gap-3 md:self-end md:mb-1">
+              {/* Primary Contact Buttons */}
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("communication")}
+                  className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
+                >
+                  <Stethoscope className="w-4 h-4 mr-2" />
+                  Contact RN
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("communication")}
+                  className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
+                >
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Message Atty
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Provider Portal
+                </Button>
+              </div>
+              
+              {/* Report Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <Dialog open={concernDialogOpen} onOpenChange={setConcernDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      className="bg-rcms-mint text-black hover:bg-black hover:text-rcms-mint transition-all duration-300"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Report Concern
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <ReportConcernDialog 
+                      caseId={caseId || ""} 
+                      onSuccess={() => setConcernDialogOpen(false)} 
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={complaintDialogOpen} onOpenChange={setComplaintDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      className="bg-rcms-coral text-white hover:bg-black hover:text-rcms-coral transition-all duration-300"
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      File Complaint
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <FileComplaintForm onSuccess={() => setComplaintDialogOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           </div>
         </div>
@@ -122,56 +173,12 @@ export default function ClientPortal() {
             caseId={caseId || ""} 
             onViewProgress={() => setActiveTab("checkins")} 
           />
+          
+          {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
 
-          {/* Quick Actions Row */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Motivation Widget */}
-            <MotivationWidget caseId={caseId || ""} />
-
-            {/* Quick Contact Card */}
-            <Card className="p-6 bg-white border-rcms-gold shadow-lg">
-              <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-rcms-gold" />
-                Quick Actions
-              </h3>
-              <div className="space-y-2">
-                <Dialog open={concernDialogOpen} onOpenChange={setConcernDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all duration-300"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Report Concern
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <ReportConcernDialog 
-                      caseId={caseId || ""} 
-                      onSuccess={() => setConcernDialogOpen(false)} 
-                    />
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog open={complaintDialogOpen} onOpenChange={setComplaintDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="w-full border-rcms-coral text-rcms-coral hover:bg-rcms-coral/10 transition-all duration-300"
-                    >
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      File Complaint
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <FileComplaintForm onSuccess={() => setComplaintDialogOpen(false)} />
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </Card>
-          </div>
+          {/* Motivation Widget */}
+          <MotivationWidget caseId={caseId || ""} />
 
           {/* New Sections: Goals, Medications, Action Items */}
           <div className="grid gap-6 md:grid-cols-2">
@@ -228,39 +235,10 @@ export default function ClientPortal() {
               <TabsContent value="checkins" className="mt-0">
                 <div className="space-y-4">
                   <div className="border-b-2 border-rcms-gold pb-4 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                        <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
-                        The Wellness Center
-                      </h2>
-                    </div>
-                    {/* Quick Contact Tabs */}
-                    <div className="grid grid-cols-3 gap-3 mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
-                      >
-                        <Stethoscope className="w-4 h-4 mr-2" />
-                        Contact RN
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
-                      >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Message Attorney
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-rcms-gold hover:bg-rcms-gold/10 transition-all duration-300"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Provider Portal
-                      </Button>
-                    </div>
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <ClipboardCheck className="w-6 h-6 text-rcms-teal" />
+                      The Wellness Center
+                    </h2>
                   </div>
                   <ClientCheckins />
                   <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
