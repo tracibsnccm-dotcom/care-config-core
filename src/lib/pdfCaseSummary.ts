@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { getSensitiveDataSummaryForPDF } from "./sensitiveDataExport";
 
 interface CaseSummaryData {
   caseId: string;
@@ -11,6 +12,7 @@ interface CaseSummaryData {
   reports: Array<{ title: string; date: string; status: string }>;
   followUps: Array<{ title: string; dueDate: string; status: string }>;
   messagesSummary: { total: number; lastMessageDate: string };
+  viewerRole?: string; // Role of person generating the PDF
 }
 
 export async function generateCaseSummaryPDF(data: CaseSummaryData) {
@@ -178,6 +180,46 @@ export async function generateCaseSummaryPDF(data: CaseSummaryData) {
     25,
     yPosition
   );
+  yPosition += 15;
+
+  // Check if we need a new page
+  if (yPosition > pageHeight - 80) {
+    doc.addPage();
+    yPosition = 20;
+  }
+
+  // Sensitive Information Summary (filtered by disclosure scope)
+  if (data.viewerRole) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(176, 152, 55);
+    doc.text("Sensitive Information Summary", 20, yPosition);
+    yPosition += 8;
+
+    try {
+      const sensitiveSummary = await getSensitiveDataSummaryForPDF(
+        data.caseId,
+        data.viewerRole
+      );
+      
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      
+      const lines = doc.splitTextToSize(sensitiveSummary, pageWidth - 50);
+      lines.forEach((line: string) => {
+        if (yPosition > pageHeight - 40) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 25, yPosition);
+        yPosition += 5;
+      });
+    } catch (error) {
+      console.error('Error adding sensitive data summary:', error);
+      doc.text('Sensitive information summary unavailable', 25, yPosition);
+    }
+  }
 
   // Footer on all pages
   const totalPages = doc.getNumberOfPages();

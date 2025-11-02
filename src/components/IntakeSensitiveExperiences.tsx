@@ -445,6 +445,65 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
       setIsSaving(false);
     }
   };
+  
+  const handleBulkClear = async () => {
+    if (!hasSelections) return;
+    
+    const confirmed = window.confirm(
+      'This will clear all your selections in this section. Are you sure you want to continue?'
+    );
+    
+    if (!confirmed) return;
+    
+    setIsSaving(true);
+    try {
+      // If we have a caseId, mark all as deselected in database
+      if (caseId) {
+        const allItems = [
+          ...data.substanceUse.map(item => ({ category: 'substanceUse' as const, item })),
+          ...data.safetyTrauma.map(item => ({ category: 'safetyTrauma' as const, item })),
+          ...data.stressors.map(item => ({ category: 'stressors' as const, item }))
+        ];
+        
+        const categoryMap = {
+          substanceUse: 'substance_use',
+          safetyTrauma: 'safety_trauma',
+          stressors: 'stressors'
+        } as const;
+        
+        // Save each deselection
+        for (const { category, item } of allItems) {
+          await saveSensitiveDisclosure({
+            caseId,
+            category: categoryMap[category],
+            itemCode: normalizeItemCode(item),
+            selected: false,
+            consentAttorney: data.consentAttorney,
+            consentProvider: data.consentProvider
+          });
+        }
+      }
+      
+      // Clear local state
+      onChange({
+        substanceUse: [],
+        safetyTrauma: [],
+        stressors: [],
+        consentAttorney: 'unset',
+        consentProvider: 'unset',
+        additionalDetails: '',
+        sectionSkipped: false,
+        sectionCollapsed: false
+      });
+      
+      toast.success('All selections cleared');
+    } catch (error) {
+      console.error('Error clearing selections:', error);
+      toast.error('Failed to clear selections. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const shouldShowAdditionalDetails = () => {
     const allOptions = [
@@ -512,6 +571,17 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
           
           {/* Save indicators & Actions */}
           <div className="flex items-center gap-2">
+            {hasSelections && !data.sectionSkipped && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBulkClear}
+                disabled={isSaving}
+                className="text-destructive hover:text-destructive"
+              >
+                Clear All
+              </Button>
+            )}
             {editHistory.length > 0 && (
               <Button
                 variant="ghost"
