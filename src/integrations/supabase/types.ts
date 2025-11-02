@@ -742,6 +742,99 @@ export type Database = {
           },
         ]
       }
+      client_action_items: {
+        Row: {
+          assigned_by: string | null
+          case_id: string
+          client_id: string
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          case_id: string
+          client_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          case_id?: string
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      client_appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string | null
+          case_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          provider_name: string | null
+          reminder_sent: boolean | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time?: string | null
+          case_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          provider_name?: string | null
+          reminder_sent?: boolean | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string | null
+          case_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          provider_name?: string | null
+          reminder_sent?: boolean | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       client_checkins: {
         Row: {
           anxiety_scale: number | null
@@ -866,6 +959,126 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_direct_messages: {
+        Row: {
+          case_id: string
+          created_at: string | null
+          id: string
+          message_text: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string | null
+          id?: string
+          message_text: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string | null
+          id?: string
+          message_text?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      client_goals: {
+        Row: {
+          case_id: string
+          category: string
+          client_id: string
+          created_at: string | null
+          current_progress: number | null
+          goal_text: string
+          id: string
+          status: string | null
+          target_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          case_id: string
+          category: string
+          client_id: string
+          created_at?: string | null
+          current_progress?: number | null
+          goal_text: string
+          id?: string
+          status?: string | null
+          target_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string
+          category?: string
+          client_id?: string
+          created_at?: string | null
+          current_progress?: number | null
+          goal_text?: string
+          id?: string
+          status?: string | null
+          target_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      client_medications: {
+        Row: {
+          adherence_notes: string | null
+          case_id: string
+          client_id: string
+          created_at: string | null
+          dosage: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          is_active: boolean | null
+          medication_name: string
+          prescribing_doctor: string | null
+          side_effects: string | null
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          adherence_notes?: string | null
+          case_id: string
+          client_id: string
+          created_at?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          medication_name: string
+          prescribing_doctor?: string | null
+          side_effects?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          adherence_notes?: string | null
+          case_id?: string
+          client_id?: string
+          created_at?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          medication_name?: string
+          prescribing_doctor?: string | null
+          side_effects?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       client_preferences: {
         Row: {

@@ -5,6 +5,13 @@ import { ReportConcernDialog } from "@/components/ReportConcernDialog";
 import { FileComplaintForm } from "@/components/FileComplaintForm";
 import { WellnessSnapshot } from "@/components/WellnessSnapshot";
 import { HealthSummaryChips } from "@/components/HealthSummaryChips";
+import { ClientGoalTracker } from "@/components/ClientGoalTracker";
+import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
+import { ClientActionItems } from "@/components/ClientActionItems";
+import { CrisisResourcesBanner } from "@/components/CrisisResourcesBanner";
+import { ClientAppointmentCalendar } from "@/components/ClientAppointmentCalendar";
+import { ClientQuickMessage } from "@/components/ClientQuickMessage";
+import { ProgressHighlights } from "@/components/ProgressHighlights";
 import { ClientDocuments } from "@/components/ClientDocuments";
 import { CaseTimeline } from "@/components/CaseTimeline";
 import { ResourceLibrary } from "@/components/ResourceLibrary";
@@ -19,8 +26,9 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ClientPortal() {
   const { cases: userCases, loading: casesLoading } = useCases();
@@ -28,6 +36,37 @@ export default function ClientPortal() {
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("checkins");
+  const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+
+  // Check for crisis indicators
+  useEffect(() => {
+    if (!caseId) return;
+    
+    async function checkCrisisIndicators() {
+      try {
+        const user = await supabase.auth.getUser();
+        const { data, error } = await supabase
+          .from("client_checkins")
+          .select("pain_scale, depression_scale, anxiety_scale")
+          .eq("client_id", user.data.user?.id)
+          .eq("case_id", caseId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const latest = data[0];
+          const hasCrisis = latest.pain_scale >= 8 || 
+                           (latest.depression_scale && latest.depression_scale >= 8) || 
+                           (latest.anxiety_scale && latest.anxiety_scale >= 8);
+          setShowCrisisAlert(hasCrisis);
+        }
+      } catch (err) {
+        console.error("Error checking crisis indicators:", err);
+      }
+    }
+
+    checkCrisisIndicators();
+  }, [caseId]);
   
   return (
     <div className="min-h-screen bg-rcms-white">
@@ -68,10 +107,16 @@ export default function ClientPortal() {
       {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
+          {/* Crisis Resources Banner */}
+          <CrisisResourcesBanner showAlert={showCrisisAlert} />
+          
           {/* Intake Reminders */}
           <IntakeReminderDashboard />
           <AttorneyNudgeBanner />
           <IntakeReminderBanner />
+          
+          {/* Progress Highlights */}
+          {caseId && <ProgressHighlights caseId={caseId} />}
           
           {/* Wellness Snapshot */}
           {caseId ? (
@@ -89,11 +134,9 @@ export default function ClientPortal() {
           )}
 
           {/* Quick Actions Row */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {/* Motivation Widget */}
-            <div className="md:col-span-2">
-              <MotivationWidget caseId={caseId || ""} />
-            </div>
+            <MotivationWidget caseId={caseId || ""} />
 
             {/* Quick Contact Card */}
             <Card className="p-6 bg-white border-rcms-gold shadow-lg">
@@ -138,6 +181,23 @@ export default function ClientPortal() {
               </div>
             </Card>
           </div>
+
+          {/* New Sections: Goals, Medications, Action Items */}
+          {caseId && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <ClientGoalTracker caseId={caseId} />
+              <ClientMedicationTracker caseId={caseId} />
+            </div>
+          )}
+          
+          {caseId && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <ClientActionItems caseId={caseId} />
+              <ClientAppointmentCalendar caseId={caseId} />
+            </div>
+          )}
+          
+          {caseId && <ClientQuickMessage caseId={caseId} />}
         </div>
       </section>
 
