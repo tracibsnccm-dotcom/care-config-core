@@ -24,24 +24,37 @@ import { ResourceLibrary } from "@/components/ResourceLibrary";
 import { ClientJournal } from "@/components/ClientJournal";
 import { MotivationWidget } from "@/components/MotivationWidget";
 import { SupportFooter } from "@/components/SupportFooter";
+import { ClientProfileSettings } from "@/components/ClientProfileSettings";
+import { ClientIntakeReview } from "@/components/ClientIntakeReview";
+import { ClientConsentManagement } from "@/components/ClientConsentManagement";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/auth/supabaseAuth";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity } from "lucide-react";
+import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity, Settings, LogOut, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function ClientPortal() {
   const { cases: userCases, loading: casesLoading } = useCases();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/access");
+  };
 
   // Check for crisis indicators
   useEffect(() => {
@@ -90,8 +103,31 @@ export default function ClientPortal() {
               </p>
             </div>
             <div className="flex flex-col gap-3 md:self-end md:mb-1">
+              {/* Top Row: Notifications, Settings, Logout */}
+              <div className="flex items-center gap-3 justify-end">
+                <NotificationBell />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("settings")}
+                  className="bg-white/10 text-white hover:bg-white hover:text-rcms-navy transition-all duration-300"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="bg-white/10 text-white hover:bg-white hover:text-rcms-navy transition-all duration-300"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+              
               {/* Primary Contact Buttons */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -99,7 +135,7 @@ export default function ClientPortal() {
                   className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
                 >
                   <Stethoscope className="w-4 h-4 mr-2" />
-                  Contact RN
+                  Contact RN CM
                 </Button>
                 <Button
                   variant="outline"
@@ -108,15 +144,7 @@ export default function ClientPortal() {
                   className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
                 >
                   <Briefcase className="w-4 h-4 mr-2" />
-                  Message Atty
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-rcms-gold text-black hover:bg-black hover:text-rcms-gold transition-all duration-300 border-rcms-gold"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Provider Portal
+                  Message Attorney
                 </Button>
               </div>
               
@@ -232,6 +260,9 @@ export default function ClientPortal() {
           {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
 
+          {/* Progress Highlights */}
+          <ProgressHighlights caseId={caseId || ""} />
+
           {/* Comprehensive Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="overflow-x-auto -mx-6 px-6 scrollbar-hide">
@@ -333,6 +364,27 @@ export default function ClientPortal() {
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Quick Message</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="intake-review"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">My Intake</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="consent"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Consent</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
             </TabsList>
             </div>
@@ -476,6 +528,36 @@ export default function ClientPortal() {
                   </h2>
                 </div>
                 <ClientJournal caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="intake-review" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-rcms-teal" />
+                    My Intake Information
+                  </h2>
+                </div>
+                <ClientIntakeReview caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="consent" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Shield className="w-6 h-6 text-rcms-teal" />
+                    Privacy & Consent Management
+                  </h2>
+                </div>
+                <ClientConsentManagement caseId={caseId || ""} />
+              </TabsContent>
+
+              <TabsContent value="settings" className="mt-0">
+                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Settings className="w-6 h-6 text-rcms-teal" />
+                    Profile & Settings
+                  </h2>
+                </div>
+                <ClientProfileSettings />
               </TabsContent>
             </div>
           </Tabs>
