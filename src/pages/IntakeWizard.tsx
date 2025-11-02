@@ -63,6 +63,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
+import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ export default function IntakeWizard() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [hasMeds, setHasMeds] = useState<string>('');
+  const [createdCaseId, setCreatedCaseId] = useState<string | null>(null); // Track case ID for saving disclosures
   
   // Mental health screening
   const [mentalHealth, setMentalHealth] = useState({
@@ -275,6 +277,10 @@ export default function IntakeWizard() {
       updatedAt: new Date().toISOString(),
     };
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
+    
+    // Store case ID for sensitive disclosures
+    setCreatedCaseId(newCase.id);
+    
     setCases((arr) => [newCase, ...arr]);
     log("INTAKE_SUBMIT", newCase.id);
     
@@ -719,9 +725,18 @@ export default function IntakeWizard() {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
+          // Save to sensitive disclosures if we have a case ID
+          if (createdCaseId) {
+            await saveMentalHealthScreening({
+              caseId: createdCaseId,
+              itemCode: 'self_harm',
+              response: mentalHealth.selfHarm as 'yes' | 'no' | 'unsure',
+            });
+          }
+
           // Create alert in database
           const { error } = await supabase.from('case_alerts').insert({
-            case_id: null, // Will be associated when case is created
+            case_id: createdCaseId || null, // Will be associated when case is created
             alert_type: 'mental_health_crisis',
             severity: 'high',
             message: 'Client indicated potential self-harm during intake. Immediate RN follow-up required.',
@@ -746,7 +761,7 @@ export default function IntakeWizard() {
       };
       flagRisk();
     }
-  }, [mentalHealth.selfHarm]);
+  }, [mentalHealth.selfHarm, createdCaseId]);
 
   return (
     <AppLayout>
@@ -1145,6 +1160,7 @@ export default function IntakeWizard() {
             <IntakeSensitiveExperiences
               data={sensitiveExperiences}
               onChange={setSensitiveExperiences}
+              caseId={createdCaseId || undefined}
             />
 
             {/* Pre-Accident BH Section */}

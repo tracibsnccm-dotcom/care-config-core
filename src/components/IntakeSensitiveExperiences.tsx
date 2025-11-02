@@ -16,9 +16,12 @@ import {
   saveSensitiveDisclosure, 
   discardSensitiveSection, 
   normalizeItemCode,
+  loadSensitiveDisclosures,
+  updateAllConsent,
   type ConsentChoice 
 } from "@/lib/sensitiveDisclosuresHelper";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export interface SensitiveExperiencesData {
   substanceUse: string[];
@@ -86,6 +89,11 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
   const [clientMessage, setClientMessage] = useState<string>("");
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSavedIndicator, setShowSavedIndicator] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
 
   // Check if any items are selected
   const hasSelections = 
@@ -102,6 +110,51 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
     !data.stressors.includes("None of the above / prefer not to answer") &&
     !data.stressors.includes("Not Applicable / N/A");
   
+  // Load existing data on mount
+  useEffect(() => {
+    if (!caseId || hasLoadedData) return;
+    
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const disclosures = await loadSensitiveDisclosures(caseId);
+        
+        if (disclosures.length > 0) {
+          // Group by category
+          const substance = disclosures
+            .filter(d => d.category === 'substance_use')
+            .map(d => d.item_code);
+          const safety = disclosures
+            .filter(d => d.category === 'safety_trauma')
+            .map(d => d.item_code);
+          const stress = disclosures
+            .filter(d => d.category === 'stressors')
+            .map(d => d.item_code);
+          
+          // Get consent from first record (should be same for all)
+          const consent = disclosures[0];
+          
+          onChange({
+            ...data,
+            substanceUse: substance,
+            safetyTrauma: safety,
+            stressors: stress,
+            consentAttorney: (consent.consent_attorney || 'unset') as ConsentChoice,
+            consentProvider: (consent.consent_provider || 'unset') as ConsentChoice,
+          });
+        }
+        setHasLoadedData(true);
+      } catch (error) {
+        console.error('Error loading disclosures:', error);
+        toast.error('Failed to load previous selections');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadData();
+  }, [caseId, hasLoadedData]);
+
   useEffect(() => {
     if (hasSelections) {
       setClientMessage("Thank you for sharing. Your RN Care Manager will review and follow up to ensure you have the right support.");
@@ -138,6 +191,8 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
     
     // Persist to database if caseId is available
     if (caseId && option) {
+      setIsSaving(true);
+      setSaveError(null);
       try {
         const categoryMap = {
           substanceUse: 'substance_use',
@@ -153,9 +208,16 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
           consentAttorney: data.consentAttorney,
           consentProvider: data.consentProvider
         });
+        
+        // Show saved indicator briefly
+        setShowSavedIndicator(true);
+        setTimeout(() => setShowSavedIndicator(false), 2000);
       } catch (error) {
         console.error('Error saving disclosure:', error);
+        setSaveError('Failed to save selection');
         toast.error('Failed to save selection. Please try again.');
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -202,6 +264,40 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
       sectionCollapsed: false
     });
   };
+  
+  const handleConsentChange = async (type: 'attorney' | 'provider', value: boolean) => {
+    const consentValue: ConsentChoice = value ? 'share' : 'no_share';
+    
+    const updatedData = {
+      ...data,
+      ...(type === 'attorney' 
+        ? { consentAttorney: consentValue }
+        : { consentProvider: consentValue }
+      )
+    };
+    
+    onChange(updatedData);
+    
+    // Save immediately if both consents are set and we have a caseId
+    if (caseId && updatedData.consentAttorney !== 'unset' && updatedData.consentProvider !== 'unset') {
+      setIsSaving(true);
+      try {
+        await updateAllConsent(caseId, updatedData.consentAttorney, updatedData.consentProvider);
+        setShowSavedIndicator(true);
+        setTimeout(() => setShowSavedIndicator(false), 2000);
+      } catch (error) {
+        console.error('Error saving consent:', error);
+        toast.error('Failed to save consent choices');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+  
+  const retryLastSave = () => {
+    setSaveError(null);
+    toast.info('Please try your last action again');
+  };
 
   const shouldShowAdditionalDetails = () => {
     const allOptions = [
@@ -216,6 +312,18 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
     );
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center gap-3 py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading previous selections...</p>
+        </div>
+      </Card>
+    );
+  }
+  
   // If section is skipped and collapsed, show badge with resume option
   if (data.sectionSkipped && data.sectionCollapsed) {
     return (
@@ -254,6 +362,32 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
               </Tooltip>
             </TooltipProvider>
           </div>
+          
+          {/* Save indicators */}
+          <div className="flex items-center gap-2">
+            {isSaving && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Saving...</span>
+              </div>
+            )}
+            {showSavedIndicator && !isSaving && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <CheckCircle2 className="h-3 w-3" />
+                <span>Saved</span>
+              </div>
+            )}
+            {saveError && !isSaving && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={retryLastSave}
+                className="text-destructive hover:text-destructive"
+              >
+                Retry
+              </Button>
+            )}
+          </div>
         </div>
 
         <Alert>
@@ -264,6 +398,11 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
               These questions help us understand factors that may affect your health, recovery, and access to care. 
               Your answers help your RN Care Manager connect you with appropriate resources and support.
             </p>
+            {!caseId && (
+              <p className="text-xs mt-2 text-muted-foreground italic">
+                Your selections will be saved when you submit your intake form.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
 
@@ -483,12 +622,8 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
                 <Switch
                   id="consent-attorney"
                   checked={data.consentAttorney === 'share'}
-                  onCheckedChange={(checked) => {
-                    onChange({
-                      ...data,
-                      consentAttorney: checked ? 'share' : 'no_share',
-                    });
-                  }}
+                  onCheckedChange={(checked) => handleConsentChange('attorney', checked)}
+                  disabled={isSaving}
                 />
               </div>
               
@@ -499,12 +634,8 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
                 <Switch
                   id="consent-provider"
                   checked={data.consentProvider === 'share'}
-                  onCheckedChange={(checked) => {
-                    onChange({
-                      ...data,
-                      consentProvider: checked ? 'share' : 'no_share',
-                    });
-                  }}
+                  onCheckedChange={(checked) => handleConsentChange('provider', checked)}
+                  disabled={isSaving}
                 />
               </div>
             </div>
@@ -523,6 +654,47 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
               {clientMessage}
             </AlertDescription>
           </Alert>
+        )}
+        
+        {/* Summary Section */}
+        {hasSelections && (
+          <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5 space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Your Selections Summary
+            </h4>
+            <div className="space-y-2 text-sm">
+              {data.substanceUse.length > 0 && (
+                <div>
+                  <span className="font-medium">Substance Use:</span> {data.substanceUse.length} item(s) selected
+                </div>
+              )}
+              {data.safetyTrauma.length > 0 && (
+                <div>
+                  <span className="font-medium">Safety & Trauma:</span> {data.safetyTrauma.length} item(s) selected
+                </div>
+              )}
+              {data.stressors.length > 0 && (
+                <div>
+                  <span className="font-medium">Stressors:</span> {data.stressors.length} item(s) selected
+                </div>
+              )}
+              {needsConsent && (
+                <div className="pt-2 border-t mt-3 space-y-1">
+                  <div>
+                    <span className="font-medium">Share with Attorney:</span>{' '}
+                    {data.consentAttorney === 'share' ? '✓ Yes' : 
+                     data.consentAttorney === 'no_share' ? '✗ No' : '⚠ Not set'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Share with Providers:</span>{' '}
+                    {data.consentProvider === 'share' ? '✓ Yes' : 
+                     data.consentProvider === 'no_share' ? '✗ No' : '⚠ Not set'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </Card>
       

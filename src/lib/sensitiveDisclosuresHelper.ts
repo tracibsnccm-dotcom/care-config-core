@@ -239,3 +239,65 @@ export async function updateAllConsent(
       }
     });
 }
+
+// Load existing disclosures for a case
+export async function loadSensitiveDisclosures(caseId: string) {
+  const { data, error } = await supabase
+    .from('client_sensitive_disclosures')
+    .select('*')
+    .eq('case_id', caseId)
+    .eq('selected', true);
+  
+  if (error) throw error;
+  
+  return data || [];
+}
+
+// Save mental health screening item (from BH screen)
+export async function saveMentalHealthScreening({
+  caseId,
+  itemCode,
+  response,
+}: {
+  caseId: string;
+  itemCode: 'self_harm' | 'suicide_thoughts' | 'depression' | 'anxiety';
+  response: 'yes' | 'no' | 'unsure';
+}) {
+  // Only save if response indicates concern
+  const selected = response === 'yes' || response === 'unsure';
+  
+  if (!selected) return; // Don't persist 'no' responses
+  
+  const riskLevel = computeRiskLevel(itemCode);
+  
+  const { data: user } = await supabase.auth.getUser();
+  
+  const { error } = await supabase
+    .from('client_sensitive_disclosures')
+    .upsert({
+      case_id: caseId,
+      category: 'safety_trauma',
+      item_code: itemCode,
+      selected: true,
+      risk_level: riskLevel,
+      origin_section: 'bh_screen',
+      created_by: user.user?.id,
+      free_text: `Behavioral health screening response: ${response}`,
+      audit_event: 'added'
+    }, {
+      onConflict: 'case_id,category,item_code'
+    });
+  
+  if (error) throw error;
+  
+  // Update case flag
+  await supabase
+    .from('cases')
+    .update({ has_sensitive_disclosures: true })
+    .eq('id', caseId);
+  
+  // If RED, create alert
+  if (riskLevel === 'RED') {
+    await createSafetyAlert(caseId, itemCode, riskLevel);
+  }
+}
