@@ -66,23 +66,24 @@ export async function saveSensitiveDisclosure({
     .single();
   
   if (existing) {
-    // Update existing
+    // Update existing - ALWAYS update, mark selected: false if unchecked
     const { error } = await supabase
       .from('client_sensitive_disclosures')
       .update({
         selected,
         free_text: freeText || null,
-        risk_level: riskLevel,
+        risk_level: selected ? riskLevel : null,
         consent_attorney: consentAttorney,
         consent_provider: consentProvider,
         consent_ts: consentAttorney !== 'unset' || consentProvider !== 'unset' ? new Date().toISOString() : null,
-        audit_event: 'updated'
+        audit_event: selected ? 'updated' : 'deselected',
+        updated_at: new Date().toISOString()
       })
       .eq('id', existing.id);
     
     if (error) throw error;
-  } else {
-    // Insert new
+  } else if (selected) {
+    // Insert new only if selected is true
     const { data: user } = await supabase.auth.getUser();
     
     const { error } = await supabase
@@ -91,7 +92,7 @@ export async function saveSensitiveDisclosure({
         case_id: caseId,
         category,
         item_code: itemCode,
-        selected,
+        selected: true,
         free_text: freeText || null,
         risk_level: riskLevel,
         origin_section: 'sensitive_section',
@@ -104,14 +105,21 @@ export async function saveSensitiveDisclosure({
     if (error) throw error;
   }
   
-  // Update case flag
+  // Update case flag - check if any selected items remain
+  const { data: selectedItems } = await supabase
+    .from('client_sensitive_disclosures')
+    .select('id')
+    .eq('case_id', caseId)
+    .eq('selected', true)
+    .limit(1);
+  
   await supabase
     .from('cases')
-    .update({ has_sensitive_disclosures: true })
+    .update({ has_sensitive_disclosures: selectedItems && selectedItems.length > 0 })
     .eq('id', caseId);
   
-  // If RED or ORANGE, create alert
-  if (riskLevel === 'RED' || riskLevel === 'ORANGE') {
+  // If RED or ORANGE and selected, create alert
+  if (selected && (riskLevel === 'RED' || riskLevel === 'ORANGE')) {
     await createSafetyAlert(caseId, itemCode, riskLevel);
   }
 }

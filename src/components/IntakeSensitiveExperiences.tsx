@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { 
   saveSensitiveDisclosure, 
   discardSensitiveSection, 
@@ -144,6 +144,7 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
   const [showHistory, setShowHistory] = useState(false);
   const [showConsentRevoke, setShowConsentRevoke] = useState(false);
   const [editHistory, setEditHistory] = useState<any[]>([]);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Compute progress and report to parent
   const progress = computeSensitiveExperiencesProgress(data);
@@ -367,7 +368,59 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
     }
     
     onChange({ ...data, additionalDetails: value });
+    
+    // Debounced auto-save for additional details
+    if (caseId) {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      debounceTimerRef.current = setTimeout(async () => {
+        setIsSaving(true);
+        try {
+          // Save to first selected item's free_text field
+          const firstCategory = data.substanceUse.length > 0 ? 'substanceUse' :
+                               data.safetyTrauma.length > 0 ? 'safetyTrauma' : 'stressors';
+          const firstItem = data[firstCategory][0];
+          
+          if (firstItem) {
+            const categoryMap = {
+              substanceUse: 'substance_use',
+              safetyTrauma: 'safety_trauma',
+              stressors: 'stressors'
+            } as const;
+            
+            await saveSensitiveDisclosure({
+              caseId,
+              category: categoryMap[firstCategory],
+              itemCode: normalizeItemCode(firstItem),
+              selected: true,
+              freeText: value,
+              consentAttorney: data.consentAttorney,
+              consentProvider: data.consentProvider
+            });
+            
+            setShowSavedIndicator(true);
+            setTimeout(() => setShowSavedIndicator(false), 2000);
+          }
+        } catch (error) {
+          console.error('Error auto-saving additional details:', error);
+          toast.error('Failed to auto-save details');
+        } finally {
+          setIsSaving(false);
+        }
+      }, 1500); // Auto-save 1.5 seconds after user stops typing
+    }
   };
+  
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
   
   const handleConsentRevoke = async () => {
     if (!caseId) return;
@@ -527,6 +580,23 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
             )}
           </AlertDescription>
         </Alert>
+        
+        {/* Empty State */}
+        {!hasSelections && !data.sectionSkipped && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-900">
+              <p className="font-medium mb-2">💡 Getting Started</p>
+              <p className="text-sm">
+                Select any experiences that apply to you from the sections below. 
+                If nothing applies, you can select "None of the above / prefer not to answer" 
+                or click "Skip Section" to continue.
+              </p>
+              <p className="text-sm mt-2 text-blue-700 italic">
+                Your privacy is protected - all information is confidential.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
           <p className="text-sm">
@@ -721,6 +791,11 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
               aria-label="Additional details about sensitive experiences"
               aria-invalid={!!validationError}
               aria-describedby={validationError ? "details-error" : undefined}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="sentences"
+              spellCheck="true"
+              inputMode="text"
             />
             <div className="flex justify-between items-center">
               <p id="details-error" className="text-xs text-destructive">
