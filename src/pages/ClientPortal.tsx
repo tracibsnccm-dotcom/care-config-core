@@ -21,7 +21,6 @@ import { MotivationWidget } from "@/components/MotivationWidget";
 import { SupportFooter } from "@/components/SupportFooter";
 
 import { AttorneyNudgeBanner } from "@/components/AttorneyNudgeBanner";
-import { IntakeReminderDashboard } from "@/components/IntakeReminderDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -114,8 +113,7 @@ export default function ClientPortal() {
           {/* Crisis Resources Banner */}
           <CrisisResourcesBanner showAlert={showCrisisAlert} />
           
-          {/* Intake Reminders */}
-          <IntakeReminderDashboard />
+          {/* Attorney Nudge Banner */}
           <AttorneyNudgeBanner />
           
           
