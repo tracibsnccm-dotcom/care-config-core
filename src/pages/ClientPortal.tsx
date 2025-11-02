@@ -158,7 +158,7 @@ export default function ClientPortal() {
       {/* Care Team Contact Bar */}
       <CareTeamContactBar caseId={caseId || ""} />
 
-      {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
+      {/* SECTION 2 - SNAPSHOT + TABS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
         <div className="max-w-7xl mx-auto px-6 space-y-6">
           {/* Wellness Snapshot */}
@@ -170,27 +170,7 @@ export default function ClientPortal() {
           {/* Health Summary Chips */}
           <HealthSummaryChips caseId={caseId || ""} />
 
-          {/* Motivation Widget */}
-          <MotivationWidget caseId={caseId || ""} />
-
-          {/* New Sections: Goals, Medications, Action Items */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <ClientGoalTracker caseId={caseId || ""} />
-            <ClientMedicationTracker caseId={caseId || ""} />
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <ClientActionItems caseId={caseId || ""} />
-            <ClientAppointmentCalendar caseId={caseId || ""} />
-          </div>
-          
-          <ClientQuickMessage caseId={caseId || ""} />
-        </div>
-      </section>
-
-      {/* SECTION 3 - DATA & CHECK-INS (mint background) */}
-      <section className="bg-rcms-mint py-12">
-        <div className="max-w-7xl mx-auto px-6">
+          {/* Comprehensive Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 bg-white border-2 border-rcms-gold shadow-lg">
               <TabsTrigger 
@@ -373,7 +353,7 @@ export default function ClientPortal() {
         </div>
       </section>
 
-      {/* SECTION 4 - SUPPORT FOOTER (pale gold background) */}
+      {/* SECTION 3 - SUPPORT FOOTER (pale gold background) */}
       <section className="bg-rcms-pale-gold py-8">
         <div className="max-w-7xl mx-auto px-6">
           <SupportFooter />
