@@ -17,7 +17,6 @@ import Logout from "./pages/Logout";
 import RoleLandingRedirect from "./pages/RoleLandingRedirect";
 import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
-import ClientCheckins from "./pages/ClientCheckins";
 import ClientPortal from "./pages/ClientPortal";
 import ProviderPortal from "./pages/ProviderPortal";
 import RNPortal from "./pages/rn/RNPortal";
@@ -135,10 +134,6 @@ const App = () => (
             <Route
               path="/journal-analytics"
               element={<ProtectedRoute roles={["ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournalDashboard /></ProtectedRoute>}
-            />
-            <Route
-              path="/checkins"
-              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientCheckins /></ProtectedRoute>}
             />
 
             {/* Provider routes */}
