@@ -100,11 +100,70 @@ export default function IntakeWizard() {
   });
 
   const [sdoh, setSdoh] = useState<SDOH>({
-    housing: false,
-    food: false,
-    transport: false,
-    insuranceGap: false,
+    housing: 0,
+    food: 0,
+    transport: 0,
+    insuranceGap: 0,
+    financial: 0,
+    employment: 0,
+    social_support: 0,
+    safety: 0,
+    healthcare_access: 0,
+    income_range: undefined,
   });
+
+  // Client-friendly score labels
+  const scoreLabels: Record<number, string> = {
+    0: "Doing just fine - No problems with my daily activities",
+    1: "A little tricky sometimes - Mostly able to do what I need to",
+    2: "Pretty difficult at times - Have to push through to get things done",
+    3: "Really hard most days - Struggle with regular tasks and activities",
+    4: "Extremely difficult - Can't do normal daily things without help"
+  };
+
+  // Auto-create RN tasks for high-severity SDOH
+  const handleSDOHChange = async (domain: string, severity: number) => {
+    setSdoh((s) => ({ ...s, [domain]: severity }));
+    
+    if (severity >= 3 && draftId) {
+      try {
+        await supabase.functions.invoke('rn-task-automation', {
+          body: {
+            type: 'sdoh_followup',
+            domain: `s_${domain}`,
+            severity,
+            draft_id: draftId,
+            case_id: null, // Will be linked after case creation
+          }
+        });
+      } catch (error) {
+        console.error('Error creating SDOH task:', error);
+      }
+    }
+  };
+
+  // Handle income with poverty flagging
+  const handleIncomeChange = async (income_range: string) => {
+    setSdoh((s) => ({ ...s, income_range }));
+    
+    // Poverty line flags (below $30k for simplicity)
+    const povertyRanges = ['Under $15,000', '$15,000 - $29,999'];
+    
+    if (povertyRanges.includes(income_range) && draftId) {
+      try {
+        await supabase.functions.invoke('rn-task-automation', {
+          body: {
+            type: 'income_poverty_flag',
+            income_range,
+            draft_id: draftId,
+            case_id: null,
+          }
+        });
+      } catch (error) {
+        console.error('Error creating poverty flag:', error);
+      }
+    }
+  };
 
   const [medsBlock, setMedsBlock] = useState({ 
     conditions: "",
@@ -182,7 +241,11 @@ export default function IntakeWizard() {
     },
     optional: {
       fourPs: fourPs.physical !== 0 || fourPs.psychological !== 0 || fourPs.psychosocial !== 0 || fourPs.professional !== 0,
-      sdoh: sdoh.housing || sdoh.food || sdoh.transport || sdoh.insuranceGap,
+      sdoh: (typeof sdoh.housing === 'number' && sdoh.housing > 0) || 
+            (typeof sdoh.food === 'number' && sdoh.food > 0) || 
+            (typeof sdoh.transport === 'number' && sdoh.transport > 0) || 
+            (typeof sdoh.insuranceGap === 'number' && sdoh.insuranceGap > 0) ||
+            !!(sdoh.financial || sdoh.employment || sdoh.social_support || sdoh.safety || sdoh.healthcare_access),
     },
   }), [intake, consent, fourPs, sdoh]);
 
@@ -750,24 +813,64 @@ export default function IntakeWizard() {
               </div>
             </TooltipProvider>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(["housing", "food", "transport", "insuranceGap"] as const).map((k) => (
-                <div key={k} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`sdoh-${k}`}
-                    checked={sdoh[k]}
-                    onCheckedChange={(checked) =>
-                      setSdoh((s) => ({ ...s, [k]: checked as boolean }))
-                    }
+            {/* SDOH Domains with 0-4 Scale */}
+            <div className="space-y-6">
+              <h4 className="font-semibold text-foreground">Social Determinants of Health (SDOH)</h4>
+              
+              {[
+                { key: 'housing', label: 'Housing Stability' },
+                { key: 'food', label: 'Food Security' },
+                { key: 'transport', label: 'Transportation' },
+                { key: 'insuranceGap', label: 'Insurance Coverage' },
+                { key: 'financial', label: 'Financial Resources' },
+                { key: 'employment', label: 'Employment Status' },
+                { key: 'social_support', label: 'Social Support Network' },
+                { key: 'safety', label: 'Safety & Security' },
+                { key: 'healthcare_access', label: 'Healthcare Access' },
+              ].map(({ key, label }) => (
+                <div key={key} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">{label}</Label>
+                    <span className="text-sm font-semibold text-primary">
+                      {(sdoh as any)[key]}/4
+                    </span>
+                  </div>
+                  <Slider
+                    value={[(sdoh as any)[key] || 0]}
+                    onValueChange={([value]) => handleSDOHChange(key, value)}
+                    max={4}
+                    step={1}
+                    className="w-full"
                   />
-                  <Label
-                    htmlFor={`sdoh-${k}`}
-                    className="text-sm font-medium capitalize cursor-pointer"
-                  >
-                    {k.replace(/([A-Z])/g, " $1")}
-                  </Label>
+                  <p className="text-xs text-muted-foreground italic">
+                    {scoreLabels[(sdoh as any)[key] || 0]}
+                  </p>
                 </div>
               ))}
+
+              {/* Income Range with Poverty Flagging */}
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="income-range" className="text-sm font-medium">
+                  Household Income Range (optional)
+                </Label>
+                <select
+                  id="income-range"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={sdoh.income_range || ''}
+                  onChange={(e) => handleIncomeChange(e.target.value)}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="Under $15,000">Under $15,000</option>
+                  <option value="$15,000 - $29,999">$15,000 - $29,999</option>
+                  <option value="$30,000 - $49,999">$30,000 - $49,999</option>
+                  <option value="$50,000 - $74,999">$50,000 - $74,999</option>
+                  <option value="$75,000 - $99,999">$75,000 - $99,999</option>
+                  <option value="$100,000+">$100,000+</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  This helps us identify resources you may be eligible for
+                </p>
+              </div>
             </div>
             
             <div className="mt-6">

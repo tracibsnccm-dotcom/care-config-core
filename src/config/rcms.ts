@@ -113,10 +113,16 @@ export interface FourPs {
 }
 
 export interface SDOH {
-  housing: boolean;
-  food: boolean;
-  transport: boolean;
-  insuranceGap: boolean;
+  housing: boolean | number;  // 0-4 scale or boolean for legacy
+  food: boolean | number;     // 0-4 scale or boolean for legacy
+  transport: boolean | number; // 0-4 scale or boolean for legacy
+  insuranceGap: boolean | number; // 0-4 scale or boolean for legacy
+  financial?: number;         // 0-4 scale
+  employment?: number;        // 0-4 scale
+  social_support?: number;    // 0-4 scale
+  safety?: number;            // 0-4 scale
+  healthcare_access?: number; // 0-4 scale
+  income_range?: string;      // For poverty flagging
 }
 
 export interface Consent {
