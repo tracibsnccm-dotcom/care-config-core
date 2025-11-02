@@ -367,7 +367,7 @@ export default function ClientCheckins() {
                 label="Note (optional)"
                 value={note}
                 onChange={setNote}
-                placeholder="What do you think is important for us to know about how you are feeling today?"
+                placeholder="What's important for us to know about how you're feeling today?"
               />
 
               <div className="rounded-lg border border-border bg-card p-4 mb-4">
