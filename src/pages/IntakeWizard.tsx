@@ -1186,10 +1186,16 @@ export default function IntakeWizard() {
                 </div>
               </div>
               
-              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   <Info className="inline-block w-4 h-4 mr-2 mb-1" />
-                  You will receive additional information about who and how to contact your treatment providers and RN Care Manager.
+                  Once your intake is complete, you'll receive information about your treatment team — including your RN Care Manager and approved providers. This will include clear guidance on who to contact, how to reach them, and when to use each communication channel for updates or support.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                  You can expect to be contacted by your RN Care Manager within 24–48 hours after your intake is submitted.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  If you have not been contacted within that time, please log in to your Client Portal and click the "Contact RN Care Manager" button to notify our team directly.
                 </p>
               </div>
             </div>
