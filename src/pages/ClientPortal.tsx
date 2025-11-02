@@ -177,7 +177,7 @@ export default function ClientPortal() {
             <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" size="sm" className="whitespace-nowrap">
-                  <Megaphone className="w-4 h-4 mr-2" />
+                  <Megaphone className="w-4 h-4 mr-2 text-primary-foreground" />
                   Voice Your Concerns
                 </Button>
               </DialogTrigger>
