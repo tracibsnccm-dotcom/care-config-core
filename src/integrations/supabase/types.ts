@@ -287,6 +287,41 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_events: {
+        Row: {
+          actor_user_id: string | null
+          case_id: string
+          created_at: string
+          event_meta: Json | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          case_id: string
+          created_at?: string
+          event_meta?: Json | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          case_id?: string
+          created_at?: string
+          event_meta?: Json | null
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string | null
@@ -646,6 +681,7 @@ export type Database = {
           documentation: Json | null
           flags: string[] | null
           fourps: Json | null
+          has_sensitive_disclosures: boolean | null
           id: string
           incident: Json | null
           last_pain_diary_at: string | null
@@ -671,6 +707,7 @@ export type Database = {
           documentation?: Json | null
           flags?: string[] | null
           fourps?: Json | null
+          has_sensitive_disclosures?: boolean | null
           id?: string
           incident?: Json | null
           last_pain_diary_at?: string | null
@@ -696,6 +733,7 @@ export type Database = {
           documentation?: Json | null
           flags?: string[] | null
           fourps?: Json | null
+          has_sensitive_disclosures?: boolean | null
           id?: string
           incident?: Json | null
           last_pain_diary_at?: string | null
@@ -1163,6 +1201,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      client_sensitive_disclosures: {
+        Row: {
+          audit_event: string | null
+          audit_note: string | null
+          case_id: string
+          category: string
+          consent_attorney: string | null
+          consent_provider: string | null
+          consent_ts: string | null
+          created_at: string
+          created_by: string | null
+          free_text: string | null
+          id: string
+          item_code: string
+          origin_section: string
+          risk_level: string | null
+          selected: boolean
+          updated_at: string
+        }
+        Insert: {
+          audit_event?: string | null
+          audit_note?: string | null
+          case_id: string
+          category: string
+          consent_attorney?: string | null
+          consent_provider?: string | null
+          consent_ts?: string | null
+          created_at?: string
+          created_by?: string | null
+          free_text?: string | null
+          id?: string
+          item_code: string
+          origin_section?: string
+          risk_level?: string | null
+          selected?: boolean
+          updated_at?: string
+        }
+        Update: {
+          audit_event?: string | null
+          audit_note?: string | null
+          case_id?: string
+          category?: string
+          consent_attorney?: string | null
+          consent_provider?: string | null
+          consent_ts?: string | null
+          created_at?: string
+          created_by?: string | null
+          free_text?: string | null
+          id?: string
+          item_code?: string
+          origin_section?: string
+          risk_level?: string | null
+          selected?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_sensitive_disclosures_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_treatments: {
         Row: {

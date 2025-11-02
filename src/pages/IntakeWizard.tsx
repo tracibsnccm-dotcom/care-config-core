@@ -94,10 +94,11 @@ export default function IntakeWizard() {
 
   // Sensitive experiences
   const [sensitiveExperiences, setSensitiveExperiences] = useState<SensitiveExperiencesData>({
-    substanceUseOptions: [],
-    safetyTraumaOptions: [],
-    stressorsOptions: [],
-    consentToShare: null,
+    substanceUse: [],
+    safetyTrauma: [],
+    stressors: [],
+    consentAttorney: 'unset',
+    consentProvider: 'unset',
   });
 
   const [intake, setIntake] = useState<Intake>({
@@ -425,7 +426,8 @@ export default function IntakeWizard() {
               notification_priority: flag.notificationPriority,
               flag_level: flag.level,
               flag_color: flag.color,
-              consent_to_share: sensitiveExperiences.consentToShare,
+              consent_attorney: sensitiveExperiences.consentAttorney,
+              consent_provider: sensitiveExperiences.consentProvider,
               additional_details: sensitiveExperiences.additionalDetails || null,
               section_skipped: sensitiveExperiences.sectionSkipped || false,
             }

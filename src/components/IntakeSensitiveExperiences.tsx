@@ -1,26 +1,40 @@
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Info, AlertCircle, ChevronDown, CheckCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, Heart, AlertCircle, Lock, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { analyzeSensitiveExperiences, getClientFacingMessage } from "@/lib/sensitiveExperiencesFlags";
+import { 
+  saveSensitiveDisclosure, 
+  discardSensitiveSection, 
+  normalizeItemCode,
+  type ConsentChoice 
+} from "@/lib/sensitiveDisclosuresHelper";
+import { toast } from "sonner";
 
-interface SensitiveExperiencesData {
-  substanceUseOptions: string[];
-  safetyTraumaOptions: string[];
-  stressorsOptions: string[];
-  consentToShare: boolean | null;
+export interface SensitiveExperiencesData {
+  substanceUse: string[];
+  safetyTrauma: string[];
+  stressors: string[];
+  consentAttorney: ConsentChoice;
+  consentProvider: ConsentChoice;
   additionalDetails?: string;
   sectionSkipped?: boolean;
+  sectionCollapsed?: boolean;
 }
 
 interface IntakeSensitiveExperiencesProps {
   data: SensitiveExperiencesData;
   onChange: (data: SensitiveExperiencesData) => void;
+  caseId?: string; // Required for persistence
 }
 
 const substanceUseOptions = [
@@ -65,152 +79,257 @@ const stressorsOptions = [
   "Not Applicable / N/A",
 ];
 
-export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveExperiencesProps) {
+export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSensitiveExperiencesProps) {
   const [substanceOpen, setSubstanceOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [stressorsOpen, setStressorsOpen] = useState(false);
-  const [clientMessage, setClientMessage] = useState<string>('');
+  const [clientMessage, setClientMessage] = useState<string>("");
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
-  // Analyze selections and show client-facing message when appropriate
+  // Check if any items are selected
+  const hasSelections = 
+    data.substanceUse.length > 0 || 
+    data.safetyTrauma.length > 0 || 
+    data.stressors.length > 0;
+  
+  // Check if consent is needed
+  const needsConsent = hasSelections && 
+    !data.substanceUse.includes("None of the above / prefer not to answer") &&
+    !data.substanceUse.includes("Not Applicable / N/A") &&
+    !data.safetyTrauma.includes("None of the above / prefer not to answer") &&
+    !data.safetyTrauma.includes("Not Applicable / N/A") &&
+    !data.stressors.includes("None of the above / prefer not to answer") &&
+    !data.stressors.includes("Not Applicable / N/A");
+  
   useEffect(() => {
-    const flags = analyzeSensitiveExperiences(data);
-    const message = getClientFacingMessage(flags);
-    setClientMessage(message);
-  }, [data]);
+    if (hasSelections) {
+      setClientMessage("Thank you for sharing. Your RN Care Manager will review and follow up to ensure you have the right support.");
+    } else {
+      setClientMessage("");
+    }
+  }, [hasSelections]);
 
-  const toggleOption = (field: 'substanceUseOptions' | 'safetyTraumaOptions' | 'stressorsOptions', option: string) => {
-    const current = data[field] || [];
+  const toggleOption = async (category: keyof Pick<SensitiveExperiencesData, 'substanceUse' | 'safetyTrauma' | 'stressors'>, option: string) => {
+    const current = data[category] || [];
     const noneOption = "None of the above / prefer not to answer";
     const naOption = "Not Applicable / N/A";
     
+    let newSelections: string[];
+    
     if (option === noneOption || option === naOption) {
       // If selecting "None" or "N/A", clear all other options
-      onChange({ ...data, [field]: [option] });
+      newSelections = [option];
     } else {
       // If selecting any other option, remove "None" and "N/A" if they exist
       const filtered = current.filter(o => o !== noneOption && o !== naOption);
       
       if (current.includes(option)) {
-        onChange({ ...data, [field]: filtered.filter(o => o !== option) });
+        newSelections = filtered.filter(o => o !== option);
       } else {
-        onChange({ ...data, [field]: [...filtered, option] });
+        newSelections = [...filtered, option];
+      }
+    }
+    
+    onChange({
+      ...data,
+      [category]: newSelections,
+    });
+    
+    // Persist to database if caseId is available
+    if (caseId && option) {
+      try {
+        const categoryMap = {
+          substanceUse: 'substance_use',
+          safetyTrauma: 'safety_trauma',
+          stressors: 'stressors'
+        } as const;
+        
+        await saveSensitiveDisclosure({
+          caseId,
+          category: categoryMap[category],
+          itemCode: normalizeItemCode(option),
+          selected: newSelections.includes(option),
+          consentAttorney: data.consentAttorney,
+          consentProvider: data.consentProvider
+        });
+      } catch (error) {
+        console.error('Error saving disclosure:', error);
+        toast.error('Failed to save selection. Please try again.');
       }
     }
   };
 
   const handleSkipSection = () => {
-    onChange({ 
-      ...data, 
-      sectionSkipped: true,
-      substanceUseOptions: [],
-      safetyTraumaOptions: [],
-      stressorsOptions: [],
-      additionalDetails: '',
-      consentToShare: null
+    setShowSkipDialog(true);
+  };
+  
+  const confirmSkipSection = async () => {
+    setIsSkipping(true);
+    
+    try {
+      // Discard selections in database if caseId exists
+      if (caseId) {
+        await discardSensitiveSection(caseId);
+      }
+      
+      // Clear local state
+      onChange({
+        substanceUse: [],
+        safetyTrauma: [],
+        stressors: [],
+        consentAttorney: 'unset',
+        consentProvider: 'unset',
+        additionalDetails: '',
+        sectionSkipped: true,
+        sectionCollapsed: true
+      });
+      
+      toast.success('Section skipped. You can resume later if needed.');
+    } catch (error) {
+      console.error('Error skipping section:', error);
+      toast.error('Failed to skip section. Please try again.');
+    } finally {
+      setIsSkipping(false);
+      setShowSkipDialog(false);
+    }
+  };
+  
+  const handleResumeSection = () => {
+    onChange({
+      ...data,
+      sectionSkipped: false,
+      sectionCollapsed: false
     });
   };
 
   const shouldShowAdditionalDetails = () => {
     const allOptions = [
-      ...(data.substanceUseOptions || []),
-      ...(data.safetyTraumaOptions || []),
-      ...(data.stressorsOptions || [])
+      ...(data.substanceUse || []),
+      ...(data.safetyTrauma || []),
+      ...(data.stressors || [])
     ];
     return allOptions.some(option => 
       option === "None of the above / prefer not to answer" || 
-      option === "Not Applicable / N/A"
+      option === "Not Applicable / N/A" ||
+      option === "Other"
     );
   };
 
-  return (
-    <Card className="p-6 border-border">
-      {/* Header Section */}
-      <div className="flex items-start gap-3 mb-6">
-        <Shield className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-bold text-foreground mb-2">
-            Sensitive or Personal Experiences
-          </h3>
+  // If section is skipped and collapsed, show badge with resume option
+  if (data.sectionSkipped && data.sectionCollapsed) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Heart className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold text-muted-foreground">Sensitive or Personal Experiences</h3>
+              <Badge variant="secondary" className="mt-1">Section Skipped</Badge>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleResumeSection}>
+            Resume
+          </Button>
         </div>
-      </div>
+      </Card>
+    );
+  }
+  
+  return (
+    <>
+      <Card className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Heart className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Sensitive or Personal Experiences (Optional)</h3>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Your responses are private. We only share with your permission.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
 
-      {/* Explanatory Banner */}
-      <Alert className="mb-6 bg-primary/5 border-primary/20">
-        <Info className="h-5 w-5 text-primary" />
-        <AlertDescription className="text-sm space-y-3">
-          <p>
-            Some clients may have life experiences or conditions they find difficult to discuss — such as <strong>substance use, alcohol dependency, domestic or child abuse, harassment, stalking, or other forms of trauma.</strong>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium mb-2">Why we ask these questions:</p>
+            <p>
+              These questions help us understand factors that may affect your health, recovery, and access to care. 
+              Your answers help your RN Care Manager connect you with appropriate resources and support.
+            </p>
+          </AlertDescription>
+        </Alert>
+
+        <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
+          <p className="text-sm">
+            <strong>Sharing this information is completely voluntary.</strong> You may skip any question that makes you uncomfortable.
+            Your answers are confidential and will not be shared with anyone outside the Reconcile C.A.R.E. team without your permission.
           </p>
-          <p>
-            We ask these questions only to help ensure your safety and connect you with the right support and services.
+          <p className="text-sm">
+            If you prefer not to complete this section, click "Skip Section" below.
           </p>
-        </AlertDescription>
-      </Alert>
+          <p className="text-sm">
+            For each question, you may also select "Not Applicable / N/A" if it doesn't apply to you.
+          </p>
+        </div>
 
-      {/* Voluntary Notice */}
-      <div className="bg-accent/30 border border-accent rounded-lg p-4 mb-6 space-y-2">
-        <p className="text-sm font-medium text-foreground">
-          <strong>Sharing this information is completely voluntary.</strong> You may skip any question that makes you uncomfortable.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Your answers are confidential and will not be shared with anyone outside the Reconcile C.A.R.E. team without your permission.
-        </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          If you prefer not to complete this section, click "Skip Section" below.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          For each question, you may also select "Not Applicable / N/A" if it doesn't apply to you.
-        </p>
-      </div>
-
-      {/* Skip Section Button */}
-      <div className="mb-6 flex justify-end">
         <Button 
-          variant="outline" 
+          type="button" 
+          variant="secondary" 
           onClick={handleSkipSection}
-          className="text-muted-foreground border-muted-foreground/30 hover:bg-muted/50"
+          className="w-full"
         >
           Skip Section
         </Button>
-      </div>
 
-      {/* Dropdown Sections */}
-      <div className="space-y-6 mb-8">
-        {/* 1. Substance Use & Addiction History */}
+        {/* Substance Use */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            🧩 Substance Use / Dependency
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Please indicate if any of the following apply to you. This information helps us connect you with appropriate care and support.
-          </p>
-          
+          <div className="flex items-center gap-2">
+            <Label className="text-base font-medium">Substance Use / Dependency</Label>
+            {data.substanceUse.length > 0 && (
+              <Badge variant="outline" className="bg-green-50">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {data.substanceUse.length}
+              </Badge>
+            )}
+          </div>
           <Popover open={substanceOpen} onOpenChange={setSubstanceOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+                className={cn(
+                  "w-full justify-between",
+                  data.substanceUse.length > 0 && "border-primary"
+                )}
+                type="button"
               >
-                <span className="truncate">
-                  {data.substanceUseOptions?.length > 0
-                    ? `${data.substanceUseOptions.length} selected`
-                    : "Select options..."}
+                <span>
+                  {data.substanceUse.length > 0
+                    ? `${data.substanceUse.length} selected`
+                    : 'Select options'}
                 </span>
-                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
-              <div className="p-4 space-y-2">
+            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+              <div className="space-y-2">
                 {substanceUseOptions.map((option) => (
                   <div key={option} className="flex items-start space-x-2 py-2">
                     <Checkbox
                       id={`substance-${option}`}
-                      checked={data.substanceUseOptions?.includes(option)}
-                      onCheckedChange={() => toggleOption('substanceUseOptions', option)}
+                      checked={data.substanceUse?.includes(option)}
+                      onCheckedChange={() => toggleOption('substanceUse', option)}
                     />
                     <Label
                       htmlFor={`substance-${option}`}
-                      className="cursor-pointer font-normal leading-snug text-sm"
+                      className="cursor-pointer font-normal text-sm"
                     >
                       {option}
                     </Label>
@@ -219,53 +338,49 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
               </div>
             </PopoverContent>
           </Popover>
-          
-          {data.substanceUseOptions?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {data.substanceUseOptions.map((option) => (
-                <div key={option} className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs">
-                  {option}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* 2. Abuse, Violence, or Trauma Exposure */}
+        {/* Safety & Trauma */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            💔 Safety & Trauma History
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            These questions help us identify when additional support or protection may be needed. You may skip any question you're not comfortable answering.
-          </p>
-          
+          <div className="flex items-center gap-2">
+            <Label className="text-base font-medium">Safety & Trauma History</Label>
+            {data.safetyTrauma.length > 0 && (
+              <Badge variant="outline" className="bg-green-50">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {data.safetyTrauma.length}
+              </Badge>
+            )}
+          </div>
           <Popover open={safetyOpen} onOpenChange={setSafetyOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+                className={cn(
+                  "w-full justify-between",
+                  data.safetyTrauma.length > 0 && "border-primary"
+                )}
+                type="button"
               >
-                <span className="truncate">
-                  {data.safetyTraumaOptions?.length > 0
-                    ? `${data.safetyTraumaOptions.length} selected`
-                    : "Select options..."}
+                <span>
+                  {data.safetyTrauma.length > 0
+                    ? `${data.safetyTrauma.length} selected`
+                    : 'Select options'}
                 </span>
-                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
-              <div className="p-4 space-y-2">
+            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+              <div className="space-y-2">
                 {safetyTraumaOptions.map((option) => (
                   <div key={option} className="flex items-start space-x-2 py-2">
                     <Checkbox
                       id={`safety-${option}`}
-                      checked={data.safetyTraumaOptions?.includes(option)}
-                      onCheckedChange={() => toggleOption('safetyTraumaOptions', option)}
+                      checked={data.safetyTrauma?.includes(option)}
+                      onCheckedChange={() => toggleOption('safetyTrauma', option)}
                     />
                     <Label
                       htmlFor={`safety-${option}`}
-                      className="cursor-pointer font-normal leading-snug text-sm"
+                      className="cursor-pointer font-normal text-sm"
                     >
                       {option}
                     </Label>
@@ -274,53 +389,49 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
               </div>
             </PopoverContent>
           </Popover>
-          
-          {data.safetyTraumaOptions?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {data.safetyTraumaOptions.map((option) => (
-                <div key={option} className="bg-destructive/10 text-destructive px-3 py-1 rounded-full text-xs">
-                  {option}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* 3. Psychological or Environmental Stressors */}
+        {/* Stressors */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            🧠 Current Stressors or Barriers
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            These items identify areas that may affect your healing, safety, or stability.
-          </p>
-          
+          <div className="flex items-center gap-2">
+            <Label className="text-base font-medium">Current Stressors or Barriers</Label>
+            {data.stressors.length > 0 && (
+              <Badge variant="outline" className="bg-green-50">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {data.stressors.length}
+              </Badge>
+            )}
+          </div>
           <Popover open={stressorsOpen} onOpenChange={setStressorsOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+                className={cn(
+                  "w-full justify-between",
+                  data.stressors.length > 0 && "border-primary"
+                )}
+                type="button"
               >
-                <span className="truncate">
-                  {data.stressorsOptions?.length > 0
-                    ? `${data.stressorsOptions.length} selected`
-                    : "Select options..."}
+                <span>
+                  {data.stressors.length > 0
+                    ? `${data.stressors.length} selected`
+                    : 'Select options'}
                 </span>
-                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
-              <div className="p-4 space-y-2">
+            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+              <div className="space-y-2">
                 {stressorsOptions.map((option) => (
                   <div key={option} className="flex items-start space-x-2 py-2">
                     <Checkbox
                       id={`stressors-${option}`}
-                      checked={data.stressorsOptions?.includes(option)}
-                      onCheckedChange={() => toggleOption('stressorsOptions', option)}
+                      checked={data.stressors?.includes(option)}
+                      onCheckedChange={() => toggleOption('stressors', option)}
                     />
                     <Label
                       htmlFor={`stressors-${option}`}
-                      className="cursor-pointer font-normal leading-snug text-sm"
+                      className="cursor-pointer font-normal text-sm"
                     >
                       {option}
                     </Label>
@@ -329,105 +440,115 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
               </div>
             </PopoverContent>
           </Popover>
-          
-          {data.stressorsOptions?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {data.stressorsOptions.map((option) => (
-                <div key={option} className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs">
-                  {option}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Client-Facing Reassurance Message */}
-      {clientMessage && (
-        <Alert className="mb-6 bg-primary/10 border-primary/30">
-          <CheckCircle className="h-5 w-5 text-primary" />
-          <AlertDescription className="text-sm">
-            {clientMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Optional Additional Details */}
-      {shouldShowAdditionalDetails() && (
-        <div className="space-y-3 mb-6">
-          <Label htmlFor="additional-details" className="text-sm font-medium text-foreground">
-            Optional: If you experienced something not listed above or want to provide more details, please describe it here.
-          </Label>
-          <p className="text-xs text-muted-foreground mb-2">
-            (You may leave this blank if you prefer.)
-          </p>
-          <Textarea
-            id="additional-details"
-            value={data.additionalDetails || ''}
-            onChange={(e) => onChange({ ...data, additionalDetails: e.target.value })}
-            placeholder="Enter additional details here..."
-            maxLength={250}
-            className="min-h-[100px] resize-none"
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {(data.additionalDetails || '').length}/250 characters
-          </p>
-        </div>
-      )}
-
-      {/* Consent Section - Only show if sensitive items are selected */}
-      {(() => {
-        const hasSensitiveItems = [
-          ...(data.substanceUseOptions || []),
-          ...(data.safetyTraumaOptions || []),
-          ...(data.stressorsOptions || [])
-        ].some(option => option !== "None of the above / prefer not to answer");
-        
-        return hasSensitiveItems ? (
-          <div className="border-t pt-6 space-y-4">
-            <h4 className="font-semibold text-foreground mb-4">
-              Consent for Sharing Sensitive Information
-            </h4>
-            
-            <Alert className="bg-muted/30 border-border">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Please select how you'd like us to handle this information.
-              </AlertDescription>
-            </Alert>
-
-            <div className="space-y-4 mt-4">
-          <div className="flex items-start space-x-3 p-4 bg-card rounded-lg border-2 border-primary/20 hover:border-primary/40 transition-colors">
-            <Checkbox
-              id="consent-share"
-              checked={data.consentToShare === true}
-              onCheckedChange={(checked) => onChange({ ...data, consentToShare: checked === true })}
-            />
-            <Label htmlFor="consent-share" className="cursor-pointer font-normal leading-relaxed">
-              ✅ <strong>I consent</strong> for this information to be shared with my attorney and/or treating provider for care coordination and advocacy purposes.
+        {/* Additional Details */}
+        {shouldShowAdditionalDetails() && (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Optional: If you experienced something not listed above or want to provide more details, please describe it here.
             </Label>
-          </div>
-
-          <div className="flex items-start space-x-3 p-4 bg-card rounded-lg border-2 border-muted-foreground/20 hover:border-muted-foreground/40 transition-colors">
-            <Checkbox
-              id="consent-no-share"
-              checked={data.consentToShare === false}
-              onCheckedChange={(checked) => onChange({ ...data, consentToShare: checked ? false : null })}
+            <p className="text-xs text-muted-foreground">
+              (You may leave this blank if you prefer.)
+            </p>
+            <Textarea
+              value={data.additionalDetails || ''}
+              onChange={(e) => onChange({ ...data, additionalDetails: e.target.value })}
+              placeholder="Enter additional details here..."
+              maxLength={250}
+              className="min-h-[100px]"
             />
-            <Label htmlFor="consent-no-share" className="cursor-pointer font-normal leading-relaxed">
-              🚫 <strong>I do not consent</strong> — keep this information confidential within Reconcile C.A.R.E. only.
-            </Label>
-          </div>
-        </div>
-
-            <p className="text-xs text-muted-foreground mt-4 italic">
-              If you change your mind later, you may update your consent at any time through your Client Portal or by contacting your RN Care Manager.
+            <p className="text-xs text-muted-foreground text-right">
+              {(data.additionalDetails || '').length}/250 characters
             </p>
           </div>
-        ) : null;
-      })()}
-    </Card>
+        )}
+
+        {/* Consent Section */}
+        {needsConsent && (
+          <div className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              <Label className="text-base font-medium">Consent to Share Information</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Please indicate your consent for sharing this information:
+            </p>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="consent-attorney" className="text-sm font-normal flex-1">
+                  Share with my attorney
+                </Label>
+                <Switch
+                  id="consent-attorney"
+                  checked={data.consentAttorney === 'share'}
+                  onCheckedChange={(checked) => {
+                    onChange({
+                      ...data,
+                      consentAttorney: checked ? 'share' : 'no_share',
+                    });
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="consent-provider" className="text-sm font-normal flex-1">
+                  Share with treating providers
+                </Label>
+                <Switch
+                  id="consent-provider"
+                  checked={data.consentProvider === 'share'}
+                  onCheckedChange={(checked) => {
+                    onChange({
+                      ...data,
+                      consentProvider: checked ? 'share' : 'no_share',
+                    });
+                  }}
+                />
+              </div>
+            </div>
+            
+            <Alert>
+              <AlertDescription className="text-xs">
+                You must make a choice for each option to proceed. Select the toggle on to share, or leave it off to not share.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {clientMessage && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-900">
+              {clientMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+      </Card>
+      
+      {/* Skip Confirmation Dialog */}
+      <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Skip this section?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Any selections you made here will be cleared. Safety-critical items (e.g., self-harm) 
+              that were already flagged will remain active for your RN team to review.
+              <br /><br />
+              You can resume this section later if you change your mind.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSkipping}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmSkipSection}
+              disabled={isSkipping}
+            >
+              {isSkipping ? 'Skipping...' : 'Skip Section'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
-
-export type { SensitiveExperiencesData };

@@ -73,9 +73,9 @@ export function analyzeSensitiveExperiences(data: SensitiveExperiencesData): Sen
 
   // Collect all selected options
   const allSelections = [
-    ...(data.substanceUseOptions || []),
-    ...(data.safetyTraumaOptions || []),
-    ...(data.stressorsOptions || [])
+    ...(data.substanceUse || []),
+    ...(data.safetyTrauma || []),
+    ...(data.stressors || [])
   ];
 
   // Filter out "None" and "N/A" responses
