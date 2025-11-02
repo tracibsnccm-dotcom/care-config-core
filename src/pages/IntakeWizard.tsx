@@ -61,7 +61,7 @@ import { FileUploadZone } from "@/components/FileUploadZone";
 import { InactivityModal } from "@/components/InactivityModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { IntakeSensitiveExperiences, type SensitiveExperiencesData } from "@/components/IntakeSensitiveExperiences";
+import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
 
@@ -85,6 +85,7 @@ export default function IntakeWizard() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [hasMeds, setHasMeds] = useState<string>('');
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null); // Track case ID for saving disclosures
+  const [sensitiveProgress, setSensitiveProgress] = useState<SensitiveExperiencesProgress | null>(null);
   
   // Mental health screening
   const [mentalHealth, setMentalHealth] = useState({
@@ -1161,6 +1162,7 @@ export default function IntakeWizard() {
               data={sensitiveExperiences}
               onChange={setSensitiveExperiences}
               caseId={createdCaseId || undefined}
+              onProgressChange={setSensitiveProgress}
             />
 
             {/* Pre-Accident BH Section */}
@@ -1691,7 +1693,16 @@ export default function IntakeWizard() {
               step={step} 
               setStep={setStep} 
               last={5}
-              canAdvance={step === 2 ? hasMeds !== '' : true}
+              canAdvance={
+                step === 2 ? hasMeds !== '' : 
+                step === 3 ? (sensitiveProgress ? !sensitiveProgress.blockNavigation : true) :
+                true
+              }
+              blockReason={
+                step === 3 && sensitiveProgress?.blockNavigation 
+                  ? 'Please complete consent choices in the Sensitive Experiences section'
+                  : undefined
+              }
             />
             
             <InactivityModal

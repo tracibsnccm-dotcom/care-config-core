@@ -124,28 +124,58 @@ async function createSafetyAlert(caseId: string, itemCode: string, riskLevel: Ri
   const messages: Record<string, string> = {
     self_harm: 'Client disclosed self-harm. Immediate RN CM review required.',
     suicide_thoughts: 'Client disclosed suicidal thoughts. Immediate RN CM review required.',
+    suicidal_ideation: 'Client disclosed suicidal ideation. Immediate RN CM review required.',
     dv_ipv: 'Client disclosed domestic/intimate partner violence. Safety assessment needed.',
+    intimate_partner_violence: 'Client disclosed intimate partner violence. Safety assessment needed.',
+    domestic_violence: 'Client disclosed domestic violence. Safety assessment needed.',
     sexual_assault: 'Client disclosed sexual assault. Trauma-informed care needed.',
+    sexual_exploitation: 'Client disclosed sexual exploitation. Immediate support needed.',
     stalking: 'Client disclosed stalking/harassment. Safety planning needed.',
-    active_substance_misuse: 'Client disclosed active substance misuse. Assessment needed.'
+    harassment: 'Client disclosed harassment. Safety evaluation needed.',
+    active_substance_misuse: 'Client disclosed active substance misuse. Assessment needed.',
+    substance_withdrawal: 'Client disclosed substance withdrawal symptoms. Medical evaluation needed.',
+    current_abuse: 'Client disclosed current abuse. Immediate safety assessment required.'
   };
   
-  const { error } = await supabase
+  const message = messages[itemCode] || `Safety concern: ${itemCode.replace(/_/g, ' ')}`;
+  
+  const { error: alertError } = await supabase
     .from('case_alerts')
     .insert({
       case_id: caseId,
       alert_type: alertType,
       severity,
-      message: messages[itemCode] || `Safety concern: ${itemCode}`,
+      message,
       disclosure_scope: 'internal',
       metadata: {
         item_code: itemCode,
         risk_level: riskLevel,
-        origin: 'sensitive_experiences'
+        origin: 'sensitive_experiences',
+        created_at: new Date().toISOString()
       }
     });
   
-  if (error) console.error('Error creating safety alert:', error);
+  if (alertError) {
+    console.error('Error creating safety alert:', alertError);
+    return;
+  }
+  
+  // Trigger immediate RN notification for RED/ORANGE alerts
+  if (riskLevel === 'RED' || riskLevel === 'ORANGE') {
+    try {
+      await supabase.functions.invoke('notify-rn-alert', {
+        body: {
+          caseId,
+          itemCode,
+          riskLevel,
+          message
+        }
+      });
+    } catch (error) {
+      console.error('Error sending RN notification:', error);
+      // Don't throw - alert was created, notification failure shouldn't block
+    }
+  }
 }
 
 // Discard all selections in section (Skip Section)

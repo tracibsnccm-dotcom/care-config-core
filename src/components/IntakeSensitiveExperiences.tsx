@@ -21,7 +21,14 @@ import {
   type ConsentChoice 
 } from "@/lib/sensitiveDisclosuresHelper";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, History } from "lucide-react";
+import { z } from "zod";
+
+// Validation schema for additional details
+const additionalDetailsSchema = z.string()
+  .max(250, "Additional details must be 250 characters or less")
+  .regex(/^[^<>{}]*$/, "Special characters like <, >, {, } are not allowed")
+  .optional();
 
 export interface SensitiveExperiencesData {
   substanceUse: string[];
@@ -34,10 +41,49 @@ export interface SensitiveExperiencesData {
   sectionCollapsed?: boolean;
 }
 
+export interface SensitiveExperiencesProgress {
+  isComplete: boolean;
+  hasSelections: boolean;
+  needsConsent: boolean;
+  consentProvided: boolean;
+  blockNavigation: boolean;
+}
+
 interface IntakeSensitiveExperiencesProps {
   data: SensitiveExperiencesData;
   onChange: (data: SensitiveExperiencesData) => void;
   caseId?: string; // Required for persistence
+  onProgressChange?: (progress: SensitiveExperiencesProgress) => void;
+}
+
+// Helper to compute progress
+export function computeSensitiveExperiencesProgress(data: SensitiveExperiencesData): SensitiveExperiencesProgress {
+  const hasSelections = 
+    data.substanceUse.length > 0 || 
+    data.safetyTrauma.length > 0 || 
+    data.stressors.length > 0;
+  
+  const needsConsent = hasSelections && 
+    !data.substanceUse.includes("None of the above / prefer not to answer") &&
+    !data.substanceUse.includes("Not Applicable / N/A") &&
+    !data.safetyTrauma.includes("None of the above / prefer not to answer") &&
+    !data.safetyTrauma.includes("Not Applicable / N/A") &&
+    !data.stressors.includes("None of the above / prefer not to answer") &&
+    !data.stressors.includes("Not Applicable / N/A");
+  
+  const consentProvided = !needsConsent || 
+    (data.consentAttorney !== 'unset' && data.consentProvider !== 'unset');
+  
+  const isComplete = data.sectionSkipped || !hasSelections || consentProvided;
+  const blockNavigation = needsConsent && !consentProvided;
+  
+  return {
+    isComplete,
+    hasSelections,
+    needsConsent,
+    consentProvided,
+    blockNavigation
+  };
 }
 
 const substanceUseOptions = [
@@ -82,7 +128,7 @@ const stressorsOptions = [
   "Not Applicable / N/A",
 ];
 
-export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSensitiveExperiencesProps) {
+export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressChange }: IntakeSensitiveExperiencesProps) {
   const [substanceOpen, setSubstanceOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [stressorsOpen, setStressorsOpen] = useState(false);
@@ -94,23 +140,22 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showConsentRevoke, setShowConsentRevoke] = useState(false);
+  const [editHistory, setEditHistory] = useState<any[]>([]);
 
-  // Check if any items are selected
-  const hasSelections = 
-    data.substanceUse.length > 0 || 
-    data.safetyTrauma.length > 0 || 
-    data.stressors.length > 0;
+  // Compute progress and report to parent
+  const progress = computeSensitiveExperiencesProgress(data);
+  const { hasSelections, needsConsent } = progress;
   
-  // Check if consent is needed
-  const needsConsent = hasSelections && 
-    !data.substanceUse.includes("None of the above / prefer not to answer") &&
-    !data.substanceUse.includes("Not Applicable / N/A") &&
-    !data.safetyTrauma.includes("None of the above / prefer not to answer") &&
-    !data.safetyTrauma.includes("Not Applicable / N/A") &&
-    !data.stressors.includes("None of the above / prefer not to answer") &&
-    !data.stressors.includes("Not Applicable / N/A");
+  useEffect(() => {
+    if (onProgressChange) {
+      onProgressChange(progress);
+    }
+  }, [JSON.stringify(progress), onProgressChange]);
   
-  // Load existing data on mount
+  // Load existing data and edit history on mount
   useEffect(() => {
     if (!caseId || hasLoadedData) return;
     
@@ -120,6 +165,14 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
         const disclosures = await loadSensitiveDisclosures(caseId);
         
         if (disclosures.length > 0) {
+          // Store edit history
+          setEditHistory(disclosures.map(d => ({
+            itemCode: d.item_code,
+            category: d.category,
+            updatedAt: d.updated_at,
+            auditEvent: d.audit_event
+          })));
+          
           // Group by category
           const substance = disclosures
             .filter(d => d.category === 'substance_use')
@@ -146,6 +199,7 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
         setHasLoadedData(true);
       } catch (error) {
         console.error('Error loading disclosures:', error);
+        setSaveError('Failed to load previous selections. Please refresh the page.');
         toast.error('Failed to load previous selections');
       } finally {
         setIsLoading(false);
@@ -298,6 +352,43 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
     setSaveError(null);
     toast.info('Please try your last action again');
   };
+  
+  const handleAdditionalDetailsChange = (value: string) => {
+    setValidationError(null);
+    
+    // Validate input
+    const result = additionalDetailsSchema.safeParse(value);
+    
+    if (!result.success) {
+      const error = result.error.errors[0];
+      setValidationError(error.message);
+      toast.error(error.message);
+      return;
+    }
+    
+    onChange({ ...data, additionalDetails: value });
+  };
+  
+  const handleConsentRevoke = async () => {
+    if (!caseId) return;
+    
+    setIsSaving(true);
+    try {
+      await updateAllConsent(caseId, 'unset', 'unset');
+      onChange({
+        ...data,
+        consentAttorney: 'unset',
+        consentProvider: 'unset'
+      });
+      setShowConsentRevoke(false);
+      toast.success('Consent choices have been reset. Please select your preferences again.');
+    } catch (error) {
+      console.error('Error revoking consent:', error);
+      toast.error('Failed to update consent. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const shouldShowAdditionalDetails = () => {
     const allOptions = [
@@ -363,17 +454,27 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
             </TooltipProvider>
           </div>
           
-          {/* Save indicators */}
+          {/* Save indicators & Actions */}
           <div className="flex items-center gap-2">
+            {editHistory.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                aria-label="View edit history"
+              >
+                <History className="h-4 w-4" />
+              </Button>
+            )}
             {isSaving && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
                 <span>Saving...</span>
               </div>
             )}
             {showSavedIndicator && !isSaving && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <CheckCircle2 className="h-3 w-3" />
+              <div className="flex items-center gap-2 text-sm text-green-600" role="status" aria-live="polite">
+                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                 <span>Saved</span>
               </div>
             )}
@@ -383,12 +484,33 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
                 size="sm" 
                 onClick={retryLastSave}
                 className="text-destructive hover:text-destructive"
+                aria-label="Retry save"
               >
                 Retry
               </Button>
             )}
           </div>
         </div>
+        
+        {/* Edit History */}
+        {showHistory && editHistory.length > 0 && (
+          <Alert>
+            <History className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-2">Recent Changes</p>
+              <div className="space-y-1 text-xs">
+                {editHistory.slice(0, 5).map((item, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span>{item.itemCode.replace(/_/g, ' ')}</span>
+                    <span className="text-muted-foreground">
+                      {item.auditEvent} - {new Date(item.updatedAt).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Alert>
           <AlertCircle className="h-4 w-4" />
@@ -592,26 +714,50 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
             </p>
             <Textarea
               value={data.additionalDetails || ''}
-              onChange={(e) => onChange({ ...data, additionalDetails: e.target.value })}
+              onChange={(e) => handleAdditionalDetailsChange(e.target.value)}
               placeholder="Enter additional details here..."
               maxLength={250}
-              className="min-h-[100px]"
+              className={cn("min-h-[100px]", validationError && "border-destructive")}
+              aria-label="Additional details about sensitive experiences"
+              aria-invalid={!!validationError}
+              aria-describedby={validationError ? "details-error" : undefined}
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {(data.additionalDetails || '').length}/250 characters
-            </p>
+            <div className="flex justify-between items-center">
+              <p id="details-error" className="text-xs text-destructive">
+                {validationError || ''}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {(data.additionalDetails || '').length}/250 characters
+              </p>
+            </div>
           </div>
         )}
 
         {/* Consent Section */}
         {needsConsent && (
-          <div className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-primary" />
-              <Label className="text-base font-medium">Consent to Share Information</Label>
+          <div 
+            className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5"
+            role="region"
+            aria-label="Consent preferences"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-primary" aria-hidden="true" />
+                <Label className="text-base font-medium">Consent to Share Information *</Label>
+              </div>
+              {caseId && progress.consentProvided && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowConsentRevoke(true)}
+                  className="text-xs"
+                >
+                  Change Consent
+                </Button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              Please indicate your consent for sharing this information:
+              Please indicate your consent for sharing this information. <strong>Both choices are required to proceed.</strong>
             </p>
             
             <div className="space-y-3">
@@ -640,11 +786,20 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
               </div>
             </div>
             
-            <Alert>
+            <Alert role="alert">
               <AlertDescription className="text-xs">
-                You must make a choice for each option to proceed. Select the toggle on to share, or leave it off to not share.
+                <strong>Required:</strong> You must make a choice for each option to proceed. Toggle ON to share, or leave OFF to not share.
               </AlertDescription>
             </Alert>
+            
+            {!progress.consentProvided && (
+              <Alert variant="destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm font-medium">
+                  Please complete both consent choices above before proceeding to the next section.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 
@@ -717,6 +872,31 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId }: IntakeSen
               disabled={isSkipping}
             >
               {isSkipping ? 'Skipping...' : 'Skip Section'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Consent Revocation Dialog */}
+      <AlertDialog open={showConsentRevoke} onOpenChange={setShowConsentRevoke}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Consent Preferences?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset your consent choices so you can update them. Your selected 
+              experiences will remain, but you'll need to choose your sharing preferences again.
+              <br /><br />
+              <strong>Note:</strong> You must complete both consent choices before proceeding 
+              to the next section of the intake.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConsentRevoke}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Updating...' : 'Reset Consent Choices'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
