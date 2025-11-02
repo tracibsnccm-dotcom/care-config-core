@@ -13,27 +13,32 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
 
   // Calculate averages from last 7 checkins
   const recentCheckins = checkins.slice(0, 7);
+
+  // Helpers for averaging
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const toFourScaleAvg = (vals: number[]) => {
+    if (vals.length === 0) return 0;
+    const avg = vals.reduce((s, v) => s + (v ?? 0), 0) / vals.length;
+    // If legacy 0-100 values, normalize to 0-4
+    return round1(avg > 4 ? avg / 25 : avg);
+  };
+
+  // Pain, Depression, Anxiety (0–10)
   const avgPain = recentCheckins.length > 0
-    ? Math.round((recentCheckins.reduce((sum, c) => sum + c.pain_scale, 0) / recentCheckins.length) * 10) / 10
+    ? round1(recentCheckins.reduce((sum, c) => sum + c.pain_scale, 0) / recentCheckins.length)
     : 0;
   const avgDepression = recentCheckins.length > 0
-    ? Math.round((recentCheckins.reduce((sum, c) => sum + (c.depression_scale || 0), 0) / recentCheckins.length) * 10) / 10
+    ? round1(recentCheckins.reduce((sum, c) => sum + (c.depression_scale || 0), 0) / recentCheckins.length)
     : 0;
   const avgAnxiety = recentCheckins.length > 0
-    ? Math.round((recentCheckins.reduce((sum, c) => sum + (c.anxiety_scale || 0), 0) / recentCheckins.length) * 10) / 10
+    ? round1(recentCheckins.reduce((sum, c) => sum + (c.anxiety_scale || 0), 0) / recentCheckins.length)
     : 0;
-  const avgPhysical = recentCheckins.length > 0
-    ? Math.round(recentCheckins.reduce((sum, c) => sum + c.p_physical, 0) / recentCheckins.length)
-    : 0;
-  const avgPsychological = recentCheckins.length > 0
-    ? Math.round(recentCheckins.reduce((sum, c) => sum + c.p_psychological, 0) / recentCheckins.length)
-    : 0;
-  const avgPsychosocial = recentCheckins.length > 0
-    ? Math.round(recentCheckins.reduce((sum, c) => sum + c.p_psychosocial, 0) / recentCheckins.length)
-    : 0;
-  const avgProfessional = recentCheckins.length > 0
-    ? Math.round(recentCheckins.reduce((sum, c) => sum + c.p_purpose, 0) / recentCheckins.length)
-    : 0;
+
+  // 4Ps normalized to 0–4 to match Intake Wizard
+  const avgPhysical4 = toFourScaleAvg(recentCheckins.map((c) => c.p_physical));
+  const avgPsychosocial4 = toFourScaleAvg(recentCheckins.map((c) => c.p_psychosocial));
+  const avgProfession4 = toFourScaleAvg(recentCheckins.map((c) => c.p_purpose));
+  const avgProtection4 = toFourScaleAvg(recentCheckins.map((c) => c.p_psychological));
 
   // SDOH averages (0-4 scale)
   const avgHousing = recentCheckins.length > 0 && recentCheckins.some(c => (c as any).sdoh_housing !== null)
@@ -47,10 +52,11 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     { label: "Pain", value: avgPain, max: 10, icon: Heart, color: "text-destructive" },
     { label: "Depression", value: avgDepression, max: 10, icon: Brain, color: "text-warning" },
     { label: "Anxiety", value: avgAnxiety, max: 10, icon: Brain, color: "text-warning" },
-    { label: "Physical", value: avgPhysical, max: 4, icon: Activity, color: "text-primary" },
-    { label: "Protection", value: avgPsychological, max: 4, icon: Smile, color: "text-primary" },
-    { label: "Psychosocial", value: avgPsychosocial, max: 4, icon: Activity, color: "text-primary" },
-    { label: "Profession", value: avgProfessional, max: 4, icon: Activity, color: "text-primary" },
+    // 4Ps (0–4) to match Intake Wizard
+    { label: "Physical", value: avgPhysical4, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Psychosocial", value: avgPsychosocial4, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Profession", value: avgProfession4, max: 4, icon: Activity, color: "text-primary" },
+    { label: "Protection", value: avgProtection4, max: 4, icon: Smile, color: "text-primary" },
   ];
 
   // Add SDOH metrics if tracked
