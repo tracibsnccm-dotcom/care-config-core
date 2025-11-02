@@ -965,7 +965,118 @@ export default function IntakeWizard() {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Snapshot Summary */}
+            <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20">
+              <h4 className="text-xl font-bold mb-6 text-foreground">Assessment Snapshot</h4>
+
+              {/* 4Ps Section */}
+              <div className="mb-6">
+                <h5 className="text-sm font-extrabold mb-3 text-foreground">4Ps of Wellness</h5>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'Physical', value: fourPs.physical },
+                    { label: 'Psychological', value: fourPs.psychological },
+                    { label: 'Psychosocial', value: fourPs.psychosocial },
+                    { label: 'Professional', value: fourPs.professional }
+                  ].map(({ label, value }) => {
+                    const bgColor = value === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                                   value === 1 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
+                                   value === 2 ? 'bg-amber-50 border-amber-300 text-amber-800' :
+                                   value === 3 ? 'bg-red-50 border-red-300 text-red-800' :
+                                   'bg-red-100 border-red-400 text-red-900';
+                    return (
+                      <div key={label} className={`rounded-full px-4 py-2 border-2 font-extrabold ${bgColor}`}>
+                        <span className="opacity-80 font-bold">{label}:</span> {value}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SDOH Section */}
+              <div className="mb-6">
+                <h5 className="text-sm font-extrabold mb-3 text-foreground">Social Determinants of Health</h5>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'Housing', value: sdoh.housing },
+                    { label: 'Food', value: sdoh.food },
+                    { label: 'Transport', value: sdoh.transport },
+                    { label: 'Insurance', value: sdoh.insuranceGap },
+                    { label: 'Financial', value: sdoh.financial },
+                    { label: 'Employment', value: sdoh.employment },
+                    { label: 'Support', value: sdoh.social_support },
+                    { label: 'Safety', value: sdoh.safety },
+                    { label: 'Access', value: sdoh.healthcare_access }
+                  ].map(({ label, value }) => {
+                    const v = value ?? 0;
+                    const bgColor = v === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                                   v === 1 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
+                                   v === 2 ? 'bg-amber-50 border-amber-300 text-amber-800' :
+                                   v === 3 ? 'bg-red-50 border-red-300 text-red-800' :
+                                   'bg-red-100 border-red-400 text-red-900';
+                    return (
+                      <div key={label} className={`rounded-full px-4 py-2 border-2 font-extrabold ${bgColor}`}>
+                        <span className="opacity-80 font-bold">{label}:</span> {v}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Case Health Meter */}
+              <div className="mb-2">
+                <h5 className="text-sm font-extrabold mb-3 text-foreground">Overall Health Indicator (0–4)</h5>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 relative h-3 rounded-full bg-muted overflow-hidden">
+                    <div 
+                      className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.min(100, (((() => {
+                          const allValues = [
+                            fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
+                            typeof sdoh.housing === 'number' ? sdoh.housing : 0,
+                            typeof sdoh.food === 'number' ? sdoh.food : 0,
+                            typeof sdoh.transport === 'number' ? sdoh.transport : 0,
+                            typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
+                            typeof sdoh.financial === 'number' ? sdoh.financial : 0,
+                            typeof sdoh.employment === 'number' ? sdoh.employment : 0,
+                            typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
+                            typeof sdoh.safety === 'number' ? sdoh.safety : 0,
+                            typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                          ];
+                          const sum = allValues.reduce((a, b) => a + b, 0);
+                          return sum / allValues.length;
+                        })()) / 4) * 100)}%`,
+                        background: 'linear-gradient(90deg, #18a05f, #b09837, #c62828)'
+                      }}
+                    />
+                  </div>
+                  <div className="text-2xl font-black min-w-[64px] text-right text-foreground">
+                    {(() => {
+                      const allValues = [
+                        fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
+                        typeof sdoh.housing === 'number' ? sdoh.housing : 0,
+                        typeof sdoh.food === 'number' ? sdoh.food : 0,
+                        typeof sdoh.transport === 'number' ? sdoh.transport : 0,
+                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
+                        typeof sdoh.financial === 'number' ? sdoh.financial : 0,
+                        typeof sdoh.employment === 'number' ? sdoh.employment : 0,
+                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
+                        typeof sdoh.safety === 'number' ? sdoh.safety : 0,
+                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                      ];
+                      const sum = allValues.reduce((a, b) => a + b, 0);
+                      return (sum / allValues.length).toFixed(1);
+                    })()}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  0–0.9 Stable · 1–1.9 Mild · 2–2.9 Moderate · 3–4 Critical
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
               <Button onClick={submit} aria-label="Submit intake">
                 Submit Intake
               </Button>
