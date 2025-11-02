@@ -1122,6 +1122,51 @@ export type Database = {
         }
         Relationships: []
       }
+      client_treatments: {
+        Row: {
+          case_id: string
+          client_id: string
+          created_at: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          injury_timing: string | null
+          is_active: boolean | null
+          notes: string | null
+          start_date: string | null
+          treatment_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id: string
+          client_id: string
+          created_at?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          injury_timing?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          start_date?: string | null
+          treatment_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string
+          client_id?: string
+          created_at?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          injury_timing?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          start_date?: string | null
+          treatment_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       complaint_timeline: {
         Row: {
           complaint_id: string
