@@ -996,42 +996,6 @@ export default function IntakeWizard() {
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
-            
-            <div className="space-y-3 text-sm mb-6">
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">RCMS ID:</span>
-                <span className="select-none text-muted-foreground" title="PHI block">
-                  {client.rcmsId}
-                </span>
-              </div>
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">DOB:</span>
-                <span className="select-none text-muted-foreground">{client.dobMasked}</span>
-              </div>
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">Incident:</span>
-                <span className="text-muted-foreground">
-                  {intake.incidentType} on {fmtDate(intake.incidentDate)}
-                </span>
-              </div>
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">Initial treatment:</span>
-                <span className="text-muted-foreground">{intake.initialTreatment}</span>
-              </div>
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">Injuries:</span>
-                <span className="text-muted-foreground">
-                  {intake.injuries.join(", ") || "—"}
-                </span>
-              </div>
-              <div className="flex py-2 border-b border-border">
-                <span className="font-medium w-40">Consent:</span>
-                <span className="text-muted-foreground">
-                  {consent.signed ? "Signed" : "Not signed"}
-                  {consent.signed && consent.signedAt && ` @ ${fmtDate(consent.signedAt)}`}
-                </span>
-              </div>
-            </div>
 
             {/* Assessment Snapshot Explainer */}
             <AssessmentSnapshotExplainer 
@@ -1148,6 +1112,46 @@ export default function IntakeWizard() {
                 <p className="text-xs text-muted-foreground mt-2">
                   0–0.9 Stable · 1–1.9 Mild · 2–2.9 Moderate · 3–4 Critical
                 </p>
+              </div>
+            </div>
+
+            {/* Case Summary - Final Review */}
+            <div className="mt-8 p-6 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-lg border-2 border-border">
+              <h4 className="text-lg font-bold mb-4 text-foreground">Case Summary</h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">RCMS ID:</span>
+                  <span className="select-none text-muted-foreground" title="PHI block">
+                    {client.rcmsId}
+                  </span>
+                </div>
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">DOB:</span>
+                  <span className="select-none text-muted-foreground">{client.dobMasked}</span>
+                </div>
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Incident:</span>
+                  <span className="text-muted-foreground">
+                    {intake.incidentType} on {fmtDate(intake.incidentDate)}
+                  </span>
+                </div>
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Initial treatment:</span>
+                  <span className="text-muted-foreground">{intake.initialTreatment}</span>
+                </div>
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Injuries:</span>
+                  <span className="text-muted-foreground">
+                    {intake.injuries.join(", ") || "—"}
+                  </span>
+                </div>
+                <div className="flex py-2 border-b border-border">
+                  <span className="font-medium w-40">Consent:</span>
+                  <span className="text-muted-foreground">
+                    {consent.signed ? "Signed" : "Not signed"}
+                    {consent.signed && consent.signedAt && ` @ ${fmtDate(consent.signedAt)}`}
+                  </span>
+                </div>
               </div>
             </div>
 
