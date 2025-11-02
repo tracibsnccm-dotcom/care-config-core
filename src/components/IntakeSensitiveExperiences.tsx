@@ -1,18 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Info, AlertCircle } from "lucide-react";
+import { Shield, Info, AlertCircle, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface SensitiveExperiencesData {
-  substanceUse: string;
-  alcoholDependency: string;
-  domesticAbuse: string;
-  childAbuse: string;
-  harassment: string;
-  stalking: string;
-  otherTrauma: string;
+  substanceUseOptions: string[];
+  safetyTraumaOptions: string[];
+  stressorsOptions: string[];
   consentToShare: boolean | null;
 }
 
@@ -21,20 +19,68 @@ interface IntakeSensitiveExperiencesProps {
   onChange: (data: SensitiveExperiencesData) => void;
 }
 
-export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveExperiencesProps) {
-  const handleFieldChange = (field: keyof SensitiveExperiencesData, value: string | boolean) => {
-    onChange({ ...data, [field]: value });
-  };
+const substanceUseOptions = [
+  "Current alcohol use that concerns you",
+  "Past alcohol use that required treatment or caused problems",
+  "Current prescription medication misuse or dependency",
+  "Past prescription medication misuse or dependency",
+  "Current use of non-prescribed or illicit substances",
+  "Past use of non-prescribed or illicit substances",
+  "Currently in recovery or enrolled in a treatment program",
+  "Prior participation in a detox, rehab, or support group",
+  "None of the above / prefer not to answer",
+];
 
-  const questions = [
-    { key: 'substanceUse', label: 'Have you experienced substance use concerns?' },
-    { key: 'alcoholDependency', label: 'Have you experienced alcohol dependency?' },
-    { key: 'domesticAbuse', label: 'Have you experienced domestic abuse?' },
-    { key: 'childAbuse', label: 'Have you experienced child abuse?' },
-    { key: 'harassment', label: 'Have you experienced harassment?' },
-    { key: 'stalking', label: 'Have you experienced stalking?' },
-    { key: 'otherTrauma', label: 'Have you experienced other forms of trauma?' },
-  ];
+const safetyTraumaOptions = [
+  "History of domestic violence or intimate-partner violence",
+  "History of physical abuse (childhood or adulthood)",
+  "History of emotional or psychological abuse",
+  "History of sexual abuse or assault",
+  "Current safety concerns at home or in a relationship",
+  "Stalking or harassment experience",
+  "History of bullying or workplace harassment",
+  "Experience of trafficking or exploitation",
+  "Witnessed violence (home, community, or workplace)",
+  "None of the above / prefer not to answer",
+];
+
+const stressorsOptions = [
+  "Housing instability or homelessness risk",
+  "Food insecurity",
+  "Financial hardship or loss of income",
+  "Recent major loss or grief (family, job, relationship)",
+  "Legal issues unrelated to current injury",
+  "Caregiver stress (caring for others while managing your own condition)",
+  "Workplace or school harassment or discrimination",
+  "Limited family or social support",
+  "Cultural or language barriers affecting care access",
+  "Transportation barriers to appointments",
+  "None of the above / prefer not to answer",
+];
+
+export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveExperiencesProps) {
+  const [substanceOpen, setSubstanceOpen] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
+  const [stressorsOpen, setStressorsOpen] = useState(false);
+
+  const toggleOption = (field: 'substanceUseOptions' | 'safetyTraumaOptions' | 'stressorsOptions', option: string) => {
+    const current = data[field] || [];
+    const noneOption = "None of the above / prefer not to answer";
+    
+    if (option === noneOption) {
+      // If selecting "None", clear all other options
+      onChange({ ...data, [field]: [noneOption] });
+    } else {
+      // If selecting any other option, remove "None" if it exists
+      const filtered = current.filter(o => o !== noneOption);
+      
+      if (current.includes(option)) {
+        onChange({ ...data, [field]: filtered.filter(o => o !== option) });
+      } else {
+        onChange({ ...data, [field]: [...filtered, option] });
+      }
+    }
+  };
 
   return (
     <Card className="p-6 border-border">
@@ -71,30 +117,172 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
         </p>
       </div>
 
-      {/* Questions Section */}
+      {/* Dropdown Sections */}
       <div className="space-y-6 mb-8">
-        {questions.map(({ key, label }) => (
-          <div key={key} className="space-y-3">
-            <Label className="text-sm font-medium">{label}</Label>
-            <RadioGroup
-              value={(data as any)[key] || ''}
-              onValueChange={(v) => handleFieldChange(key as keyof SensitiveExperiencesData, v)}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="yes" id={`${key}-yes`} />
-                <Label htmlFor={`${key}-yes`} className="cursor-pointer font-normal">Yes</Label>
+        {/* 1. Substance Use & Addiction History */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            🧩 Substance Use / Dependency
+          </Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            Please indicate if any of the following apply to you. This information helps us connect you with appropriate care and support.
+          </p>
+          
+          <Popover open={substanceOpen} onOpenChange={setSubstanceOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+              >
+                <span className="truncate">
+                  {data.substanceUseOptions?.length > 0
+                    ? `${data.substanceUseOptions.length} selected`
+                    : "Select options..."}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
+              <div className="p-4 space-y-2">
+                {substanceUseOptions.map((option) => (
+                  <div key={option} className="flex items-start space-x-2 py-2">
+                    <Checkbox
+                      id={`substance-${option}`}
+                      checked={data.substanceUseOptions?.includes(option)}
+                      onCheckedChange={() => toggleOption('substanceUseOptions', option)}
+                    />
+                    <Label
+                      htmlFor={`substance-${option}`}
+                      className="cursor-pointer font-normal leading-snug text-sm"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no" id={`${key}-no`} />
-                <Label htmlFor={`${key}-no`} className="cursor-pointer font-normal">No</Label>
+            </PopoverContent>
+          </Popover>
+          
+          {data.substanceUseOptions?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {data.substanceUseOptions.map((option) => (
+                <div key={option} className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs">
+                  {option}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 2. Abuse, Violence, or Trauma Exposure */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            💔 Safety & Trauma History
+          </Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            These questions help us identify when additional support or protection may be needed. You may skip any question you're not comfortable answering.
+          </p>
+          
+          <Popover open={safetyOpen} onOpenChange={setSafetyOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+              >
+                <span className="truncate">
+                  {data.safetyTraumaOptions?.length > 0
+                    ? `${data.safetyTraumaOptions.length} selected`
+                    : "Select options..."}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
+              <div className="p-4 space-y-2">
+                {safetyTraumaOptions.map((option) => (
+                  <div key={option} className="flex items-start space-x-2 py-2">
+                    <Checkbox
+                      id={`safety-${option}`}
+                      checked={data.safetyTraumaOptions?.includes(option)}
+                      onCheckedChange={() => toggleOption('safetyTraumaOptions', option)}
+                    />
+                    <Label
+                      htmlFor={`safety-${option}`}
+                      className="cursor-pointer font-normal leading-snug text-sm"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="prefer_not_to_say" id={`${key}-skip`} />
-                <Label htmlFor={`${key}-skip`} className="cursor-pointer font-normal">Prefer not to say</Label>
+            </PopoverContent>
+          </Popover>
+          
+          {data.safetyTraumaOptions?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {data.safetyTraumaOptions.map((option) => (
+                <div key={option} className="bg-destructive/10 text-destructive px-3 py-1 rounded-full text-xs">
+                  {option}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 3. Psychological or Environmental Stressors */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            🧠 Current Stressors or Barriers
+          </Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            These items identify areas that may affect your healing, safety, or stability.
+          </p>
+          
+          <Popover open={stressorsOpen} onOpenChange={setStressorsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto min-h-[40px] text-left font-normal"
+              >
+                <span className="truncate">
+                  {data.stressorsOptions?.length > 0
+                    ? `${data.stressorsOptions.length} selected`
+                    : "Select options..."}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[500px] p-0 max-h-[400px] overflow-y-auto bg-background z-50" align="start">
+              <div className="p-4 space-y-2">
+                {stressorsOptions.map((option) => (
+                  <div key={option} className="flex items-start space-x-2 py-2">
+                    <Checkbox
+                      id={`stressors-${option}`}
+                      checked={data.stressorsOptions?.includes(option)}
+                      onCheckedChange={() => toggleOption('stressorsOptions', option)}
+                    />
+                    <Label
+                      htmlFor={`stressors-${option}`}
+                      className="cursor-pointer font-normal leading-snug text-sm"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
               </div>
-            </RadioGroup>
-          </div>
-        ))}
+            </PopoverContent>
+          </Popover>
+          
+          {data.stressorsOptions?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {data.stressorsOptions.map((option) => (
+                <div key={option} className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs">
+                  {option}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Consent Section */}
@@ -115,7 +303,7 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
             <Checkbox
               id="consent-share"
               checked={data.consentToShare === true}
-              onCheckedChange={(checked) => handleFieldChange('consentToShare', checked === true)}
+              onCheckedChange={(checked) => onChange({ ...data, consentToShare: checked === true })}
             />
             <Label htmlFor="consent-share" className="cursor-pointer font-normal leading-relaxed">
               ✅ <strong>I consent</strong> for this information to be shared with my attorney and/or treating provider for care coordination and advocacy purposes.
@@ -126,7 +314,7 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
             <Checkbox
               id="consent-no-share"
               checked={data.consentToShare === false}
-              onCheckedChange={(checked) => handleFieldChange('consentToShare', checked ? false : null)}
+              onCheckedChange={(checked) => onChange({ ...data, consentToShare: checked ? false : null })}
             />
             <Label htmlFor="consent-no-share" className="cursor-pointer font-normal leading-relaxed">
               🚫 <strong>I do not consent</strong> — keep this information confidential within Reconcile C.A.R.E. only.

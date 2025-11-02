@@ -93,13 +93,9 @@ export default function IntakeWizard() {
 
   // Sensitive experiences
   const [sensitiveExperiences, setSensitiveExperiences] = useState<SensitiveExperiencesData>({
-    substanceUse: '',
-    alcoholDependency: '',
-    domesticAbuse: '',
-    childAbuse: '',
-    harassment: '',
-    stalking: '',
-    otherTrauma: '',
+    substanceUseOptions: [],
+    safetyTraumaOptions: [],
+    stressorsOptions: [],
     consentToShare: null,
   });
 
