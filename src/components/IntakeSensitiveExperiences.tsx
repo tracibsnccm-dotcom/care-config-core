@@ -285,20 +285,28 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
         </div>
       </div>
 
-      {/* Consent Section */}
-      <div className="border-t pt-6 space-y-4">
-        <h4 className="font-semibold text-foreground mb-4">
-          Consent for Sharing Sensitive Information
-        </h4>
+      {/* Consent Section - Only show if sensitive items are selected */}
+      {(() => {
+        const hasSensitiveItems = [
+          ...(data.substanceUseOptions || []),
+          ...(data.safetyTraumaOptions || []),
+          ...(data.stressorsOptions || [])
+        ].some(option => option !== "None of the above / prefer not to answer");
         
-        <Alert className="bg-muted/30 border-border">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            At the end of this section, you'll be able to choose how this information is shared.
-          </AlertDescription>
-        </Alert>
+        return hasSensitiveItems ? (
+          <div className="border-t pt-6 space-y-4">
+            <h4 className="font-semibold text-foreground mb-4">
+              Consent for Sharing Sensitive Information
+            </h4>
+            
+            <Alert className="bg-muted/30 border-border">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Please select how you'd like us to handle this information.
+              </AlertDescription>
+            </Alert>
 
-        <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4">
           <div className="flex items-start space-x-3 p-4 bg-card rounded-lg border-2 border-primary/20 hover:border-primary/40 transition-colors">
             <Checkbox
               id="consent-share"
@@ -322,10 +330,12 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-4 italic">
-          If you change your mind later, you may update your consent at any time through your Client Portal or by contacting your RN Care Manager.
-        </p>
-      </div>
+            <p className="text-xs text-muted-foreground mt-4 italic">
+              If you change your mind later, you may update your consent at any time through your Client Portal or by contacting your RN Care Manager.
+            </p>
+          </div>
+        ) : null;
+      })()}
     </Card>
   );
 }
