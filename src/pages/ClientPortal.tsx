@@ -19,9 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen } from "lucide-react";
 import { useState } from "react";
+import { useCases } from "@/hooks/useSupabaseData";
 
 export default function ClientPortal() {
-  const caseId = "demo-case-id";
+  const { cases: userCases, loading: casesLoading } = useCases();
+  const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("checkins");
@@ -71,16 +73,22 @@ export default function ClientPortal() {
           <IntakeReminderBanner />
           
           {/* Wellness Snapshot */}
-          <WellnessSnapshot 
-            caseId={caseId} 
-            onViewProgress={() => setActiveTab("checkins")} 
-          />
+          {caseId ? (
+            <WellnessSnapshot 
+              caseId={caseId}
+              onViewProgress={() => setActiveTab("checkins")} 
+            />
+          ) : (
+            <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
+              <p className="text-muted-foreground">No active case found.</p>
+            </Card>
+          )}
 
           {/* Quick Actions Row */}
           <div className="grid gap-4 md:grid-cols-3">
             {/* Motivation Widget */}
             <div className="md:col-span-2">
-              <MotivationWidget caseId={caseId} />
+              <MotivationWidget caseId={caseId || ""} />
             </div>
 
             {/* Quick Contact Card */}
