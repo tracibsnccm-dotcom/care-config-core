@@ -62,6 +62,7 @@ import { InactivityModal } from "@/components/InactivityModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData } from "@/components/IntakeSensitiveExperiences";
+import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -404,6 +405,58 @@ export default function IntakeWizard() {
             
             if (allergiesError) {
               console.error("Error saving allergies:", allergiesError);
+            }
+          }
+        }
+
+        // Process sensitive experiences and create safety alerts
+        const sensitiveFlags = analyzeSensitiveExperiences(sensitiveExperiences);
+        
+        if (sensitiveFlags.length > 0) {
+          // Create case alerts for RN CM
+          const alertsData = sensitiveFlags.map(flag => ({
+            case_id: newCase.id,
+            alert_type: flag.alertType,
+            message: flag.message,
+            severity: flag.severity,
+            disclosure_scope: flag.disclosureScope,
+            created_by: userData.user.id,
+            metadata: {
+              notification_priority: flag.notificationPriority,
+              flag_level: flag.level,
+              flag_color: flag.color,
+              consent_to_share: sensitiveExperiences.consentToShare,
+              additional_details: sensitiveExperiences.additionalDetails || null,
+              section_skipped: sensitiveExperiences.sectionSkipped || false,
+            }
+          }));
+
+          const { error: alertsError } = await supabase
+            .from("case_alerts")
+            .insert(alertsData);
+          
+          if (alertsError) {
+            console.error("Error creating safety alerts:", alertsError);
+          }
+
+          // Update SDOH flags in cases table
+          const sdohUpdates = buildSdohUpdates(sensitiveFlags);
+          
+          if (Object.keys(sdohUpdates).length > 0) {
+            // Merge with existing SDOH data
+            const updatedSdoh = {
+              ...newCase.sdoh,
+              sensitive_experiences_flags: sdohUpdates,
+              sensitive_experiences_detected_at: new Date().toISOString()
+            };
+
+            const { error: sdohError } = await supabase
+              .from("cases")
+              .update({ sdoh: updatedSdoh })
+              .eq("id", newCase.id);
+            
+            if (sdohError) {
+              console.error("Error updating SDOH flags:", sdohError);
             }
           }
         }

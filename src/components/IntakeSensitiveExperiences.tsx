@@ -2,11 +2,12 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Info, AlertCircle, ChevronDown } from "lucide-react";
+import { Shield, Info, AlertCircle, ChevronDown, CheckCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { analyzeSensitiveExperiences, getClientFacingMessage } from "@/lib/sensitiveExperiencesFlags";
 
 interface SensitiveExperiencesData {
   substanceUseOptions: string[];
@@ -68,6 +69,14 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
   const [substanceOpen, setSubstanceOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [stressorsOpen, setStressorsOpen] = useState(false);
+  const [clientMessage, setClientMessage] = useState<string>('');
+
+  // Analyze selections and show client-facing message when appropriate
+  useEffect(() => {
+    const flags = analyzeSensitiveExperiences(data);
+    const message = getClientFacingMessage(flags);
+    setClientMessage(message);
+  }, [data]);
 
   const toggleOption = (field: 'substanceUseOptions' | 'safetyTraumaOptions' | 'stressorsOptions', option: string) => {
     const current = data[field] || [];
@@ -332,6 +341,16 @@ export function IntakeSensitiveExperiences({ data, onChange }: IntakeSensitiveEx
           )}
         </div>
       </div>
+
+      {/* Client-Facing Reassurance Message */}
+      {clientMessage && (
+        <Alert className="mb-6 bg-primary/10 border-primary/30">
+          <CheckCircle className="h-5 w-5 text-primary" />
+          <AlertDescription className="text-sm">
+            {clientMessage}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Optional Additional Details */}
       {shouldShowAdditionalDetails() && (
