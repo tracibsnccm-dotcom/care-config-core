@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Heart, AlertCircle, Lock, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   saveSensitiveDisclosure, 
   discardSensitiveSection, 
@@ -129,6 +131,7 @@ const stressorsOptions = [
 ];
 
 export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressChange }: IntakeSensitiveExperiencesProps) {
+  const isMobile = useIsMobile();
   const [substanceOpen, setSubstanceOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [stressorsOpen, setStressorsOpen] = useState(false);
@@ -631,44 +634,89 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
               </Badge>
             )}
           </div>
-          <Popover open={substanceOpen} onOpenChange={setSubstanceOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-between",
-                  data.substanceUse.length > 0 && "border-primary"
-                )}
-                type="button"
-              >
-                <span>
-                  {data.substanceUse.length > 0
-                    ? `${data.substanceUse.length} selected`
-                    : 'Select options'}
-                </span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
-              <div className="space-y-2">
-                {substanceUseOptions.map((option) => (
-                  <div key={option} className="flex items-start space-x-2 py-2">
-                    <Checkbox
-                      id={`substance-${option}`}
-                      checked={data.substanceUse?.includes(option)}
-                      onCheckedChange={() => toggleOption('substanceUse', option)}
-                    />
-                    <Label
-                      htmlFor={`substance-${option}`}
-                      className="cursor-pointer font-normal text-sm"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {isMobile ? (
+            <Sheet open={substanceOpen} onOpenChange={setSubstanceOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between min-h-[48px]",
+                    data.substanceUse.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.substanceUse.length > 0
+                      ? `${data.substanceUse.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Substance Use / Dependency</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {substanceUseOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-3 py-3 border-b last:border-0">
+                      <Checkbox
+                        id={`substance-mobile-${option}`}
+                        checked={data.substanceUse?.includes(option)}
+                        onCheckedChange={() => toggleOption('substanceUse', option)}
+                        className="mt-1 h-5 w-5"
+                      />
+                      <Label
+                        htmlFor={`substance-mobile-${option}`}
+                        className="cursor-pointer font-normal text-sm leading-relaxed flex-1"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Popover open={substanceOpen} onOpenChange={setSubstanceOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between",
+                    data.substanceUse.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.substanceUse.length > 0
+                      ? `${data.substanceUse.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2">
+                  {substanceUseOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-2 py-2">
+                      <Checkbox
+                        id={`substance-${option}`}
+                        checked={data.substanceUse?.includes(option)}
+                        onCheckedChange={() => toggleOption('substanceUse', option)}
+                      />
+                      <Label
+                        htmlFor={`substance-${option}`}
+                        className="cursor-pointer font-normal text-sm"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         {/* Safety & Trauma */}
@@ -682,44 +730,89 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
               </Badge>
             )}
           </div>
-          <Popover open={safetyOpen} onOpenChange={setSafetyOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-between",
-                  data.safetyTrauma.length > 0 && "border-primary"
-                )}
-                type="button"
-              >
-                <span>
-                  {data.safetyTrauma.length > 0
-                    ? `${data.safetyTrauma.length} selected`
-                    : 'Select options'}
-                </span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
-              <div className="space-y-2">
-                {safetyTraumaOptions.map((option) => (
-                  <div key={option} className="flex items-start space-x-2 py-2">
-                    <Checkbox
-                      id={`safety-${option}`}
-                      checked={data.safetyTrauma?.includes(option)}
-                      onCheckedChange={() => toggleOption('safetyTrauma', option)}
-                    />
-                    <Label
-                      htmlFor={`safety-${option}`}
-                      className="cursor-pointer font-normal text-sm"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {isMobile ? (
+            <Sheet open={safetyOpen} onOpenChange={setSafetyOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between min-h-[48px]",
+                    data.safetyTrauma.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.safetyTrauma.length > 0
+                      ? `${data.safetyTrauma.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Safety & Trauma History</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {safetyTraumaOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-3 py-3 border-b last:border-0">
+                      <Checkbox
+                        id={`safety-mobile-${option}`}
+                        checked={data.safetyTrauma?.includes(option)}
+                        onCheckedChange={() => toggleOption('safetyTrauma', option)}
+                        className="mt-1 h-5 w-5"
+                      />
+                      <Label
+                        htmlFor={`safety-mobile-${option}`}
+                        className="cursor-pointer font-normal text-sm leading-relaxed flex-1"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Popover open={safetyOpen} onOpenChange={setSafetyOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between",
+                    data.safetyTrauma.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.safetyTrauma.length > 0
+                      ? `${data.safetyTrauma.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2">
+                  {safetyTraumaOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-2 py-2">
+                      <Checkbox
+                        id={`safety-${option}`}
+                        checked={data.safetyTrauma?.includes(option)}
+                        onCheckedChange={() => toggleOption('safetyTrauma', option)}
+                      />
+                      <Label
+                        htmlFor={`safety-${option}`}
+                        className="cursor-pointer font-normal text-sm"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         {/* Stressors */}
@@ -733,44 +826,89 @@ export function IntakeSensitiveExperiences({ data, onChange, caseId, onProgressC
               </Badge>
             )}
           </div>
-          <Popover open={stressorsOpen} onOpenChange={setStressorsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-between",
-                  data.stressors.length > 0 && "border-primary"
-                )}
-                type="button"
-              >
-                <span>
-                  {data.stressors.length > 0
-                    ? `${data.stressors.length} selected`
-                    : 'Select options'}
-                </span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
-              <div className="space-y-2">
-                {stressorsOptions.map((option) => (
-                  <div key={option} className="flex items-start space-x-2 py-2">
-                    <Checkbox
-                      id={`stressors-${option}`}
-                      checked={data.stressors?.includes(option)}
-                      onCheckedChange={() => toggleOption('stressors', option)}
-                    />
-                    <Label
-                      htmlFor={`stressors-${option}`}
-                      className="cursor-pointer font-normal text-sm"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {isMobile ? (
+            <Sheet open={stressorsOpen} onOpenChange={setStressorsOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between min-h-[48px]",
+                    data.stressors.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.stressors.length > 0
+                      ? `${data.stressors.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Current Stressors or Barriers</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {stressorsOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-3 py-3 border-b last:border-0">
+                      <Checkbox
+                        id={`stressors-mobile-${option}`}
+                        checked={data.stressors?.includes(option)}
+                        onCheckedChange={() => toggleOption('stressors', option)}
+                        className="mt-1 h-5 w-5"
+                      />
+                      <Label
+                        htmlFor={`stressors-mobile-${option}`}
+                        className="cursor-pointer font-normal text-sm leading-relaxed flex-1"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Popover open={stressorsOpen} onOpenChange={setStressorsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-between",
+                    data.stressors.length > 0 && "border-primary"
+                  )}
+                  type="button"
+                >
+                  <span>
+                    {data.stressors.length > 0
+                      ? `${data.stressors.length} selected`
+                      : 'Select options'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[500px] p-4 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2">
+                  {stressorsOptions.map((option) => (
+                    <div key={option} className="flex items-start space-x-2 py-2">
+                      <Checkbox
+                        id={`stressors-${option}`}
+                        checked={data.stressors?.includes(option)}
+                        onCheckedChange={() => toggleOption('stressors', option)}
+                      />
+                      <Label
+                        htmlFor={`stressors-${option}`}
+                        className="cursor-pointer font-normal text-sm"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         {/* Additional Details */}
