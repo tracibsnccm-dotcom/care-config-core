@@ -757,6 +757,16 @@ export type Database = {
           p_psychosocial: number
           p_purpose: number
           pain_scale: number
+          sdoh_employment: number | null
+          sdoh_financial: number | null
+          sdoh_food: number | null
+          sdoh_healthcare_access: number | null
+          sdoh_housing: number | null
+          sdoh_income_range: string | null
+          sdoh_insurance: number | null
+          sdoh_safety: number | null
+          sdoh_social_support: number | null
+          sdoh_transport: number | null
         }
         Insert: {
           anxiety_scale?: number | null
@@ -772,6 +782,16 @@ export type Database = {
           p_psychosocial: number
           p_purpose: number
           pain_scale: number
+          sdoh_employment?: number | null
+          sdoh_financial?: number | null
+          sdoh_food?: number | null
+          sdoh_healthcare_access?: number | null
+          sdoh_housing?: number | null
+          sdoh_income_range?: string | null
+          sdoh_insurance?: number | null
+          sdoh_safety?: number | null
+          sdoh_social_support?: number | null
+          sdoh_transport?: number | null
         }
         Update: {
           anxiety_scale?: number | null
@@ -787,6 +807,16 @@ export type Database = {
           p_psychosocial?: number
           p_purpose?: number
           pain_scale?: number
+          sdoh_employment?: number | null
+          sdoh_financial?: number | null
+          sdoh_food?: number | null
+          sdoh_healthcare_access?: number | null
+          sdoh_housing?: number | null
+          sdoh_income_range?: string | null
+          sdoh_insurance?: number | null
+          sdoh_safety?: number | null
+          sdoh_social_support?: number | null
+          sdoh_transport?: number | null
         }
         Relationships: []
       }

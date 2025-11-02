@@ -33,6 +33,20 @@ export default function ClientCheckins() {
     professional: 50,
   });
 
+  // SDOH state (0-4 scale)
+  const [sdohScores, setSdohScores] = useState({
+    housing: 0,
+    food: 0,
+    transport: 0,
+    insurance: 0,
+    financial: 0,
+    employment: 0,
+    social_support: 0,
+    safety: 0,
+    healthcare_access: 0,
+  });
+  const [incomeRange, setIncomeRange] = useState("");
+
   async function submit() {
     if (!forCase) {
       toast.error("Please select a case");
@@ -53,6 +67,17 @@ export default function ClientCheckins() {
           p_psychological: quick4ps.psychological,
           p_psychosocial: quick4ps.psychosocial,
           p_purpose: quick4ps.professional,
+          // Add SDOH tracking
+          sdoh_housing: sdohScores.housing,
+          sdoh_food: sdohScores.food,
+          sdoh_transport: sdohScores.transport,
+          sdoh_insurance: sdohScores.insurance,
+          sdoh_financial: sdohScores.financial,
+          sdoh_employment: sdohScores.employment,
+          sdoh_social_support: sdohScores.social_support,
+          sdoh_safety: sdohScores.safety,
+          sdoh_healthcare_access: sdohScores.healthcare_access,
+          sdoh_income_range: incomeRange || null,
           note: note || null,
         })
         .select()
@@ -193,6 +218,18 @@ export default function ClientCheckins() {
       setAnxiety(0);
       setNote("");
       setQuick4ps({ physical: 50, psychological: 50, psychosocial: 50, professional: 50 });
+      setSdohScores({
+        housing: 0,
+        food: 0,
+        transport: 0,
+        insurance: 0,
+        financial: 0,
+        employment: 0,
+        social_support: 0,
+        safety: 0,
+        healthcare_access: 0,
+      });
+      setIncomeRange("");
     } catch (error) {
       console.error("Error submitting check-in:", error);
       toast.error("Failed to submit check-in. Please try again.");
@@ -445,6 +482,57 @@ export default function ClientCheckins() {
                     </div>
                   </div>
                 </TooltipProvider>
+              </div>
+
+              {/* SDOH Tracking (0-4 Scale) */}
+              <div className="pt-4 border-t border-border">
+                <Label className="text-sm font-medium mb-3 block">Social Determinants of Health (SDOH) - Optional</Label>
+                <p className="text-xs text-muted-foreground mb-4">Rate your current situation: 0 = doing fine, 4 = severe difficulty</p>
+                <div className="space-y-4">
+                  {[
+                    { key: 'housing', label: 'Housing Stability' },
+                    { key: 'food', label: 'Food Security' },
+                    { key: 'transport', label: 'Transportation' },
+                    { key: 'insurance', label: 'Insurance Coverage' },
+                    { key: 'financial', label: 'Financial Resources' },
+                    { key: 'employment', label: 'Employment Status' },
+                    { key: 'social_support', label: 'Social Support' },
+                    { key: 'safety', label: 'Safety & Security' },
+                    { key: 'healthcare_access', label: 'Healthcare Access' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">{label}</Label>
+                        <span className="text-xs font-semibold">{(sdohScores as any)[key]}/4</span>
+                      </div>
+                      <Slider
+                        value={[(sdohScores as any)[key]]}
+                        onValueChange={([value]) => setSdohScores((s) => ({ ...s, [key]: value }))}
+                        max={4}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="income-range-checkin" className="text-xs">Income Range (optional)</Label>
+                    <select
+                      id="income-range-checkin"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={incomeRange}
+                      onChange={(e) => setIncomeRange(e.target.value)}
+                    >
+                      <option value="">Prefer not to say</option>
+                      <option value="Under $15,000">Under $15,000</option>
+                      <option value="$15,000 - $29,999">$15,000 - $29,999</option>
+                      <option value="$30,000 - $49,999">$30,000 - $49,999</option>
+                      <option value="$50,000 - $74,999">$50,000 - $74,999</option>
+                      <option value="$75,000 - $99,999">$75,000 - $99,999</option>
+                      <option value="$100,000+">$100,000+</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <Button onClick={submit} className="w-full" disabled={!forCase}>

@@ -35,6 +35,14 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     ? Math.round(recentCheckins.reduce((sum, c) => sum + c.p_purpose, 0) / recentCheckins.length)
     : 0;
 
+  // SDOH averages (0-4 scale)
+  const avgHousing = recentCheckins.length > 0 && recentCheckins.some(c => (c as any).sdoh_housing !== null)
+    ? Math.round((recentCheckins.reduce((sum, c) => sum + ((c as any).sdoh_housing || 0), 0) / recentCheckins.length) * 10) / 10
+    : null;
+  const avgFood = recentCheckins.length > 0 && recentCheckins.some(c => (c as any).sdoh_food !== null)
+    ? Math.round((recentCheckins.reduce((sum, c) => sum + ((c as any).sdoh_food || 0), 0) / recentCheckins.length) * 10) / 10
+    : null;
+
   const metrics = [
     { label: "Pain", value: avgPain, max: 10, icon: Heart, color: "text-destructive" },
     { label: "Depression", value: avgDepression, max: 10, icon: Brain, color: "text-warning" },
@@ -44,6 +52,14 @@ export function WellnessSnapshot({ caseId, onViewProgress }: WellnessSnapshotPro
     { label: "Psychosocial", value: avgPsychosocial, max: 100, icon: Activity, color: "text-primary" },
     { label: "Professional", value: avgProfessional, max: 100, icon: Activity, color: "text-primary" },
   ];
+
+  // Add SDOH metrics if tracked
+  if (avgHousing !== null) {
+    metrics.push({ label: "Housing", value: avgHousing, max: 4, icon: Activity, color: "text-success" });
+  }
+  if (avgFood !== null) {
+    metrics.push({ label: "Food", value: avgFood, max: 4, icon: Activity, color: "text-success" });
+  }
 
   if (loading) {
     return (

@@ -224,6 +224,41 @@ export default function IntakeWizard() {
     // Schedule client reminders via Supabase edge function
     scheduleClientReminders(undefined, newCase as any);
     
+    // Create initial client_checkin from intake 4Ps & SDOH for baseline tracking
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        const { error: checkinError } = await supabase.from("client_checkins").insert({
+          case_id: newCase.id,
+          client_id: userData.user.id,
+          pain_scale: 5,
+          depression_scale: 0,
+          anxiety_scale: 0,
+          p_physical: fourPs.physical * 25,
+          p_psychological: fourPs.psychological * 25,
+          p_psychosocial: fourPs.psychosocial * 25,
+          p_purpose: fourPs.professional * 25,
+          sdoh_housing: sdoh.housing || 0,
+          sdoh_food: sdoh.food || 0,
+          sdoh_transport: sdoh.transport || 0,
+          sdoh_insurance: sdoh.insuranceGap || 0,
+          sdoh_financial: sdoh.financial || 0,
+          sdoh_employment: sdoh.employment || 0,
+          sdoh_social_support: sdoh.social_support || 0,
+          sdoh_safety: sdoh.safety || 0,
+          sdoh_healthcare_access: sdoh.healthcare_access || 0,
+          sdoh_income_range: sdoh.income_range || null,
+          note: "Baseline from intake assessment"
+        } as any);
+        
+        if (checkinError) {
+          console.error("Error creating baseline check-in:", checkinError);
+        }
+      }
+    } catch (error) {
+      console.error("Error creating baseline check-in:", error);
+    }
+    
     alert(`Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Status: ${newCase.status}`);
     navigate("/cases");
   }
