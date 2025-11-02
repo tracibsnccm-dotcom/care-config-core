@@ -80,7 +80,7 @@ All colors MUST be HSL.
     --rcms-coral: 0 100% 74%;
     --rcms-white: 0 0% 100%;
     --rcms-black: 0 0% 0%;
-    --rcms-purple: 266 70% 55%;
+    --rcms-purple: 266 70% 40%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(44 53% 46%), hsl(178 76% 32%));
