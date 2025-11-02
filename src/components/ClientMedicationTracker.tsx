@@ -4,9 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Pill, Plus, AlertCircle } from "lucide-react";
+import { Pill, Plus, AlertCircle, Edit2, StopCircle, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { LabeledSelect } from "@/components/LabeledSelect";
+
+interface MedicationChange {
+  id: string;
+  change_type: string;
+  change_reason: string;
+  previous_value: any;
+  new_value: any;
+  notes: string | null;
+  changed_at: string;
+}
 
 interface Medication {
   id: string;
@@ -18,6 +35,8 @@ interface Medication {
   side_effects: string | null;
   is_active: boolean;
   created_at: string;
+  injury_timing: string | null;
+  change_history: MedicationChange[];
 }
 
 interface ClientMedicationTrackerProps {
@@ -28,6 +47,17 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showChangeDialog, setShowChangeDialog] = useState(false);
+  const [showDiscontinueDialog, setShowDiscontinueDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
+  const [changeReason, setChangeReason] = useState("");
+  const [discontinueReason, setDiscontinueReason] = useState("");
+  const [changeNotes, setChangeNotes] = useState("");
+  const [newDosage, setNewDosage] = useState("");
+  const [newFrequency, setNewFrequency] = useState("");
+  const [medicationHistory, setMedicationHistory] = useState<MedicationChange[]>([]);
+  
   const [newMed, setNewMed] = useState({
     medication_name: "",
     dosage: "",
@@ -99,22 +129,125 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
     }
   }
 
-  async function toggleMedication(medId: string, currentStatus: boolean) {
+  async function handleChange() {
+    if (!selectedMed || !changeReason) {
+      toast.error("Please select a change reason");
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      const user = await supabase.auth.getUser();
+      const previousValue = {
+        dosage: selectedMed.dosage,
+        frequency: selectedMed.frequency,
+      };
+      const newValue = {
+        dosage: newDosage || selectedMed.dosage,
+        frequency: newFrequency || selectedMed.frequency,
+      };
+
+      // Insert change record
+      const { error: changeError } = await supabase
+        .from("medication_changes")
+        .insert({
+          medication_id: selectedMed.id,
+          case_id: caseId,
+          client_id: user.data.user?.id,
+          change_type: "change",
+          change_reason: changeReason,
+          previous_value: previousValue,
+          new_value: newValue,
+          notes: changeNotes,
+          changed_by: user.data.user?.id,
+        });
+
+      if (changeError) throw changeError;
+
+      // Update medication
+      const { error: updateError } = await supabase
         .from("client_medications")
-        .update({ 
-          is_active: !currentStatus,
-          end_date: !currentStatus ? null : new Date().toISOString().split('T')[0]
+        .update({
+          dosage: newDosage || selectedMed.dosage,
+          frequency: newFrequency || selectedMed.frequency,
         })
-        .eq("id", medId);
+        .eq("id", selectedMed.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Medication updated successfully");
+      setShowChangeDialog(false);
+      setChangeReason("");
+      setChangeNotes("");
+      setNewDosage("");
+      setNewFrequency("");
+      fetchMedications();
+    } catch (err: any) {
+      console.error("Error updating medication:", err);
+      toast.error("Failed to update medication");
+    }
+  }
+
+  async function handleDiscontinue() {
+    if (!selectedMed || !discontinueReason) {
+      toast.error("Please select a discontinue reason");
+      return;
+    }
+
+    try {
+      const user = await supabase.auth.getUser();
+
+      // Insert change record
+      const { error: changeError } = await supabase
+        .from("medication_changes")
+        .insert({
+          medication_id: selectedMed.id,
+          case_id: caseId,
+          client_id: user.data.user?.id,
+          change_type: "discontinue",
+          change_reason: discontinueReason,
+          previous_value: { is_active: true },
+          new_value: { is_active: false },
+          notes: changeNotes,
+          changed_by: user.data.user?.id,
+        });
+
+      if (changeError) throw changeError;
+
+      // Update medication
+      const { error: updateError } = await supabase
+        .from("client_medications")
+        .update({
+          is_active: false,
+          end_date: new Date().toISOString().split("T")[0],
+        })
+        .eq("id", selectedMed.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Medication discontinued");
+      setShowDiscontinueDialog(false);
+      setDiscontinueReason("");
+      setChangeNotes("");
+      fetchMedications();
+    } catch (err: any) {
+      console.error("Error discontinuing medication:", err);
+      toast.error("Failed to discontinue medication");
+    }
+  }
+
+  async function loadMedicationHistory(medId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("medication_changes")
+        .select("*")
+        .eq("medication_id", medId)
+        .order("changed_at", { ascending: false });
 
       if (error) throw error;
-      fetchMedications();
-      toast.success(!currentStatus ? "Medication reactivated" : "Medication marked as stopped");
+      setMedicationHistory(data || []);
     } catch (err: any) {
-      console.error("Error toggling medication:", err);
-      toast.error("Failed to update medication");
+      console.error("Error loading history:", err);
+      toast.error("Failed to load history");
     }
   }
 
@@ -236,13 +369,43 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                           </div>
                         )}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleMedication(med.id, med.is_active)}
-                      >
-                        Stop Taking
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedMed(med);
+                            setNewDosage(med.dosage || "");
+                            setNewFrequency(med.frequency || "");
+                            setShowChangeDialog(true);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4 mr-1" />
+                          Change
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedMed(med);
+                            setShowDiscontinueDialog(true);
+                          }}
+                        >
+                          <StopCircle className="w-4 h-4 mr-1" />
+                          Discontinue
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedMed(med);
+                            loadMedicationHistory(med.id);
+                            setShowHistoryDialog(true);
+                          }}
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -281,6 +444,148 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
           )}
         </div>
       )}
+
+      {/* Change Dialog */}
+      <Dialog open={showChangeDialog} onOpenChange={setShowChangeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Medication: {selectedMed?.medication_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <LabeledSelect
+              label="Change Reason"
+              value={changeReason}
+              onChange={setChangeReason}
+              options={[
+                "Decreased dose",
+                "Increased dose",
+                "Changed frequency",
+                "Changed medication",
+                "Dose adjustment per doctor",
+              ]}
+            />
+            <div>
+              <Label>New Dosage (optional)</Label>
+              <Input
+                value={newDosage}
+                onChange={(e) => setNewDosage(e.target.value)}
+                placeholder="e.g., 400mg"
+              />
+            </div>
+            <div>
+              <Label>New Frequency (optional)</Label>
+              <Input
+                value={newFrequency}
+                onChange={(e) => setNewFrequency(e.target.value)}
+                placeholder="e.g., 2 times daily"
+              />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={changeNotes}
+                onChange={(e) => setChangeNotes(e.target.value)}
+                placeholder="Additional notes about this change..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleChange} className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold">
+                Save Change
+              </Button>
+              <Button onClick={() => setShowChangeDialog(false)} variant="outline">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discontinue Dialog */}
+      <Dialog open={showDiscontinueDialog} onOpenChange={setShowDiscontinueDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discontinue Medication: {selectedMed?.medication_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <LabeledSelect
+              label="Discontinue Reason"
+              value={discontinueReason}
+              onChange={setDiscontinueReason}
+              options={[
+                "Completed dose",
+                "Stopped",
+                "Started a new medication",
+                "Allergy to medication",
+                "Ineffective",
+                "Side effects (non-allergic)",
+                "Treatment complete",
+                "Doctor recommendation",
+              ]}
+            />
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={changeNotes}
+                onChange={(e) => setChangeNotes(e.target.value)}
+                placeholder="Additional notes about discontinuing..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleDiscontinue} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Discontinue
+              </Button>
+              <Button onClick={() => setShowDiscontinueDialog(false)} variant="outline">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Change History: {selectedMed?.medication_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {medicationHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No change history</p>
+            ) : (
+              medicationHistory.map((change) => (
+                <div key={change.id} className="p-3 border border-border rounded-lg bg-muted/20">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-sm font-semibold capitalize">{change.change_type}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(change.changed_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground mb-1">
+                    <strong>Reason:</strong> {change.change_reason}
+                  </p>
+                  {change.notes && (
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Notes:</strong> {change.notes}
+                    </p>
+                  )}
+                  {change.change_type === "change" && change.previous_value && change.new_value && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {change.previous_value.dosage !== change.new_value.dosage && (
+                        <p>Dosage: {change.previous_value.dosage} → {change.new_value.dosage}</p>
+                      )}
+                      {change.previous_value.frequency !== change.new_value.frequency && (
+                        <p>Frequency: {change.previous_value.frequency} → {change.new_value.frequency}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

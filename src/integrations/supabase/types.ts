@@ -1033,12 +1033,14 @@ export type Database = {
         Row: {
           adherence_notes: string | null
           case_id: string
+          change_history: Json | null
           client_id: string
           created_at: string | null
           dosage: string | null
           end_date: string | null
           frequency: string | null
           id: string
+          injury_timing: string | null
           is_active: boolean | null
           medication_name: string
           prescribing_doctor: string | null
@@ -1049,12 +1051,14 @@ export type Database = {
         Insert: {
           adherence_notes?: string | null
           case_id: string
+          change_history?: Json | null
           client_id: string
           created_at?: string | null
           dosage?: string | null
           end_date?: string | null
           frequency?: string | null
           id?: string
+          injury_timing?: string | null
           is_active?: boolean | null
           medication_name: string
           prescribing_doctor?: string | null
@@ -1065,12 +1069,14 @@ export type Database = {
         Update: {
           adherence_notes?: string | null
           case_id?: string
+          change_history?: Json | null
           client_id?: string
           created_at?: string | null
           dosage?: string | null
           end_date?: string | null
           frequency?: string | null
           id?: string
+          injury_timing?: string | null
           is_active?: boolean | null
           medication_name?: string
           prescribing_doctor?: string | null
@@ -1821,6 +1827,59 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medication_changes: {
+        Row: {
+          case_id: string
+          change_reason: string
+          change_type: string
+          changed_at: string
+          changed_by: string
+          client_id: string
+          created_at: string
+          id: string
+          medication_id: string
+          new_value: Json | null
+          notes: string | null
+          previous_value: Json | null
+        }
+        Insert: {
+          case_id: string
+          change_reason: string
+          change_type: string
+          changed_at?: string
+          changed_by: string
+          client_id: string
+          created_at?: string
+          id?: string
+          medication_id: string
+          new_value?: Json | null
+          notes?: string | null
+          previous_value?: Json | null
+        }
+        Update: {
+          case_id?: string
+          change_reason?: string
+          change_type?: string
+          changed_at?: string
+          changed_by?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          medication_id?: string
+          new_value?: Json | null
+          notes?: string | null
+          previous_value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_changes_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "client_medications"
             referencedColumns: ["id"]
           },
         ]
