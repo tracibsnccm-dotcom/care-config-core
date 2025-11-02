@@ -105,7 +105,7 @@ export default function ClientPortal() {
       </header>
 
       {/* Care Team Contact Bar */}
-      {caseId && <CareTeamContactBar caseId={caseId} />}
+      <CareTeamContactBar caseId={caseId || ""} />
 
       {/* SECTION 2 - SNAPSHOT + ACTIONS (navy→teal gradient) */}
       <section className="bg-gradient-navy-teal py-12">
@@ -118,39 +118,11 @@ export default function ClientPortal() {
           
           
           {/* Wellness Snapshot */}
-          {caseId ? (
-            <>
-              <WellnessSnapshot 
-                caseId={caseId}
-                onViewProgress={() => setActiveTab("checkins")} 
-              />
-              <HealthSummaryChips caseId={caseId} />
-            </>
-          ) : (
-            <>
-            <Card className="p-6 bg-white border-2 border-rcms-gold shadow-xl">
-              <p className="text-muted-foreground">No active case found.</p>
-            </Card>
-            <div className="grid gap-6 md:grid-cols-2 mt-4">
-              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
-                <h3 className="font-bold mb-2 text-foreground">Goals & Milestones</h3>
-                <p className="text-sm text-muted-foreground">Set recovery goals and track progress. Assignments will appear here once a case is active.</p>
-              </Card>
-              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
-                <h3 className="font-bold mb-2 text-foreground">Medication Tracker</h3>
-                <p className="text-sm text-muted-foreground">Track current and past medications. This will be enabled once a case is active.</p>
-              </Card>
-              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
-                <h3 className="font-bold mb-2 text-foreground">Action Items</h3>
-                <p className="text-sm text-muted-foreground">Tasks from your care team will show here. Activate a case to begin.</p>
-              </Card>
-              <Card className="p-6 bg-white border-rcms-gold shadow-xl">
-                <h3 className="font-bold mb-2 text-foreground">Appointments</h3>
-                <p className="text-sm text-muted-foreground">Upcoming visits and reminders will display here once a case is active.</p>
-              </Card>
-            </div>
-            </>
-          )}
+          <WellnessSnapshot 
+            caseId={caseId || ""} 
+            onViewProgress={() => setActiveTab("checkins")} 
+          />
+          <HealthSummaryChips caseId={caseId || ""} />
 
           {/* Quick Actions Row */}
           <div className="grid gap-4 md:grid-cols-2">
@@ -176,7 +148,7 @@ export default function ClientPortal() {
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <ReportConcernDialog 
-                      caseId={caseId} 
+                      caseId={caseId || ""} 
                       onSuccess={() => setConcernDialogOpen(false)} 
                     />
                   </DialogContent>
@@ -202,21 +174,17 @@ export default function ClientPortal() {
           </div>
 
           {/* New Sections: Goals, Medications, Action Items */}
-          {caseId && (
-            <div className="grid gap-6 md:grid-cols-2">
-              <ClientGoalTracker caseId={caseId} />
-              <ClientMedicationTracker caseId={caseId} />
-            </div>
-          )}
+          <div className="grid gap-6 md:grid-cols-2">
+            <ClientGoalTracker caseId={caseId || ""} />
+            <ClientMedicationTracker caseId={caseId || ""} />
+          </div>
           
-          {caseId && (
-            <div className="grid gap-6 md:grid-cols-2">
-              <ClientActionItems caseId={caseId} />
-              <ClientAppointmentCalendar caseId={caseId} />
-            </div>
-          )}
+          <div className="grid gap-6 md:grid-cols-2">
+            <ClientActionItems caseId={caseId || ""} />
+            <ClientAppointmentCalendar caseId={caseId || ""} />
+          </div>
           
-          {caseId && <ClientQuickMessage caseId={caseId} />}
+          <ClientQuickMessage caseId={caseId || ""} />
         </div>
       </section>
 
@@ -296,7 +264,7 @@ export default function ClientPortal() {
                   </div>
                   <ClientCheckins />
                   <div className="mt-6 pt-6 border-t-2 border-rcms-gold">
-                    <ClientJournal caseId={caseId} />
+                    <ClientJournal caseId={caseId || ""} />
                   </div>
                 </div>
               </TabsContent>
@@ -308,7 +276,7 @@ export default function ClientPortal() {
                     Care Plans
                   </h2>
                 </div>
-                <CarePlansViewer caseId={caseId} />
+                <CarePlansViewer caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="communication" className="mt-0">
@@ -318,7 +286,7 @@ export default function ClientPortal() {
                     Messages / Communication Center
                   </h2>
                 </div>
-                <ClientMessaging caseId={caseId} />
+                <ClientMessaging caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="documents" className="mt-0">
@@ -328,7 +296,7 @@ export default function ClientPortal() {
                     Documents & Files
                   </h2>
                 </div>
-                <ClientDocuments caseId={caseId} />
+                <ClientDocuments caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="timeline" className="mt-0">
@@ -338,7 +306,7 @@ export default function ClientPortal() {
                     Case Summary / Activity Timeline
                   </h2>
                 </div>
-                <CaseTimeline caseId={caseId} />
+                <CaseTimeline caseId={caseId || ""} />
               </TabsContent>
 
               <TabsContent value="resources" className="mt-0">
