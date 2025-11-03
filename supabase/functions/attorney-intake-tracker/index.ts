@@ -49,7 +49,6 @@ serve(async (req) => {
         .from('cases')
         .select(`
           id,
-          client_id,
           status,
           updated_at,
           created_at
@@ -75,19 +74,31 @@ serve(async (req) => {
       const { data: cases, error } = await baseQuery;
       if (error) throw error;
 
-      // Fetch client profiles for display names in a separate query
+      // Build map of case -> client user_id via case_assignments (role CLIENT), then fetch profiles
+      const clientByCase = new Map<string, string>();
       const profilesMap = new Map<string, string>();
       if (cases && cases.length > 0) {
-        const clientIds = Array.from(new Set(cases.map((c: any) => c.client_id).filter(Boolean)));
-        if (clientIds.length > 0) {
-          const { data: profs, error: profErr } = await supabaseClient
-            .from('profiles')
-            .select('user_id, display_name')
-            .in('user_id', clientIds);
-          if (profErr) {
-            console.error('profiles fetch error', profErr);
-          } else {
-            profs?.forEach((p: any) => profilesMap.set(p.user_id, p.display_name));
+        const caseIds = (cases as any[]).map((c: any) => c.id);
+        const { data: assigns, error: caErr } = await supabaseClient
+          .from('case_assignments')
+          .select('case_id, user_id, role')
+          .in('case_id', caseIds)
+          .eq('role', 'CLIENT');
+        if (caErr) {
+          console.error('case_assignments fetch error', caErr);
+        } else {
+          assigns?.forEach((a: any) => clientByCase.set(a.case_id, a.user_id));
+          const clientIds = Array.from(new Set(assigns?.map((a: any) => a.user_id) || []));
+          if (clientIds.length > 0) {
+            const { data: profs, error: profErr } = await supabaseClient
+              .from('profiles')
+              .select('user_id, display_name')
+              .in('user_id', clientIds);
+            if (profErr) {
+              console.error('profiles fetch error', profErr);
+            } else {
+              profs?.forEach((p: any) => profilesMap.set(p.user_id, p.display_name));
+            }
           }
         }
       }
@@ -96,10 +107,11 @@ serve(async (req) => {
       const rows = (cases || []).map((c: any) => {
         const intakeStart = new Date(c.updated_at || c.created_at || new Date().toISOString());
         const expiresAt = new Date(intakeStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const clientId = clientByCase.get(c.id);
         
         return {
           case_id: c.id,
-          client: profilesMap.get(c.client_id) || 'Unknown',
+          client: (clientId ? profilesMap.get(clientId) : undefined) || 'Unknown',
           stage: c.status,
           last_activity_iso: c.updated_at,
           expires_iso: expiresAt.toISOString(),
@@ -114,17 +126,18 @@ serve(async (req) => {
     }
 
     if (action === 'nudge') {
-      // Send notification to client
-      const { data: caseData, error } = await supabaseClient
-        .from('cases')
-        .select('client_id')
-        .eq('id', case_id)
+      // Send notification to client (lookup client via case_assignments)
+      const { data: ca, error: caErr } = await supabaseClient
+        .from('case_assignments')
+        .select('user_id')
+        .eq('case_id', case_id)
+        .eq('role', 'CLIENT')
         .single();
 
-      if (error) throw error;
+      if (caErr) throw caErr;
 
       await supabaseClient.from('notifications').insert({
-        user_id: caseData.client_id,
+        user_id: (ca as any).user_id,
         title: 'Complete Your Intake',
         message: 'Your attorney is waiting for you to complete your intake form. You have 7 days from when you started.',
         type: 'info',
@@ -138,19 +151,20 @@ serve(async (req) => {
 
     if (action === 'escalate') {
       // Notify RN CM about incomplete intake
-      const { data: caseData, error: caseErr } = await supabaseClient
-        .from('cases')
-        .select('client_id')
-        .eq('id', case_id)
+      const { data: ca, error: caErr } = await supabaseClient
+        .from('case_assignments')
+        .select('user_id')
+        .eq('case_id', case_id)
+        .eq('role', 'CLIENT')
         .single();
-      if (caseErr) throw caseErr;
+      if (caErr) throw caErr;
 
       let clientName = 'client';
-      if (caseData?.client_id) {
+      if ((ca as any)?.user_id) {
         const { data: profile, error: profErr } = await supabaseClient
           .from('profiles')
           .select('display_name')
-          .eq('user_id', (caseData as any).client_id)
+          .eq('user_id', (ca as any).user_id)
           .single();
         if (!profErr && profile) clientName = (profile as any).display_name || clientName;
       }
