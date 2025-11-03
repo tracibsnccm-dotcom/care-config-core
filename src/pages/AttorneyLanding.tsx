@@ -40,6 +40,17 @@ import AttorneyGlobalSearch from "@/components/attorney/AttorneyGlobalSearch";
 import AttorneyQuickStatsWidget from "@/components/attorney/AttorneyQuickStatsWidget";
 import RecentActivityFeed from "@/components/attorney/RecentActivityFeed";
 import PinnedCasesWidget from "@/components/attorney/PinnedCasesWidget";
+import { TimeTrackingBilling } from "@/components/attorney/TimeTrackingBilling";
+import { CaseNotesHub } from "@/components/attorney/CaseNotesHub";
+import { ComplianceRiskManagement } from "@/components/attorney/ComplianceRiskManagement";
+import { DiscoveryManagement } from "@/components/attorney/DiscoveryManagement";
+import { FinancialDashboard } from "@/components/attorney/FinancialDashboard";
+import { TeamCollaborationCenter } from "@/components/attorney/TeamCollaborationCenter";
+import { CaseOutcomePredictions } from "@/components/attorney/CaseOutcomePredictions";
+import { ConflictChecker } from "@/components/attorney/ConflictChecker";
+import { LegalFormsLibrary } from "@/components/attorney/LegalFormsLibrary";
+import { CourtFilingIntegration } from "@/components/attorney/CourtFilingIntegration";
+import { RNValueMetrics } from "@/components/attorney/RNValueMetrics";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
