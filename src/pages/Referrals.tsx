@@ -43,6 +43,11 @@ import { ReferralWalletBanner } from "@/components/ReferralWalletBanner";
 import { PendingAssignmentsView } from "@/components/PendingAssignmentsView";
 import { RequestReferralView } from "@/components/RequestReferralView";
 import { AttorneyAssignmentHistory } from "@/components/AttorneyAssignmentHistory";
+import { ReferralFeeCalculator } from "@/components/ReferralFeeCalculator";
+import { SettlementReportingForm } from "@/components/SettlementReportingForm";
+import { ReferralAgreementViewer } from "@/components/ReferralAgreementViewer";
+import { ReferralSourceTracking } from "@/components/ReferralSourceTracking";
+import { PerformanceBenchmarking } from "@/components/PerformanceBenchmarking";
 
 interface Referral {
   id: string;
@@ -165,14 +170,21 @@ export default function Referrals() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="request">Request</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="wallet">eWallet</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex w-full min-w-max">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
+              <TabsTrigger value="request">Request</TabsTrigger>
+              <TabsTrigger value="calculator">Calculator</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="settlement">Settlement</TabsTrigger>
+              <TabsTrigger value="agreement">Agreement</TabsTrigger>
+              <TabsTrigger value="sources">Sources</TabsTrigger>
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="wallet">eWallet</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-6">
             <ReferralsDashboardWidget />
@@ -368,8 +380,28 @@ export default function Referrals() {
             <RequestReferralView />
           </TabsContent>
 
+          <TabsContent value="calculator" className="space-y-6">
+            <ReferralFeeCalculator />
+          </TabsContent>
+
           <TabsContent value="history" className="space-y-6">
             <AttorneyAssignmentHistory />
+          </TabsContent>
+
+          <TabsContent value="settlement" className="space-y-6">
+            <SettlementReportingForm />
+          </TabsContent>
+
+          <TabsContent value="agreement" className="space-y-6">
+            <ReferralAgreementViewer />
+          </TabsContent>
+
+          <TabsContent value="sources" className="space-y-6">
+            <ReferralSourceTracking />
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-6">
+            <PerformanceBenchmarking />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
