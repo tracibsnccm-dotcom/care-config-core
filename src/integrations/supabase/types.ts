@@ -2951,6 +2951,7 @@ export type Database = {
         Row: {
           attorney_collaboration_count: number | null
           avg_response_time_hours: number | null
+          below_standard_metrics: Json | null
           care_plan_updates: number | null
           cases_closed: number | null
           cases_managed: number | null
@@ -2966,6 +2967,8 @@ export type Database = {
           id: string
           metric_date: string
           new_cases_assigned: number | null
+          notes_submitted_at: string | null
+          performance_notes: string | null
           rn_user_id: string
           sla_compliance_rate: number | null
           task_completion_rate: number | null
@@ -2974,6 +2977,7 @@ export type Database = {
         Insert: {
           attorney_collaboration_count?: number | null
           avg_response_time_hours?: number | null
+          below_standard_metrics?: Json | null
           care_plan_updates?: number | null
           cases_closed?: number | null
           cases_managed?: number | null
@@ -2989,6 +2993,8 @@ export type Database = {
           id?: string
           metric_date?: string
           new_cases_assigned?: number | null
+          notes_submitted_at?: string | null
+          performance_notes?: string | null
           rn_user_id: string
           sla_compliance_rate?: number | null
           task_completion_rate?: number | null
@@ -2997,6 +3003,7 @@ export type Database = {
         Update: {
           attorney_collaboration_count?: number | null
           avg_response_time_hours?: number | null
+          below_standard_metrics?: Json | null
           care_plan_updates?: number | null
           cases_closed?: number | null
           cases_managed?: number | null
@@ -3012,6 +3019,8 @@ export type Database = {
           id?: string
           metric_date?: string
           new_cases_assigned?: number | null
+          notes_submitted_at?: string | null
+          performance_notes?: string | null
           rn_user_id?: string
           sla_compliance_rate?: number | null
           task_completion_rate?: number | null
@@ -3224,6 +3233,42 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           weekend_availability?: boolean | null
+        }
+        Relationships: []
+      }
+      rn_metric_notes: {
+        Row: {
+          created_at: string
+          id: string
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          note: string
+          rn_user_id: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          note: string
+          rn_user_id: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric_date?: string
+          metric_name?: string
+          metric_value?: number
+          note?: string
+          rn_user_id?: string
+          target_value?: number
+          updated_at?: string
         }
         Relationships: []
       }

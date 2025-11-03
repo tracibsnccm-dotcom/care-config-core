@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, Calendar, ArrowUp, ArrowDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Calendar, ArrowUp, ArrowDown, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MetricNoteDialog } from "./MetricNoteDialog";
 
 interface MetricComparison {
   current: number;
@@ -28,12 +29,28 @@ interface DailyMetric {
   sla_compliance_rate: number;
 }
 
+// Target values for metrics
+const METRIC_TARGETS = {
+  avg_response_time_hours: 8,
+  documentation_completion_rate: 95,
+  task_completion_rate: 90,
+  client_satisfaction_score: 4.0,
+  sla_compliance_rate: 95,
+};
+
 export function RNIndividualMetricsDashboard() {
   const [metrics, setMetrics] = useState<DailyMetric | null>(null);
   const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [historyMonths, setHistoryMonths] = useState<number>(1);
   const [history, setHistory] = useState<DailyMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const [noteDialog, setNoteDialog] = useState<{
+    open: boolean;
+    metricName: string;
+    metricLabel: string;
+    currentValue: number;
+    targetValue: number;
+  } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -189,48 +206,148 @@ export function RNIndividualMetricsDashboard() {
             {/* Avg Response Time */}
             <Card className="p-4">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                  {metrics && metrics.avg_response_time_hours > METRIC_TARGETS.avg_response_time_hours && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDialog({
+                        open: true,
+                        metricName: 'avg_response_time_hours',
+                        metricLabel: 'Avg Response Time',
+                        currentValue: metrics.avg_response_time_hours,
+                        targetValue: METRIC_TARGETS.avg_response_time_hours,
+                      })}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-3xl font-bold">{metrics?.avg_response_time_hours?.toFixed(1) || 0}h</p>
                 {comparisons.avg_response_time_hours && renderTrendIndicator(comparisons.avg_response_time_hours, true)}
+                {metrics && metrics.avg_response_time_hours > METRIC_TARGETS.avg_response_time_hours && (
+                  <Badge variant="destructive" className="text-xs">Below Target</Badge>
+                )}
               </div>
             </Card>
 
             {/* Documentation Rate */}
             <Card className="p-4">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Documentation Completion</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Documentation Completion</p>
+                  {metrics && metrics.documentation_completion_rate < METRIC_TARGETS.documentation_completion_rate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDialog({
+                        open: true,
+                        metricName: 'documentation_completion_rate',
+                        metricLabel: 'Documentation Completion',
+                        currentValue: metrics.documentation_completion_rate,
+                        targetValue: METRIC_TARGETS.documentation_completion_rate,
+                      })}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-3xl font-bold">{metrics?.documentation_completion_rate?.toFixed(0) || 0}%</p>
                 {comparisons.documentation_completion_rate && renderTrendIndicator(comparisons.documentation_completion_rate)}
                 <Progress value={metrics?.documentation_completion_rate || 0} className="h-2" />
+                {metrics && metrics.documentation_completion_rate < METRIC_TARGETS.documentation_completion_rate && (
+                  <Badge variant="destructive" className="text-xs">Below Target</Badge>
+                )}
               </div>
             </Card>
 
             {/* Task Completion Rate */}
             <Card className="p-4">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Task Completion Rate</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Task Completion Rate</p>
+                  {metrics && metrics.task_completion_rate < METRIC_TARGETS.task_completion_rate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDialog({
+                        open: true,
+                        metricName: 'task_completion_rate',
+                        metricLabel: 'Task Completion Rate',
+                        currentValue: metrics.task_completion_rate,
+                        targetValue: METRIC_TARGETS.task_completion_rate,
+                      })}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-3xl font-bold">{metrics?.task_completion_rate?.toFixed(0) || 0}%</p>
                 {comparisons.task_completion_rate && renderTrendIndicator(comparisons.task_completion_rate)}
                 <Progress value={metrics?.task_completion_rate || 0} className="h-2" />
+                {metrics && metrics.task_completion_rate < METRIC_TARGETS.task_completion_rate && (
+                  <Badge variant="destructive" className="text-xs">Below Target</Badge>
+                )}
               </div>
             </Card>
 
             {/* Client Satisfaction */}
             <Card className="p-4">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Client Satisfaction</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Client Satisfaction</p>
+                  {metrics && metrics.client_satisfaction_score < METRIC_TARGETS.client_satisfaction_score && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDialog({
+                        open: true,
+                        metricName: 'client_satisfaction_score',
+                        metricLabel: 'Client Satisfaction',
+                        currentValue: metrics.client_satisfaction_score,
+                        targetValue: METRIC_TARGETS.client_satisfaction_score,
+                      })}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-3xl font-bold">{metrics?.client_satisfaction_score?.toFixed(2) || 0}/5</p>
                 {comparisons.client_satisfaction_score && renderTrendIndicator(comparisons.client_satisfaction_score)}
+                {metrics && metrics.client_satisfaction_score < METRIC_TARGETS.client_satisfaction_score && (
+                  <Badge variant="destructive" className="text-xs">Below Target</Badge>
+                )}
               </div>
             </Card>
 
             {/* SLA Compliance */}
             <Card className="p-4 border-success/20 bg-success/5">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">SLA Compliance</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">SLA Compliance</p>
+                  {metrics && metrics.sla_compliance_rate < METRIC_TARGETS.sla_compliance_rate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDialog({
+                        open: true,
+                        metricName: 'sla_compliance_rate',
+                        metricLabel: 'SLA Compliance',
+                        currentValue: metrics.sla_compliance_rate,
+                        targetValue: METRIC_TARGETS.sla_compliance_rate,
+                      })}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-3xl font-bold">{metrics?.sla_compliance_rate?.toFixed(0) || 0}%</p>
                 {comparisons.sla_compliance_rate && renderTrendIndicator(comparisons.sla_compliance_rate)}
                 <Progress value={metrics?.sla_compliance_rate || 0} className="h-2" />
+                {metrics && metrics.sla_compliance_rate < METRIC_TARGETS.sla_compliance_rate && (
+                  <Badge variant="destructive" className="text-xs">Below Target</Badge>
+                )}
               </div>
             </Card>
           </div>
@@ -285,6 +402,25 @@ export function RNIndividualMetricsDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Metric Note Dialog */}
+      {noteDialog && (
+        <MetricNoteDialog
+          open={noteDialog.open}
+          onOpenChange={(open) => !open && setNoteDialog(null)}
+          metricName={noteDialog.metricName}
+          metricLabel={noteDialog.metricLabel}
+          currentValue={noteDialog.currentValue}
+          targetValue={noteDialog.targetValue}
+          metricDate={new Date().toISOString().split('T')[0]}
+          onSaved={() => {
+            toast({
+              title: "Note Saved",
+              description: "Your explanation has been documented for supervisor review.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

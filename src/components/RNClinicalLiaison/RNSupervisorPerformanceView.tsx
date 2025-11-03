@@ -29,6 +29,7 @@ interface RNMetricsSummary {
   avg_client_satisfaction: number;
   avg_sla_compliance: number;
   recent_reviews: any[];
+  metric_notes: any[];
 }
 
 interface PerformanceReview {
@@ -88,6 +89,14 @@ export function RNSupervisorPerformanceView() {
           .order("created_at", { ascending: false })
           .limit(3);
 
+        // Get recent metric notes (last 30 days)
+        const { data: notes, error: notesError } = await supabase
+          .from("rn_metric_notes")
+          .select("*")
+          .eq("rn_user_id", rn.user_id)
+          .gte("metric_date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+          .order("metric_date", { ascending: false });
+
         const avgMetrics = metrics?.reduce(
           (acc, m) => ({
             cases: acc.cases + (m.cases_managed || 0),
@@ -113,6 +122,7 @@ export function RNSupervisorPerformanceView() {
           avg_client_satisfaction: avgMetrics ? avgMetrics.satisfaction / count : 0,
           avg_sla_compliance: avgMetrics ? avgMetrics.sla / count : 0,
           recent_reviews: reviews || [],
+          metric_notes: notes || [],
         });
       }
 
@@ -399,6 +409,29 @@ export function RNSupervisorPerformanceView() {
                               {new Date(review.created_at).toLocaleDateString()} - {review.performance_tier}
                             </span>
                             <span className="font-medium">{review.overall_rating.toFixed(2)}/5</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Below-Standard Metric Notes */}
+                  {rn.metric_notes.length > 0 && (
+                    <div className="border-t pt-3">
+                      <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Below-Standard Metric Notes (Last 30 Days)
+                      </p>
+                      <div className="space-y-2">
+                        {rn.metric_notes.slice(0, 3).map((note: any) => (
+                          <div key={note.id} className="text-xs p-2 bg-warning/10 border border-warning/20 rounded">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium">{note.metric_name.replace(/_/g, ' ')}</span>
+                              <span className="text-muted-foreground">
+                                {new Date(note.metric_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{note.note}</p>
                           </div>
                         ))}
                       </div>
