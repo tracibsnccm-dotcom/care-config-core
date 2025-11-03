@@ -293,7 +293,7 @@ export default function RNDashboard() {
           <Card className="border-dashed">
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground">
-                <strong className="text-foreground">Implementation TODO:</strong>
+                <strong className="text-foreground">Implementation To Do:</strong>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li>Replace mock data with Apps Script or API endpoint (see <code className="text-xs bg-muted px-1 py-0.5 rounded">src/lib/rnMetrics.ts</code>)</li>
                   <li>Add detailed drill-down for supervisor role</li>
