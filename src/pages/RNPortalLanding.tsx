@@ -22,6 +22,7 @@ import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 import { useRNAssignments, useRNAssessments, useRNDiary } from "@/hooks/useRNData";
 import { format } from "date-fns";
+import { EmergencyAlertsCard } from "@/components/RNClinicalLiaison/EmergencyAlertsCard";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -54,6 +55,11 @@ export default function RNPortalLanding() {
             Access your dashboard, manage cases, track compliance, and communicate with clients and providers.
           </p>
         </header>
+
+          {/* Emergency Alerts - Priority Section */}
+          <div className="mb-8">
+            <EmergencyAlertsCard />
+          </div>
 
           {/* Quick Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

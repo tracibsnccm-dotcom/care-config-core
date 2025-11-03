@@ -3029,6 +3029,9 @@ export type Database = {
           acknowledged: boolean | null
           acknowledged_at: string | null
           acknowledged_by: string | null
+          address_method: string | null
+          addressed_at: string | null
+          addressed_by: string | null
           alert_details: Json | null
           alert_type: string
           case_id: string
@@ -3036,13 +3039,19 @@ export type Database = {
           created_at: string | null
           id: string
           metadata: Json | null
+          resolution_note: string | null
           rn_id: string | null
           severity: string
+          shift_start_time: string | null
+          sla_deadline: string | null
         }
         Insert: {
           acknowledged?: boolean | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          address_method?: string | null
+          addressed_at?: string | null
+          addressed_by?: string | null
           alert_details?: Json | null
           alert_type: string
           case_id: string
@@ -3050,13 +3059,19 @@ export type Database = {
           created_at?: string | null
           id?: string
           metadata?: Json | null
+          resolution_note?: string | null
           rn_id?: string | null
           severity?: string
+          shift_start_time?: string | null
+          sla_deadline?: string | null
         }
         Update: {
           acknowledged?: boolean | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          address_method?: string | null
+          addressed_at?: string | null
+          addressed_by?: string | null
           alert_details?: Json | null
           alert_type?: string
           case_id?: string
@@ -3064,8 +3079,11 @@ export type Database = {
           created_at?: string | null
           id?: string
           metadata?: Json | null
+          resolution_note?: string | null
           rn_id?: string | null
           severity?: string
+          shift_start_time?: string | null
+          sla_deadline?: string | null
         }
         Relationships: [
           {
@@ -3451,6 +3469,10 @@ export type Database = {
       }
       assign_attorney_round_robin: {
         Args: { p_case_id: string; p_reviewed_by: string }
+        Returns: string
+      }
+      calculate_alert_sla_deadline: {
+        Args: { p_alert_type: string; p_shift_start: string }
         Returns: string
       }
       convert_to_attorney_case: {

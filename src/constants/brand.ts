@@ -2,6 +2,7 @@ export const RCMS = {
   brandNavy: "#0f2a6a",     // headings
   brandTeal: "#128f8b",     // accents
   brandGold: "#b09837",     // gold accents
+  brandRed: "#e74c3c",      // emergency/critical alerts
   clientBlue: "#00695c",    // client portal button
   attorneyOrange: "#ff7a00",// attorney CTA
   eggplant: "#4b1d3f",      // provider portal button
