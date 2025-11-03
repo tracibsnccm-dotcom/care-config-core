@@ -62,6 +62,9 @@ import { EvidenceRepository } from "@/components/attorney/EvidenceRepository";
 import { MedicalProviderNetwork } from "@/components/attorney/MedicalProviderNetwork";
 import { ClientBillingInvoicing } from "@/components/attorney/ClientBillingInvoicing";
 import { MarketingLeadManagement } from "@/components/attorney/MarketingLeadManagement";
+import { AICasePrioritization } from "@/components/attorney/AICasePrioritization";
+import { AISettlementPredictor } from "@/components/attorney/AISettlementPredictor";
+import { AIDocumentAssembly } from "@/components/attorney/AIDocumentAssembly";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -412,6 +415,9 @@ export default function AttorneyLanding() {
             <TabsTrigger value="provider-network">Provider Network</TabsTrigger>
             <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>
             <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>
+            <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>
+            <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>
+            <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
@@ -607,6 +613,18 @@ export default function AttorneyLanding() {
 
               <TabsContent value="marketing">
                 <MarketingLeadManagement />
+              </TabsContent>
+
+              <TabsContent value="ai-prioritization">
+                <AICasePrioritization cases={cases} />
+              </TabsContent>
+
+              <TabsContent value="ai-settlement">
+                <AISettlementPredictor caseData={cases[0]} />
+              </TabsContent>
+
+              <TabsContent value="ai-documents">
+                <AIDocumentAssembly caseData={cases[0]} />
               </TabsContent>
 
           {/* Document Hub Tab */}

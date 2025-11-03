@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.intake-draft]
 verify_jwt = false
+
+[functions.ai-case-prioritization]
+verify_jwt = true
+
+[functions.ai-settlement-predictor]
+verify_jwt = true
+
+[functions.ai-document-assembly]
+verify_jwt = true
