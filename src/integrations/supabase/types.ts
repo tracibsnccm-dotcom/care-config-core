@@ -167,12 +167,20 @@ export type Database = {
           capacity_available: number
           capacity_limit: number
           created_at: string
+          enabled_features: Json | null
+          feature_usage_stats: Json | null
           id: string
           last_assigned_date: string | null
           plan_price: number | null
           renewal_date: string | null
           status: string
+          subscription_started_at: string | null
+          subscription_tier:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           tier: string
+          trial_ends_at: string | null
+          trial_starts_at: string | null
           updated_at: string
           user_id: string
         }
@@ -180,12 +188,20 @@ export type Database = {
           capacity_available?: number
           capacity_limit?: number
           created_at?: string
+          enabled_features?: Json | null
+          feature_usage_stats?: Json | null
           id?: string
           last_assigned_date?: string | null
           plan_price?: number | null
           renewal_date?: string | null
           status?: string
+          subscription_started_at?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           tier?: string
+          trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -193,12 +209,20 @@ export type Database = {
           capacity_available?: number
           capacity_limit?: number
           created_at?: string
+          enabled_features?: Json | null
+          feature_usage_stats?: Json | null
           id?: string
           last_assigned_date?: string | null
           plan_price?: number | null
           renewal_date?: string | null
           status?: string
+          subscription_started_at?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           tier?: string
+          trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1965,6 +1989,78 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_definitions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          feature_key: string
+          feature_name: string
+          icon_name: string | null
+          id: string
+          is_core_feature: boolean | null
+          tier_required: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_key: string
+          feature_name: string
+          icon_name?: string | null
+          id?: string
+          is_core_feature?: boolean | null
+          tier_required: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_key?: string
+          feature_name?: string
+          icon_name?: string | null
+          id?: string
+          is_core_feature?: boolean | null
+          tier_required?: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Relationships: []
+      }
+      feature_usage_logs: {
+        Row: {
+          attorney_id: string
+          created_at: string | null
+          feature_key: string
+          id: string
+          last_used_at: string | null
+          metadata: Json | null
+          session_duration_seconds: number | null
+          usage_count: number | null
+        }
+        Insert: {
+          attorney_id: string
+          created_at?: string | null
+          feature_key: string
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          session_duration_seconds?: number | null
+          usage_count?: number | null
+        }
+        Update: {
+          attorney_id?: string
+          created_at?: string | null
+          feature_key?: string
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          session_duration_seconds?: number | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       intake_drafts: {
         Row: {
           case_id: string | null
@@ -3099,9 +3195,21 @@ export type Database = {
       }
       get_next_round_robin_attorney: { Args: never; Returns: string }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
+      get_tier_recommendation: {
+        Args: { p_attorney_id: string }
+        Returns: {
+          reason: string
+          recommended_tier: Database["public"]["Enums"]["subscription_tier"]
+          top_features: Json
+        }[]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      has_feature_access: {
+        Args: { p_attorney_id: string; p_feature_key: string }
+        Returns: boolean
       }
       has_role:
         | { Args: { check_role: string }; Returns: boolean }
@@ -3117,6 +3225,15 @@ export type Database = {
           p_action_type: string
           p_document_id: string
           p_metadata?: Json
+        }
+        Returns: undefined
+      }
+      log_feature_usage: {
+        Args: {
+          p_attorney_id: string
+          p_feature_key: string
+          p_metadata?: Json
+          p_session_duration?: number
         }
         Returns: undefined
       }
@@ -3164,6 +3281,7 @@ export type Database = {
       disclosure_scope: "internal" | "minimal" | "full"
       payment_status: "pending" | "paid" | "failed" | "refunded"
       referral_status: "pending" | "accepted" | "declined" | "settled"
+      subscription_tier: "trial" | "basic" | "clinical" | "comprehensive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3304,6 +3422,7 @@ export const Constants = {
       disclosure_scope: ["internal", "minimal", "full"],
       payment_status: ["pending", "paid", "failed", "refunded"],
       referral_status: ["pending", "accepted", "declined", "settled"],
+      subscription_tier: ["trial", "basic", "clinical", "comprehensive"],
     },
   },
 } as const

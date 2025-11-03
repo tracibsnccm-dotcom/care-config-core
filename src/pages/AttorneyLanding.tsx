@@ -51,6 +51,12 @@ import { ConflictChecker } from "@/components/attorney/ConflictChecker";
 import { LegalFormsLibrary } from "@/components/attorney/LegalFormsLibrary";
 import { CourtFilingIntegration } from "@/components/attorney/CourtFilingIntegration";
 import { RNValueMetrics } from "@/components/attorney/RNValueMetrics";
+import { StatutesOfLimitationsTracker } from "@/components/attorney/StatutesOfLimitationsTracker";
+import { MedicalLienManagement } from "@/components/attorney/MedicalLienManagement";
+import { MedicalBillReview } from "@/components/attorney/MedicalBillReview";
+import { SettlementCalculator } from "@/components/attorney/SettlementCalculator";
+import { TrustAccounting } from "@/components/attorney/TrustAccounting";
+import { FeatureLibrary } from "@/components/attorney/FeatureLibrary";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -546,6 +552,30 @@ export default function AttorneyLanding() {
         
         <TabsContent value="rn-value">
           <RNValueMetrics attorneyId={user?.id || ""} />
+        </TabsContent>
+        
+        <TabsContent value="sol-tracker">
+          <StatutesOfLimitationsTracker />
+        </TabsContent>
+        
+        <TabsContent value="medical-liens">
+          <MedicalLienManagement />
+        </TabsContent>
+        
+        <TabsContent value="bill-review">
+          <MedicalBillReview />
+        </TabsContent>
+        
+        <TabsContent value="settlement-calc">
+          <SettlementCalculator />
+        </TabsContent>
+        
+        <TabsContent value="trust">
+          <TrustAccounting />
+        </TabsContent>
+        
+        <TabsContent value="features">
+          <FeatureLibrary />
         </TabsContent>
 
           {/* Document Hub Tab */}
