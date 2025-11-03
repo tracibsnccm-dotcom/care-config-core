@@ -65,6 +65,18 @@ export default function RNPortalLanding() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Today's Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Appointments/calls</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">New Assignments</CardTitle>
               </CardHeader>
               <CardContent>
@@ -90,18 +102,6 @@ export default function RNPortalLanding() {
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{requireFollowup.length}</div>
                 <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Today's Schedule</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Appointments/calls</p>
               </CardContent>
             </Card>
           </div>
@@ -422,23 +422,6 @@ export default function RNPortalLanding() {
                   <h3 className="font-semibold text-foreground">Quality Metrics</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     Track performance, compare with team averages, view trends.
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              to="/concerns-complaints"
-              className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition group border-orange-200"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-orange-100 text-orange-700 group-hover:bg-orange-600 group-hover:text-white transition">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Concerns & Complaints</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Monitor and resolve client concerns and complaints.
                   </p>
                 </div>
               </div>
