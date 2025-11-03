@@ -50,7 +50,6 @@ serve(async (req) => {
         .select(`
           id,
           status,
-          updated_at,
           created_at
         `)
         .in('status', ['Intake Started', 'Intake In Progress']);
@@ -105,7 +104,7 @@ serve(async (req) => {
 
 
       const rows = (cases || []).map((c: any) => {
-        const intakeStart = new Date(c.updated_at || c.created_at || new Date().toISOString());
+        const intakeStart = new Date(c.created_at || new Date().toISOString());
         const expiresAt = new Date(intakeStart.getTime() + 7 * 24 * 60 * 60 * 1000);
         const clientId = clientByCase.get(c.id);
         
@@ -113,7 +112,7 @@ serve(async (req) => {
           case_id: c.id,
           client: (clientId ? profilesMap.get(clientId) : undefined) || 'Unknown',
           stage: c.status,
-          last_activity_iso: c.updated_at,
+          last_activity_iso: c.created_at,
           expires_iso: expiresAt.toISOString(),
           nudges: 0,
           my_client: scope === 'mine'
