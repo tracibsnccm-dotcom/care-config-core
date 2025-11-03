@@ -1,259 +1,142 @@
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Target, Award, BarChart3, AlertTriangle, DollarSign, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { TrendingUp, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { useApp } from "@/context/AppContext";
+import { useMemo } from "react";
+import { differenceInDays, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 
 export default function CaseAnalyticsInsights() {
-  const caseOutcomes = {
-    settled: 65,
-    trial: 15,
-    dismissed: 10,
-    ongoing: 10
-  };
+  const { cases } = useApp();
 
-  const treatmentPatterns = [
-    { pattern: "Physical Therapy → Full Recovery", cases: 23, success: 87 },
-    { pattern: "Surgery → Ongoing Care", cases: 12, success: 65 },
-    { pattern: "Conservative Care Only", cases: 34, success: 72 },
-    { pattern: "Multi-specialty Treatment", cases: 8, success: 90 }
-  ];
+  const statusData = useMemo(() => {
+    const statusCounts = cases.reduce((acc, c) => {
+      acc[c.status] = (acc[c.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  }, [cases]);
 
-  const similarCases = [
-    {
-      id: "1",
-      description: "Lower back injury, construction worker",
-      outcome: "Settled",
-      amount: 125000,
-      duration: "14 months",
-      similarity: 92
-    },
-    {
-      id: "2",
-      description: "Shoulder injury, office worker",
-      outcome: "Settled",
-      amount: 85000,
-      duration: "10 months",
-      similarity: 87
-    },
-    {
-      id: "3",
-      description: "Neck injury, delivery driver",
-      outcome: "Settled",
-      amount: 110000,
-      duration: "12 months",
-      similarity: 85
-    }
-  ];
+  const monthlyVolumeData = useMemo(() => {
+    const months = eachMonthOfInterval({
+      start: subMonths(new Date(), 5),
+      end: new Date()
+    });
+    return months.map(month => {
+      const monthCases = cases.filter(c => {
+        const caseDate = new Date(c.createdAt);
+        return caseDate >= startOfMonth(month) && caseDate <= endOfMonth(month);
+      });
+      return {
+        month: format(month, 'MMM'),
+        cases: monthCases.length,
+        closed: monthCases.filter(c => c.status === 'CLOSED').length
+      };
+    });
+  }, [cases]);
 
-  const predictions = [
-    {
-      case_id: "RC-12345678",
-      client: "John Smith",
-      predicted_outcome: "Favorable Settlement",
-      confidence: 82,
-      estimated_value: "$120,000 - $150,000",
-      estimated_duration: "12-16 months",
-      risk_factors: ["Multiple providers", "Complex injury"]
-    }
-  ];
+  const metrics = useMemo(() => {
+    const activeCases = cases.filter(c => c.status !== 'CLOSED');
+    const closedCases = cases.filter(c => c.status === 'CLOSED');
+    const avgResolutionTime = closedCases.length > 0
+      ? Math.round(closedCases.reduce((sum, c) => 
+          sum + differenceInDays(new Date(c.updatedAt || c.createdAt), new Date(c.createdAt)), 0
+        ) / closedCases.length)
+      : 0;
+    return {
+      active: activeCases.length,
+      closed: closedCases.length,
+      avgResolution: avgResolutionTime,
+      closureRate: cases.length > 0 ? Math.round((closedCases.length / cases.length) * 100) : 0
+    };
+  }, [cases]);
+
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--warning))', 'hsl(var(--destructive))'];
 
   return (
     <div className="space-y-6">
-      {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Case Success Rate</p>
-              <p className="text-2xl font-bold">87%</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <TrendingUp className="h-5 w-5 text-primary" />
             </div>
-            <TrendingUp className="h-8 w-8 text-green-500" />
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.active}</p>
+              <p className="text-xs text-muted-foreground">Active Cases</p>
+            </div>
           </div>
         </Card>
-
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Settlement</p>
-              <p className="text-2xl font-bold">$142K</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-success/10">
+              <CheckCircle className="h-5 w-5 text-success" />
             </div>
-            <DollarSign className="h-8 w-8 text-blue-500" />
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.closed}</p>
+              <p className="text-xs text-muted-foreground">Closed Cases</p>
+            </div>
           </div>
         </Card>
-
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Case Duration</p>
-              <p className="text-2xl font-bold">13 mo</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-warning/10">
+              <Clock className="h-5 w-5 text-warning" />
             </div>
-            <Clock className="h-8 w-8 text-orange-500" />
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.avgResolution}d</p>
+              <p className="text-xs text-muted-foreground">Avg Resolution</p>
+            </div>
           </div>
         </Card>
-
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Win Rate</p>
-              <p className="text-2xl font-bold">92%</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-accent/10">
+              <AlertTriangle className="h-5 w-5 text-accent" />
             </div>
-            <Award className="h-8 w-8 text-primary" />
+            <div>
+              <p className="text-2xl font-bold text-foreground">{metrics.closureRate}%</p>
+              <p className="text-xs text-muted-foreground">Closure Rate</p>
+            </div>
           </div>
         </Card>
       </div>
 
-      <Tabs defaultValue="outcomes" className="w-full">
-        <TabsList>
-          <TabsTrigger value="outcomes">Outcomes</TabsTrigger>
-          <TabsTrigger value="patterns">Treatment Patterns</TabsTrigger>
-          <TabsTrigger value="similar">Similar Cases</TabsTrigger>
-          <TabsTrigger value="predictions">Predictions</TabsTrigger>
+      <Tabs defaultValue="volume">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="volume">Volume Trends</TabsTrigger>
+          <TabsTrigger value="status">Status Distribution</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="outcomes">
+        <TabsContent value="volume">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-6">Case Outcome Distribution</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Settled</span>
-                  <span className="font-semibold">{caseOutcomes.settled}%</span>
-                </div>
-                <Progress value={caseOutcomes.settled} className="h-2 bg-green-100 [&>div]:bg-green-500" />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Trial Victory</span>
-                  <span className="font-semibold">{caseOutcomes.trial}%</span>
-                </div>
-                <Progress value={caseOutcomes.trial} className="h-2 bg-blue-100 [&>div]:bg-blue-500" />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Dismissed</span>
-                  <span className="font-semibold">{caseOutcomes.dismissed}%</span>
-                </div>
-                <Progress value={caseOutcomes.dismissed} className="h-2 bg-orange-100 [&>div]:bg-orange-500" />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Ongoing</span>
-                  <span className="font-semibold">{caseOutcomes.ongoing}%</span>
-                </div>
-                <Progress value={caseOutcomes.ongoing} className="h-2" />
-              </div>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Case Volume Over Time</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyVolumeData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                <Legend />
+                <Line type="monotone" dataKey="cases" stroke="hsl(var(--primary))" strokeWidth={2} name="Total Cases" />
+                <Line type="monotone" dataKey="closed" stroke="hsl(var(--success))" strokeWidth={2} name="Closed Cases" />
+              </LineChart>
+            </ResponsiveContainer>
           </Card>
         </TabsContent>
-
-        <TabsContent value="patterns">
+        <TabsContent value="status">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-6">Treatment Pattern Analysis</h3>
-            <div className="space-y-4">
-              {treatmentPatterns.map((pattern, idx) => (
-                <Card key={idx} className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-semibold mb-1">{pattern.pattern}</h4>
-                      <p className="text-sm text-muted-foreground">{pattern.cases} cases analyzed</p>
-                    </div>
-                    <Badge variant={pattern.success > 80 ? "default" : "secondary"}>
-                      {pattern.success}% success
-                    </Badge>
-                  </div>
-                  <Progress value={pattern.success} className="h-2" />
-                </Card>
-              ))}
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Case Status Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={statusData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="value">
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="similar">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-6">Similar Case Analysis</h3>
-            <div className="space-y-4">
-              {similarCases.map((case_) => (
-                <Card key={case_.id} className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-semibold">{case_.description}</h4>
-                        <Badge variant="outline">{case_.similarity}% match</Badge>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Outcome</p>
-                          <p className="font-medium text-green-500">{case_.outcome}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Amount</p>
-                          <p className="font-medium">${case_.amount.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Duration</p>
-                          <p className="font-medium">{case_.duration}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="predictions">
-          <div className="space-y-4">
-            {predictions.map((pred) => (
-              <Card key={pred.case_id} className="p-6">
-                <div className="flex items-start gap-3 mb-4">
-                  <Target className="h-6 w-6 text-primary" />
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">{pred.client}</h3>
-                    <p className="text-sm text-muted-foreground">Case: {pred.case_id}</p>
-                  </div>
-                  <Badge variant="default">{pred.confidence}% confidence</Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Predicted Outcome</p>
-                    <p className="text-lg font-semibold text-green-500">{pred.predicted_outcome}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Estimated Value</p>
-                    <p className="text-lg font-semibold">{pred.estimated_value}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Estimated Duration</p>
-                    <p className="text-lg font-semibold">{pred.estimated_duration}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Confidence Score</p>
-                    <Progress value={pred.confidence} className="h-2 mt-2" />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold mb-1">Risk Factors</p>
-                      <div className="flex flex-wrap gap-2">
-                        {pred.risk_factors.map((factor, idx) => (
-                          <Badge key={idx} variant="outline">{factor}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
         </TabsContent>
       </Tabs>
     </div>
