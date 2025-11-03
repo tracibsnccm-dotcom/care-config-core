@@ -14,25 +14,13 @@ export function FeatureLibrary() {
     { name: "Basic Time Tracking", description: "Track billable hours and tasks" },
   ];
 
-  // Premium modules available as add-ons
+  // Premium modules we provide
   const premiumModules = [
     { 
       name: "AI Settlement Predictor",
       description: "Advanced ML predictions for case outcomes",
       price: "$99/month",
       setup: "Included"
-    },
-    { 
-      name: "E-Filing Integration",
-      description: "Direct court filing integration",
-      price: "$149/month",
-      setup: "$299 per jurisdiction"
-    },
-    { 
-      name: "Legal Research Suite",
-      description: "Westlaw/LexisNexis integration",
-      price: "$199/month",
-      setup: "$499 setup"
     },
     { 
       name: "Expert Witness Management",
@@ -51,6 +39,34 @@ export function FeatureLibrary() {
       description: "Full IOLTA compliance and management",
       price: "$149/month",
       setup: "Included"
+    },
+  ];
+
+  // Integration modules - connect your existing tools
+  const integrationModules = [
+    { 
+      name: "Court E-Filing Integration",
+      description: "Connect your existing e-filing accounts (FileAndServe, Tyler Technologies, etc.)",
+      price: "Free",
+      setup: "Bring your own account"
+    },
+    { 
+      name: "Legal Research Integration",
+      description: "Connect Westlaw, LexisNexis, or your existing research platform",
+      price: "Free",
+      setup: "Bring your own subscription"
+    },
+    { 
+      name: "Practice Management Integration",
+      description: "Sync with Clio, MyCase, or other practice management software",
+      price: "Free",
+      setup: "API connection required"
+    },
+    { 
+      name: "Accounting Software Integration",
+      description: "Connect QuickBooks, Xero, or your existing accounting system",
+      price: "Free",
+      setup: "OAuth connection"
     },
   ];
 
@@ -86,7 +102,7 @@ export function FeatureLibrary() {
       {/* Premium Modules Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Lock className="h-5 w-5 text-muted-foreground" />
+          <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-2xl font-bold">Premium Modules</h2>
           <Badge variant="outline">Add-Ons</Badge>
         </div>
@@ -109,6 +125,39 @@ export function FeatureLibrary() {
                   <Button size="sm" variant="outline">
                     <Lock className="h-3 w-3 mr-2" />
                     Add Module
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Integration Modules Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Lock className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-2xl font-bold">Connect Your Tools</h2>
+          <Badge className="bg-blue-600">Integrations</Badge>
+        </div>
+        <p className="text-muted-foreground mb-6">
+          Reconcile C.A.R.E. acts as your central hub - connect your existing tools and subscriptions
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          {integrationModules.map((module) => (
+            <Card key={module.name} className="p-6 hover:shadow-lg transition-shadow border-2 border-blue-200">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-1">{module.name}</h4>
+                  <p className="text-sm text-muted-foreground">{module.description}</p>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div className="text-sm">
+                    <div className="font-semibold text-blue-600">{module.price}</div>
+                    <div className="text-muted-foreground text-xs">{module.setup}</div>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    Connect
                   </Button>
                 </div>
               </div>
