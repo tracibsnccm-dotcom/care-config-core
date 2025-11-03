@@ -2952,6 +2952,8 @@ export type Database = {
           attendees: Json | null
           case_id: string | null
           completed_at: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -2960,6 +2962,7 @@ export type Database = {
           id: string
           location: string | null
           metadata: Json | null
+          requires_contact: boolean | null
           rn_id: string
           scheduled_date: string
           scheduled_time: string | null
@@ -2971,6 +2974,8 @@ export type Database = {
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -2979,6 +2984,7 @@ export type Database = {
           id?: string
           location?: string | null
           metadata?: Json | null
+          requires_contact?: boolean | null
           rn_id: string
           scheduled_date: string
           scheduled_time?: string | null
@@ -2990,6 +2996,8 @@ export type Database = {
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -2998,6 +3006,7 @@ export type Database = {
           id?: string
           location?: string | null
           metadata?: Json | null
+          requires_contact?: boolean | null
           rn_id?: string
           scheduled_date?: string
           scheduled_time?: string | null
@@ -3008,6 +3017,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "rn_diary_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_emergency_alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_details: Json | null
+          alert_type: string
+          case_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          rn_id: string | null
+          severity: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_details?: Json | null
+          alert_type: string
+          case_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rn_id?: string | null
+          severity?: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_details?: Json | null
+          alert_type?: string
+          case_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rn_id?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_emergency_alerts_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
