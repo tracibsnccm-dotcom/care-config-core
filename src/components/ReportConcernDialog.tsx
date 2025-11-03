@@ -40,15 +40,8 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get the assigned RN for this case
-      const { data: assignment } = await supabase
-        .from("case_assignments")
-        .select("user_id")
-        .eq("case_id", caseId)
-        .eq("role", "RN_CCM")
-        .single();
-
       // Insert identified concern with client info
+      // Concerns are routed to RN Supervisors/Managers, not regular RN CMs
       const { error: insertError } = await supabase
         .from("concerns")
         .insert({
@@ -58,24 +51,11 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
           provider_name: concernAbout,
           concern_category: "care_concern",
           concern_status: "Open",
-          assigned_rn: assignment?.user_id,
         });
 
       if (insertError) throw insertError;
 
-      // Create in-app message notification for RN CM and Admin
-      if (assignment?.user_id && concernAbout !== "RN_CCM") {
-        await supabase.from("messages").insert({
-          case_id: caseId,
-          sender_id: user.id,
-          recipient_role: "RN_CCM",
-          subject: "New Concern Reported",
-          message_text: `A client has reported a concern about ${concernAbout}. Please review in the Concerns section.`,
-          status: "pending",
-        });
-      }
-
-      // Audit log
+      // Audit log - RN Supervisors will see this in Concerns & Complaints Center
       await supabase.from("audit_logs").insert({
         action: "concern_reported",
         case_id: caseId,
@@ -83,6 +63,7 @@ export function ReportConcernDialog({ caseId, onSuccess }: ReportConcernDialogPr
         actor_role: "CLIENT",
         meta: {
           concern_about: concernAbout,
+          routed_to: "RN_SUPERVISOR",
         },
       });
 

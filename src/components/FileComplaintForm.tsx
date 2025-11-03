@@ -43,13 +43,14 @@ export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
 
       if (insertError) throw insertError;
 
-      // Audit log the complaint filing
+      // Audit log the complaint filing - RN Supervisors will see this in Concerns & Complaints Center
       await supabase.from("audit_logs").insert({
         action: "complaint_filed",
         actor_role: "CLIENT",
         meta: {
           complaint_about: complaintAbout,
           anonymous: true,
+          routed_to: "RN_SUPERVISOR",
         },
       });
 
