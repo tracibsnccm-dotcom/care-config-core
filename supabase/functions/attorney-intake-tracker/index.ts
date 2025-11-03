@@ -132,9 +132,9 @@ serve(async (req) => {
         .select('user_id')
         .eq('case_id', case_id)
         .eq('role', 'CLIENT')
-        .single();
+        .maybeSingle();
 
-      if (caErr) throw caErr;
+      if (caErr || !ca?.user_id) throw (caErr || new Error('Client assignment not found'));
 
       await supabaseClient.from('notifications').insert({
         user_id: (ca as any).user_id,
@@ -156,7 +156,7 @@ serve(async (req) => {
         .select('user_id')
         .eq('case_id', case_id)
         .eq('role', 'CLIENT')
-        .single();
+        .maybeSingle();
       if (caErr) throw caErr;
 
       let clientName = 'client';
