@@ -415,9 +415,10 @@ export default function AttorneyLanding() {
             <TabsTrigger value="provider-network">Provider Network</TabsTrigger>
             <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>
             <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>
-            <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>
-            <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>
-            <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>
+              <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>
+              <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>
+              <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>
+              <TabsTrigger value="modules">Modules & Add-Ons</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
@@ -625,6 +626,10 @@ export default function AttorneyLanding() {
 
               <TabsContent value="ai-documents">
                 <AIDocumentAssembly caseData={cases[0]} />
+              </TabsContent>
+
+              <TabsContent value="modules">
+                <FeatureLibrary />
               </TabsContent>
 
           {/* Document Hub Tab */}
