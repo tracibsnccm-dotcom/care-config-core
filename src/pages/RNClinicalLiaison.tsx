@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users, Video, Target, ShieldCheck, Award, Star, GitCompare } from "lucide-react";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,14 @@ import MedicalBillingCoordination from "@/components/RNClinicalLiaison/MedicalBi
 import ClinicalNotesRepository from "@/components/RNClinicalLiaison/ClinicalNotesRepository";
 import AppointmentTracking from "@/components/RNClinicalLiaison/AppointmentTracking";
 import ProviderNetwork from "@/components/RNClinicalLiaison/ProviderNetwork";
+import TelehealthIntegration from "@/components/RNClinicalLiaison/TelehealthIntegration";
+import ODGComplianceTracker from "@/components/RNClinicalLiaison/ODGComplianceTracker";
+import InsuranceAuthTracking from "@/components/RNClinicalLiaison/InsuranceAuthTracking";
+import ICD10CodeTracker from "@/components/RNClinicalLiaison/ICD10CodeTracker";
+import CPTCodeTracker from "@/components/RNClinicalLiaison/CPTCodeTracker";
+import CarePlanComparison from "@/components/RNClinicalLiaison/CarePlanComparison";
+import RNPerformanceMetrics from "@/components/RNClinicalLiaison/RNPerformanceMetrics";
+import ClientSatisfactionFeedback from "@/components/RNClinicalLiaison/ClientSatisfactionFeedback";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -472,54 +480,86 @@ export default function RNClinicalLiaison() {
               {/* Clinical Alerts Panel */}
               <ClinicalAlertsPanel caseId={selectedCaseId} />
               <Tabs defaultValue="messages" className="w-full">
-                <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13 mb-6 h-auto flex-wrap">
-                  <TabsTrigger value="messages" className="flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 xl:grid-cols-21 mb-6 h-auto flex-wrap gap-1">
+                  <TabsTrigger value="messages" className="flex items-center gap-1 text-xs">
+                    <MessageCircle className="w-3 h-3" />
                     <span className="hidden sm:inline">Messages</span>
                   </TabsTrigger>
-                  <TabsTrigger value="followups" className="flex items-center gap-2">
-                    <FileCheck className="w-4 h-4" />
+                  <TabsTrigger value="followups" className="flex items-center gap-1 text-xs">
+                    <FileCheck className="w-3 h-3" />
                     <span className="hidden sm:inline">Follow-ups</span>
                   </TabsTrigger>
-                  <TabsTrigger value="coordination" className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
+                  <TabsTrigger value="coordination" className="flex items-center gap-1 text-xs">
+                    <TrendingUp className="w-3 h-3" />
                     <span className="hidden sm:inline">Coordination</span>
                   </TabsTrigger>
-                  <TabsTrigger value="documentation" className="flex items-center gap-2">
-                    <ClipboardList className="w-4 h-4" />
-                    <span className="hidden sm:inline">Documentation</span>
+                  <TabsTrigger value="documentation" className="flex items-center gap-1 text-xs">
+                    <ClipboardList className="w-3 h-3" />
+                    <span className="hidden sm:inline">Docs Requests</span>
                   </TabsTrigger>
-                  <TabsTrigger value="timeline" className="flex items-center gap-2">
-                    <Heart className="w-4 h-4" />
+                  <TabsTrigger value="timeline" className="flex items-center gap-1 text-xs">
+                    <Heart className="w-3 h-3" />
                     <span className="hidden sm:inline">Timeline</span>
                   </TabsTrigger>
-                  <TabsTrigger value="billing" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
+                  <TabsTrigger value="billing" className="flex items-center gap-1 text-xs">
+                    <DollarSign className="w-3 h-3" />
                     <span className="hidden sm:inline">Billing</span>
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="flex items-center gap-2">
-                    <FileStack className="w-4 h-4" />
+                  <TabsTrigger value="notes" className="flex items-center gap-1 text-xs">
+                    <FileStack className="w-3 h-3" />
                     <span className="hidden sm:inline">Notes</span>
                   </TabsTrigger>
-                  <TabsTrigger value="appointments" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
+                  <TabsTrigger value="appointments" className="flex items-center gap-1 text-xs">
+                    <Clock className="w-3 h-3" />
                     <span className="hidden sm:inline">Appointments</span>
                   </TabsTrigger>
-                  <TabsTrigger value="network" className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
+                  <TabsTrigger value="network" className="flex items-center gap-1 text-xs">
+                    <Users className="w-3 h-3" />
                     <span className="hidden sm:inline">Network</span>
                   </TabsTrigger>
-                  <TabsTrigger value="providers" className="flex items-center gap-2">
-                    <UserCircle className="w-4 h-4" />
+                  <TabsTrigger value="telehealth" className="flex items-center gap-1 text-xs">
+                    <Video className="w-3 h-3" />
+                    <span className="hidden sm:inline">Telehealth</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="odg" className="flex items-center gap-1 text-xs">
+                    <Target className="w-3 h-3" />
+                    <span className="hidden sm:inline">ODG</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="auth" className="flex items-center gap-1 text-xs">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span className="hidden sm:inline">Auth</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="icd10" className="flex items-center gap-1 text-xs">
+                    <FileText className="w-3 h-3" />
+                    <span className="hidden sm:inline">ICD-10</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="cpt" className="flex items-center gap-1 text-xs">
+                    <DollarSign className="w-3 h-3" />
+                    <span className="hidden sm:inline">CPT</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="care-plans" className="flex items-center gap-1 text-xs">
+                    <GitCompare className="w-3 h-3" />
+                    <span className="hidden sm:inline">Plans</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="rn-metrics" className="flex items-center gap-1 text-xs">
+                    <Award className="w-3 h-3" />
+                    <span className="hidden sm:inline">RN Metrics</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="satisfaction" className="flex items-center gap-1 text-xs">
+                    <Star className="w-3 h-3" />
+                    <span className="hidden sm:inline">Satisfaction</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="providers" className="flex items-center gap-1 text-xs">
+                    <UserCircle className="w-3 h-3" />
                     <span className="hidden sm:inline">Provider Contacts</span>
                   </TabsTrigger>
-                  <TabsTrigger value="activity" className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
+                  <TabsTrigger value="activity" className="flex items-center gap-1 text-xs">
+                    <Activity className="w-3 h-3" />
                     <span className="hidden sm:inline">Activity</span>
                   </TabsTrigger>
-                  <TabsTrigger value="sensitive-audit" className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sensitive Data</span>
+                  <TabsTrigger value="sensitive-audit" className="flex items-center gap-1 text-xs">
+                    <Shield className="w-3 h-3" />
+                    <span className="hidden sm:inline">Sensitive</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -557,6 +597,38 @@ export default function RNClinicalLiaison() {
 
                 <TabsContent value="network">
                   <ProviderNetwork caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="telehealth">
+                  <TelehealthIntegration caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="odg">
+                  <ODGComplianceTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="auth">
+                  <InsuranceAuthTracking caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="icd10">
+                  <ICD10CodeTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="cpt">
+                  <CPTCodeTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="care-plans">
+                  <CarePlanComparison caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="rn-metrics">
+                  <RNPerformanceMetrics caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="satisfaction">
+                  <ClientSatisfactionFeedback caseId={selectedCaseId} />
                 </TabsContent>
 
                 <TabsContent value="providers">
