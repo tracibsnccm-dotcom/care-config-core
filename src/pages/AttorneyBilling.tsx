@@ -24,13 +24,19 @@ import { RNCMServiceCatalog } from "@/components/RNCMServiceCatalog";
 import { PricingCard } from "@/components/PricingCard";
 import { TierComparisonTable } from "@/components/TierComparisonTable";
 import { RNCMSpecialServices } from "@/components/RNCMSpecialServices";
+import { PaymentMethodsManager } from "@/components/PaymentMethodsManager";
+import { SubscriptionManager } from "@/components/SubscriptionManager";
+import { InvoiceManager } from "@/components/InvoiceManager";
+import { BillingAddress } from "@/components/BillingAddress";
+import { BillingAlerts } from "@/components/BillingAlerts";
+import { BillingUsageAnalytics } from "@/components/BillingUsageAnalytics";
 
 
 export default function AttorneyBilling() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const qp = searchParams.get("tab") || searchParams.get("section");
-  const defaultTab = (qp && ["plan","payment","invoices","services","ewallet"].includes(qp))
+  const defaultTab = (qp && ["plan","payment","invoices","analytics","alerts","services","ewallet"].includes(qp))
     ? qp
     : (typeof window !== 'undefined' && window.location.hash === '#rcms-referral-card' ? 'services' : 'services');
 
@@ -205,13 +211,17 @@ export default function AttorneyBilling() {
         </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="plan">Plan Details</TabsTrigger>
-          <TabsTrigger value="payment">Payment Methods</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="services">RN CM Services</TabsTrigger>
-          <TabsTrigger value="ewallet">eWallet</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-auto min-w-full">
+            <TabsTrigger value="plan">Plan Details</TabsTrigger>
+            <TabsTrigger value="payment">Payment Methods</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="analytics">Usage & Analytics</TabsTrigger>
+            <TabsTrigger value="alerts">Billing Alerts</TabsTrigger>
+            <TabsTrigger value="services">RN CM Services</TabsTrigger>
+            <TabsTrigger value="ewallet">eWallet</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="plan" className="space-y-6">
           {/* Combined Pricing & Billing Information */}
@@ -299,95 +309,38 @@ export default function AttorneyBilling() {
             </CardContent>
           </Card>
 
+          {/* Subscription Management */}
+          <SubscriptionManager 
+            currentTier={tierData?.tier || "Basic"}
+            planPrice={tierData?.plan_price || 0}
+            renewalDate={tierData?.renewal_date 
+              ? new Date(tierData.renewal_date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "TBD"}
+          />
+          
           {/* Tier Comparison Table */}
           <TierComparisonTable currentTier={tierData?.tier} />
         </TabsContent>
 
-        <TabsContent value="payment">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#0f2a6a]">
-                <CreditCard className="h-5 w-5" />
-                Payment Methods
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Payment method management coming soon.</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="payment" className="space-y-6">
+          <PaymentMethodsManager />
+          <BillingAddress />
         </TabsContent>
 
         <TabsContent value="invoices">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#0f2a6a]">
-                <FileText className="h-5 w-5" />
-                Invoices & Receipts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No invoices yet
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    transactions.slice(0, 10).map((txn) => (
-                      <TableRow key={txn.id}>
-                        <TableCell>
-                          {new Date(txn.created_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </TableCell>
-                        <TableCell>{txn.description}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            txn.transaction_type === "deposit" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-blue-100 text-blue-800"
-                          }`}>
-                            {txn.transaction_type}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          ${txn.total_amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            txn.status === "completed" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {txn.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            Download
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <InvoiceManager />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <BillingUsageAnalytics />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <BillingAlerts />
         </TabsContent>
 
         <TabsContent value="services" className="space-y-6">
