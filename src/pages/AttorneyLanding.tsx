@@ -57,6 +57,11 @@ import { MedicalBillReview } from "@/components/attorney/MedicalBillReview";
 import { SettlementCalculator } from "@/components/attorney/SettlementCalculator";
 import { TrustAccounting } from "@/components/attorney/TrustAccounting";
 import { FeatureLibrary } from "@/components/attorney/FeatureLibrary";
+import { ExpertWitnessManagement } from "@/components/attorney/ExpertWitnessManagement";
+import { EvidenceRepository } from "@/components/attorney/EvidenceRepository";
+import { MedicalProviderNetwork } from "@/components/attorney/MedicalProviderNetwork";
+import { ClientBillingInvoicing } from "@/components/attorney/ClientBillingInvoicing";
+import { MarketingLeadManagement } from "@/components/attorney/MarketingLeadManagement";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -401,6 +406,12 @@ export default function AttorneyLanding() {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="features">Features & Tiers</TabsTrigger>
+            <TabsTrigger value="expert-witnesses">Expert Witnesses</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="provider-network">Provider Network</TabsTrigger>
+            <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>
+            <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
@@ -574,9 +585,29 @@ export default function AttorneyLanding() {
           <TrustAccounting />
         </TabsContent>
         
-        <TabsContent value="features">
-          <FeatureLibrary />
-        </TabsContent>
+              <TabsContent value="features">
+                <FeatureLibrary />
+              </TabsContent>
+
+              <TabsContent value="expert-witnesses">
+                <ExpertWitnessManagement />
+              </TabsContent>
+
+              <TabsContent value="evidence">
+                <EvidenceRepository />
+              </TabsContent>
+
+              <TabsContent value="provider-network">
+                <MedicalProviderNetwork />
+              </TabsContent>
+
+              <TabsContent value="billing">
+                <ClientBillingInvoicing />
+              </TabsContent>
+
+              <TabsContent value="marketing">
+                <MarketingLeadManagement />
+              </TabsContent>
 
           {/* Document Hub Tab */}
           <TabsContent value="documents">
