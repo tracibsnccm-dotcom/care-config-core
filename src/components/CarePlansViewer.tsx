@@ -31,6 +31,7 @@ interface BaselineScores {
     professional: number;
   };
   sdoh: Record<string, number>;
+  bmi: number | null;
   baselineDate: string;
 }
 
@@ -63,17 +64,27 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
       if (error) throw error;
       setCarePlans(data || []);
 
-      // Fetch baseline scores
+      // Fetch baseline scores including BMI from intake
       const { data: caseData, error: caseError } = await supabase
         .from("cases")
-        .select("fourps, sdoh, created_at")
+        .select(`
+          fourps, 
+          sdoh, 
+          created_at,
+          intakes!inner(intake_data)
+        `)
         .eq("id", caseId)
         .single();
 
       if (!caseError && caseData?.fourps && caseData?.sdoh) {
+        // Extract BMI from intake_data if available
+        const intakeData = caseData.intakes?.[0]?.intake_data as any;
+        const bmi = intakeData?.summary?.bmi || intakeData?.bmi || null;
+        
         setBaseline({
           fourPs: caseData.fourps as any,
           sdoh: caseData.sdoh as any,
+          bmi: bmi,
           baselineDate: caseData.created_at
         });
       }
@@ -171,6 +182,17 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
                     ))}
                   </div>
                 </div>
+                
+                {baseline.bmi && (
+                  <div>
+                    <h5 className="text-xs font-semibold mb-2 text-foreground">Baseline Biometrics</h5>
+                    <div className="text-center p-2 bg-background rounded max-w-[150px]">
+                      <div className="text-lg font-bold text-foreground">{baseline.bmi}</div>
+                      <div className="text-xs text-muted-foreground">BMI</div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="text-xs text-muted-foreground pt-2 border-t">
                   <strong>Note:</strong> These baseline scores guide your care plan and track progress throughout your recovery journey.
                 </div>

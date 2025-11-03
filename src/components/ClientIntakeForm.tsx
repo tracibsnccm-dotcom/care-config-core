@@ -36,6 +36,9 @@ export default function ClientIntakeForm() {
     conditions: "",
     allergies: "",
     pharmacy: "",
+    height_cm: "",
+    weight_kg: "",
+    bmi: "",
     beforeADL: {},
     afterADL: {},
     pain: "",
@@ -57,7 +60,24 @@ export default function ClientIntakeForm() {
     field: K,
     value: IntakeForm[K]
   ) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-calculate BMI when height or weight changes
+      if (field === "height_cm" || field === "weight_kg") {
+        const height = field === "height_cm" ? parseFloat(value as string) : parseFloat(updated.height_cm);
+        const weight = field === "weight_kg" ? parseFloat(value as string) : parseFloat(updated.weight_kg);
+        
+        if (!isNaN(height) && !isNaN(weight) && height > 0) {
+          const bmi = weight / ((height / 100) ** 2);
+          updated.bmi = bmi.toFixed(1);
+        } else {
+          updated.bmi = "";
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleAttorneyShare = (value: string) => {
@@ -138,6 +158,9 @@ export default function ClientIntakeForm() {
         conditions: "",
         allergies: "",
         pharmacy: "",
+        height_cm: "",
+        weight_kg: "",
+        bmi: "",
         beforeADL: {},
         afterADL: {},
         pain: "",
@@ -222,6 +245,42 @@ export default function ClientIntakeForm() {
               value={form.pharmacy}
               onChange={(e) => handleChange("pharmacy", e.target.value)}
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Height (cm)</Label>
+              <Input
+                type="number"
+                placeholder="170"
+                value={form.height_cm}
+                onChange={(e) => handleChange("height_cm", e.target.value)}
+                min="50"
+                max="250"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Weight (kg)</Label>
+              <Input
+                type="number"
+                placeholder="75"
+                value={form.weight_kg}
+                onChange={(e) => handleChange("weight_kg", e.target.value)}
+                min="20"
+                max="300"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>BMI (Calculated)</Label>
+              <Input
+                type="text"
+                value={form.bmi}
+                disabled
+                className="bg-muted"
+              />
+            </div>
           </div>
         </section>
 

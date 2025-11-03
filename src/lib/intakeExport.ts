@@ -14,6 +14,9 @@ export interface IntakeForm {
   conditions: string;
   allergies: string;
   pharmacy: string;
+  height_cm: string;   // height in centimeters
+  weight_kg: string;   // weight in kilograms
+  bmi: string;         // calculated BMI
   beforeADL: Record<string, ADLLevel>;
   afterADL: Record<string, ADLLevel>;
   pain: string;        // "0".."10"
@@ -49,6 +52,9 @@ export interface IntakeExportEnvelope {
     conditions: string;
     allergies: string;
     pharmacy: string;
+    height_cm: number | null;
+    weight_kg: number | null;
+    bmi: number | null;
     adl_before: Record<string, ADLLevel>;
     adl_since: Record<string, ADLLevel>;
     pain_0_10: number | null;
@@ -81,6 +87,9 @@ export interface IntakeExportEnvelope {
     conditions: string;
     allergies: string;
     pharmacy: string;
+    height_cm: number | null;
+    weight_kg: number | null;
+    bmi: number | null;
     adl_before: Record<string, ADLLevel>;
     adl_since: Record<string, ADLLevel>;
     pain_0_10: number | null;
@@ -134,6 +143,9 @@ export function serializeIntakeForExport(
       conditions: form.conditions?.trim() || "",
       allergies: form.allergies?.trim() || "",
       pharmacy: form.pharmacy?.trim() || "",
+      height_cm: toNum(form.height_cm),
+      weight_kg: toNum(form.weight_kg),
+      bmi: toNum(form.bmi),
       adl_before: form.beforeADL || {},
       adl_since: form.afterADL || {},
       pain_0_10: toNum(form.pain),
@@ -155,6 +167,9 @@ export function serializeIntakeForExport(
       conditions: form.conditions?.trim() || "",
       allergies: form.allergies?.trim() || "",
       pharmacy: form.pharmacy?.trim() || "",
+      height_cm: toNum(form.height_cm),
+      weight_kg: toNum(form.weight_kg),
+      bmi: toNum(form.bmi),
       adl_before: form.beforeADL || {},
       adl_since: form.afterADL || {},
       pain_0_10: toNum(form.pain),
@@ -196,6 +211,9 @@ export function toSheetRow(envelope: IntakeExportEnvelope) {
     conditions: summary.conditions,
     allergies: summary.allergies,
     pharmacy: summary.pharmacy,
+    height_cm: summary.height_cm ?? "",
+    weight_kg: summary.weight_kg ?? "",
+    bmi: summary.bmi ?? "",
     pain_0_10: summary.pain_0_10 ?? "",
     anxiety_1_5: summary.anxiety_1_5 ?? "",
     depression_1_5: summary.depression_1_5 ?? "",
@@ -229,6 +247,9 @@ export const SHEET_HEADERS = [
   "conditions",
   "allergies",
   "pharmacy",
+  "height_cm",
+  "weight_kg",
+  "bmi",
   "pain_0_10",
   "anxiety_1_5",
   "depression_1_5",
