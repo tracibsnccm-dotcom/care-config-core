@@ -2549,6 +2549,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          profile_photo_url: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -2558,6 +2559,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          profile_photo_url?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2567,6 +2569,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          profile_photo_url?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -3663,6 +3666,10 @@ export type Database = {
       calculate_alert_sla_deadline: {
         Args: { p_alert_type: string; p_shift_start: string }
         Returns: string
+      }
+      calculate_rn_daily_metrics: {
+        Args: { p_date?: string }
+        Returns: undefined
       }
       convert_to_attorney_case: {
         Args: { p_attorney_code: string; p_internal_case_id: string }

@@ -8,6 +8,7 @@ import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
+import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
 
 export function RNProfileSettings() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export function RNProfileSettings() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [credentials, setCredentials] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseState, setLicenseState] = useState("");
@@ -40,7 +42,7 @@ export function RNProfileSettings() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, email, full_name")
+        .select("display_name, email, full_name, profile_photo_url")
         .eq("user_id", user?.id)
         .single();
 
@@ -50,6 +52,7 @@ export function RNProfileSettings() {
         setDisplayName(data.display_name || "");
         setEmail(data.email || "");
         setFullName(data.full_name || "");
+        setProfilePhotoUrl(data.profile_photo_url || null);
       }
 
       // Load RN-specific metadata
@@ -161,6 +164,13 @@ export function RNProfileSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Profile Photo */}
+      <ProfilePhotoUpload
+        currentPhotoUrl={profilePhotoUrl}
+        userName={displayName || fullName}
+        onPhotoUpdated={(url) => setProfilePhotoUrl(url)}
+      />
+
       {/* Profile Information */}
       <Card>
         <CardHeader>
