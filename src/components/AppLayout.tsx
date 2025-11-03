@@ -49,6 +49,8 @@ const navigation = [
   { name: "Billing & Subscriptions", href: "/attorney/billing", icon: ClipboardCheck, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Referrals", href: "/referrals", icon: Users, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN CM / Clinical Liaison", href: "/rn-clinical-liaison", icon: HeartPulse, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "RN Settings", href: "/rn/settings", icon: Settings, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Documents & Files", href: "/documents", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Client Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.CLIENT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },

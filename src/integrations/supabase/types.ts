@@ -2847,6 +2847,66 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_metadata: {
+        Row: {
+          after_hours_availability: boolean | null
+          alternate_phone: string | null
+          available_for_new_cases: boolean | null
+          created_at: string | null
+          credentials: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          id: string
+          license_number: string | null
+          license_state: string | null
+          max_active_cases: number | null
+          office_location: string | null
+          phone: string | null
+          preferred_shift: string | null
+          updated_at: string | null
+          user_id: string
+          weekend_availability: boolean | null
+        }
+        Insert: {
+          after_hours_availability?: boolean | null
+          alternate_phone?: string | null
+          available_for_new_cases?: boolean | null
+          created_at?: string | null
+          credentials?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          license_number?: string | null
+          license_state?: string | null
+          max_active_cases?: number | null
+          office_location?: string | null
+          phone?: string | null
+          preferred_shift?: string | null
+          updated_at?: string | null
+          user_id: string
+          weekend_availability?: boolean | null
+        }
+        Update: {
+          after_hours_availability?: boolean | null
+          alternate_phone?: string | null
+          available_for_new_cases?: boolean | null
+          created_at?: string | null
+          credentials?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          license_number?: string | null
+          license_state?: string | null
+          max_active_cases?: number | null
+          office_location?: string | null
+          phone?: string | null
+          preferred_shift?: string | null
+          updated_at?: string | null
+          user_id?: string
+          weekend_availability?: boolean | null
+        }
+        Relationships: []
+      }
       rn_time_entries: {
         Row: {
           activity_description: string | null
@@ -2985,33 +3045,48 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          case_updates: boolean | null
+          client_messages: boolean | null
           created_at: string
           dismissed_tips: Json | null
+          email_notifications: boolean | null
           id: string
           nav_collapsed: boolean | null
           notification_filter: string | null
+          sms_notifications: boolean | null
           theme: string | null
           updated_at: string
+          urgent_alerts: boolean | null
           user_id: string
         }
         Insert: {
+          case_updates?: boolean | null
+          client_messages?: boolean | null
           created_at?: string
           dismissed_tips?: Json | null
+          email_notifications?: boolean | null
           id?: string
           nav_collapsed?: boolean | null
           notification_filter?: string | null
+          sms_notifications?: boolean | null
           theme?: string | null
           updated_at?: string
+          urgent_alerts?: boolean | null
           user_id: string
         }
         Update: {
+          case_updates?: boolean | null
+          client_messages?: boolean | null
           created_at?: string
           dismissed_tips?: Json | null
+          email_notifications?: boolean | null
           id?: string
           nav_collapsed?: boolean | null
           notification_filter?: string | null
+          sms_notifications?: boolean | null
           theme?: string | null
           updated_at?: string
+          urgent_alerts?: boolean | null
           user_id?: string
         }
         Relationships: []

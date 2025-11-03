@@ -13,6 +13,7 @@ import Providers from "./pages/Providers";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyDashboard from "./pages/AttorneyDashboard";
 import AttorneySettings from "./pages/AttorneySettings";
+import RNSettings from "./pages/RNSettings";
 import DocumentHub from "./pages/DocumentHub";
 import Access from "./pages/Access";
 import Logout from "./pages/Logout";
@@ -187,6 +188,10 @@ const App = () => (
             <Route
               path="/attorney/settings"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneySettings /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/settings"
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNSettings /></ProtectedRoute>}
             />
             <Route
               path="/referrals"
