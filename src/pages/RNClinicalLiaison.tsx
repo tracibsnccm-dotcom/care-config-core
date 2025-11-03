@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users, Video, Target, ShieldCheck, Award, Star, GitCompare } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users, Video, Target, ShieldCheck, Award, Star, GitCompare, Syringe, Scale } from "lucide-react";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,9 @@ import CPTCodeTracker from "@/components/RNClinicalLiaison/CPTCodeTracker";
 import CarePlanComparison from "@/components/RNClinicalLiaison/CarePlanComparison";
 import RNPerformanceMetrics from "@/components/RNClinicalLiaison/RNPerformanceMetrics";
 import ClientSatisfactionFeedback from "@/components/RNClinicalLiaison/ClientSatisfactionFeedback";
+import AdultImmunizationTracker from "@/components/RNClinicalLiaison/AdultImmunizationTracker";
+import PreventiveCareTracker from "@/components/RNClinicalLiaison/PreventiveCareTracker";
+import BiometricsTracker from "@/components/RNClinicalLiaison/BiometricsTracker";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -549,6 +552,18 @@ export default function RNClinicalLiaison() {
                     <Star className="w-3 h-3" />
                     <span className="hidden sm:inline">Satisfaction</span>
                   </TabsTrigger>
+                  <TabsTrigger value="immunizations" className="flex items-center gap-1 text-xs">
+                    <Syringe className="w-3 h-3" />
+                    <span className="hidden sm:inline">Immunizations</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="preventive" className="flex items-center gap-1 text-xs">
+                    <Activity className="w-3 h-3" />
+                    <span className="hidden sm:inline">Preventive</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="biometrics" className="flex items-center gap-1 text-xs">
+                    <Scale className="w-3 h-3" />
+                    <span className="hidden sm:inline">Biometrics</span>
+                  </TabsTrigger>
                   <TabsTrigger value="providers" className="flex items-center gap-1 text-xs">
                     <UserCircle className="w-3 h-3" />
                     <span className="hidden sm:inline">Provider Contacts</span>
@@ -629,6 +644,18 @@ export default function RNClinicalLiaison() {
 
                 <TabsContent value="satisfaction">
                   <ClientSatisfactionFeedback caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="immunizations">
+                  <AdultImmunizationTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="preventive">
+                  <PreventiveCareTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="biometrics">
+                  <BiometricsTracker caseId={selectedCaseId} />
                 </TabsContent>
 
                 <TabsContent value="providers">
