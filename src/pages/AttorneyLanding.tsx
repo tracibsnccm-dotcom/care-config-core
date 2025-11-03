@@ -477,8 +477,8 @@ function CaseListItem({
           <DossierReadiness caseObj={c} />
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          {c.intake.incidentType} • {c.intake.injuries.slice(0, 2).join(", ")}
-          {c.intake.injuries.length > 2 && "..."}
+          {c.intake?.incidentType || "N/A"} • {c.intake?.injuries && Array.isArray(c.intake.injuries) ? c.intake.injuries.slice(0, 2).join(", ") : "No injuries listed"}
+          {c.intake?.injuries && c.intake.injuries.length > 2 && "..."}
         </p>
       </div>
       <div className="flex items-center gap-3">
