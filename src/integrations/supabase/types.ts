@@ -2751,6 +2751,62 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_time_entries: {
+        Row: {
+          activity_description: string | null
+          activity_type: string
+          attorney_id: string | null
+          case_id: string
+          created_at: string
+          entry_date: string
+          estimated_attorney_time_saved_minutes: number
+          hourly_rate_used: number | null
+          id: string
+          metadata: Json | null
+          rn_user_id: string
+          time_spent_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          activity_description?: string | null
+          activity_type: string
+          attorney_id?: string | null
+          case_id: string
+          created_at?: string
+          entry_date?: string
+          estimated_attorney_time_saved_minutes?: number
+          hourly_rate_used?: number | null
+          id?: string
+          metadata?: Json | null
+          rn_user_id: string
+          time_spent_minutes: number
+          updated_at?: string
+        }
+        Update: {
+          activity_description?: string | null
+          activity_type?: string
+          attorney_id?: string | null
+          case_id?: string
+          created_at?: string
+          entry_date?: string
+          estimated_attorney_time_saved_minutes?: number
+          hourly_rate_used?: number | null
+          id?: string
+          metadata?: Json | null
+          rn_user_id?: string
+          time_spent_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_time_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_robin_settings: {
         Row: {
           allow_manual_override: boolean

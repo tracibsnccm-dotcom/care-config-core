@@ -489,9 +489,53 @@ export default function AttorneyLanding() {
           </TabsContent>
 
           {/* Performance Dashboard Tab */}
-          <TabsContent value="performance">
-            <PerformanceDashboard />
-          </TabsContent>
+        <TabsContent value="performance">
+          <PerformanceDashboard />
+        </TabsContent>
+        
+        <TabsContent value="time-tracking">
+          <TimeTrackingBilling />
+        </TabsContent>
+        
+        <TabsContent value="case-notes">
+          <CaseNotesHub />
+        </TabsContent>
+        
+        <TabsContent value="compliance">
+          <ComplianceRiskManagement />
+        </TabsContent>
+        
+        <TabsContent value="discovery">
+          <DiscoveryManagement />
+        </TabsContent>
+        
+        <TabsContent value="financial">
+          <FinancialDashboard />
+        </TabsContent>
+        
+        <TabsContent value="team">
+          <TeamCollaborationCenter />
+        </TabsContent>
+        
+        <TabsContent value="predictions">
+          <CaseOutcomePredictions />
+        </TabsContent>
+        
+        <TabsContent value="conflicts">
+          <ConflictChecker />
+        </TabsContent>
+        
+        <TabsContent value="forms">
+          <LegalFormsLibrary />
+        </TabsContent>
+        
+        <TabsContent value="court-filing">
+          <CourtFilingIntegration />
+        </TabsContent>
+        
+        <TabsContent value="rn-value">
+          <RNValueMetrics attorneyId={user?.id || ""} />
+        </TabsContent>
 
           {/* Document Hub Tab */}
           <TabsContent value="documents">
