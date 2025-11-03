@@ -1,290 +1,231 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/auth/supabaseAuth";
-import { toast } from "sonner";
-import { FileText, Download, Eye, Search, Filter, Clock, AlertCircle, Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, FileText, Download, Eye, Filter, Upload, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { format } from "date-fns";
 
 interface Document {
   id: string;
-  file_name: string;
-  document_type: string;
+  fileName: string;
+  fileType: string;
+  caseId: string;
+  uploadedAt: Date;
+  uploadedBy: string;
+  status: 'pending' | 'reviewed' | 'urgent';
+  size: string;
   category: string;
-  created_at: string;
-  case_id: string;
-  is_sensitive: boolean;
-  file_size?: number;
 }
 
 export default function DocumentHub() {
-  const { user } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("all");
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchDocuments();
+  const documents: Document[] = [
+    {
+      id: '1',
+      fileName: 'Medical Report - Initial Assessment.pdf',
+      fileType: 'PDF',
+      caseId: 'RC-12345678',
+      uploadedAt: new Date(),
+      uploadedBy: 'Dr. Smith',
+      status: 'urgent',
+      size: '2.4 MB',
+      category: 'Medical'
+    },
+    {
+      id: '2',
+      fileName: 'Incident Report.docx',
+      fileType: 'DOCX',
+      caseId: 'RC-12345678',
+      uploadedAt: new Date(Date.now() - 86400000),
+      uploadedBy: 'Client',
+      status: 'pending',
+      size: '1.1 MB',
+      category: 'Legal'
     }
-  }, [user]);
+  ];
 
-  const fetchDocuments = async () => {
-    try {
-      // Get cases assigned to attorney
-      const { data: cases } = await supabase
-        .from("case_assignments")
-        .select("case_id")
-        .eq("user_id", user?.id)
-        .eq("role", "ATTORNEY");
-
-      if (!cases || cases.length === 0) {
-        setDocuments([]);
-        return;
-      }
-
-      const caseIds = cases.map(c => c.case_id);
-
-      // Fetch documents for those cases
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .in("case_id", caseIds)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error: any) {
-      toast.error("Failed to load documents");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredDocs = documents.filter(doc => {
-    const matchesSearch = doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.document_type.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === "all" || doc.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const urgentDocs = documents.filter(d => 
-    d.document_type.toLowerCase().includes('urgent') || 
-    d.category === 'Legal'
+  const filteredDocs = documents.filter(doc => 
+    doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.caseId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const recentDocs = documents.slice(0, 10);
+  const urgentDocs = documents.filter(d => d.status === 'urgent');
+  const pendingDocs = documents.filter(d => d.status === 'pending');
 
-  const categories = Array.from(new Set(documents.map(d => d.category)));
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'Unknown';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'urgent': return <Badge variant="destructive">Urgent</Badge>;
+      case 'pending': return <Badge variant="secondary">Pending</Badge>;
+      case 'reviewed': return <Badge variant="default">Reviewed</Badge>;
+      default: return <Badge>Unknown</Badge>;
+    }
   };
-
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading documents...</div>;
-  }
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-2xl font-bold text-foreground">{documents.length}</p>
               <p className="text-sm text-muted-foreground">Total Documents</p>
-              <p className="text-2xl font-bold">{documents.length}</p>
             </div>
             <FileText className="h-8 w-8 text-primary" />
           </div>
         </Card>
-
-        <Card className="p-4 border-orange-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Urgent</p>
-              <p className="text-2xl font-bold text-orange-500">{urgentDocs.length}</p>
-            </div>
-            <AlertCircle className="h-8 w-8 text-orange-500" />
-          </div>
-        </Card>
-
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">This Week</p>
-              <p className="text-2xl font-bold">{recentDocs.length}</p>
+              <p className="text-2xl font-bold text-destructive">{urgentDocs.length}</p>
+              <p className="text-sm text-muted-foreground">Urgent Review</p>
             </div>
-            <Clock className="h-8 w-8 text-blue-500" />
+            <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
         </Card>
-
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Categories</p>
-              <p className="text-2xl font-bold">{categories.length}</p>
+              <p className="text-2xl font-bold text-warning">{pendingDocs.length}</p>
+              <p className="text-sm text-muted-foreground">Pending Review</p>
             </div>
-            <Filter className="h-8 w-8 text-green-500" />
+            <Clock className="h-8 w-8 text-warning" />
           </div>
         </Card>
       </div>
 
-      {/* Search and Filters */}
       <Card className="p-4">
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search documents..."
+              placeholder="Search documents by name or case ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Upload Document
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+            <Button>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </Button>
+          </div>
         </div>
       </Card>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">All Documents ({filteredDocs.length})</TabsTrigger>
-          <TabsTrigger value="recent">Recent ({recentDocs.length})</TabsTrigger>
-          <TabsTrigger value="urgent">Urgent ({urgentDocs.length})</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 p-6">
+          <Tabs defaultValue="all">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="urgent">Urgent</TabsTrigger>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="all" className="space-y-3">
-          {filteredDocs.length === 0 ? (
-            <Card className="p-8 text-center">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No documents found</p>
-            </Card>
-          ) : (
-            filteredDocs.map((doc) => (
-              <Card key={doc.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <FileText className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <h4 className="font-semibold mb-1">{doc.file_name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline">{doc.document_type}</Badge>
-                        <Badge variant="secondary">{doc.category}</Badge>
-                        {doc.is_sensitive && (
-                          <Badge variant="destructive">Sensitive</Badge>
-                        )}
-                        <span>•</span>
-                        <span>{new Date(doc.created_at).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>{formatFileSize(doc.file_size)}</span>
+            <TabsContent value="all">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-2">
+                  {filteredDocs.map(doc => (
+                    <div
+                      key={doc.id}
+                      onClick={() => setSelectedDoc(doc)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-colors hover:bg-accent/50 ${
+                        selectedDoc?.id === doc.id ? 'bg-accent/50 border-primary' : 'border-border'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{doc.fileName}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span>{doc.caseId}</span>
+                            <span>•</span>
+                            <span>{doc.size}</span>
+                            <span>•</span>
+                            <span>{format(doc.uploadedAt, 'MMM d, yyyy')}</span>
+                          </div>
+                        </div>
+                        {getStatusBadge(doc.status)}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              </Card>
-            ))
-          )}
-        </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-        <TabsContent value="recent" className="space-y-3">
-          {recentDocs.map((doc) => (
-            <Card key={doc.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <h4 className="font-semibold">{doc.file_name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+            <TabsContent value="urgent">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-2">
+                  {urgentDocs.map(doc => (
+                    <div key={doc.id} className="p-4 rounded-lg border border-destructive/50 bg-destructive/5">
+                      <p className="font-medium text-foreground">{doc.fileName}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{doc.caseId}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="ghost">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost">
-                    <Download className="h-4 w-4" />
-                  </Button>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="pending">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-2">
+                  {pendingDocs.map(doc => (
+                    <div key={doc.id} className="p-4 rounded-lg border border-warning/50 bg-warning/5">
+                      <p className="font-medium text-foreground">{doc.fileName}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{doc.caseId}</p>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Document Preview</h3>
+          {selectedDoc ? (
+            <div className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Case ID:</span>
+                  <span className="font-medium">{selectedDoc.caseId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Size:</span>
+                  <span className="font-medium">{selectedDoc.size}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  {getStatusBadge(selectedDoc.status)}
                 </div>
               </div>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="urgent" className="space-y-3">
-          {urgentDocs.length === 0 ? (
-            <Card className="p-8 text-center">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No urgent documents</p>
-            </Card>
+              <div className="pt-4 space-y-2">
+                <Button className="w-full" variant="default">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Document
+                </Button>
+                <Button className="w-full" variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
           ) : (
-            urgentDocs.map((doc) => (
-              <Card key={doc.id} className="p-4 border-orange-500">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <h4 className="font-semibold">{doc.file_name}</h4>
-                      <Badge variant="destructive">Urgent</Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost">View</Button>
-                    <Button size="sm" variant="ghost">Download</Button>
-                  </div>
-                </div>
-              </Card>
-            ))
+            <div className="flex flex-col items-center justify-center h-[400px] text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">Select a document to view details</p>
+            </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="templates">
-          <Card className="p-8 text-center">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">Document Templates</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Pre-formatted legal documents and templates
-            </p>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Browse Templates
-            </Button>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </Card>
+      </div>
     </div>
   );
 }

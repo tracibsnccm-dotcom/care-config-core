@@ -1,254 +1,233 @@
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { DollarSign, TrendingUp, FileText, Clock, Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DollarSign, TrendingUp, FileText, Calculator, Plus } from "lucide-react";
+import { useState } from "react";
+import { format } from "date-fns";
 
 interface Settlement {
   id: string;
-  case_id: string;
-  client_name: string;
-  demand_amount: number;
-  offer_amount?: number;
-  settled_amount?: number;
-  status: "negotiating" | "pending" | "settled" | "rejected";
-  last_update: string;
-  settlement_date?: string;
-  negotiation_history: {
-    date: string;
-    party: string;
-    amount: number;
-    notes: string;
-  }[];
+  caseId: string;
+  clientName: string;
+  status: 'negotiating' | 'pending' | 'accepted';
+  demandAmount: number;
+  offerAmount: number;
+  lastUpdated: Date;
+  notes: string;
 }
 
 export default function SettlementManagement() {
   const [settlements] = useState<Settlement[]>([
     {
-      id: "1",
-      case_id: "RC-12345678",
-      client_name: "John Smith",
-      demand_amount: 150000,
-      offer_amount: 100000,
-      status: "negotiating",
-      last_update: "2025-10-28",
-      negotiation_history: [
-        { date: "2025-10-15", party: "Attorney", amount: 150000, notes: "Initial demand" },
-        { date: "2025-10-20", party: "Insurance", amount: 80000, notes: "Initial offer" },
-        { date: "2025-10-25", party: "Attorney", amount: 130000, notes: "Counter demand" },
-        { date: "2025-10-28", party: "Insurance", amount: 100000, notes: "Increased offer" }
-      ]
-    },
-    {
-      id: "2",
-      case_id: "RC-87654321",
-      client_name: "Jane Doe",
-      demand_amount: 200000,
-      settled_amount: 175000,
-      status: "settled",
-      last_update: "2025-10-20",
-      settlement_date: "2025-10-20",
-      negotiation_history: [
-        { date: "2025-09-01", party: "Attorney", amount: 200000, notes: "Demand letter sent" },
-        { date: "2025-09-15", party: "Insurance", amount: 150000, notes: "Settlement offer" },
-        { date: "2025-10-01", party: "Attorney", amount: 185000, notes: "Counter offer" },
-        { date: "2025-10-20", party: "Insurance", amount: 175000, notes: "Final agreement" }
-      ]
+      id: '1',
+      caseId: 'RC-12345678',
+      clientName: 'John Doe',
+      status: 'negotiating',
+      demandAmount: 150000,
+      offerAmount: 75000,
+      lastUpdated: new Date(),
+      notes: 'Waiting for response to counteroffer'
     }
   ]);
 
-  const activeSettlements = settlements.filter(s => s.status !== "settled" && s.status !== "rejected");
-  const settledCases = settlements.filter(s => s.status === "settled");
-  const totalSettled = settledCases.reduce((sum, s) => sum + (s.settled_amount || 0), 0);
-  const avgSettlement = settledCases.length > 0 ? totalSettled / settledCases.length : 0;
+  const [medicalBills, setMedicalBills] = useState<string>('');
+  const [lostWages, setLostWages] = useState<string>('');
+  const [painMultiplier, setPainMultiplier] = useState<string>('3');
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "negotiating": return "default";
-      case "pending": return "secondary";
-      case "settled": return "default";
-      case "rejected": return "destructive";
-      default: return "outline";
-    }
+  const calculateSettlement = () => {
+    const bills = parseFloat(medicalBills) || 0;
+    const wages = parseFloat(lostWages) || 0;
+    const multiplier = parseFloat(painMultiplier) || 3;
+    
+    const economicDamages = bills + wages;
+    const painAndSuffering = bills * multiplier;
+    const total = economicDamages + painAndSuffering;
+    
+    return { economicDamages, painAndSuffering, total };
   };
 
-  const calculateProgress = (settlement: Settlement) => {
-    if (settlement.status === "settled" && settlement.settled_amount) {
-      return (settlement.settled_amount / settlement.demand_amount) * 100;
+  const calculation = calculateSettlement();
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'negotiating': return <Badge variant="secondary">Negotiating</Badge>;
+      case 'pending': return <Badge variant="outline">Pending</Badge>;
+      case 'accepted': return <Badge variant="default" className="bg-success">Accepted</Badge>;
+      default: return null;
     }
-    if (settlement.offer_amount) {
-      return (settlement.offer_amount / settlement.demand_amount) * 100;
-    }
-    return 0;
   };
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Active Negotiations</p>
-              <p className="text-2xl font-bold">{activeSettlements.length}</p>
+              <p className="text-2xl font-bold text-foreground">{settlements.length}</p>
+              <p className="text-sm text-muted-foreground">Active Settlements</p>
             </div>
-            <TrendingUp className="h-8 w-8 text-primary" />
+            <FileText className="h-8 w-8 text-primary" />
           </div>
         </Card>
-
-        <Card className="p-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Settled Cases</p>
-              <p className="text-2xl font-bold text-green-500">{settledCases.length}</p>
-            </div>
-            <FileText className="h-8 w-8 text-green-500" />
-          </div>
-        </Card>
-
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Total Settled</p>
-              <p className="text-2xl font-bold">${totalSettled.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-warning">{settlements.filter(s => s.status === 'negotiating').length}</p>
+              <p className="text-sm text-muted-foreground">In Negotiation</p>
             </div>
-            <DollarSign className="h-8 w-8 text-blue-500" />
+            <TrendingUp className="h-8 w-8 text-warning" />
           </div>
         </Card>
-
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Avg Settlement</p>
-              <p className="text-2xl font-bold">${avgSettlement.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(settlements.reduce((sum, s) => sum + s.demandAmount, 0))}</p>
+              <p className="text-sm text-muted-foreground">Total Value</p>
             </div>
-            <TrendingUp className="h-8 w-8 text-green-500" />
+            <DollarSign className="h-8 w-8 text-primary" />
           </div>
         </Card>
       </div>
 
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList>
-          <TabsTrigger value="active">Active ({activeSettlements.length})</TabsTrigger>
-          <TabsTrigger value="settled">Settled ({settledCases.length})</TabsTrigger>
-          <TabsTrigger value="calculator">Calculator</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-foreground">Settlement Negotiations</h3>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Settlement
+            </Button>
+          </div>
 
-        <TabsContent value="active" className="space-y-4">
-          {activeSettlements.map((settlement) => (
-            <Card key={settlement.id} className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">{settlement.client_name}</h3>
-                    <p className="text-sm text-muted-foreground">Case: {settlement.case_id}</p>
-                  </div>
-                  <Badge variant={getStatusColor(settlement.status)}>
-                    {settlement.status}
-                  </Badge>
-                </div>
+          <Tabs defaultValue="active">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="accepted">Accepted</TabsTrigger>
+            </TabsList>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Demand Amount</p>
-                    <p className="text-xl font-bold">${settlement.demand_amount.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Current Offer</p>
-                    <p className="text-xl font-bold text-blue-500">
-                      ${settlement.offer_amount?.toLocaleString() || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Progress</p>
-                    <p className="text-xl font-bold">{calculateProgress(settlement).toFixed(0)}%</p>
-                  </div>
-                </div>
-
-                <Progress value={calculateProgress(settlement)} className="h-2" />
-
-                <div className="pt-4 border-t">
-                  <h4 className="font-semibold mb-3">Negotiation History</h4>
-                  <div className="space-y-2">
-                    {settlement.negotiation_history.map((history, idx) => (
-                      <div key={idx} className="flex items-start gap-3 text-sm">
-                        <div className="min-w-[80px] text-muted-foreground">
-                          {new Date(history.date).toLocaleDateString()}
+            <TabsContent value="active">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-4">
+                  {settlements.filter(s => s.status !== 'accepted').map(settlement => (
+                    <div key={settlement.id} className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{settlement.clientName}</h4>
+                          <p className="text-sm text-muted-foreground">{settlement.caseId}</p>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {history.party}
-                            </Badge>
-                            <span className="font-semibold">
-                              ${history.amount.toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground mt-1">{history.notes}</p>
-                        </div>
+                        {getStatusBadge(settlement.status)}
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline">View Details</Button>
-                  <Button>Add Counter Offer</Button>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Demand:</span>
+                          <span className="font-semibold text-foreground">{formatCurrency(settlement.demandAmount)}</span>
+                        </div>
+                        {settlement.offerAmount > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Offer:</span>
+                            <span className="font-semibold text-warning">{formatCurrency(settlement.offerAmount)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground mt-3">{settlement.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Updated {format(settlement.lastUpdated, 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                  ))}
                 </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="accepted">
+              <div className="flex flex-col items-center justify-center h-[400px]">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">No accepted settlements yet</p>
               </div>
-            </Card>
-          ))}
-        </TabsContent>
+            </TabsContent>
+          </Tabs>
+        </Card>
 
-        <TabsContent value="settled" className="space-y-4">
-          {settledCases.map((settlement) => (
-            <Card key={settlement.id} className="p-6 opacity-80">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">{settlement.client_name}</h3>
-                  <p className="text-sm text-muted-foreground">Case: {settlement.case_id}</p>
-                </div>
-                <Badge variant="default">Settled</Badge>
-              </div>
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Calculator className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">Settlement Calculator</h3>
+          </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Demand</p>
-                  <p className="text-lg font-semibold">${settlement.demand_amount.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Settled Amount</p>
-                  <p className="text-lg font-semibold text-green-500">
-                    ${settlement.settled_amount?.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Settlement Date</p>
-                  <p className="text-lg font-semibold">
-                    {settlement.settlement_date && new Date(settlement.settlement_date).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="calculator">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Settlement Calculator</h3>
-            <div className="text-center py-8">
-              <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground mb-4">Calculate potential settlement values</p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Open Calculator
-              </Button>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="medical">Medical Bills</Label>
+              <Input
+                id="medical"
+                type="number"
+                placeholder="0"
+                value={medicalBills}
+                onChange={(e) => setMedicalBills(e.target.value)}
+                className="mt-1"
+              />
             </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+            <div>
+              <Label htmlFor="wages">Lost Wages</Label>
+              <Input
+                id="wages"
+                type="number"
+                placeholder="0"
+                value={lostWages}
+                onChange={(e) => setLostWages(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="multiplier">Pain & Suffering Multiplier</Label>
+              <Input
+                id="multiplier"
+                type="number"
+                step="0.5"
+                placeholder="3"
+                value={painMultiplier}
+                onChange={(e) => setPainMultiplier(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="pt-4 border-t border-border space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Economic Damages:</span>
+                <span className="font-semibold text-foreground">{formatCurrency(calculation.economicDamages)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Pain & Suffering:</span>
+                <span className="font-semibold text-foreground">{formatCurrency(calculation.painAndSuffering)}</span>
+              </div>
+              <div className="flex justify-between pt-3 border-t border-border">
+                <span className="font-semibold text-foreground">Estimated Value:</span>
+                <span className="font-bold text-primary text-xl">{formatCurrency(calculation.total)}</span>
+              </div>
+            </div>
+
+            <Button className="w-full mt-4">
+              <FileText className="h-4 w-4 mr-2" />
+              Generate Demand Letter
+            </Button>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
