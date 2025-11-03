@@ -1,4 +1,5 @@
 import { RCMS } from "../../constants/brand";
+import { RNIndividualMetricsDashboard } from "@/components/RNClinicalLiaison/RNIndividualMetricsDashboard";
 
 export default function RNPortal() {
   return (
@@ -7,6 +8,10 @@ export default function RNPortal() {
       <p className="mt-2 text-sm text-muted-foreground">
         Access your dashboards, compliance checks, and quality metrics.
       </p>
+
+      <div className="mt-6 mb-8">
+        <RNIndividualMetricsDashboard />
+      </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <a href="/rn/dashboard" className="rounded-2xl border border-border bg-card p-5 hover:bg-accent block">
