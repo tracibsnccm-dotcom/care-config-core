@@ -2947,6 +2947,78 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_daily_metrics: {
+        Row: {
+          attorney_collaboration_count: number | null
+          avg_response_time_hours: number | null
+          care_plan_updates: number | null
+          cases_closed: number | null
+          cases_managed: number | null
+          client_checkins_conducted: number | null
+          client_messages_responded: number | null
+          client_messages_sent: number | null
+          client_satisfaction_score: number | null
+          created_at: string
+          documentation_completion_rate: number | null
+          documentation_quality_score: number | null
+          emergency_alerts_addressed: number | null
+          emergency_alerts_within_sla: number | null
+          id: string
+          metric_date: string
+          new_cases_assigned: number | null
+          rn_user_id: string
+          sla_compliance_rate: number | null
+          task_completion_rate: number | null
+          updated_at: string
+        }
+        Insert: {
+          attorney_collaboration_count?: number | null
+          avg_response_time_hours?: number | null
+          care_plan_updates?: number | null
+          cases_closed?: number | null
+          cases_managed?: number | null
+          client_checkins_conducted?: number | null
+          client_messages_responded?: number | null
+          client_messages_sent?: number | null
+          client_satisfaction_score?: number | null
+          created_at?: string
+          documentation_completion_rate?: number | null
+          documentation_quality_score?: number | null
+          emergency_alerts_addressed?: number | null
+          emergency_alerts_within_sla?: number | null
+          id?: string
+          metric_date?: string
+          new_cases_assigned?: number | null
+          rn_user_id: string
+          sla_compliance_rate?: number | null
+          task_completion_rate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          attorney_collaboration_count?: number | null
+          avg_response_time_hours?: number | null
+          care_plan_updates?: number | null
+          cases_closed?: number | null
+          cases_managed?: number | null
+          client_checkins_conducted?: number | null
+          client_messages_responded?: number | null
+          client_messages_sent?: number | null
+          client_satisfaction_score?: number | null
+          created_at?: string
+          documentation_completion_rate?: number | null
+          documentation_quality_score?: number | null
+          emergency_alerts_addressed?: number | null
+          emergency_alerts_within_sla?: number | null
+          id?: string
+          metric_date?: string
+          new_cases_assigned?: number | null
+          rn_user_id?: string
+          sla_compliance_rate?: number | null
+          task_completion_rate?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rn_diary_entries: {
         Row: {
           attendees: Json | null
@@ -3152,6 +3224,78 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           weekend_availability?: boolean | null
+        }
+        Relationships: []
+      }
+      rn_performance_reviews: {
+        Row: {
+          acknowledged_at: string | null
+          action_items: Json | null
+          areas_for_improvement: string | null
+          client_satisfaction_score: number | null
+          created_at: string
+          documentation_score: number | null
+          id: string
+          overall_rating: number
+          performance_tier: string | null
+          quality_score: number | null
+          response_time_score: number | null
+          review_period_end: string
+          review_period_start: string
+          reviewer_id: string
+          rn_user_id: string
+          sla_compliance_score: number | null
+          status: string | null
+          strengths: string | null
+          supervisor_notes: string | null
+          task_completion_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          action_items?: Json | null
+          areas_for_improvement?: string | null
+          client_satisfaction_score?: number | null
+          created_at?: string
+          documentation_score?: number | null
+          id?: string
+          overall_rating: number
+          performance_tier?: string | null
+          quality_score?: number | null
+          response_time_score?: number | null
+          review_period_end: string
+          review_period_start: string
+          reviewer_id: string
+          rn_user_id: string
+          sla_compliance_score?: number | null
+          status?: string | null
+          strengths?: string | null
+          supervisor_notes?: string | null
+          task_completion_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          action_items?: Json | null
+          areas_for_improvement?: string | null
+          client_satisfaction_score?: number | null
+          created_at?: string
+          documentation_score?: number | null
+          id?: string
+          overall_rating?: number
+          performance_tier?: string | null
+          quality_score?: number | null
+          response_time_score?: number | null
+          review_period_end?: string
+          review_period_start?: string
+          reviewer_id?: string
+          rn_user_id?: string
+          sla_compliance_score?: number | null
+          status?: string | null
+          strengths?: string | null
+          supervisor_notes?: string | null
+          task_completion_score?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3521,6 +3665,26 @@ export type Database = {
         Returns: number
       }
       get_next_round_robin_attorney: { Args: never; Returns: string }
+      get_rn_metric_comparison: {
+        Args: {
+          p_current_date?: string
+          p_metric_name: string
+          p_rn_user_id: string
+        }
+        Returns: Json
+      }
+      get_rn_metrics_history: {
+        Args: { p_months?: number; p_rn_user_id: string }
+        Returns: {
+          avg_response_time_hours: number
+          cases_managed: number
+          client_satisfaction_score: number
+          documentation_completion_rate: number
+          metric_date: string
+          sla_compliance_rate: number
+          task_completion_rate: number
+        }[]
+      }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
       get_tier_recommendation: {
         Args: { p_attorney_id: string }
