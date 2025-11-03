@@ -30,6 +30,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import NotificationCenter from "@/components/attorney/NotificationCenter";
+import MobileQuickActions from "@/components/attorney/MobileQuickActions";
+import BulkActionsBar from "@/components/attorney/BulkActionsBar";
+import AdvancedFilters from "@/components/attorney/AdvancedFilters";
+import ExportCenter from "@/components/attorney/ExportCenter";
+import IntegrationSettings from "@/components/attorney/IntegrationSettings";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -131,6 +137,7 @@ export default function AttorneyLanding() {
   } = useApp();
 
   const [tierData, setTierData] = useState<any>(null);
+  const [selectedCases, setSelectedCases] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -188,10 +195,16 @@ export default function AttorneyLanding() {
     <AppLayout>
       <PolicyAcknowledgmentBanner />
       
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Attorney Landing</h1>
-          <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
+      <div className="p-8 pb-24 lg:pb-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Attorney Landing</h1>
+            <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ExportCenter />
+            <NotificationCenter />
+          </div>
         </div>
 
         {/* Top Row: Tier + eWallet */}
@@ -360,10 +373,17 @@ export default function AttorneyLanding() {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
           <TabsContent value="overview" className="space-y-6">
+            <div className="flex justify-end mb-4">
+              <AdvancedFilters 
+                onApplyFilters={(filters) => console.log("Filters applied:", filters)} 
+                filterType="cases"
+              />
+            </div>
             {/* CRITICAL: 72-hour cases */}
             {criticalCases.length > 0 && (
               <Card className="p-6 border-destructive bg-destructive/5">
@@ -491,7 +511,22 @@ export default function AttorneyLanding() {
           <TabsContent value="referrals">
             <ReferralNetworkManagement />
           </TabsContent>
+
+          {/* Integration Settings Tab */}
+          <TabsContent value="integrations">
+            <IntegrationSettings />
+          </TabsContent>
         </Tabs>
+
+        {/* Bulk Actions Bar - shown when items are selected */}
+        <BulkActionsBar 
+          selectedCount={selectedCases.length}
+          onClearSelection={() => setSelectedCases([])}
+          itemType="cases"
+        />
+
+        {/* Mobile Quick Actions Bar */}
+        <MobileQuickActions />
       </div>
     </AppLayout>
   );
