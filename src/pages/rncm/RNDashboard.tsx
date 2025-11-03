@@ -175,7 +175,7 @@ export default function RNDashboard() {
         )}
 
         {/* Two columns: My Metrics and Team Metrics */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className={isSupervisor ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "max-w-3xl"}>
           {/* My Metrics (individual RN) */}
           <Card>
             <CardHeader>
@@ -215,18 +215,15 @@ export default function RNDashboard() {
             </CardContent>
           </Card>
 
-          {/* Team Metrics (supervisor) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-[#0f2a6a]">
-                {isSupervisor ? "Team Quality Metrics" : "Team Overview"}
-              </CardTitle>
-              <CardDescription>
-                {isSupervisor 
-                  ? "Supervisor view — compare RN performance and drill into details."
-                  : "Team performance summary (full details available to supervisors)."}
-              </CardDescription>
-            </CardHeader>
+          {/* Team Metrics (supervisor only) */}
+          {isSupervisor && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#0f2a6a]">Team Quality Metrics</CardTitle>
+                <CardDescription>
+                  Supervisor view — compare RN performance and drill into details.
+                </CardDescription>
+              </CardHeader>
             <CardContent>
               {/* Team Averages Display */}
               <div className="mb-4 p-4 rounded-lg bg-muted/50">
@@ -287,7 +284,8 @@ export default function RNDashboard() {
                 Individual RN drill-down and comparative analysis available to supervisors.
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          )}
         </section>
 
         {/* Implementation notes */}
