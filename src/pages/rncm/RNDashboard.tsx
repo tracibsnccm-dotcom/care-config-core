@@ -1,5 +1,6 @@
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
+import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -32,19 +33,21 @@ export default function RNDashboard() {
 
   if (!hasAccess) {
     return (
-      <section className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 px-6">
-        <div className="max-w-lg w-full text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-sm font-semibold mb-4">
-            <span>Restricted</span>
-            <span className="opacity-70">RCMS Staff Only</span>
+      <AppLayout>
+        <section className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 px-6">
+          <div className="max-w-lg w-full text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-sm font-semibold mb-4">
+              <span>Restricted</span>
+              <span className="opacity-70">RCMS Staff Only</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+            <p className="text-muted-foreground">
+              This page is restricted to RCMS Nurse Case Managers and Supervisors.
+              If you believe this is an error, contact your RCMS administrator.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">
-            This page is restricted to RCMS Nurse Case Managers and Supervisors.
-            If you believe this is an error, contact your RCMS administrator.
-          </p>
-        </div>
-      </section>
+        </section>
+      </AppLayout>
     );
   }
 
@@ -52,29 +55,33 @@ export default function RNDashboard() {
 
   if (loading) {
     return (
-      <main className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0f2a6a] mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading metrics...</p>
+      <AppLayout>
+        <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0f2a6a] mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading metrics...</p>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      </AppLayout>
     );
   }
 
   if (!metricsData) {
     return (
-      <main className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>Failed to load metrics data.</AlertDescription>
-          </Alert>
+      <AppLayout>
+        <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
+          <div className="max-w-7xl mx-auto">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>Failed to load metrics data.</AlertDescription>
+            </Alert>
+          </div>
         </div>
-      </main>
+      </AppLayout>
     );
   }
 
@@ -124,8 +131,9 @@ export default function RNDashboard() {
   };
 
   return (
-    <main className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <AppLayout>
+      <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold">
@@ -304,7 +312,8 @@ export default function RNDashboard() {
             </CardContent>
           </Card>
         </section>
+        </div>
       </div>
-    </main>
+    </AppLayout>
   );
 }
