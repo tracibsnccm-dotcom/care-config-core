@@ -1,47 +1,41 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Clock, AlertCircle } from "lucide-react";
 import { DeclineAssignmentModal } from "./DeclineAssignmentModal";
 import { AcceptAssignmentModal } from "./AcceptAssignmentModal";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
-interface PendingAssignment {
+interface PendingOffer {
   id: string;
   case_id: string;
   offered_at: string;
   expires_at: string;
-  created_by: string;
-  reviewer_name?: string;
 }
 
 export function PendingAssignmentsView() {
   const { user } = useAuth();
-  const [assignments, setAssignments] = useState<PendingAssignment[]>([]);
+  const navigate = useNavigate();
+  const [offers, setOffers] = useState<PendingOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOffer, setSelectedOffer] = useState<PendingAssignment | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<PendingOffer | null>(null);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [policySignedMap, setPolicySignedMap] = useState<Record<string, boolean>>({});
   const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     if (!user) return;
-    loadAssignments();
+    loadOffers();
+    checkPolicyStatus();
     loadWalletBalance();
 
     const channel = supabase
-      .channel("pending_assignments")
+      .channel("assignment_offers_changes")
       .on(
         "postgres_changes",
         {
@@ -51,7 +45,7 @@ export function PendingAssignmentsView() {
           filter: `attorney_id=eq.${user.id}`,
         },
         () => {
-          loadAssignments();
+          loadOffers();
         }
       )
       .subscribe();
@@ -61,265 +55,222 @@ export function PendingAssignmentsView() {
     };
   }, [user]);
 
-  async function loadAssignments() {
+  async function loadOffers() {
     if (!user) return;
 
     setLoading(true);
     const { data, error } = await supabase
       .from("assignment_offers")
-      .select(
-        `
-        id,
-        case_id,
-        offered_at,
-        expires_at,
-        created_by,
-        profiles!assignment_offers_created_by_fkey(display_name)
-      `
-      )
+      .select("*")
       .eq("attorney_id", user.id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
-      .order("offered_at", { ascending: true });
+      .order("offered_at", { ascending: false });
 
     if (error) {
-      console.error("Error loading assignments:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load pending assignments.",
-        variant: "destructive",
-      });
+      console.error("Error loading offers:", error);
     } else {
-      const mapped = (data || []).map((item: any) => ({
-        ...item,
-        reviewer_name: item.profiles?.display_name,
-      }));
-      setAssignments(mapped);
+      setOffers(data || []);
     }
-
     setLoading(false);
+  }
+
+  async function checkPolicyStatus() {
+    if (!user) return;
+    // For now, assume policy is always signed - this can be enhanced with policy_acknowledgments table
+    setPolicySignedMap({ [user.id]: true });
   }
 
   async function loadWalletBalance() {
     if (!user) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("attorney_wallet")
       .select("balance")
       .eq("attorney_id", user.id)
       .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Error loading wallet balance:", error);
-      return;
-    }
-
     setWalletBalance(data?.balance || 0);
   }
 
-  function getTimeLeft(expiresAt: string): string {
+  async function handleAccept(offerId: string) {
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc("accept_assignment_offer", {
+        p_offer_id: offerId,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Assignment Accepted",
+        description: "Redirecting to case details...",
+      });
+
+      const offer = offers.find((o) => o.id === offerId);
+      if (offer) {
+        navigate(`/cases/${offer.case_id}`);
+      }
+    } catch (error: any) {
+      console.error("Error accepting offer:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to accept assignment",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setShowAcceptModal(false);
+    }
+  }
+
+  async function handleDecline(offerId: string, reason: string, note?: string) {
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc("decline_assignment_offer", {
+        p_offer_id: offerId,
+        p_reason: reason,
+        p_note: note || null,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Assignment Declined",
+        description: "The offer has been declined.",
+      });
+
+      loadOffers();
+    } catch (error: any) {
+      console.error("Error declining offer:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to decline assignment",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setShowDeclineModal(false);
+    }
+  }
+
+  const getTimeRemaining = (expiresAt: string) => {
     const now = new Date().getTime();
-    const expires = new Date(expiresAt).getTime();
-    const diff = expires - now;
+    const expiry = new Date(expiresAt).getTime();
+    const diff = expiry - now;
 
     if (diff <= 0) return "Expired";
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    return `${hours}h ${minutes}m`;
-  }
-
-  async function handleAccept() {
-    if (!selectedOffer) return;
-
-    try {
-      const { data, error } = await supabase.rpc("accept_assignment_offer", {
-        p_offer_id: selectedOffer.id,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string; case_id?: string };
-
-      if (!result.success) {
-        toast({
-          title: "Unable to Accept",
-          description: result.error || "This offer is no longer available.",
-          variant: "destructive",
-        });
-        loadAssignments();
-        return;
-      }
-
-      toast({
-        title: "Client Accepted",
-        description: "You have successfully accepted this client assignment.",
-      });
-
-      setShowAcceptModal(false);
-      setSelectedOffer(null);
-      loadAssignments();
-
-      if (result.case_id) {
-        window.location.href = `/case-detail/${result.case_id}`;
-      }
-    } catch (error) {
-      console.error("Error accepting offer:", error);
-      toast({
-        title: "Error",
-        description: "Failed to accept assignment.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  async function handleDecline(reason: string, note?: string) {
-    if (!selectedOffer) return;
-
-    try {
-      const { data, error } = await supabase.rpc("decline_assignment_offer", {
-        p_offer_id: selectedOffer.id,
-        p_reason: reason,
-        p_note: note,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string };
-
-      if (!result.success) {
-        toast({
-          title: "Unable to Decline",
-          description: result.error || "Failed to process your decline.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Assignment Declined",
-        description: "The client has been returned to the queue.",
-      });
-
-      setShowDeclineModal(false);
-      setSelectedOffer(null);
-      loadAssignments();
-    } catch (error) {
-      console.error("Error declining offer:", error);
-      toast({
-        title: "Error",
-        description: "Failed to decline assignment.",
-        variant: "destructive",
-      });
-    }
-  }
+    return `${hours}h ${minutes}m remaining`;
+  };
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Pending Assignments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Loading...</p>
+        <CardContent className="py-8 text-center">
+          <p className="text-muted-foreground">Loading pending assignments...</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (assignments.length === 0) {
+  if (offers.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Pending Assignments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No pending assignments</p>
-          </div>
+        <CardContent className="py-12 text-center">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Pending Assignments</h3>
+          <p className="text-muted-foreground">
+            You don't have any pending client assignments at the moment.
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Pending Assignments
-            <Badge variant="secondary">{assignments.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Case ID</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>RN CM Reviewer</TableHead>
-                <TableHead>Time Left</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignments.map((assignment) => {
-                const caseId = `RC-${assignment.case_id.slice(-8).toUpperCase()}`;
-                const timeLeft = getTimeLeft(assignment.expires_at);
+    <div className="space-y-4">
+      {offers.map((offer) => {
+        const caseId = `RC-${offer.case_id.slice(-8).toUpperCase()}`;
+        const timeRemaining = getTimeRemaining(offer.expires_at);
+        const policySigned = policySignedMap[user?.id || ""];
 
-                return (
-                  <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">{caseId}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      Client ID {caseId}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(assignment.offered_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{assignment.reviewer_name || "N/A"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          timeLeft.includes("h") ? "secondary" : "destructive"
-                        }
-                        className="gap-1"
-                      >
-                        <Clock className="h-3 w-3" />
-                        {timeLeft}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedOffer(assignment);
-                          setShowAcceptModal(true);
-                        }}
-                        className="bg-[#b09837] text-black hover:bg-[#b09837]/90"
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedOffer(assignment);
-                          setShowDeclineModal(true);
-                        }}
-                      >
-                        Decline
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        return (
+          <Card key={offer.id} className="border-[#b09837]/30">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-xl">New Client Assignment</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Case ID: {caseId}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {timeRemaining}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Offered</p>
+                  <p className="font-medium">
+                    {new Date(offer.offered_at).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Expires</p>
+                  <p className="font-medium">
+                    {new Date(offer.expires_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setSelectedOffer(offer);
+                    setShowAcceptModal(true);
+                  }}
+                  className="flex-1 bg-[#b09837] hover:bg-[#b09837]/90 text-black"
+                  disabled={!policySigned}
+                >
+                  Accept Client
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedOffer(offer);
+                    setShowDeclineModal(true);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Decline
+                </Button>
+              </div>
+
+              {!policySigned && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    ⚠️ You must acknowledge the{" "}
+                    <a
+                      href="/attorney-policy"
+                      className="underline font-semibold hover:text-amber-900 dark:hover:text-amber-100"
+                    >
+                      Referral Policy
+                    </a>{" "}
+                    before accepting assignments.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
 
       {selectedOffer && (
         <>
@@ -329,21 +280,20 @@ export function PendingAssignmentsView() {
               setShowDeclineModal(false);
               setSelectedOffer(null);
             }}
-            onDecline={handleDecline}
+            onDecline={(reason, note) => handleDecline(selectedOffer.id, reason, note)}
           />
-
           <AcceptAssignmentModal
             open={showAcceptModal}
             onClose={() => {
               setShowAcceptModal(false);
               setSelectedOffer(null);
             }}
-            onAccept={handleAccept}
+            onAccept={() => handleAccept(selectedOffer.id)}
             caseId={`RC-${selectedOffer.case_id.slice(-8).toUpperCase()}`}
             walletBalance={walletBalance}
           />
         </>
       )}
-    </>
+    </div>
   );
 }
