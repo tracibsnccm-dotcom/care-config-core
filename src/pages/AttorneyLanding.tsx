@@ -26,6 +26,7 @@ import { EWalletSummary } from "@/components/EWalletSummary";
 import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
 import { AttorneyQuickActions } from "@/components/AttorneyQuickActions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -347,95 +348,150 @@ export default function AttorneyLanding() {
           <AttorneyIntakeTracker />
         </div>
 
-        {/* Case Tracking Sections */}
-        <div className="space-y-6">
-          {/* CRITICAL: 72-hour cases */}
-          {criticalCases.length > 0 && (
-            <Card className="p-6 border-destructive bg-destructive/5">
-              <div className="flex items-start gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-destructive mt-1" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-destructive mb-1">
-                    Critical: Attorney Action Required
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {criticalCases.length} case{criticalCases.length !== 1 ? "s" : ""} pending 72+ hours. 
-                    Will be deleted/tagged as attorney refusal in 72 more hours.
-                  </p>
+        {/* Tabbed Interface for Attorney Tools */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto gap-2 bg-muted/50 p-2">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="communication">Communication</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="settlement">Settlement</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="referrals">Referrals</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab - Case Tracking */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* CRITICAL: 72-hour cases */}
+            {criticalCases.length > 0 && (
+              <Card className="p-6 border-destructive bg-destructive/5">
+                <div className="flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-6 h-6 text-destructive mt-1" />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-destructive mb-1">
+                      Critical: Attorney Action Required
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {criticalCases.length} case{criticalCases.length !== 1 ? "s" : ""} pending 72+ hours. 
+                      Will be deleted/tagged as attorney refusal in 72 more hours.
+                    </p>
+                  </div>
                 </div>
+                <div className="space-y-2">
+                  {criticalCases.map((c) => (
+                    <CaseListItem key={c.id} case={c} navigate={navigate} urgent />
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Recently Opened Cases */}
+            <Card className="p-6 border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <FolderOpen className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  Recently Opened Cases (Last 7 Days)
+                </h3>
+                <span className="ml-auto text-sm text-muted-foreground">
+                  {recentCases.length} case{recentCases.length !== 1 ? "s" : ""}
+                </span>
               </div>
-              <div className="space-y-2">
-                {criticalCases.map((c) => (
-                  <CaseListItem key={c.id} case={c} navigate={navigate} urgent />
-                ))}
-              </div>
+              {recentCases.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No cases opened in the last 7 days</p>
+              ) : (
+                <div className="space-y-2">
+                  {recentCases.slice(0, 5).map((c) => (
+                    <CaseListItem key={c.id} case={c} navigate={navigate} />
+                  ))}
+                  {recentCases.length > 5 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/cases")}
+                      className="w-full mt-2"
+                    >
+                      View all {recentCases.length} cases
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
-          )}
 
-          {/* Recently Opened Cases */}
-          <Card className="p-6 border-border">
-            <div className="flex items-center gap-3 mb-4">
-              <FolderOpen className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">
-                Recently Opened Cases (Last 7 Days)
-              </h3>
-              <span className="ml-auto text-sm text-muted-foreground">
-                {recentCases.length} case{recentCases.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            {recentCases.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No cases opened in the last 7 days</p>
-            ) : (
-              <div className="space-y-2">
-                {recentCases.slice(0, 5).map((c) => (
-                  <CaseListItem key={c.id} case={c} navigate={navigate} />
-                ))}
-                {recentCases.length > 5 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate("/cases")}
-                    className="w-full mt-2"
-                  >
-                    View all {recentCases.length} cases
-                  </Button>
-                )}
+            {/* Cases Needing Attention */}
+            <Card className="p-6 border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-5 h-5 text-warning" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  Cases Needing Attention (30+ Days)
+                </h3>
+                <span className="ml-auto text-sm text-muted-foreground">
+                  {needsAttentionCases.length} case{needsAttentionCases.length !== 1 ? "s" : ""}
+                </span>
               </div>
-            )}
-          </Card>
+              {needsAttentionCases.length === 0 ? (
+                <p className="text-sm text-muted-foreground">All cases have recent check-ins</p>
+              ) : (
+                <div className="space-y-2">
+                  {needsAttentionCases.slice(0, 5).map((c) => (
+                    <CaseListItem key={c.id} case={c} navigate={navigate} showLastCheckin />
+                  ))}
+                  {needsAttentionCases.length > 5 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/cases")}
+                      className="w-full mt-2"
+                    >
+                      View all {needsAttentionCases.length} cases
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
 
-          {/* Cases Needing Attention */}
-          <Card className="p-6 border-border">
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="w-5 h-5 text-warning" />
-              <h3 className="text-lg font-semibold text-foreground">
-                Cases Needing Attention (30+ Days)
-              </h3>
-              <span className="ml-auto text-sm text-muted-foreground">
-                {needsAttentionCases.length} case{needsAttentionCases.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            {needsAttentionCases.length === 0 ? (
-              <p className="text-sm text-muted-foreground">All cases have recent check-ins</p>
-            ) : (
-              <div className="space-y-2">
-                {needsAttentionCases.slice(0, 5).map((c) => (
-                  <CaseListItem key={c.id} case={c} navigate={navigate} showLastCheckin />
-                ))}
-                {needsAttentionCases.length > 5 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate("/cases")}
-                    className="w-full mt-2"
-                  >
-                    View all {needsAttentionCases.length} cases
-                  </Button>
-                )}
-              </div>
-            )}
-          </Card>
-        </div>
+          {/* Performance Dashboard Tab */}
+          <TabsContent value="performance">
+            <PerformanceDashboard />
+          </TabsContent>
+
+          {/* Document Hub Tab */}
+          <TabsContent value="documents">
+            <DocumentHub />
+          </TabsContent>
+
+          {/* Client Communication Tab */}
+          <TabsContent value="communication">
+            <ClientCommunicationCenter />
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar">
+            <CalendarScheduling />
+          </TabsContent>
+
+          {/* Settlement Management Tab */}
+          <TabsContent value="settlement">
+            <SettlementManagement />
+          </TabsContent>
+
+          {/* Case Analytics Tab */}
+          <TabsContent value="analytics">
+            <CaseAnalyticsInsights />
+          </TabsContent>
+
+          {/* Task & Deadline Manager Tab */}
+          <TabsContent value="tasks">
+            <TaskDeadlineManager />
+          </TabsContent>
+
+          {/* Referral Network Tab */}
+          <TabsContent value="referrals">
+            <ReferralNetworkManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
