@@ -2799,6 +2799,106 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_assessments: {
+        Row: {
+          assessment_data: Json | null
+          assessment_type: string
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          followup_due_date: string | null
+          followup_reason: string | null
+          id: string
+          requires_followup: boolean | null
+          rn_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_data?: Json | null
+          assessment_type: string
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          followup_due_date?: string | null
+          followup_reason?: string | null
+          id?: string
+          requires_followup?: boolean | null
+          rn_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_data?: Json | null
+          assessment_type?: string
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          followup_due_date?: string | null
+          followup_reason?: string | null
+          id?: string
+          requires_followup?: boolean | null
+          rn_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_assessments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_case_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          case_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          rn_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          case_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rn_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          case_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rn_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_cm_service_requests: {
         Row: {
           acknowledged_at: string | null
@@ -2846,6 +2946,74 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rn_diary_entries: {
+        Row: {
+          attendees: Json | null
+          case_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_minutes: number | null
+          entry_type: string
+          id: string
+          location: string | null
+          metadata: Json | null
+          rn_id: string
+          scheduled_date: string
+          scheduled_time: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attendees?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          entry_type: string
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          rn_id: string
+          scheduled_date: string
+          scheduled_time?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attendees?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          entry_type?: string
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          rn_id?: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rn_metadata: {
         Row: {

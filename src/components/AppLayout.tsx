@@ -52,6 +52,7 @@ const navigation = [
   { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Dashboard", href: "/rn-dashboard", icon: Activity, roles: [ROLES.RN_CCM] },
   { name: "RN Supervisor", href: "/rn-supervisor-dashboard", icon: Users, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "RN Diary", href: "/rn-diary", icon: ClipboardEdit, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Settings", href: "/rn/settings", icon: Settings, roles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Documents & Files", href: "/documents", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },

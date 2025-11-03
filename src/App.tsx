@@ -33,6 +33,7 @@ import RNCMCompliance from "./pages/rncm/RNCMCompliance";
 import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
 import RNDashboard from "./pages/rncm/RNDashboard";
 import RNSupervisorDashboard from "./pages/rncm/RNSupervisorDashboard";
+import RNDiary from "./pages/rncm/RNDiary";
 import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalShareDemo";
 import ConcernsComplaintsCenter from "./pages/ConcernsComplaintsCenter";
 import Settings from "./pages/Settings";
@@ -169,6 +170,10 @@ const App = () => (
             <Route
               path="/rn-supervisor-dashboard"
               element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><RNSupervisorDashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn-diary"
+              element={<ProtectedRoute roles={["RN_CCM","SUPER_USER","SUPER_ADMIN"]}><RNDiary /></ProtectedRoute>}
             />
             <Route
               path="/rn-cm/compliance"
