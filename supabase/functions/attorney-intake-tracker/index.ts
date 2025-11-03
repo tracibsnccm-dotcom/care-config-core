@@ -35,13 +35,14 @@ serve(async (req) => {
           status,
           updated_at,
           intake_started_at,
-          profiles!cases_client_id_fkey(display_name)
+          profiles!cases_client_id_fkey(display_name),
+          case_assignments!inner(user_id)
         `)
         .in('status', ['Intake Started', 'Intake In Progress'])
         .not('intake_started_at', 'is', null);
 
       if (scope === 'mine') {
-        query = query.eq('attorney_id', user.id);
+        query = query.eq('case_assignments.user_id', user.id);
       }
 
       const { data: cases, error } = await query;
