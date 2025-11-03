@@ -21,8 +21,26 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    const body = await req.json();
-    const { scope, action, case_id } = body;
+    // Accept both POST (JSON body) and GET (query params)
+    let scope: 'mine' | 'all' = 'mine';
+    let action: 'list' | 'nudge' | 'escalate' = 'list';
+    let case_id: string | undefined;
+
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      scope = (url.searchParams.get('scope') as any) || scope;
+      action = (url.searchParams.get('action') as any) || action;
+      case_id = url.searchParams.get('case_id') || case_id;
+    } else {
+      try {
+        const body = await req.json();
+        scope = (body?.scope as any) ?? scope;
+        action = (body?.action as any) ?? action;
+        case_id = body?.case_id ?? case_id;
+      } catch (_) {
+        // No/invalid JSON body; default to list
+      }
+    }
 
     // Handle listing
     if (!action || action === 'list') {
