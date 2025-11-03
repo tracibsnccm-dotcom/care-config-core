@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users, Video, Target, ShieldCheck, Award, Star, GitCompare, Syringe, Scale } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users, Video, Target, ShieldCheck, Award, Star, GitCompare, Syringe, Scale, CheckSquare, MessageSquare } from "lucide-react";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,15 @@ import ClientSatisfactionFeedback from "@/components/RNClinicalLiaison/ClientSat
 import AdultImmunizationTracker from "@/components/RNClinicalLiaison/AdultImmunizationTracker";
 import PreventiveCareTracker from "@/components/RNClinicalLiaison/PreventiveCareTracker";
 import BiometricsTracker from "@/components/RNClinicalLiaison/BiometricsTracker";
+import MedicationManagementDashboard from "@/components/RNClinicalLiaison/MedicationManagementDashboard";
+import AllergyManagementSystem from "@/components/RNClinicalLiaison/AllergyManagementSystem";
+import GoalProgressDashboard from "@/components/RNClinicalLiaison/GoalProgressDashboard";
+import TaskWorkflowManager from "@/components/RNClinicalLiaison/TaskWorkflowManager";
+import CommunicationHub from "@/components/RNClinicalLiaison/CommunicationHub";
+import AuditComplianceViewer from "@/components/RNClinicalLiaison/AuditComplianceViewer";
+import DischargePlanningModule from "@/components/RNClinicalLiaison/DischargePlanningModule";
+import LabResultsDiagnosticsTracker from "@/components/RNClinicalLiaison/LabResultsDiagnosticsTracker";
+import RiskAssessmentTool from "@/components/RNClinicalLiaison/RiskAssessmentTool";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -576,6 +585,42 @@ export default function RNClinicalLiaison() {
                     <Shield className="w-3 h-3" />
                     <span className="hidden sm:inline">Sensitive</span>
                   </TabsTrigger>
+                  <TabsTrigger value="medications" className="flex items-center gap-1 text-xs">
+                    <Activity className="w-3 h-3" />
+                    <span className="hidden sm:inline">Medications</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="allergies" className="flex items-center gap-1 text-xs">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span className="hidden sm:inline">Allergies</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="goals" className="flex items-center gap-1 text-xs">
+                    <Target className="w-3 h-3" />
+                    <span className="hidden sm:inline">Goals</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tasks" className="flex items-center gap-1 text-xs">
+                    <CheckSquare className="w-3 h-3" />
+                    <span className="hidden sm:inline">Tasks</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="comms-hub" className="flex items-center gap-1 text-xs">
+                    <MessageSquare className="w-3 h-3" />
+                    <span className="hidden sm:inline">Comm Hub</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="audit" className="flex items-center gap-1 text-xs">
+                    <Shield className="w-3 h-3" />
+                    <span className="hidden sm:inline">Audit</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="discharge" className="flex items-center gap-1 text-xs">
+                    <FileText className="w-3 h-3" />
+                    <span className="hidden sm:inline">Discharge</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="labs" className="flex items-center gap-1 text-xs">
+                    <Activity className="w-3 h-3" />
+                    <span className="hidden sm:inline">Labs</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="risk" className="flex items-center gap-1 text-xs">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span className="hidden sm:inline">Risk</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="messages">
@@ -668,6 +713,42 @@ export default function RNClinicalLiaison() {
 
                 <TabsContent value="sensitive-audit">
                   <SensitiveDataAuditView caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="medications">
+                  <MedicationManagementDashboard caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="allergies">
+                  <AllergyManagementSystem caseId={selectedCaseId} clientId={caseDetails?.client_id || ""} />
+                </TabsContent>
+
+                <TabsContent value="goals">
+                  <GoalProgressDashboard caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="tasks">
+                  <TaskWorkflowManager caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="comms-hub">
+                  <CommunicationHub caseId={selectedCaseId} clientId={caseDetails?.client_id || ""} />
+                </TabsContent>
+
+                <TabsContent value="audit">
+                  <AuditComplianceViewer caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="discharge">
+                  <DischargePlanningModule caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="labs">
+                  <LabResultsDiagnosticsTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="risk">
+                  <RiskAssessmentTool caseId={selectedCaseId} />
                 </TabsContent>
               </Tabs>
             </div>
