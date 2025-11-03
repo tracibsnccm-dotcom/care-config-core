@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield } from "lucide-react";
+import { MessageCircle, UserCircle, FileText, FileCheck, Calendar, AlertTriangle, Activity, Info, Shield, TrendingUp, ClipboardList, Heart, Clock, DollarSign, FileStack, Users } from "lucide-react";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,13 @@ import { ActivityTimeline } from "@/components/RNClinicalLiaison/ActivityTimelin
 import { MetricsDashboard } from "@/components/RNClinicalLiaison/MetricsDashboard";
 import { ClinicalOverview } from "@/components/RNClinicalLiaison/ClinicalOverview";
 import { ClinicalAlertsPanel } from "@/components/RNClinicalLiaison/ClinicalAlertsPanel";
+import CareCoordinationDashboard from "@/components/RNClinicalLiaison/CareCoordinationDashboard";
+import DocumentationRequestsTracker from "@/components/RNClinicalLiaison/DocumentationRequestsTracker";
+import TreatmentTimeline from "@/components/RNClinicalLiaison/TreatmentTimeline";
+import MedicalBillingCoordination from "@/components/RNClinicalLiaison/MedicalBillingCoordination";
+import ClinicalNotesRepository from "@/components/RNClinicalLiaison/ClinicalNotesRepository";
+import AppointmentTracking from "@/components/RNClinicalLiaison/AppointmentTracking";
+import ProviderNetwork from "@/components/RNClinicalLiaison/ProviderNetwork";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -465,26 +472,54 @@ export default function RNClinicalLiaison() {
               {/* Clinical Alerts Panel */}
               <ClinicalAlertsPanel caseId={selectedCaseId} />
               <Tabs defaultValue="messages" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-6">
+                <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13 mb-6 h-auto flex-wrap">
                   <TabsTrigger value="messages" className="flex items-center gap-2">
                     <MessageCircle className="w-4 h-4" />
-                    Messages
+                    <span className="hidden sm:inline">Messages</span>
                   </TabsTrigger>
                   <TabsTrigger value="followups" className="flex items-center gap-2">
                     <FileCheck className="w-4 h-4" />
-                    Follow-ups
+                    <span className="hidden sm:inline">Follow-ups</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="coordination" className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="hidden sm:inline">Coordination</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="documentation" className="flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    <span className="hidden sm:inline">Documentation</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="flex items-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    <span className="hidden sm:inline">Timeline</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="billing" className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    <span className="hidden sm:inline">Billing</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="flex items-center gap-2">
+                    <FileStack className="w-4 h-4" />
+                    <span className="hidden sm:inline">Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="appointments" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="hidden sm:inline">Appointments</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="network" className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span className="hidden sm:inline">Network</span>
                   </TabsTrigger>
                   <TabsTrigger value="providers" className="flex items-center gap-2">
                     <UserCircle className="w-4 h-4" />
-                    Provider Contacts
+                    <span className="hidden sm:inline">Provider Contacts</span>
                   </TabsTrigger>
                   <TabsTrigger value="activity" className="flex items-center gap-2">
                     <Activity className="w-4 h-4" />
-                    Activity
+                    <span className="hidden sm:inline">Activity</span>
                   </TabsTrigger>
                   <TabsTrigger value="sensitive-audit" className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    Sensitive Data
+                    <span className="hidden sm:inline">Sensitive Data</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -494,6 +529,34 @@ export default function RNClinicalLiaison() {
 
                 <TabsContent value="followups">
                   <FollowUpTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="coordination">
+                  <CareCoordinationDashboard caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="documentation">
+                  <DocumentationRequestsTracker caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="timeline">
+                  <TreatmentTimeline caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="billing">
+                  <MedicalBillingCoordination caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="notes">
+                  <ClinicalNotesRepository caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="appointments">
+                  <AppointmentTracking caseId={selectedCaseId} />
+                </TabsContent>
+
+                <TabsContent value="network">
+                  <ProviderNetwork caseId={selectedCaseId} />
                 </TabsContent>
 
                 <TabsContent value="providers">
