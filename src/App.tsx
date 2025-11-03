@@ -32,6 +32,7 @@ import { ClientPortalRoute } from "./modules/rcms-client-portal-tab";
 import RNCMCompliance from "./pages/rncm/RNCMCompliance";
 import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
 import RNDashboard from "./pages/rncm/RNDashboard";
+import RNSupervisorDashboard from "./pages/rncm/RNSupervisorDashboard";
 import PortalShareDemoPage, { ProviderShareView } from "./pages/provider/PortalShareDemo";
 import ConcernsComplaintsCenter from "./pages/ConcernsComplaintsCenter";
 import Settings from "./pages/Settings";
@@ -164,6 +165,10 @@ const App = () => (
             <Route
               path="/rn-dashboard"
               element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNDashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn-supervisor-dashboard"
+              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><RNSupervisorDashboard /></ProtectedRoute>}
             />
             <Route
               path="/rn-cm/compliance"

@@ -51,8 +51,6 @@ export default function RNDashboard() {
     );
   }
 
-  const isSupervisor = role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
-
   if (loading) {
     return (
       <AppLayout>
@@ -138,14 +136,13 @@ export default function RNDashboard() {
         <header className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold">
             <span>RCMS Internal</span>
-            <span className="opacity-70">RN &amp; Supervisor View</span>
+            <span className="opacity-70">Individual View</span>
           </div>
           <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-[#0f2a6a]">
-            RN Case Management Dashboard
+            My RN Dashboard
           </h1>
           <p className="mt-2 text-[#0f2a6a]/80 max-w-2xl">
-            Private workspace for RCMS staff. Track timeliness of notes, follow-ups,
-            medication reconciliation, and care plan updates.
+            Track your individual performance, assigned cases, and quality metrics. Maintain 24h/48h note timeliness standards.
           </p>
           <div className="mt-3 text-sm text-[#0f2a6a]/70">
             Period: <span className="font-semibold">{metrics.period}</span>
@@ -182,9 +179,8 @@ export default function RNDashboard() {
           </section>
         )}
 
-        {/* Two columns: My Metrics and Team Metrics */}
-        <section className={isSupervisor ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "max-w-3xl"}>
-          {/* My Metrics (individual RN) */}
+        {/* My Performance Metrics */}
+        <section>
           <Card>
             <CardHeader>
               <CardTitle className="text-[#0f2a6a]">My Quality Metrics</CardTitle>
@@ -222,78 +218,6 @@ export default function RNDashboard() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Team Metrics (supervisor only) */}
-          {isSupervisor && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#0f2a6a]">Team Quality Metrics</CardTitle>
-                <CardDescription>
-                  Supervisor view — compare RN performance and drill into details.
-                </CardDescription>
-              </CardHeader>
-            <CardContent>
-              {/* Team Averages Display */}
-              <div className="mb-4 p-4 rounded-lg bg-muted/50">
-                <h3 className="text-sm font-semibold text-foreground mb-2">Team Averages</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Notes ≤24h:</span>
-                    <span className="ml-2 font-semibold">{metrics.team_averages.notes_24h}%</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Follow-Ups:</span>
-                    <span className="ml-2 font-semibold">{metrics.team_averages.followup_calls}%</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Med Rec:</span>
-                    <span className="ml-2 font-semibold">{metrics.team_averages.med_reconciliation}%</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Care Plans:</span>
-                    <span className="ml-2 font-semibold">{metrics.team_averages.care_plans_current}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Team comparison table placeholder */}
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-semibold">RN</th>
-                      <th className="text-left px-4 py-2 font-semibold">Notes ≤24h</th>
-                      <th className="text-left px-4 py-2 font-semibold">Follow-Ups</th>
-                      <th className="text-left px-4 py-2 font-semibold">Med Rec</th>
-                      <th className="text-left px-4 py-2 font-semibold">Care Plans</th>
-                      <th className="text-left px-4 py-2 font-semibold">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { name: "RN A", notes: 97, fu: 93, med: 91, cp: 95, score: 94 },
-                      { name: "RN B", notes: 92, fu: 88, med: 90, cp: 89, score: 90 },
-                      { name: "RN C", notes: 89, fu: 85, med: 87, cp: 86, score: 87 },
-                    ].map((r, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="px-4 py-2">{r.name}</td>
-                        <td className="px-4 py-2">{r.notes}%</td>
-                        <td className="px-4 py-2">{r.fu}%</td>
-                        <td className="px-4 py-2">{r.med}%</td>
-                        <td className="px-4 py-2">{r.cp}%</td>
-                        <td className="px-4 py-2 font-semibold">{r.score}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-3 text-sm text-muted-foreground">
-                Individual RN drill-down and comparative analysis available to supervisors.
-              </div>
-            </CardContent>
-            </Card>
-          )}
         </section>
 
         {/* Implementation notes */}

@@ -15,8 +15,13 @@ import {
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useApp } from "@/context/AppContext";
+import { ROLES } from "@/config/rcms";
 
 export default function RNPortalLanding() {
+  const { role } = useApp();
+  const isSupervisor = role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
+  
   return (
     <AppLayout>
       <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
@@ -80,19 +85,25 @@ export default function RNPortalLanding() {
         {/* Main Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link
-            to="/rn-dashboard"
+            to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
             className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                <Activity className="w-6 h-6" />
+                {isSupervisor ? <Users className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">My Dashboard</h3>
+                <h3 className="font-semibold text-foreground text-lg">
+                  {isSupervisor ? "Team Dashboard" : "My Dashboard"}
+                </h3>
                 <p className="text-sm text-muted-foreground mt-2">
-                  View your performance metrics, assigned cases, and quality targets.
+                  {isSupervisor 
+                    ? "Monitor team performance, manage assignments, and review quality metrics."
+                    : "View your performance metrics, assigned cases, and quality targets."}
                 </p>
-                <Badge className="mt-3" variant="secondary">Metrics & Reports</Badge>
+                <Badge className="mt-3" variant="secondary">
+                  {isSupervisor ? "Supervisor View" : "My Metrics"}
+                </Badge>
               </div>
             </div>
           </Link>
