@@ -1,5 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import PerformanceDashboard from "@/components/attorney/PerformanceDashboard";
+import DocumentHub from "@/components/attorney/DocumentHub";
+import ClientCommunicationCenter from "@/components/attorney/ClientCommunicationCenter";
+import CalendarScheduling from "@/components/attorney/CalendarScheduling";
+import SettlementManagement from "@/components/attorney/SettlementManagement";
+import CaseAnalyticsInsights from "@/components/attorney/CaseAnalyticsInsights";
+import TaskDeadlineManager from "@/components/attorney/TaskDeadlineManager";
+import ReferralNetworkManagement from "@/components/attorney/ReferralNetworkManagement";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { KPI } from "@/components/KPI";
