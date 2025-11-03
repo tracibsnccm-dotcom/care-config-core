@@ -36,6 +36,10 @@ import BulkActionsBar from "@/components/attorney/BulkActionsBar";
 import AdvancedFilters from "@/components/attorney/AdvancedFilters";
 import ExportCenter from "@/components/attorney/ExportCenter";
 import IntegrationSettings from "@/components/attorney/IntegrationSettings";
+import AttorneyGlobalSearch from "@/components/attorney/AttorneyGlobalSearch";
+import AttorneyQuickStatsWidget from "@/components/attorney/AttorneyQuickStatsWidget";
+import RecentActivityFeed from "@/components/attorney/RecentActivityFeed";
+import PinnedCasesWidget from "@/components/attorney/PinnedCasesWidget";
 
 // Consent + CSV helpers (keep PHI out)
 function consentAllowsAttorney(caseObj: Case) {
@@ -196,15 +200,21 @@ export default function AttorneyLanding() {
       <PolicyAcknowledgmentBanner />
       
       <div className="p-8 pb-24 lg:pb-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Attorney Landing</h1>
             <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <AttorneyGlobalSearch />
             <ExportCenter />
             <NotificationCenter />
           </div>
+        </div>
+
+        {/* Quick Stats Widget */}
+        <div className="mb-6">
+          <AttorneyQuickStatsWidget />
         </div>
 
         {/* Top Row: Tier + eWallet */}
@@ -470,6 +480,12 @@ export default function AttorneyLanding() {
                 </div>
               )}
             </Card>
+
+            {/* Recent Activity and Pinned Cases */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RecentActivityFeed />
+              <PinnedCasesWidget />
+            </div>
           </TabsContent>
 
           {/* Performance Dashboard Tab */}
