@@ -108,43 +108,12 @@ export default function RNPortalLanding() {
 
           {/* Action Cards Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {/* New Assigned Cases Card */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-[#0f2a6a]" />
-                  New Assigned Cases
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {newAssignments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No new assignments</p>
-                ) : (
-                  <div className="space-y-2">
-                    {newAssignments.slice(0, 3).map((assignment) => (
-                      <div key={assignment.id} className="p-2 rounded bg-muted/50 text-sm">
-                        <div className="font-medium">Case: {assignment.case_id.slice(0, 8)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Assigned {format(new Date(assignment.assigned_at), "MMM d, yyyy")}
-                        </div>
-                      </div>
-                    ))}
-                    {newAssignments.length > 3 && (
-                      <Link to="/cases" className="text-xs text-[#0f2a6a] hover:underline block mt-2">
-                        View all {newAssignments.length} new assignments →
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Assessments to Complete Card */}
+            {/* Incomplete Assessments Card */}
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ClipboardCheck className="w-5 h-5 text-yellow-600" />
-                  Assessments to Complete
+                  Incomplete Assessments
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -162,40 +131,6 @@ export default function RNPortalLanding() {
                     ))}
                     {pendingAssessments.length > 3 && (
                       <p className="text-xs text-yellow-600 mt-2">+{pendingAssessments.length - 3} more pending</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Assessments Requiring Follow-Ups Card */}
-            <Card className="hover:shadow-lg transition-shadow border-red-200">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  Require Follow-Up
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {requireFollowup.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No follow-ups needed</p>
-                ) : (
-                  <div className="space-y-2">
-                    {requireFollowup.slice(0, 3).map((assessment) => (
-                      <div key={assessment.id} className="p-2 rounded bg-red-50 dark:bg-red-900/20 text-sm">
-                        <div className="font-medium">{assessment.assessment_type}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {assessment.followup_reason || "Follow-up required"}
-                        </div>
-                        {assessment.followup_due_date && (
-                          <Badge variant="destructive" className="mt-1 text-xs">
-                            Due: {format(new Date(assessment.followup_due_date), "MMM d")}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                    {requireFollowup.length > 3 && (
-                      <p className="text-xs text-red-600 mt-2">+{requireFollowup.length - 3} more follow-ups</p>
                     )}
                   </div>
                 )}
