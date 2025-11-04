@@ -309,6 +309,34 @@ export default function RNPortalLanding() {
             </section>
           )}
 
+          {/* Summary Cards */}
+          <section className="mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg border bg-card">
+                <div className="text-xs text-muted-foreground">Today's Schedule</div>
+                <div className="text-2xl font-bold text-blue-600 mt-1">
+                  {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
+                </div>
+                <div className="text-xs text-muted-foreground">Appointments</div>
+              </div>
+              <div className="p-3 rounded-lg border bg-card">
+                <div className="text-xs text-muted-foreground">New Assignments</div>
+                <div className="text-2xl font-bold mt-1">{newAssignments.length}</div>
+                <div className="text-xs text-muted-foreground">Last 3 days</div>
+              </div>
+              <div className="p-3 rounded-lg border bg-card">
+                <div className="text-xs text-muted-foreground">Incomplete Assessments</div>
+                <div className="text-2xl font-bold text-yellow-600 mt-1">{pendingAssessments.length}</div>
+                <div className="text-xs text-muted-foreground">To complete</div>
+              </div>
+              <div className="p-3 rounded-lg border bg-card">
+                <div className="text-xs text-muted-foreground">Follow-Ups</div>
+                <div className="text-2xl font-bold text-red-600 mt-1">{requireFollowup.length}</div>
+                <div className="text-xs text-muted-foreground">Required</div>
+              </div>
+            </div>
+          </section>
+
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
@@ -323,34 +351,9 @@ export default function RNPortalLanding() {
               <CardContent>
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <RNRecentActivityFeed />
                     <RNUpcomingDeadlines />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="text-xs text-muted-foreground">Today's Schedule</div>
-                      <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Appointments</div>
-                    </div>
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="text-xs text-muted-foreground">New Assignments</div>
-                      <div className="text-2xl font-bold mt-1">{newAssignments.length}</div>
-                      <div className="text-xs text-muted-foreground">Last 3 days</div>
-                    </div>
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="text-xs text-muted-foreground">Incomplete Assessments</div>
-                      <div className="text-2xl font-bold text-yellow-600 mt-1">{pendingAssessments.length}</div>
-                      <div className="text-xs text-muted-foreground">To complete</div>
-                    </div>
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="text-xs text-muted-foreground">Follow-Ups</div>
-                      <div className="text-2xl font-bold text-red-600 mt-1">{requireFollowup.length}</div>
-                      <div className="text-xs text-muted-foreground">Required</div>
-                    </div>
                   </div>
                 </TabsContent>
 
