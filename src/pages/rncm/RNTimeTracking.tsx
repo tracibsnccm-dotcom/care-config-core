@@ -2,6 +2,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { RNTimeHistory } from "@/components/RNClinicalLiaison/RNTimeHistory";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNTimeAnalytics } from "@/components/RNClinicalLiaison/RNTimeAnalytics";
+import { RNProductivityBenchmarks } from "@/components/RNClinicalLiaison/RNProductivityBenchmarks";
+import { RNTimeAuditTrail } from "@/components/RNClinicalLiaison/RNTimeAuditTrail";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function RNTimeTracking() {
@@ -26,6 +28,8 @@ export default function RNTimeTracking() {
             <TabsList>
               <TabsTrigger value="history">Time History</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
+              <TabsTrigger value="audit">Audit Trail</TabsTrigger>
             </TabsList>
 
             <TabsContent value="history" className="space-y-0">
@@ -44,6 +48,14 @@ export default function RNTimeTracking() {
 
             <TabsContent value="analytics" className="space-y-0">
               <RNTimeAnalytics />
+            </TabsContent>
+
+            <TabsContent value="benchmarks" className="space-y-0">
+              <RNProductivityBenchmarks />
+            </TabsContent>
+
+            <TabsContent value="audit" className="space-y-0">
+              <RNTimeAuditTrail />
             </TabsContent>
           </Tabs>
         </div>
