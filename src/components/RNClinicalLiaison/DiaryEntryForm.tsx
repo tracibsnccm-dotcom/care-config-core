@@ -173,12 +173,263 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
           </div>
         )}
 
-        <div className="space-y-4">
-          {/* All existing form fields from lines 171-393 should remain here */}
-          {/* Basic Info, Entry Type, Priority, Dates, Description */}
-          {/* Contact Information, Reminder Settings, Recurring Entry, Visibility */}
-          {/* The original form content was accidentally removed - needs restore from version control */}
-        </div>
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">
+              <FileText className="h-4 w-4 mr-2" />
+              Details
+            </TabsTrigger>
+            {entry && (
+              <>
+                <TabsTrigger value="comments">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Comments
+                </TabsTrigger>
+                <TabsTrigger value="history">
+                  <HistoryIcon className="h-4 w-4 mr-2" />
+                  History
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4 mt-4">
+            {/* Basic Information */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Enter entry title"
+                className={errors.title ? "border-destructive" : ""}
+              />
+              {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
+            </div>
+
+            {/* Entry Type */}
+            <div className="space-y-2">
+              <Label htmlFor="entry_type">Entry Type *</Label>
+              <Select
+                value={formData.entry_type}
+                onValueChange={(value) => setFormData({ ...formData, entry_type: value })}
+              >
+                <SelectTrigger className={errors.entry_type ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Select entry type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="home_visit">Home Visit</SelectItem>
+                  <SelectItem value="phone_call">Phone Call</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="assessment">Assessment</SelectItem>
+                  <SelectItem value="follow_up">Follow-up</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.entry_type && <p className="text-sm text-destructive">{errors.entry_type}</p>}
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => setFormData({ ...formData, priority: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_date">Scheduled Date *</Label>
+                <Input
+                  id="scheduled_date"
+                  type="date"
+                  value={formData.scheduled_date}
+                  onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                  className={errors.scheduled_date ? "border-destructive" : ""}
+                />
+                {errors.scheduled_date && <p className="text-sm text-destructive">{errors.scheduled_date}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_time">Scheduled Time</Label>
+                <Input
+                  id="scheduled_time"
+                  type="time"
+                  value={formData.scheduled_time}
+                  onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Enter location"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter description"
+                rows={4}
+              />
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="requires_contact"
+                  checked={formData.requires_contact}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, requires_contact: checked as boolean })
+                  }
+                />
+                <Label htmlFor="requires_contact" className="cursor-pointer">
+                  Requires Contact
+                </Label>
+              </div>
+
+              {formData.requires_contact && (
+                <div className="space-y-4 pl-6 border-l-2 border-border">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_name">Contact Name</Label>
+                    <Input
+                      id="contact_name"
+                      value={formData.contact_name}
+                      onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+                      placeholder="Enter contact name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_phone">Contact Phone</Label>
+                    <Input
+                      id="contact_phone"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                      placeholder="Enter contact phone"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_email">Contact Email</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                      placeholder="Enter contact email"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Reminder Settings */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="reminder_enabled"
+                  checked={formData.reminder_enabled}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, reminder_enabled: checked as boolean })
+                  }
+                />
+                <Label htmlFor="reminder_enabled" className="cursor-pointer">
+                  Enable Reminder
+                </Label>
+              </div>
+
+              {formData.reminder_enabled && (
+                <div className="space-y-2 pl-6 border-l-2 border-border">
+                  <Label htmlFor="reminder_minutes_before">Remind me (minutes before)</Label>
+                  <Select
+                    value={formData.reminder_minutes_before?.toString()}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, reminder_minutes_before: parseInt(value) })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="1440">1 day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Recurring Entry */}
+            <DiaryRecurringEntry
+              isRecurring={formData.is_recurring || false}
+              onRecurringChange={(value) =>
+                setFormData({ ...formData, is_recurring: value })
+              }
+              recurrencePattern={formData.recurrence_pattern || ""}
+              onPatternChange={(pattern) =>
+                setFormData({ ...formData, recurrence_pattern: pattern as any })
+              }
+              recurrenceEndDate={formData.recurrence_end_date || ""}
+              onEndDateChange={(date) =>
+                setFormData({ ...formData, recurrence_end_date: date })
+              }
+            />
+
+            {/* Visibility */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="shared_with_supervisor"
+                checked={formData.shared_with_supervisor}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, shared_with_supervisor: checked as boolean })
+                }
+              />
+              <Label htmlFor="shared_with_supervisor" className="cursor-pointer">
+                Share with Supervisor
+              </Label>
+            </div>
+          </TabsContent>
+
+          {entry && (
+            <>
+              <TabsContent value="comments">
+                <DiaryEntryComments entryId={entry.id} />
+              </TabsContent>
+
+              <TabsContent value="history">
+                <DiaryEntryHistory entryId={entry.id} />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
