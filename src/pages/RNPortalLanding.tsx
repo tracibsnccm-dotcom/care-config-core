@@ -13,16 +13,21 @@ import {
   FolderKanban,
   Calendar,
   ClipboardCheck,
-  AlertCircle
+  AlertCircle,
+  TrendingDown
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 import { useRNAssignments, useRNAssessments, useRNDiary } from "@/hooks/useRNData";
 import { format } from "date-fns";
 import { EmergencyAlertsCard } from "@/components/RNClinicalLiaison/EmergencyAlertsCard";
+import { RNToDoList } from "@/components/RNToDoList";
+import { useEffect, useState } from "react";
+import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -30,6 +35,8 @@ export default function RNPortalLanding() {
   const { assignments } = useRNAssignments();
   const { pending: pendingAssessments, requireFollowup } = useRNAssessments();
   const { entries: diaryEntries } = useRNDiary();
+  const [metricsData, setMetricsData] = useState<RNMetricsData | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
   const newAssignments = assignments.filter((a) => {
     const assignedDate = new Date(a.assigned_at);
@@ -38,6 +45,30 @@ export default function RNPortalLanding() {
   });
 
   const upcomingDiaryEntries = diaryEntries.slice(0, 5); // Show next 5 entries
+
+  useEffect(() => {
+    fetchRNMetrics()
+      .then(data => {
+        setMetricsData(data);
+        setMetricsLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch RN metrics:", err);
+        setMetricsLoading(false);
+      });
+  }, []);
+
+  const getColorClass = (value: number, target: number) => {
+    if (value >= target) return "bg-green-500";
+    if (value >= target - 5) return "bg-yellow-400";
+    return "bg-red-500";
+  };
+
+  const getTrendIcon = (change: string) => {
+    if (change.startsWith("+")) return <TrendingUp className="h-3 w-3 text-green-600" />;
+    if (change.startsWith("-")) return <TrendingDown className="h-3 w-3 text-red-600" />;
+    return null;
+  };
   
   return (
     <AppLayout>
@@ -119,6 +150,108 @@ export default function RNPortalLanding() {
             </Card>
           </div>
 
+          {/* My Performance Metrics */}
+          {metricsData && (
+            <section className="mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0f2a6a]">My Quality Metrics</CardTitle>
+                  <CardDescription>
+                    Your weekly and monthly performance vs. RCMS targets.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { 
+                        label: "Notes ≤ 24h", 
+                        value: metricsData.metrics.my_performance.notes_24h, 
+                        target: metricsData.metrics.targets.notes_24h,
+                        weekChange: metricsData.metrics.trend.week_change.notes_24h,
+                        monthChange: metricsData.metrics.trend.month_change.notes_24h
+                      },
+                      { 
+                        label: "Follow-Up Calls", 
+                        value: metricsData.metrics.my_performance.followup_calls, 
+                        target: metricsData.metrics.targets.followup_calls,
+                        weekChange: metricsData.metrics.trend.week_change.followup_calls,
+                        monthChange: metricsData.metrics.trend.month_change.followup_calls
+                      },
+                      { 
+                        label: "Med Reconciliation", 
+                        value: metricsData.metrics.my_performance.med_reconciliation, 
+                        target: metricsData.metrics.targets.med_reconciliation,
+                        weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
+                        monthChange: metricsData.metrics.trend.month_change.med_reconciliation
+                      },
+                      { 
+                        label: "Care Plans Current", 
+                        value: metricsData.metrics.my_performance.care_plans_current, 
+                        target: metricsData.metrics.targets.care_plans_current,
+                        weekChange: metricsData.metrics.trend.week_change.care_plans_current,
+                        monthChange: metricsData.metrics.trend.month_change.care_plans_current
+                      },
+                    ].map((m, i) => (
+                      <div key={i} className="rounded-lg border border-border bg-card p-4">
+                        <div className="text-sm text-muted-foreground">{m.label}</div>
+                        <div className="mt-1 text-2xl font-extrabold text-foreground">{m.value}%</div>
+                        <div className="mt-2 h-2 rounded bg-muted">
+                          <div 
+                            className={`h-2 rounded ${getColorClass(m.value, m.target)}`} 
+                            style={{ width: `${m.value}%` }} 
+                          />
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">Target ≥ {m.target}%</div>
+                        
+                        {/* Trend indicators */}
+                        <div className="mt-3 flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-1">
+                            {getTrendIcon(m.weekChange)}
+                            <span>Week: {m.weekChange}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {getTrendIcon(m.monthChange)}
+                            <span>Month: {m.monthChange}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Alerts Section */}
+          {metricsData && metricsData.metrics.alerts.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-lg font-bold text-[#0f2a6a] mb-3">Active Alerts</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {metricsData.metrics.alerts.map((alert, idx) => (
+                  <Alert 
+                    key={idx} 
+                    variant={alert.priority === "high" ? "destructive" : "default"}
+                    className="border-l-4"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold">{alert.type}</span>
+                          <span className="mx-2">•</span>
+                          <span className="text-muted-foreground">{alert.case_id}</span>
+                        </div>
+                        <Badge variant={alert.priority === "high" ? "destructive" : "secondary"}>
+                          {alert.days_overdue} day{alert.days_overdue > 1 ? "s" : ""} overdue
+                        </Badge>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Upcoming Diary Entries */}
           <div className="mb-8">
             <Card>
@@ -173,30 +306,6 @@ export default function RNPortalLanding() {
         {/* Main Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link
-            to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                {isSupervisor ? <Users className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">
-                  {isSupervisor ? "Team Dashboard" : "My Dashboard"}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {isSupervisor 
-                    ? "Monitor team performance, manage assignments, and review quality metrics."
-                    : "View detailed performance metrics, case analytics, and quality tracking."}
-                </p>
-                <Badge className="mt-3" variant="secondary">
-                  {isSupervisor ? "Supervisor View" : "My Metrics"}
-                </Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
             to="/cases"
             className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
           >
@@ -209,7 +318,7 @@ export default function RNPortalLanding() {
                 <p className="text-sm text-muted-foreground mt-2">
                   Access assigned cases, update notes, and track care plans.
                 </p>
-                <Badge className="mt-3" variant="secondary">24 Active</Badge>
+                <Badge className="mt-3" variant="secondary">{assignments.length} Active</Badge>
               </div>
             </div>
           </Link>
@@ -321,6 +430,11 @@ export default function RNPortalLanding() {
               </div>
             </div>
           </Link>
+
+          {/* To-Do List Card */}
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
+            <RNToDoList />
+          </div>
         </div>
 
         {/* Compliance & Quality Section */}
