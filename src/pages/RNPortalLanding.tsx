@@ -104,13 +104,87 @@ export default function RNPortalLanding() {
             </div>
           )}
 
-          {/* Tabbed Metrics Ribbon */}
+          {/* Quality & Performance Metrics - Always Visible */}
+          {metricsData && (
+            <section className="mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0f2a6a]">My Quality & Performance Metrics</CardTitle>
+                  <CardDescription>
+                    Your weekly and monthly performance vs. RCMS targets.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { 
+                        label: "Notes ≤ 24h", 
+                        value: metricsData.metrics.my_performance.notes_24h, 
+                        target: metricsData.metrics.targets.notes_24h,
+                        weekChange: metricsData.metrics.trend.week_change.notes_24h,
+                        monthChange: metricsData.metrics.trend.month_change.notes_24h
+                      },
+                      { 
+                        label: "Follow-Up Calls", 
+                        value: metricsData.metrics.my_performance.followup_calls, 
+                        target: metricsData.metrics.targets.followup_calls,
+                        weekChange: metricsData.metrics.trend.week_change.followup_calls,
+                        monthChange: metricsData.metrics.trend.month_change.followup_calls
+                      },
+                      { 
+                        label: "Med Reconciliation", 
+                        value: metricsData.metrics.my_performance.med_reconciliation, 
+                        target: metricsData.metrics.targets.med_reconciliation,
+                        weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
+                        monthChange: metricsData.metrics.trend.month_change.med_reconciliation
+                      },
+                      { 
+                        label: "Care Plans Current", 
+                        value: metricsData.metrics.my_performance.care_plans_current, 
+                        target: metricsData.metrics.targets.care_plans_current,
+                        weekChange: metricsData.metrics.trend.week_change.care_plans_current,
+                        monthChange: metricsData.metrics.trend.month_change.care_plans_current
+                      },
+                    ].map((m, i) => (
+                      <div key={i} className="rounded-lg border border-border bg-card p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-muted-foreground">{m.label}</div>
+                          <div className="text-2xl font-bold text-foreground">{m.value}%</div>
+                        </div>
+                        <div className="h-2 rounded bg-muted mb-2">
+                          <div 
+                            className={`h-2 rounded transition-all ${getColorClass(m.value, m.target)}`} 
+                            style={{ width: `${m.value}%` }} 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">Target ≥ {m.target}%</div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(m.weekChange)}
+                              <span>Wk: {m.weekChange}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTrendIcon(m.monthChange)}
+                              <span>Mo: {m.monthChange}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Tabbed Ribbon */}
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                  <TabsTrigger value="diary">My Diary - Upcoming Schedule</TabsTrigger>
                   <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
                 </TabsList>
               </CardHeader>
@@ -144,69 +218,38 @@ export default function RNPortalLanding() {
                   </div>
                 </TabsContent>
 
-                {/* Quality Metrics Tab */}
-                <TabsContent value="quality" className="mt-0">
-                  {metricsData ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { 
-                          label: "Notes ≤ 24h", 
-                          value: metricsData.metrics.my_performance.notes_24h, 
-                          target: metricsData.metrics.targets.notes_24h,
-                          weekChange: metricsData.metrics.trend.week_change.notes_24h,
-                          monthChange: metricsData.metrics.trend.month_change.notes_24h
-                        },
-                        { 
-                          label: "Follow-Up Calls", 
-                          value: metricsData.metrics.my_performance.followup_calls, 
-                          target: metricsData.metrics.targets.followup_calls,
-                          weekChange: metricsData.metrics.trend.week_change.followup_calls,
-                          monthChange: metricsData.metrics.trend.month_change.followup_calls
-                        },
-                        { 
-                          label: "Med Reconciliation", 
-                          value: metricsData.metrics.my_performance.med_reconciliation, 
-                          target: metricsData.metrics.targets.med_reconciliation,
-                          weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
-                          monthChange: metricsData.metrics.trend.month_change.med_reconciliation
-                        },
-                        { 
-                          label: "Care Plans Current", 
-                          value: metricsData.metrics.my_performance.care_plans_current, 
-                          target: metricsData.metrics.targets.care_plans_current,
-                          weekChange: metricsData.metrics.trend.week_change.care_plans_current,
-                          monthChange: metricsData.metrics.trend.month_change.care_plans_current
-                        },
-                      ].map((m, i) => (
-                        <div key={i} className="rounded-lg border border-border bg-card p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm font-medium text-muted-foreground">{m.label}</div>
-                            <div className="text-2xl font-bold text-foreground">{m.value}%</div>
-                          </div>
-                          <div className="h-2 rounded bg-muted mb-2">
-                            <div 
-                              className={`h-2 rounded transition-all ${getColorClass(m.value, m.target)}`} 
-                              style={{ width: `${m.value}%` }} 
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-xs text-muted-foreground">Target ≥ {m.target}%</div>
-                            <div className="flex items-center gap-2 text-xs">
-                              <div className="flex items-center gap-1">
-                                {getTrendIcon(m.weekChange)}
-                                <span>Wk: {m.weekChange}</span>
+                {/* My Diary - Upcoming Schedule Tab */}
+                <TabsContent value="diary" className="mt-0">
+                  {upcomingDiaryEntries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No upcoming appointments or calls</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingDiaryEntries.map((entry) => (
+                        <div key={entry.id} className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition">
+                          <div className="text-center min-w-[60px]">
+                            <div className="text-sm font-semibold">{format(new Date(entry.scheduled_date), "MMM d")}</div>
+                            {entry.scheduled_time && (
+                              <div className="text-xs text-muted-foreground">
+                                {entry.scheduled_time.slice(0, 5)}
                               </div>
-                              <div className="flex items-center gap-1">
-                                {getTrendIcon(m.monthChange)}
-                                <span>Mo: {m.monthChange}</span>
-                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">{entry.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {entry.entry_type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                              {entry.location && ` • ${entry.location}`}
                             </div>
+                            {entry.description && (
+                              <div className="text-xs text-muted-foreground mt-1">{entry.description}</div>
+                            )}
                           </div>
+                          <Badge variant={entry.status === "scheduled" ? "secondary" : "default"}>
+                            {entry.status}
+                          </Badge>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">Loading metrics...</p>
                   )}
                 </TabsContent>
 
@@ -239,57 +282,6 @@ export default function RNPortalLanding() {
               </CardContent>
             </Tabs>
           </Card>
-
-          {/* Upcoming Diary Entries */}
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#0f2a6a]" />
-                  My Diary - Upcoming Schedule
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {upcomingDiaryEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No upcoming appointments or calls</p>
-                ) : (
-                  <div className="space-y-3">
-                    {upcomingDiaryEntries.map((entry) => (
-                      <div key={entry.id} className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition">
-                        <div className="text-center min-w-[60px]">
-                          <div className="text-sm font-semibold">{format(new Date(entry.scheduled_date), "MMM d")}</div>
-                          {entry.scheduled_time && (
-                            <div className="text-xs text-muted-foreground">
-                              {entry.scheduled_time.slice(0, 5)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">{entry.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {entry.entry_type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                            {entry.location && ` • ${entry.location}`}
-                          </div>
-                          {entry.description && (
-                            <div className="text-xs text-muted-foreground mt-1">{entry.description}</div>
-                          )}
-                        </div>
-                        <Badge variant={entry.status === "scheduled" ? "secondary" : "default"}>
-                          {entry.status}
-                        </Badge>
-                      </div>
-                    ))}
-                    <Link 
-                      to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
-                      className="text-sm text-[#0f2a6a] hover:underline block mt-2"
-                    >
-                      View full diary →
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
 
         {/* Main Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
