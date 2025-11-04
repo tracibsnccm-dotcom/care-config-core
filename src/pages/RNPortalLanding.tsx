@@ -111,63 +111,93 @@ export default function RNPortalLanding() {
                 <CardHeader>
                   <CardTitle className="text-[#0f2a6a]">My Quality & Performance Metrics</CardTitle>
                   <CardDescription>
-                    Your weekly and monthly performance vs. RCMS targets.
+                    Your weekly and monthly performance vs. RCMS targets, plus compliance tracking.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {/* Performance Metrics */}
                     {[
                       { 
                         label: "Notes ≤ 24h", 
                         value: metricsData.metrics.my_performance.notes_24h, 
                         target: metricsData.metrics.targets.notes_24h,
                         weekChange: metricsData.metrics.trend.week_change.notes_24h,
-                        monthChange: metricsData.metrics.trend.month_change.notes_24h
+                        monthChange: metricsData.metrics.trend.month_change.notes_24h,
+                        type: "performance"
                       },
                       { 
                         label: "Follow-Up Calls", 
                         value: metricsData.metrics.my_performance.followup_calls, 
                         target: metricsData.metrics.targets.followup_calls,
                         weekChange: metricsData.metrics.trend.week_change.followup_calls,
-                        monthChange: metricsData.metrics.trend.month_change.followup_calls
+                        monthChange: metricsData.metrics.trend.month_change.followup_calls,
+                        type: "performance"
                       },
                       { 
                         label: "Med Reconciliation", 
                         value: metricsData.metrics.my_performance.med_reconciliation, 
                         target: metricsData.metrics.targets.med_reconciliation,
                         weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
-                        monthChange: metricsData.metrics.trend.month_change.med_reconciliation
+                        monthChange: metricsData.metrics.trend.month_change.med_reconciliation,
+                        type: "performance"
                       },
                       { 
                         label: "Care Plans Current", 
                         value: metricsData.metrics.my_performance.care_plans_current, 
                         target: metricsData.metrics.targets.care_plans_current,
                         weekChange: metricsData.metrics.trend.week_change.care_plans_current,
-                        monthChange: metricsData.metrics.trend.month_change.care_plans_current
+                        monthChange: metricsData.metrics.trend.month_change.care_plans_current,
+                        type: "performance"
+                      },
+                      // Compliance Metrics
+                      {
+                        label: "Required Fields",
+                        value: 94,
+                        target: 100,
+                        weekChange: "+2%",
+                        monthChange: "+5%",
+                        type: "compliance"
+                      },
+                      {
+                        label: "Care Plan Timeliness",
+                        value: 88,
+                        target: 95,
+                        weekChange: "-1%",
+                        monthChange: "+3%",
+                        type: "compliance"
+                      },
+                      {
+                        label: "Documentation Standards",
+                        value: 96,
+                        target: 98,
+                        weekChange: "+1%",
+                        monthChange: "+2%",
+                        type: "compliance"
+                      },
+                      {
+                        label: "Compliance Rate",
+                        value: 92,
+                        target: 95,
+                        weekChange: "0%",
+                        monthChange: "+4%",
+                        type: "compliance"
                       },
                     ].map((m, i) => (
-                      <div key={i} className="rounded-lg border border-border bg-card p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">{m.label}</div>
-                          <div className="text-2xl font-bold text-foreground">{m.value}%</div>
-                        </div>
-                        <div className="h-2 rounded bg-muted mb-2">
+                      <div key={i} className="rounded-lg border border-border bg-card p-3">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">{m.label}</div>
+                        <div className="text-xl font-bold text-foreground mb-2">{m.value}%</div>
+                        <div className="h-1.5 rounded bg-muted mb-2">
                           <div 
-                            className={`h-2 rounded transition-all ${getColorClass(m.value, m.target)}`} 
+                            className={`h-1.5 rounded transition-all ${getColorClass(m.value, m.target)}`} 
                             style={{ width: `${m.value}%` }} 
                           />
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs text-muted-foreground">Target ≥ {m.target}%</div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(m.weekChange)}
-                              <span>Wk: {m.weekChange}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(m.monthChange)}
-                              <span>Mo: {m.monthChange}</span>
-                            </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <div className="text-muted-foreground">Target: {m.target}%</div>
+                          <div className="flex items-center gap-1">
+                            {getTrendIcon(m.weekChange)}
+                            <span>{m.weekChange}</span>
                           </div>
                         </div>
                       </div>
@@ -438,46 +468,6 @@ export default function RNPortalLanding() {
           {/* To-Do List Card */}
           <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <RNToDoList />
-          </div>
-        </div>
-
-        {/* Compliance & Quality Section */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-[#0f2a6a] mb-4">Compliance & Quality</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              to="/rn-cm/compliance"
-              className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition group"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-green-100 text-green-700 group-hover:bg-green-600 group-hover:text-white transition">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Compliance Tasks</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Required fields, care plan timeliness, documentation standards.
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              to="/rn-cm/quality"
-              className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition group"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Quality Metrics</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Track performance, compare with team averages, view trends.
-                  </p>
-                </div>
-              </div>
-            </Link>
           </div>
         </div>
 
