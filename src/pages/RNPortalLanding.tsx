@@ -19,6 +19,7 @@ import {
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/context/AppContext";
@@ -37,6 +38,8 @@ export default function RNPortalLanding() {
   const { entries: diaryEntries } = useRNDiary();
   const [metricsData, setMetricsData] = useState<RNMetricsData | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("emergency");
+  const [showEmergencyWarning, setShowEmergencyWarning] = useState(false);
 
   const newAssignments = assignments.filter((a) => {
     const assignedDate = new Date(a.assigned_at);
@@ -45,18 +48,38 @@ export default function RNPortalLanding() {
   });
 
   const upcomingDiaryEntries = diaryEntries.slice(0, 5); // Show next 5 entries
+  const hasEmergencies = metricsData && metricsData.metrics.alerts.length > 0;
 
   useEffect(() => {
     fetchRNMetrics()
       .then(data => {
         setMetricsData(data);
         setMetricsLoading(false);
+        // Force emergency tab if there are alerts
+        if (data.metrics.alerts.length > 0) {
+          setActiveTab("emergency");
+        }
       })
       .catch(err => {
         console.error("Failed to fetch RN metrics:", err);
         setMetricsLoading(false);
       });
   }, []);
+
+  const handleTabChange = (value: string) => {
+    if (hasEmergencies && value !== "emergency") {
+      setShowEmergencyWarning(true);
+      return;
+    }
+    setActiveTab(value);
+  };
+
+  const handleNavigationClick = (e: React.MouseEvent) => {
+    if (hasEmergencies) {
+      e.preventDefault();
+      setShowEmergencyWarning(true);
+    }
+  };
 
   const getColorClass = (value: number, target: number) => {
     if (value >= target) return "bg-green-500";
@@ -87,16 +110,45 @@ export default function RNPortalLanding() {
           </p>
         </header>
 
+          {/* Emergency Warning Dialog */}
+          {showEmergencyWarning && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <Card className="max-w-md w-full border-red-600 border-4 animate-pulse">
+                <CardHeader className="bg-red-600 text-white">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <AlertCircle className="h-6 w-6" />
+                    EMERGENCY ALERT
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <p className="text-lg font-bold text-center mb-6">
+                    YOU MUST ADDRESS ALL EMERGENCIES BEFORE MOVING ON!
+                  </p>
+                  <p className="text-sm text-muted-foreground text-center mb-6">
+                    There {hasEmergencies && metricsData!.metrics.alerts.length === 1 ? 'is' : 'are'} {metricsData?.metrics.alerts.length} emergency alert{metricsData && metricsData.metrics.alerts.length !== 1 ? 's' : ''} requiring immediate attention.
+                  </p>
+                  <Button 
+                    onClick={() => setShowEmergencyWarning(false)} 
+                    className="w-full"
+                    variant="destructive"
+                  >
+                    Return to Emergency Alerts
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Compact Emergency Alerts Banner */}
-          {metricsData && metricsData.metrics.alerts.length > 0 && (
+          {hasEmergencies && (
             <div className="mb-4">
-              <Alert variant="destructive" className="border-l-4">
-                <AlertCircle className="h-4 w-4" />
+              <Alert variant="destructive" className="border-l-4 animate-pulse">
+                <AlertCircle className="h-4 w-4 animate-pulse" />
                 <AlertDescription className="flex items-center justify-between">
                   <span className="font-semibold">
-                    {metricsData.metrics.alerts.length} Alert{metricsData.metrics.alerts.length !== 1 ? 's' : ''} Require Attention
+                    {metricsData!.metrics.alerts.length} EMERGENCY Alert{metricsData!.metrics.alerts.length !== 1 ? 's' : ''} - SUICIDAL IDEATION
                   </span>
-                  <Badge variant="destructive">Action Needed</Badge>
+                  <Badge variant="destructive" className="animate-pulse">IMMEDIATE ACTION REQUIRED</Badge>
                 </AlertDescription>
               </Alert>
             </div>
@@ -104,16 +156,69 @@ export default function RNPortalLanding() {
 
           {/* Tabbed Metrics Ribbon */}
           <Card className="mb-6">
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <CardHeader className="pb-3">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
-                  <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
+                  <TabsTrigger 
+                    value="emergency" 
+                    className={hasEmergencies ? "bg-red-600 text-white animate-pulse data-[state=active]:bg-red-700" : ""}
+                    disabled={false}
+                  >
+                    {hasEmergencies && (
+                      <AlertCircle className="h-4 w-4 mr-2 animate-pulse" />
+                    )}
+                    EMERGENCY {hasEmergencies && `(${metricsData!.metrics.alerts.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="overview"
+                    disabled={hasEmergencies}
+                    className={hasEmergencies ? "opacity-50 cursor-not-allowed" : ""}
+                  >
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="quality"
+                    disabled={hasEmergencies}
+                    className={hasEmergencies ? "opacity-50 cursor-not-allowed" : ""}
+                  >
+                    Quality Metrics
+                  </TabsTrigger>
                 </TabsList>
               </CardHeader>
               
               <CardContent>
+                {/* Emergency Tab */}
+                <TabsContent value="emergency" className="mt-0">
+                  {hasEmergencies ? (
+                    <div className="space-y-2">
+                      {metricsData!.metrics.alerts.map((alert, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-4 rounded-lg border-2 border-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <AlertCircle className="h-5 w-5 text-red-600 animate-pulse" />
+                            <div>
+                              <div className="font-bold text-sm text-red-900 dark:text-red-100">{alert.type}</div>
+                              <div className="text-xs text-red-700 dark:text-red-300">{alert.case_id}</div>
+                            </div>
+                          </div>
+                          <Badge variant="destructive" className="animate-pulse">
+                            {alert.days_overdue} day{alert.days_overdue > 1 ? 's' : ''} overdue
+                          </Badge>
+                        </div>
+                      ))}
+                      <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-600">
+                        <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                          ⚠️ These alerts indicate potential suicidal ideation. Immediate intervention required.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No emergency alerts at this time</p>
+                  )}
+                </TabsContent>
+
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -207,33 +312,6 @@ export default function RNPortalLanding() {
                     <p className="text-sm text-muted-foreground text-center py-4">Loading metrics...</p>
                   )}
                 </TabsContent>
-
-                {/* Alerts & Tasks Tab */}
-                <TabsContent value="alerts" className="mt-0">
-                  {metricsData && metricsData.metrics.alerts.length > 0 ? (
-                    <div className="space-y-2">
-                      {metricsData.metrics.alerts.map((alert, idx) => (
-                        <div 
-                          key={idx} 
-                          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition"
-                        >
-                          <div className="flex items-center gap-3">
-                            <AlertCircle className="h-4 w-4 text-red-600" />
-                            <div>
-                              <div className="font-semibold text-sm">{alert.type}</div>
-                              <div className="text-xs text-muted-foreground">{alert.case_id}</div>
-                            </div>
-                          </div>
-                          <Badge variant={alert.priority === "high" ? "destructive" : "secondary"}>
-                            {alert.days_overdue} day{alert.days_overdue > 1 ? 's' : ''} overdue
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No alerts at this time</p>
-                  )}
-                </TabsContent>
               </CardContent>
             </Tabs>
           </Card>
@@ -293,7 +371,8 @@ export default function RNPortalLanding() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link
             to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
@@ -317,7 +396,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/cases"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
@@ -335,7 +415,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/rn-clinical-liaison"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
@@ -353,7 +434,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/rn-diary"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
@@ -371,7 +453,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/client-portal"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
@@ -389,7 +472,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/providers"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
@@ -407,7 +491,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/attorney-dashboard"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
@@ -425,7 +510,8 @@ export default function RNPortalLanding() {
 
           <Link
             to="/documents"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            className={`rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group ${hasEmergencies ? 'pointer-events-none opacity-50' : ''}`}
+            onClick={handleNavigationClick}
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
