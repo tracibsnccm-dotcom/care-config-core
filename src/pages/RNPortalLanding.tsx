@@ -357,24 +357,24 @@ export default function RNPortalLanding() {
               <CardContent>
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
-                  {/* Priority Section - Top Row */}
+                  {/* Priority Section - First Row */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <RNCaseloadAtAGlance />
                     <RNTodaysPriorities />
+                  </div>
+
+                  {/* Communication & Compliance - Second Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <RNCommunicationPriority />
                     <RNComplianceAlerts />
                   </div>
 
-                  {/* Supervisor Metrics - Second Row (Only for supervisors) */}
+                  {/* Supervisor Metrics - Third Row (Only for supervisors) */}
                   {isSupervisor && (
                     <div className="grid grid-cols-1 gap-4">
                       <RNEngagementMetrics />
                     </div>
                   )}
-
-                  {/* Quick Overview - Third Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <RNCaseloadAtAGlance />
-                    <RNCommunicationPriority />
-                  </div>
 
                   {/* Activity & Deadlines - Fourth Row */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
