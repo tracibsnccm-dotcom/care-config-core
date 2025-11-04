@@ -20,7 +20,10 @@ import { SupervisorDiaryCalendar } from "@/components/RNClinicalLiaison/Supervis
 import { RNTeamManagement } from "@/components/RNClinicalLiaison/RNTeamManagement";
 import { DiarySearchFilter, DiaryFilters } from "@/components/RNClinicalLiaison/DiarySearchFilter";
 import { DiaryPDFExport } from "@/components/RNClinicalLiaison/DiaryPDFExport";
+import { DiaryQuickStats } from "@/components/RNClinicalLiaison/DiaryQuickStats";
+import { DiaryKeyboardShortcuts, useKeyboardShortcuts } from "@/components/RNClinicalLiaison/DiaryKeyboardShortcuts";
 import { useDiaryNotifications } from "@/hooks/useDiaryNotifications";
+import { toast } from "sonner";
 
 export default function RNDiary() {
   const { role } = useApp();
@@ -35,6 +38,7 @@ export default function RNDiary() {
   const [completionEntry, setCompletionEntry] = useState<any>(null);
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [prefillData, setPrefillData] = useState<any>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [filters, setFilters] = useState<DiaryFilters>({
     searchTerm: "",
     entryType: "all",
@@ -50,6 +54,29 @@ export default function RNDiary() {
 
   // Enable diary notifications
   useDiaryNotifications(session?.user?.id);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewEntry: () => {
+      setSelectedEntry(null);
+      setPrefillData(null);
+      setFormOpen(true);
+    },
+    onSearch: () => {
+      document.getElementById("diary-search")?.focus();
+    },
+    onClose: () => {
+      setFormOpen(false);
+      setTemplatesOpen(false);
+      setShortcutsOpen(false);
+    },
+    onDuplicate: () => {
+      if (selectedEntry) {
+        handleDuplicateEntry(selectedEntry);
+      }
+    },
+    onHelp: () => setShortcutsOpen(true),
+  });
 
   // Filter entries based on search/filter criteria
   const filteredEntries = useMemo(() => {
@@ -105,6 +132,18 @@ export default function RNDiary() {
     setFormOpen(true);
   };
 
+  const handleDuplicateEntry = (entry: any) => {
+    const { id, created_at, updated_at, completion_status, completed_at, completed_by, ...duplicateData } = entry;
+    setPrefillData({
+      ...duplicateData,
+      title: `${duplicateData.title} (Copy)`,
+      scheduled_date: format(new Date(), "yyyy-MM-dd"),
+    });
+    setSelectedEntry(null);
+    setFormOpen(true);
+    toast.success("Entry duplicated - adjust details and save");
+  };
+
   const handleTemplateSelect = (template: any) => {
     setPrefillData(template);
     setTemplatesOpen(false);
@@ -142,7 +181,9 @@ export default function RNDiary() {
       <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <header className="mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+            <DiaryQuickStats rnId={!isSupervisor ? session?.user?.id : undefined} />
+            
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mt-4">
               <Calendar className="w-4 h-4" />
               <span>{isSupervisor ? "Team Diary" : "My Diary"}</span>
             </div>

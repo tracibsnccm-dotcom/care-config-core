@@ -15,6 +15,10 @@ import { DiaryEntryComments } from "./DiaryEntryComments";
 import { DiaryEntryHistory } from "./DiaryEntryHistory";
 import { DiaryEntryAttachments } from "./DiaryEntryAttachments";
 import { VoiceDictation } from "./VoiceDictation";
+import { DiaryLabelManager } from "./DiaryLabelManager";
+import { DiaryEntryDependencies } from "./DiaryEntryDependencies";
+import { DiaryCustomFields } from "./DiaryCustomFields";
+import { DiarySupervisorApproval } from "./DiarySupervisorApproval";
 import { useDiaryConflicts } from "@/hooks/useDiaryConflicts";
 import { useAuth } from "@/auth/supabaseAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +35,7 @@ interface DiaryEntryFormProps {
 
 export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, prefillData }: DiaryEntryFormProps) {
   const { session } = useAuth();
-  const [formData, setFormData] = useState<Partial<DiaryEntryFormData & { attachments: any[] }>>({
+  const [formData, setFormData] = useState<Partial<DiaryEntryFormData & { attachments: any[], label?: string, label_color?: string, custom_fields?: Record<string, any> }>>({
     title: "",
     description: "",
     entry_type: "",
@@ -50,6 +54,9 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
     recurrence_pattern: undefined,
     recurrence_end_date: "",
     attachments: [],
+    label: "",
+    label_color: "",
+    custom_fields: {},
     ...prefillData
   });
   
@@ -111,6 +118,9 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
         ...validation.data,
         rn_id: user.id,
         case_id: caseId || null,
+        label: formData.label || null,
+        label_color: formData.label_color || null,
+        custom_fields: formData.custom_fields || {},
         metadata: {
           template_name: formData.template_name
         }
@@ -413,6 +423,47 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
                 setFormData({ ...formData, recurrence_end_date: date })
               }
             />
+
+            {/* Label Manager */}
+            <DiaryLabelManager
+              value={formData.label}
+              color={formData.label_color}
+              onChange={(label, color) =>
+                setFormData({ ...formData, label, label_color: color })
+              }
+              onClear={() =>
+                setFormData({ ...formData, label: "", label_color: "" })
+              }
+            />
+
+            {/* Custom Fields */}
+            <DiaryCustomFields
+              value={formData.custom_fields || {}}
+              onChange={(fields) =>
+                setFormData({ ...formData, custom_fields: fields })
+              }
+            />
+
+            {/* Dependencies */}
+            {entry && (
+              <DiaryEntryDependencies
+                entryId={entry.id}
+                caseId={caseId || entry.case_id}
+                rnId={session?.user?.id || ""}
+              />
+            )}
+
+            {/* Supervisor Approval */}
+            {entry && (
+              <DiarySupervisorApproval
+                entryId={entry.id}
+                requiresApproval={entry.requires_approval}
+                approvalStatus={entry.approval_status}
+                approvedBy={entry.approved_by}
+                approvedAt={entry.approved_at}
+                approvalNotes={entry.approval_notes}
+              />
+            )}
 
             {/* Visibility */}
             <div className="flex items-center space-x-2">
