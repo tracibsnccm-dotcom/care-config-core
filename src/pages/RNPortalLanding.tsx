@@ -103,23 +103,8 @@ export default function RNPortalLanding() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Incomplete Assessments</CardTitle>
               </CardHeader>
               <CardContent>
-                {pendingAssessments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">All assessments completed</p>
-                ) : (
-                  <div className="space-y-2">
-                    {pendingAssessments.slice(0, 2).map((assessment) => (
-                      <div key={assessment.id} className="p-2 rounded bg-yellow-50 dark:bg-yellow-900/20 text-sm">
-                        <div className="font-medium text-sm">{assessment.assessment_type}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {assessment.due_date ? `Due: ${format(new Date(assessment.due_date), "MMM d")}` : "No due date"}
-                        </div>
-                      </div>
-                    ))}
-                    {pendingAssessments.length > 2 && (
-                      <p className="text-xs text-yellow-600 mt-2">+{pendingAssessments.length - 2} more pending</p>
-                    )}
-                  </div>
-                )}
+                <div className="text-2xl font-bold text-yellow-600">{pendingAssessments.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">To be completed</p>
               </CardContent>
             </Card>
 
@@ -202,7 +187,7 @@ export default function RNPortalLanding() {
                 <p className="text-sm text-muted-foreground mt-2">
                   {isSupervisor 
                     ? "Monitor team performance, manage assignments, and review quality metrics."
-                    : "View your performance metrics, assigned cases, and quality targets."}
+                    : "View detailed performance metrics, case analytics, and quality tracking."}
                 </p>
                 <Badge className="mt-3" variant="secondary">
                   {isSupervisor ? "Supervisor View" : "My Metrics"}
@@ -297,6 +282,24 @@ export default function RNPortalLanding() {
                   Contact providers, request updates, and coordinate referrals.
                 </p>
                 <Badge className="mt-3" variant="secondary">Network Access</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/attorney-dashboard"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Attorney Portal</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Communicate with attorneys, share case updates, and track legal coordination.
+                </p>
+                <Badge className="mt-3" variant="secondary">Legal Coordination</Badge>
               </div>
             </div>
           </Link>
