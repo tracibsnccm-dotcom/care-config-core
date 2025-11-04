@@ -40,6 +40,9 @@ import { RNTeamPerformance } from "@/components/RNTeamPerformance";
 import { RNClientSatisfaction } from "@/components/RNClientSatisfaction";
 import { RNCaseloadAtAGlance } from "@/components/RNCaseloadAtAGlance";
 import { RNCommunicationPriority } from "@/components/RNCommunicationPriority";
+import { RNComplianceAlerts } from "@/components/RNComplianceAlerts";
+import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
+import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -354,10 +357,26 @@ export default function RNPortalLanding() {
               <CardContent>
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  {/* Priority Section - Top Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <RNTodaysPriorities />
+                    <RNComplianceAlerts />
+                  </div>
+
+                  {/* Supervisor Metrics - Second Row (Only for supervisors) */}
+                  {isSupervisor && (
+                    <div className="grid grid-cols-1 gap-4">
+                      <RNEngagementMetrics />
+                    </div>
+                  )}
+
+                  {/* Quick Overview - Third Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <RNCaseloadAtAGlance />
                     <RNCommunicationPriority />
                   </div>
+
+                  {/* Activity & Deadlines - Fourth Row */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <RNRecentActivityFeed />
                     <RNUpcomingDeadlines />
