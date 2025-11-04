@@ -28,7 +28,7 @@ export function useDiaryVersions(entryId: string | undefined) {
           .order("version_number", { ascending: false });
 
         if (error) throw error;
-        setVersions(data || []);
+        setVersions((data || []) as unknown as EntryVersion[]);
       } catch (error) {
         console.error("Error fetching versions:", error);
         toast.error("Failed to load version history");

@@ -28,7 +28,7 @@ export function useDiarySignatures(entryId: string | undefined) {
           .order("signed_at", { ascending: false });
 
         if (error) throw error;
-        setSignatures(data || []);
+        setSignatures((data || []) as unknown as Signature[]);
       } catch (error) {
         console.error("Error fetching signatures:", error);
       } finally {
@@ -59,7 +59,7 @@ export function useDiarySignatures(entryId: string | undefined) {
 
       if (error) throw error;
 
-      setSignatures([data, ...signatures]);
+      setSignatures([data as unknown as Signature, ...signatures]);
       toast.success("Signature saved successfully");
       return data;
     } catch (error) {

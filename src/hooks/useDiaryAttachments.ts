@@ -31,7 +31,7 @@ export function useDiaryAttachments(entryId: string | undefined) {
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setAttachments((data || []) as Attachment[]);
+        setAttachments((data || []) as unknown as Attachment[]);
       } catch (error) {
         console.error("Error fetching attachments:", error);
         toast.error("Failed to load attachments");

@@ -33,7 +33,7 @@ export function useDiaryGoals(rnId: string | undefined) {
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setGoals((data || []) as Goal[]);
+        setGoals((data || []) as unknown as Goal[]);
       } catch (error) {
         console.error("Error fetching goals:", error);
         toast.error("Failed to load goals");

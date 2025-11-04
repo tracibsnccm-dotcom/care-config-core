@@ -31,7 +31,7 @@ export function useDiaryDrafts() {
           .maybeSingle();
 
         if (error) throw error;
-        setDraft(data as DiaryDraft | null);
+        setDraft(data as unknown as DiaryDraft | null);
       } catch (error) {
         console.error("Error fetching draft:", error);
       } finally {
@@ -58,7 +58,7 @@ export function useDiaryDrafts() {
         .single();
 
       if (error) throw error;
-      setDraft(data);
+      setDraft(data as unknown as DiaryDraft);
     } catch (error) {
       console.error("Error saving draft:", error);
     } finally {

@@ -29,7 +29,7 @@ export function useDiaryLearningResources() {
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setResources((data || []) as LearningResource[]);
+        setResources((data || []) as unknown as LearningResource[]);
       } catch (error) {
         console.error("Error fetching learning resources:", error);
         toast.error("Failed to load learning resources");

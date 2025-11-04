@@ -38,7 +38,7 @@ export function useDiaryCustomFields() {
           .order("display_order", { ascending: true });
 
         if (error) throw error;
-        setFields((data || []) as CustomField[]);
+        setFields((data || []) as unknown as CustomField[]);
       } catch (error) {
         console.error("Error fetching custom fields:", error);
       } finally {
@@ -62,7 +62,7 @@ export function useDiaryCustomFields() {
 
       if (error) throw error;
 
-      setFields([...fields, data]);
+      setFields([...fields, data as unknown as CustomField]);
       toast.success("Custom field created");
       return data;
     } catch (error) {
@@ -108,7 +108,7 @@ export function useDiaryCustomFieldValues(entryId: string | undefined) {
           .eq("entry_id", entryId);
 
         if (error) throw error;
-        setValues((data || []) as CustomFieldValue[]);
+        setValues((data || []) as unknown as CustomFieldValue[]);
       } catch (error) {
         console.error("Error fetching custom field values:", error);
       } finally {

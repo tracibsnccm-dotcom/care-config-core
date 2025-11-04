@@ -30,7 +30,7 @@ export function useDiaryOfflineQueue() {
           .order("created_at", { ascending: true });
 
         if (error) throw error;
-        setQueueItems((data || []) as OfflineQueueItem[]);
+        setQueueItems((data || []) as unknown as OfflineQueueItem[]);
       } catch (error) {
         console.error("Error fetching offline queue:", error);
       } finally {

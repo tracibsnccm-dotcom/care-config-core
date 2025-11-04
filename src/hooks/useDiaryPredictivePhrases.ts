@@ -34,7 +34,7 @@ export function useDiaryPredictivePhrases(contextCategory?: string) {
         const { data, error } = await query;
 
         if (error) throw error;
-        setPhrases(data || []);
+        setPhrases((data || []) as unknown as PredictivePhrase[]);
       } catch (error) {
         console.error("Error fetching predictive phrases:", error);
       } finally {
@@ -50,7 +50,7 @@ export function useDiaryPredictivePhrases(contextCategory?: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase.rpc("increment_phrase_usage", {
+      const { error } = await supabase.rpc("increment_phrase_usage" as any, {
         p_rn_id: user.id,
         p_phrase: phraseText,
         p_category: category,
