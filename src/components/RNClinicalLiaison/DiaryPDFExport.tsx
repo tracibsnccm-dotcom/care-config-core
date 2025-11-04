@@ -1,9 +1,22 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, AlertTriangle, Shield } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface DiaryEntry {
   id: string;
@@ -30,7 +43,45 @@ interface DiaryPDFExportProps {
 }
 
 export function DiaryPDFExport({ entries, dateFrom, dateTo, rnName }: DiaryPDFExportProps) {
-  const generatePDF = () => {
+  const [showWarning, setShowWarning] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    includeContactInfo: false,
+    includeOutcomes: true,
+    includeLocations: false,
+    acknowledgement: false,
+  });
+
+  const logExport = async (entriesCount: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from("audit_logs").insert({
+        actor_id: user.id,
+        action: "diary_pdf_export",
+        meta: {
+          entries_count: entriesCount,
+          date_from: dateFrom,
+          date_to: dateTo,
+          included_contact_info: exportOptions.includeContactInfo,
+          included_outcomes: exportOptions.includeOutcomes,
+          included_locations: exportOptions.includeLocations,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to log export:", error);
+    }
+  };
+
+  const handleExportClick = () => {
+    setShowWarning(true);
+  };
+
+  const generatePDF = async () => {
+    if (!exportOptions.acknowledgement) {
+      toast.error("Please acknowledge HIPAA compliance requirements");
+      return;
+    }
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -63,17 +114,33 @@ export function DiaryPDFExport({ entries, dateFrom, dateTo, rnName }: DiaryPDFEx
       doc.setTextColor(0, 0, 0);
       doc.text(`Total Entries: ${entries.length} | Completed: ${completed} | Pending: ${pending} | Overdue: ${overdue}`, 14, 38);
       
-      // Entry details table
-      const tableData = entries.map(entry => [
-        format(new Date(entry.scheduled_date), "MMM d, yyyy"),
-        entry.scheduled_time?.slice(0, 5) || "-",
-        entry.title,
-        entry.entry_type.replace("_", " "),
-        entry.completion_status,
-        entry.priority || "normal",
-        entry.location || "-",
-        entry.outcome_notes || "-"
-      ]);
+      // Entry details table - with PHI protection
+      const tableData = entries.map(entry => {
+        const row = [
+          format(new Date(entry.scheduled_date), "MMM d, yyyy"),
+          entry.scheduled_time?.slice(0, 5) || "-",
+          entry.title,
+          entry.entry_type.replace("_", " "),
+          entry.completion_status,
+          entry.priority || "normal",
+        ];
+        
+        // Only include location if option is enabled
+        if (exportOptions.includeLocations) {
+          row.push(entry.location || "-");
+        } else {
+          row.push("[Redacted]");
+        }
+        
+        // Only include outcome if option is enabled
+        if (exportOptions.includeOutcomes) {
+          row.push(entry.outcome_notes || "-");
+        } else {
+          row.push("[Redacted - PHI Protected]");
+        }
+        
+        return row;
+      });
       
       autoTable(doc, {
         startY: 45,
@@ -125,12 +192,22 @@ export function DiaryPDFExport({ entries, dateFrom, dateTo, rnName }: DiaryPDFEx
           `Type: ${entry.entry_type.replace("_", " ")} | Status: ${entry.completion_status} | Priority: ${entry.priority || "normal"}`,
         ];
         
-        if (entry.location) details.push(`Location: ${entry.location}`);
-        if (entry.contact_name) details.push(`Contact: ${entry.contact_name}`);
-        if (entry.contact_phone) details.push(`Phone: ${entry.contact_phone}`);
-        if (entry.contact_email) details.push(`Email: ${entry.contact_email}`);
+        // PHI Protection - only include if options enabled
+        if (exportOptions.includeLocations && entry.location) {
+          details.push(`Location: ${entry.location}`);
+        }
+        
+        if (exportOptions.includeContactInfo) {
+          if (entry.contact_name) details.push(`Contact: ${entry.contact_name}`);
+          if (entry.contact_phone) details.push(`Phone: ${entry.contact_phone}`);
+          if (entry.contact_email) details.push(`Email: ${entry.contact_email}`);
+        }
+        
         if (entry.description) details.push(`Description: ${entry.description}`);
-        if (entry.outcome_notes) details.push(`Outcome: ${entry.outcome_notes}`);
+        
+        if (exportOptions.includeOutcomes && entry.outcome_notes) {
+          details.push(`Outcome: ${entry.outcome_notes}`);
+        }
         
         details.forEach(detail => {
           if (yPos > 280) {
@@ -145,25 +222,46 @@ export function DiaryPDFExport({ entries, dateFrom, dateTo, rnName }: DiaryPDFEx
         yPos += 5; // Space between entries
       });
       
-      // Footer
+      // HIPAA Compliance Watermark
+      doc.setFontSize(60);
+      doc.setTextColor(255, 0, 0, 0.05);
+      doc.text("CONFIDENTIAL - HIPAA PROTECTED", pageWidth / 2, doc.internal.pageSize.getHeight() / 2, {
+        align: "center",
+        angle: 45,
+      });
+
+      // Footer with strong warning
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-          `Page ${i} of ${pageCount} | RN Case Manager Diary | Confidential`,
+          `Page ${i} of ${pageCount} | CONFIDENTIAL - HIPAA PROTECTED HEALTH INFORMATION`,
           pageWidth / 2,
           doc.internal.pageSize.getHeight() - 10,
           { align: "center" }
         );
+        doc.setTextColor(200, 0, 0);
+        doc.text(
+          "⚠ UNAUTHORIZED DISCLOSURE PROHIBITED - Store Securely & Dispose Properly",
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 6,
+          { align: "center" }
+        );
       }
       
-      // Save
-      const fileName = `RN_Diary_Report_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      // Save with timestamp for audit trail
+      const fileName = `RN_Diary_CONFIDENTIAL_${format(new Date(), "yyyy-MM-dd_HHmmss")}.pdf`;
       doc.save(fileName);
       
-      toast.success("PDF exported successfully!");
+      // Log the export
+      await logExport(entries.length);
+      
+      setShowWarning(false);
+      toast.success("Secure PDF exported - Remember to store in HIPAA-compliant location!", {
+        duration: 6000,
+      });
     } catch (error) {
       console.error("PDF generation error:", error);
       toast.error("Failed to generate PDF");
@@ -171,9 +269,122 @@ export function DiaryPDFExport({ entries, dateFrom, dateTo, rnName }: DiaryPDFEx
   };
 
   return (
-    <Button onClick={generatePDF} variant="outline">
-      <Download className="h-4 w-4 mr-2" />
-      Export to PDF
-    </Button>
+    <>
+      <Button onClick={handleExportClick} variant="outline">
+        <Download className="h-4 w-4 mr-2" />
+        Export to PDF
+      </Button>
+
+      <Dialog open={showWarning} onOpenChange={setShowWarning}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+              <AlertTriangle className="h-6 w-6" />
+              <DialogTitle className="text-xl">HIPAA Compliance Warning</DialogTitle>
+            </div>
+            <DialogDescription className="space-y-4 text-left">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="font-semibold text-red-900 mb-2">
+                  ⚠ You are about to export Protected Health Information (PHI)
+                </p>
+                <p className="text-sm text-red-800">
+                  This PDF will contain patient health information protected under HIPAA regulations. 
+                  Unauthorized disclosure may result in civil and criminal penalties.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 mb-1">Security Requirements</h4>
+                    <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                      <li>Store in encrypted, HIPAA-compliant location only</li>
+                      <li>Do not email or share via unsecured channels</li>
+                      <li>Dispose properly when no longer needed (shred physical copies)</li>
+                      <li>Access limited to authorized personnel only</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Export Options (PHI Protection):</h4>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="includeOutcomes"
+                      checked={exportOptions.includeOutcomes}
+                      onCheckedChange={(checked) =>
+                        setExportOptions({ ...exportOptions, includeOutcomes: !!checked })
+                      }
+                    />
+                    <Label htmlFor="includeOutcomes" className="text-sm cursor-pointer">
+                      Include outcome notes (may contain clinical PHI)
+                    </Label>
+                  </div>
+
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="includeLocations"
+                      checked={exportOptions.includeLocations}
+                      onCheckedChange={(checked) =>
+                        setExportOptions({ ...exportOptions, includeLocations: !!checked })
+                      }
+                    />
+                    <Label htmlFor="includeLocations" className="text-sm cursor-pointer">
+                      Include appointment locations
+                    </Label>
+                  </div>
+
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="includeContactInfo"
+                      checked={exportOptions.includeContactInfo}
+                      onCheckedChange={(checked) =>
+                        setExportOptions({ ...exportOptions, includeContactInfo: !!checked })
+                      }
+                    />
+                    <Label htmlFor="includeContactInfo" className="text-sm cursor-pointer">
+                      Include contact phone/email (personal identifiers)
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <Checkbox
+                    id="acknowledgement"
+                    checked={exportOptions.acknowledgement}
+                    onCheckedChange={(checked) =>
+                      setExportOptions({ ...exportOptions, acknowledgement: !!checked })
+                    }
+                  />
+                  <Label htmlFor="acknowledgement" className="text-sm font-semibold cursor-pointer">
+                    I acknowledge that I am authorized to export this PHI and will handle it in 
+                    compliance with HIPAA regulations and organizational policies.
+                  </Label>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground italic">
+                Note: This export action will be logged in the audit trail for compliance purposes.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWarning(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={generatePDF}
+              disabled={!exportOptions.acknowledgement}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Proceed with Secure Export
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
