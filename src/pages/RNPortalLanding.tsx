@@ -20,11 +20,11 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 import { useRNAssignments, useRNAssessments, useRNDiary } from "@/hooks/useRNData";
 import { format } from "date-fns";
-import { EmergencyAlertsCard } from "@/components/RNClinicalLiaison/EmergencyAlertsCard";
 import { RNToDoList } from "@/components/RNToDoList";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
@@ -72,185 +72,171 @@ export default function RNPortalLanding() {
   
   return (
     <AppLayout>
-      <div className="py-10 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
-        <div className="max-w-6xl mx-auto">
-        <header className="mb-8">
+      <div className="py-6 px-6 bg-gradient-to-b from-[#0f2a6a]/5 via-[#128f8b]/5 to-[#0f2a6a]/5 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+        <header className="mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold mb-3">
             <span>RN Case Management</span>
-            <span className="opacity-75">Portal Home</span>
+            <span className="opacity-75">Dashboard</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-[#0f2a6a]">
-            Welcome to Your RN Portal
+            Welcome to Your Dashboard
           </h1>
           <p className="text-[#0f2a6a]/80 mt-2 max-w-2xl">
-            Access your dashboard, manage cases, track compliance, and communicate with clients and providers.
+            Your performance metrics, assigned cases, and quick access to all tools.
           </p>
         </header>
 
-          {/* Emergency Alerts - Priority Section */}
-          <div className="mb-8">
-            <EmergencyAlertsCard />
-          </div>
-
-          {/* Quick Stats Overview - First Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Today's Schedule</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Appointments/calls</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">New Assignments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{newAssignments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Last 3 days</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Assessments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{pendingAssessments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">To be completed</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Action Cards Section - Second Row (Centered) */}
-          <div className="flex justify-center gap-4 mb-8">
-            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Incomplete Assessments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{pendingAssessments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">To be completed</p>
-              </CardContent>
-            </Card>
-
-            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Follow-Ups Required</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{requireFollowup.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* My Performance Metrics */}
-          {metricsData && (
-            <section className="mb-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[#0f2a6a]">My Quality Metrics</CardTitle>
-                  <CardDescription>
-                    Your weekly and monthly performance vs. RCMS targets.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { 
-                        label: "Notes ≤ 24h", 
-                        value: metricsData.metrics.my_performance.notes_24h, 
-                        target: metricsData.metrics.targets.notes_24h,
-                        weekChange: metricsData.metrics.trend.week_change.notes_24h,
-                        monthChange: metricsData.metrics.trend.month_change.notes_24h
-                      },
-                      { 
-                        label: "Follow-Up Calls", 
-                        value: metricsData.metrics.my_performance.followup_calls, 
-                        target: metricsData.metrics.targets.followup_calls,
-                        weekChange: metricsData.metrics.trend.week_change.followup_calls,
-                        monthChange: metricsData.metrics.trend.month_change.followup_calls
-                      },
-                      { 
-                        label: "Med Reconciliation", 
-                        value: metricsData.metrics.my_performance.med_reconciliation, 
-                        target: metricsData.metrics.targets.med_reconciliation,
-                        weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
-                        monthChange: metricsData.metrics.trend.month_change.med_reconciliation
-                      },
-                      { 
-                        label: "Care Plans Current", 
-                        value: metricsData.metrics.my_performance.care_plans_current, 
-                        target: metricsData.metrics.targets.care_plans_current,
-                        weekChange: metricsData.metrics.trend.week_change.care_plans_current,
-                        monthChange: metricsData.metrics.trend.month_change.care_plans_current
-                      },
-                    ].map((m, i) => (
-                      <div key={i} className="rounded-lg border border-border bg-card p-4">
-                        <div className="text-sm text-muted-foreground">{m.label}</div>
-                        <div className="mt-1 text-2xl font-extrabold text-foreground">{m.value}%</div>
-                        <div className="mt-2 h-2 rounded bg-muted">
-                          <div 
-                            className={`h-2 rounded ${getColorClass(m.value, m.target)}`} 
-                            style={{ width: `${m.value}%` }} 
-                          />
-                        </div>
-                        <div className="mt-2 text-xs text-muted-foreground">Target ≥ {m.target}%</div>
-                        
-                        {/* Trend indicators */}
-                        <div className="mt-3 flex items-center gap-3 text-xs">
-                          <div className="flex items-center gap-1">
-                            {getTrendIcon(m.weekChange)}
-                            <span>Week: {m.weekChange}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {getTrendIcon(m.monthChange)}
-                            <span>Month: {m.monthChange}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
-          )}
-
-          {/* Alerts Section */}
+          {/* Compact Emergency Alerts Banner */}
           {metricsData && metricsData.metrics.alerts.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-lg font-bold text-[#0f2a6a] mb-3">Active Alerts</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {metricsData.metrics.alerts.map((alert, idx) => (
-                  <Alert 
-                    key={idx} 
-                    variant={alert.priority === "high" ? "destructive" : "default"}
-                    className="border-l-4"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-semibold">{alert.type}</span>
-                          <span className="mx-2">•</span>
-                          <span className="text-muted-foreground">{alert.case_id}</span>
-                        </div>
-                        <Badge variant={alert.priority === "high" ? "destructive" : "secondary"}>
-                          {alert.days_overdue} day{alert.days_overdue > 1 ? "s" : ""} overdue
-                        </Badge>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                ))}
-              </div>
-            </section>
+            <div className="mb-4">
+              <Alert variant="destructive" className="border-l-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span className="font-semibold">
+                    {metricsData.metrics.alerts.length} Alert{metricsData.metrics.alerts.length !== 1 ? 's' : ''} Require Attention
+                  </span>
+                  <Badge variant="destructive">Action Needed</Badge>
+                </AlertDescription>
+              </Alert>
+            </div>
           )}
+
+          {/* Tabbed Metrics Ribbon */}
+          <Card className="mb-6">
+            <Tabs defaultValue="overview" className="w-full">
+              <CardHeader className="pb-3">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                  <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
+                </TabsList>
+              </CardHeader>
+              
+              <CardContent>
+                {/* Overview Tab */}
+                <TabsContent value="overview" className="mt-0 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg border bg-card">
+                      <div className="text-xs text-muted-foreground">Today's Schedule</div>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Appointments</div>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-card">
+                      <div className="text-xs text-muted-foreground">New Assignments</div>
+                      <div className="text-2xl font-bold mt-1">{newAssignments.length}</div>
+                      <div className="text-xs text-muted-foreground">Last 3 days</div>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-card">
+                      <div className="text-xs text-muted-foreground">Incomplete Assessments</div>
+                      <div className="text-2xl font-bold text-yellow-600 mt-1">{pendingAssessments.length}</div>
+                      <div className="text-xs text-muted-foreground">To complete</div>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-card">
+                      <div className="text-xs text-muted-foreground">Follow-Ups</div>
+                      <div className="text-2xl font-bold text-red-600 mt-1">{requireFollowup.length}</div>
+                      <div className="text-xs text-muted-foreground">Required</div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Quality Metrics Tab */}
+                <TabsContent value="quality" className="mt-0">
+                  {metricsData ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { 
+                          label: "Notes ≤ 24h", 
+                          value: metricsData.metrics.my_performance.notes_24h, 
+                          target: metricsData.metrics.targets.notes_24h,
+                          weekChange: metricsData.metrics.trend.week_change.notes_24h,
+                          monthChange: metricsData.metrics.trend.month_change.notes_24h
+                        },
+                        { 
+                          label: "Follow-Up Calls", 
+                          value: metricsData.metrics.my_performance.followup_calls, 
+                          target: metricsData.metrics.targets.followup_calls,
+                          weekChange: metricsData.metrics.trend.week_change.followup_calls,
+                          monthChange: metricsData.metrics.trend.month_change.followup_calls
+                        },
+                        { 
+                          label: "Med Reconciliation", 
+                          value: metricsData.metrics.my_performance.med_reconciliation, 
+                          target: metricsData.metrics.targets.med_reconciliation,
+                          weekChange: metricsData.metrics.trend.week_change.med_reconciliation,
+                          monthChange: metricsData.metrics.trend.month_change.med_reconciliation
+                        },
+                        { 
+                          label: "Care Plans Current", 
+                          value: metricsData.metrics.my_performance.care_plans_current, 
+                          target: metricsData.metrics.targets.care_plans_current,
+                          weekChange: metricsData.metrics.trend.week_change.care_plans_current,
+                          monthChange: metricsData.metrics.trend.month_change.care_plans_current
+                        },
+                      ].map((m, i) => (
+                        <div key={i} className="rounded-lg border border-border bg-card p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium text-muted-foreground">{m.label}</div>
+                            <div className="text-2xl font-bold text-foreground">{m.value}%</div>
+                          </div>
+                          <div className="h-2 rounded bg-muted mb-2">
+                            <div 
+                              className={`h-2 rounded transition-all ${getColorClass(m.value, m.target)}`} 
+                              style={{ width: `${m.value}%` }} 
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-muted-foreground">Target ≥ {m.target}%</div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="flex items-center gap-1">
+                                {getTrendIcon(m.weekChange)}
+                                <span>Wk: {m.weekChange}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {getTrendIcon(m.monthChange)}
+                                <span>Mo: {m.monthChange}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">Loading metrics...</p>
+                  )}
+                </TabsContent>
+
+                {/* Alerts & Tasks Tab */}
+                <TabsContent value="alerts" className="mt-0">
+                  {metricsData && metricsData.metrics.alerts.length > 0 ? (
+                    <div className="space-y-2">
+                      {metricsData.metrics.alerts.map((alert, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <div>
+                              <div className="font-semibold text-sm">{alert.type}</div>
+                              <div className="text-xs text-muted-foreground">{alert.case_id}</div>
+                            </div>
+                          </div>
+                          <Badge variant={alert.priority === "high" ? "destructive" : "secondary"}>
+                            {alert.days_overdue} day{alert.days_overdue > 1 ? 's' : ''} overdue
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No alerts at this time</p>
+                  )}
+                </TabsContent>
+              </CardContent>
+            </Tabs>
+          </Card>
 
           {/* Upcoming Diary Entries */}
           <div className="mb-8">
