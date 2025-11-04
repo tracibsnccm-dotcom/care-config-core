@@ -72,11 +72,23 @@ export function DiaryCompletionWorkflow({ entry, open, onOpenChange, onCompleted
   const handleStartTimer = async () => {
     if (!entry) return;
 
-    // Navigate to time tracking with pre-filled case info
-    toast.info("Redirecting to time tracking...");
-    // This would be implemented with router navigation
-    // For now, just close the dialog
-    onOpenChange(false);
+    try {
+      // Update diary entry to in progress with timer started metadata
+      await supabase
+        .from("rn_diary_entries")
+        .update({ 
+          completion_status: "in_progress",
+          metadata: { time_tracking_started: new Date().toISOString() }
+        })
+        .eq("id", entry.id);
+
+      toast.success("Timer started - Entry marked as in progress");
+      onCompleted();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error starting timer:", error);
+      toast.error("Failed to start timer");
+    }
   };
 
   if (!entry) return null;

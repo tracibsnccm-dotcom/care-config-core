@@ -3199,6 +3199,82 @@ export type Database = {
           },
         ]
       }
+      rn_diary_entry_audit: {
+        Row: {
+          action: string
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string
+          entry_id: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          entry_id: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          entry_id?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_entry_audit_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_entry_comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          created_by: string
+          entry_id: string
+          id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          created_by: string
+          entry_id: string
+          id?: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          created_by?: string
+          entry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_entry_comments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_emergency_alerts: {
         Row: {
           acknowledged: boolean | null
