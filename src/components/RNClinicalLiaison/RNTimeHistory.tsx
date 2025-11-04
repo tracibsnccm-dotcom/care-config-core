@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Clock, Edit, Trash2, Calendar, AlertCircle } from "lucide-react";
+import { Clock, Edit, Trash2, Calendar, AlertCircle, Download } from "lucide-react";
 import { format, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
 interface TimeEntry {
@@ -208,15 +208,48 @@ export function RNTimeHistory() {
     return activityTypes.find(a => a.value === value)?.label || value;
   };
 
+  const handleExport = () => {
+    const csvContent = [
+      ["Date", "Case ID", "Activity Type", "Time (hours)", "Attorney Time Saved (hours)", "Description"].join(","),
+      ...filteredEntries.map(entry => [
+        format(new Date(entry.created_at), "MM/dd/yyyy HH:mm"),
+        entry.case_id || "N/A",
+        getActivityLabel(entry.activity_type),
+        (entry.time_spent_minutes / 60).toFixed(2),
+        (entry.estimated_attorney_time_saved_minutes / 60).toFixed(2),
+        `"${entry.activity_description?.replace(/"/g, '""') || ''}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `time-entries-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast.success("Export successful", {
+      description: "Your time entries have been downloaded as a CSV file."
+    });
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Time Entry History
-            </CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Time Entry History
+          </div>
+          <Button onClick={handleExport} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </CardTitle>
             <Select value={filter} onValueChange={(v) => setFilter(v as TimeFilter)}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />

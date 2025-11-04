@@ -1,6 +1,8 @@
 import { AppLayout } from "@/components/AppLayout";
 import { RNTimeHistory } from "@/components/RNClinicalLiaison/RNTimeHistory";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
+import { RNTimeAnalytics } from "@/components/RNClinicalLiaison/RNTimeAnalytics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function RNTimeTracking() {
 
@@ -20,17 +22,30 @@ export default function RNTimeTracking() {
             </p>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Time History */}
-            <div className="lg:col-span-2">
-              <RNTimeHistory />
-            </div>
+          <Tabs defaultValue="history" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="history">Time History</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
 
-            {/* Right Column - Quick Stats */}
-            <div>
-              <RNTimeStatsWidget />
-            </div>
-          </div>
+            <TabsContent value="history" className="space-y-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Time History */}
+                <div className="lg:col-span-2">
+                  <RNTimeHistory />
+                </div>
+
+                {/* Right Column - Quick Stats */}
+                <div>
+                  <RNTimeStatsWidget />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-0">
+              <RNTimeAnalytics />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </AppLayout>
