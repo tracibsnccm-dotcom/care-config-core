@@ -314,10 +314,11 @@ export default function RNPortalLanding() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="diary">My Diary - Upcoming Schedule</TabsTrigger>
                   <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
+                  <TabsTrigger value="resources">Resources</TabsTrigger>
                 </TabsList>
               </CardHeader>
               
@@ -394,9 +395,9 @@ export default function RNPortalLanding() {
                 <TabsContent value="alerts" className="mt-0">
                   {metricsData && metricsData.metrics.alerts.length > 0 ? (
                     <div className="space-y-2">
-                      {metricsData.metrics.alerts.map((alert, idx) => (
-                        <div 
-                          key={idx} 
+                      {metricsData.metrics.alerts.map((alert: any, i: number) => (
+                        <div
+                          key={i}
                           className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition"
                         >
                           <div className="flex items-center gap-3">
@@ -415,6 +416,11 @@ export default function RNPortalLanding() {
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">No alerts at this time</p>
                   )}
+                </TabsContent>
+
+                {/* Resources Tab */}
+                <TabsContent value="resources" className="mt-0">
+                  <RNResourceLibrary />
                 </TabsContent>
               </CardContent>
             </Tabs>
@@ -575,11 +581,6 @@ export default function RNPortalLanding() {
           {/* To-Do List Card */}
           <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <RNToDoList />
-          </div>
-
-          {/* Resource Library Card */}
-          <div className="rounded-2xl shadow-sm">
-            <RNResourceLibrary />
           </div>
         </div>
 
