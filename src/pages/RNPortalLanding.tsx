@@ -43,6 +43,7 @@ import { RNCommunicationPriority } from "@/components/RNCommunicationPriority";
 import { RNComplianceAlerts } from "@/components/RNComplianceAlerts";
 import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
 import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
+import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -377,9 +378,10 @@ export default function RNPortalLanding() {
                   )}
 
                   {/* Activity & Deadlines - Fourth Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <RNRecentActivityFeed />
                     <RNUpcomingDeadlines />
+                    <RNTimeStatsWidget />
                   </div>
                 </TabsContent>
 
