@@ -3082,6 +3082,76 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_diary_attachments: {
+        Row: {
+          created_at: string
+          entry_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_attachments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_comment_mentions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          mentioned_user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          mentioned_user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          mentioned_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_comment_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entry_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_diary_entries: {
         Row: {
           actual_duration_minutes: number | null
@@ -3117,6 +3187,7 @@ export type Database = {
           priority: string | null
           recurrence_end_date: string | null
           recurrence_pattern: string | null
+          rejection_reason: string | null
           reminder_enabled: boolean | null
           reminder_minutes_before: number | null
           requires_approval: boolean | null
@@ -3166,6 +3237,7 @@ export type Database = {
           priority?: string | null
           recurrence_end_date?: string | null
           recurrence_pattern?: string | null
+          rejection_reason?: string | null
           reminder_enabled?: boolean | null
           reminder_minutes_before?: number | null
           requires_approval?: boolean | null
@@ -3215,6 +3287,7 @@ export type Database = {
           priority?: string | null
           recurrence_end_date?: string | null
           recurrence_pattern?: string | null
+          rejection_reason?: string | null
           reminder_enabled?: boolean | null
           reminder_minutes_before?: number | null
           requires_approval?: boolean | null
@@ -3300,25 +3373,31 @@ export type Database = {
       }
       rn_diary_entry_comments: {
         Row: {
+          author_id: string
           comment_text: string
           created_at: string
-          created_by: string
           entry_id: string
           id: string
+          is_edited: boolean | null
+          updated_at: string | null
         }
         Insert: {
+          author_id: string
           comment_text: string
           created_at?: string
-          created_by: string
           entry_id: string
           id?: string
+          is_edited?: boolean | null
+          updated_at?: string | null
         }
         Update: {
+          author_id?: string
           comment_text?: string
           created_at?: string
-          created_by?: string
           entry_id?: string
           id?: string
+          is_edited?: boolean | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -3365,6 +3444,73 @@ export type Database = {
           },
           {
             foreignKeyName: "rn_diary_entry_dependencies_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_entry_versions: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          changes: Json
+          entry_id: string
+          id: string
+          previous_data: Json
+          version_number: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          changes: Json
+          entry_id: string
+          id?: string
+          previous_data: Json
+          version_number: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          changes?: Json
+          entry_id?: string
+          id?: string
+          previous_data?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_entry_versions_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_read_receipts: {
+        Row: {
+          entry_id: string
+          id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          entry_id: string
+          id?: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          entry_id?: string
+          id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_read_receipts_entry_id_fkey"
             columns: ["entry_id"]
             isOneToOne: false
             referencedRelation: "rn_diary_entries"
@@ -3645,6 +3791,45 @@ export type Database = {
           rn_user_id?: string
           target_value?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rn_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
