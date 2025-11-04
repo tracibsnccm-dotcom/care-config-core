@@ -31,6 +31,7 @@ import { RNToDoList } from "@/components/RNToDoList";
 import { MetricNoteDialog } from "@/components/MetricNoteDialog";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -41,6 +42,7 @@ export default function RNPortalLanding() {
   const [metricsData, setMetricsData] = useState<RNMetricsData | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [metricNotes, setMetricNotes] = useState<Set<string>>(new Set());
   const [selectedMetric, setSelectedMetric] = useState<{
     name: string;
     label: string;
@@ -58,15 +60,33 @@ export default function RNPortalLanding() {
   const hasEmergencies = metricsData && metricsData.metrics.alerts.length > 0;
 
   useEffect(() => {
-    fetchRNMetrics()
-      .then(data => {
+    const loadData = async () => {
+      try {
+        // Load metrics
+        const data = await fetchRNMetrics();
         setMetricsData(data);
+        
+        // Load notes for current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: notes } = await supabase
+            .from('rn_metric_notes')
+            .select('metric_name')
+            .eq('rn_user_id', user.id);
+          
+          if (notes) {
+            const uniqueMetrics = new Set(notes.map(n => n.metric_name));
+            setMetricNotes(uniqueMetrics);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
         setMetricsLoading(false);
-      })
-      .catch(err => {
-        console.error("Failed to fetch RN metrics:", err);
-        setMetricsLoading(false);
-      });
+      }
+    };
+    
+    loadData();
   }, []);
 
   const handleMetricClick = (name: string, label: string, value: number, target: number) => {
@@ -74,13 +94,28 @@ export default function RNPortalLanding() {
     setNoteDialogOpen(true);
   };
 
-  const hasNote = (metricName: string) => {
-    try {
-      const saved = localStorage.getItem(`metric-notes-${metricName}`);
-      return saved && JSON.parse(saved).length > 0;
-    } catch {
-      return false;
+  const handleNoteDialogClose = async (open: boolean) => {
+    setNoteDialogOpen(open);
+    
+    // Refresh notes when dialog closes
+    if (!open) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: notes } = await supabase
+          .from('rn_metric_notes')
+          .select('metric_name')
+          .eq('rn_user_id', user.id);
+        
+        if (notes) {
+          const uniqueMetrics = new Set(notes.map(n => n.metric_name));
+          setMetricNotes(uniqueMetrics);
+        }
+      }
     }
+  };
+
+  const hasNote = (metricName: string) => {
+    return metricNotes.has(metricName);
   };
 
   const getColorClass = (value: number, target: number) => {
@@ -116,7 +151,7 @@ export default function RNPortalLanding() {
           {selectedMetric && (
             <MetricNoteDialog
               open={noteDialogOpen}
-              onOpenChange={setNoteDialogOpen}
+              onOpenChange={handleNoteDialogClose}
               metricName={selectedMetric.name}
               metricLabel={selectedMetric.label}
               currentValue={selectedMetric.value}

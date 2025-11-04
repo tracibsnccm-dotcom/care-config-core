@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 interface MetricNoteDialogProps {
   open: boolean;
@@ -15,11 +17,7 @@ interface MetricNoteDialogProps {
   targetValue: number;
 }
 
-interface MetricNote {
-  date: string;
-  note: string;
-  value: number;
-}
+type MetricNote = Database['public']['Tables']['rn_metric_notes']['Row'];
 
 export function MetricNoteDialog({
   open,
@@ -39,18 +37,31 @@ export function MetricNoteDialog({
     }
   }, [open, metricName]);
 
-  const loadPreviousNotes = () => {
+  const loadPreviousNotes = async () => {
     try {
-      const saved = localStorage.getItem(`metric-notes-${metricName}`);
-      if (saved) {
-        setPreviousNotes(JSON.parse(saved));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('rn_metric_notes')
+        .select('*')
+        .eq('rn_user_id', user.id)
+        .eq('metric_name', metricName)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      
+      if (data) {
+        setPreviousNotes(data);
       }
     } catch (error) {
       console.error("Error loading notes:", error);
+      toast.error("Failed to load previous notes");
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!note.trim()) {
       toast.error("Please enter a note");
       return;
@@ -58,18 +69,30 @@ export function MetricNoteDialog({
 
     setLoading(true);
     try {
-      const newNote: MetricNote = {
-        date: new Date().toISOString(),
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("You must be logged in to save notes");
+        return;
+      }
+
+      const noteData: Database['public']['Tables']['rn_metric_notes']['Insert'] = {
+        rn_user_id: user.id,
+        metric_name: metricName,
+        metric_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        metric_value: currentValue,
+        target_value: targetValue,
         note: note.trim(),
-        value: currentValue,
       };
 
-      const updatedNotes = [newNote, ...previousNotes].slice(0, 10); // Keep last 10 notes
-      localStorage.setItem(`metric-notes-${metricName}`, JSON.stringify(updatedNotes));
+      const { error } = await supabase
+        .from('rn_metric_notes')
+        .insert(noteData);
+
+      if (error) throw error;
       
       toast.success("Note saved successfully");
       setNote("");
-      setPreviousNotes(updatedNotes);
+      await loadPreviousNotes();
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving note:", error);
@@ -120,11 +143,11 @@ export function MetricNoteDialog({
             <div>
               <h4 className="text-sm font-medium mb-2">Previous Notes</h4>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {previousNotes.map((prevNote, idx) => (
-                  <div key={idx} className="p-3 rounded-lg bg-muted text-sm">
+                {previousNotes.map((prevNote) => (
+                  <div key={prevNote.id} className="p-3 rounded-lg bg-muted text-sm">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-muted-foreground">
-                        {new Date(prevNote.date).toLocaleDateString()} - Value: {prevNote.value}%
+                        {new Date(prevNote.created_at).toLocaleDateString()} - Value: {prevNote.metric_value}%
                       </span>
                     </div>
                     <p className="text-foreground">{prevNote.note}</p>
