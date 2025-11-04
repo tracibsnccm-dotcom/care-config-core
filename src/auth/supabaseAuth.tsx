@@ -117,7 +117,9 @@ export function ProtectedRoute({
   if (!session || !user) return <Navigate to="/access" replace />;
 
   if (roles && roles.length > 0) {
-    const ok = user.roles.some((r) => roles.includes(r));
+    const userRolesUpper = (user.roles || []).map((r) => r.toUpperCase());
+    const requiredUpper = roles.map((r) => r.toUpperCase());
+    const ok = userRolesUpper.some((r) => requiredUpper.includes(r));
     if (!ok) {
       // In development/preview, allow navigation for testing different roles
       // without modifying backend role assignments.
