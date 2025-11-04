@@ -1,145 +1,228 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Resend } from "npm:resend@2.0.0";
 
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-interface DiaryEntry {
-  id: string;
-  title: string;
-  scheduled_date: string;
-  scheduled_time?: string;
-  rn_id: string;
-  reminder_enabled: boolean;
-  reminder_minutes_before?: number;
-  completion_status: string;
-  metadata?: any;
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("Checking diary entry reminders and escalations...");
 
-    // Get current time
-    const now = new Date();
-    const nowISO = now.toISOString();
-    
-    // Check for upcoming entries in the next hour
-    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-    const today = now.toISOString().split('T')[0];
-    
-    // Fetch entries that need reminders
-    const { data: entries, error: fetchError } = await supabase
+    // Get all pending and in_progress entries with reminders enabled
+    const { data: entries, error: entriesError } = await supabase
       .from("rn_diary_entries")
-      .select("*, profiles!inner(email, display_name)")
-      .eq("reminder_enabled", true)
+      .select(`
+        id,
+        title,
+        entry_type,
+        scheduled_date,
+        scheduled_time,
+        reminder_enabled,
+        reminder_minutes_before,
+        priority,
+        shared_with_supervisor,
+        rn_id,
+        case_id,
+        completion_status,
+        created_at,
+        metadata
+      `)
       .in("completion_status", ["pending", "in_progress"])
-      .gte("scheduled_date", today)
-      .lte("scheduled_date", oneHourFromNow.toISOString().split('T')[0]);
+      .eq("reminder_enabled", true)
+      .order("scheduled_date", { ascending: true });
 
-    if (fetchError) {
-      throw fetchError;
-    }
+    if (entriesError) throw entriesError;
 
-    if (!entries || entries.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "No reminders to send" }),
-        { headers: { "Content-Type": "application/json" }, status: 200 }
-      );
-    }
+    console.log(`Found ${entries?.length || 0} entries with reminders enabled`);
 
-    const remindersSent = [];
+    const now = new Date();
+    const notificationsSent: string[] = [];
+    const escalationsSent: string[] = [];
 
-    for (const entry of entries) {
-      const scheduledDateTime = entry.scheduled_time
-        ? new Date(`${entry.scheduled_date}T${entry.scheduled_time}`)
-        : new Date(`${entry.scheduled_date}T09:00:00`);
+    for (const entry of entries || []) {
+      const scheduledDateTime = new Date(`${entry.scheduled_date}T${entry.scheduled_time || "00:00"}:00`);
+      const reminderTime = new Date(scheduledDateTime.getTime() - (entry.reminder_minutes_before || 60) * 60000);
+      const minutesUntilScheduled = Math.floor((scheduledDateTime.getTime() - now.getTime()) / 60000);
+      const minutesOverdue = Math.floor((now.getTime() - scheduledDateTime.getTime()) / 60000);
 
-      const minutesUntil = (scheduledDateTime.getTime() - now.getTime()) / (1000 * 60);
-      const reminderMinutes = entry.reminder_minutes_before || 30;
+      // Get RN details
+      const { data: rnProfile } = await supabase
+        .from("profiles")
+        .select("email, display_name")
+        .eq("user_id", entry.rn_id)
+        .single();
 
-      // Send reminder if within reminder window
-      if (minutesUntil > 0 && minutesUntil <= reminderMinutes) {
-        // Check if reminder already sent (using metadata)
-        const metadata = entry.metadata || {};
-        if (metadata.reminder_sent_at) {
-          const sentAt = new Date(metadata.reminder_sent_at);
-          const hoursSinceSent = (now.getTime() - sentAt.getTime()) / (1000 * 60 * 60);
-          if (hoursSinceSent < 1) {
-            continue; // Skip if reminder sent in last hour
-          }
-        }
-
-        // Create notification in system
-        await supabase.from("notifications").insert({
-          user_id: entry.rn_id,
-          title: "Diary Reminder",
-          message: `${entry.title} is scheduled in ${Math.round(minutesUntil)} minutes`,
-          link: "/rncm/diary",
-          priority: "high",
-          metadata: { entry_id: entry.id }
-        });
-
-        // Update metadata to mark reminder as sent
-        await supabase
-          .from("rn_diary_entries")
-          .update({
-            metadata: { ...metadata, reminder_sent_at: nowISO }
-          })
-          .eq("id", entry.id);
-
-        remindersSent.push({
-          entry_id: entry.id,
-          title: entry.title,
-          minutes_until: Math.round(minutesUntil)
-        });
+      if (!rnProfile?.email) {
+        console.log(`No email found for RN ${entry.rn_id}, skipping...`);
+        continue;
       }
 
-      // Check for overdue entries and escalate
-      if (minutesUntil < 0 && entry.completion_status === "pending") {
-        const hoursOverdue = Math.abs(minutesUntil) / 60;
-        
-        if (hoursOverdue > 2) {
-          // Escalate to supervisors
+      // Check if reminder already sent
+      const metadata = entry.metadata || {};
+      if (metadata.reminder_sent_at) {
+        const sentAt = new Date(metadata.reminder_sent_at);
+        const hoursSinceSent = (now.getTime() - sentAt.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceSent < 1) {
+          continue; // Skip if reminder sent in last hour
+        }
+      }
+
+      // Send reminder if within reminder window
+      if (now >= reminderTime && minutesUntilScheduled > 0) {
+        try {
+          await resend.emails.send({
+            from: "Lovable Health <notifications@resend.dev>",
+            to: [rnProfile.email],
+            subject: `⏰ Reminder: ${entry.title} in ${minutesUntilScheduled} minutes`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2563eb;">Upcoming Diary Entry</h2>
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">${entry.title}</h3>
+                  <p><strong>Type:</strong> ${entry.entry_type}</p>
+                  <p><strong>Scheduled:</strong> ${scheduledDateTime.toLocaleString()}</p>
+                  <p><strong>Priority:</strong> ${entry.priority}</p>
+                  <p><strong>Starting in:</strong> ${minutesUntilScheduled} minutes</p>
+                </div>
+                <p>Please prepare for this scheduled entry.</p>
+              </div>
+            `,
+          });
+
+          // Update metadata to mark reminder as sent
+          await supabase
+            .from("rn_diary_entries")
+            .update({
+              metadata: { ...metadata, reminder_sent_at: now.toISOString() }
+            })
+            .eq("id", entry.id);
+
+          notificationsSent.push(entry.id);
+          console.log(`✅ Reminder sent for entry ${entry.id} to ${rnProfile.email}`);
+        } catch (emailError) {
+          console.error(`❌ Failed to send reminder for entry ${entry.id}:`, emailError);
+        }
+      }
+
+      // Handle overdue entries (more than 2 hours past scheduled time)
+      if (minutesOverdue > 120 && entry.completion_status === "pending") {
+        // Update status to overdue
+        await supabase
+          .from("rn_diary_entries")
+          .update({ completion_status: "overdue" })
+          .eq("id", entry.id);
+
+        // Send overdue notification to RN
+        try {
+          await resend.emails.send({
+            from: "Lovable Health <notifications@resend.dev>",
+            to: [rnProfile.email],
+            subject: `⚠️ Overdue: ${entry.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #dc2626;">Overdue Diary Entry</h2>
+                <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                  <h3 style="margin-top: 0; color: #dc2626;">${entry.title}</h3>
+                  <p><strong>Type:</strong> ${entry.entry_type}</p>
+                  <p><strong>Was scheduled:</strong> ${scheduledDateTime.toLocaleString()}</p>
+                  <p><strong>Overdue by:</strong> ${Math.floor(minutesOverdue / 60)} hours ${minutesOverdue % 60} minutes</p>
+                  <p><strong>Priority:</strong> ${entry.priority}</p>
+                </div>
+                <p style="color: #dc2626;"><strong>Action required:</strong> Please complete this entry or reschedule it.</p>
+              </div>
+            `,
+          });
+          console.log(`⚠️ Overdue notification sent for entry ${entry.id}`);
+        } catch (emailError) {
+          console.error(`❌ Failed to send overdue notification for entry ${entry.id}:`, emailError);
+        }
+
+        // Escalate to supervisor if shared and entry is high priority or urgent
+        if (entry.shared_with_supervisor && ["high", "urgent"].includes(entry.priority)) {
+          // Get supervisors
           const { data: supervisors } = await supabase
             .from("user_roles")
             .select("user_id")
-            .in("role", ["SUPER_USER", "SUPER_ADMIN"]);
+            .in("role", ["SUPER_USER", "SUPER_ADMIN"])
+            .limit(5);
 
-          if (supervisors) {
+          if (supervisors && supervisors.length > 0) {
             for (const supervisor of supervisors) {
-              await supabase.from("notifications").insert({
-                user_id: supervisor.user_id,
-                title: "Overdue Diary Entry",
-                message: `Entry "${entry.title}" is ${Math.round(hoursOverdue)} hours overdue`,
-                link: `/rncm/diary`,
-                priority: "urgent",
-                metadata: { entry_id: entry.id, rn_id: entry.rn_id }
-              });
+              const { data: supervisorProfile } = await supabase
+                .from("profiles")
+                .select("email, display_name")
+                .eq("user_id", supervisor.user_id)
+                .single();
+
+              if (supervisorProfile?.email) {
+                try {
+                  await resend.emails.send({
+                    from: "Lovable Health <notifications@resend.dev>",
+                    to: [supervisorProfile.email],
+                    subject: `🚨 Supervisor Alert: Overdue ${entry.priority} Priority Entry`,
+                    html: `
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #dc2626;">Supervisor Escalation</h2>
+                        <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                          <h3 style="margin-top: 0; color: #dc2626;">${entry.title}</h3>
+                          <p><strong>Assigned to:</strong> ${rnProfile.display_name || "Unknown"}</p>
+                          <p><strong>Type:</strong> ${entry.entry_type}</p>
+                          <p><strong>Priority:</strong> <span style="color: #dc2626; font-weight: bold;">${entry.priority.toUpperCase()}</span></p>
+                          <p><strong>Was scheduled:</strong> ${scheduledDateTime.toLocaleString()}</p>
+                          <p><strong>Overdue by:</strong> ${Math.floor(minutesOverdue / 60)} hours ${minutesOverdue % 60} minutes</p>
+                        </div>
+                        <p style="color: #dc2626;"><strong>Supervisor action may be required.</strong></p>
+                      </div>
+                    `,
+                  });
+                  escalationsSent.push(entry.id);
+                  console.log(`🚨 Supervisor escalation sent for entry ${entry.id}`);
+                } catch (emailError) {
+                  console.error(`❌ Failed to send supervisor escalation for entry ${entry.id}:`, emailError);
+                }
+              }
             }
           }
-
-          // Update status to overdue
-          await supabase
-            .from("rn_diary_entries")
-            .update({ completion_status: "overdue" })
-            .eq("id", entry.id);
         }
       }
     }
 
+    console.log(`✅ Processing complete. Reminders sent: ${notificationsSent.length}, Escalations sent: ${escalationsSent.length}`);
+
     return new Response(
       JSON.stringify({
-        message: "Reminders processed",
-        reminders_sent: remindersSent.length,
-        entries_checked: entries.length
+        success: true,
+        processed: entries?.length || 0,
+        reminders_sent: notificationsSent.length,
+        escalations_sent: escalationsSent.length,
+        reminders: notificationsSent,
+        escalations: escalationsSent,
       }),
-      { headers: { "Content-Type": "application/json" }, status: 200 }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
     );
   } catch (error) {
-    console.error("Error processing reminders:", error);
+    console.error("❌ Error processing diary reminders:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { "Content-Type": "application/json" }, status: 500 }
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
     );
   }
 });

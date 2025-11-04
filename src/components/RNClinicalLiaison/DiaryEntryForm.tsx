@@ -13,10 +13,11 @@ import { DiaryRecurringEntry } from "./DiaryRecurringEntry";
 import { DiaryConflictWarning } from "./DiaryConflictWarning";
 import { DiaryEntryComments } from "./DiaryEntryComments";
 import { DiaryEntryHistory } from "./DiaryEntryHistory";
+import { DiaryEntryAttachments } from "./DiaryEntryAttachments";
 import { useDiaryConflicts } from "@/hooks/useDiaryConflicts";
 import { useAuth } from "@/auth/supabaseAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, X, FileText, MessageSquare, History as HistoryIcon } from "lucide-react";
+import { Save, X, FileText, MessageSquare, History as HistoryIcon, Paperclip } from "lucide-react";
 
 interface DiaryEntryFormProps {
   open: boolean;
@@ -29,7 +30,7 @@ interface DiaryEntryFormProps {
 
 export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, prefillData }: DiaryEntryFormProps) {
   const { session } = useAuth();
-  const [formData, setFormData] = useState<Partial<DiaryEntryFormData>>({
+  const [formData, setFormData] = useState<Partial<DiaryEntryFormData & { attachments: any[] }>>({
     title: "",
     description: "",
     entry_type: "",
@@ -47,6 +48,7 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
     is_recurring: false,
     recurrence_pattern: undefined,
     recurrence_end_date: "",
+    attachments: [],
     ...prefillData
   });
   
@@ -174,10 +176,14 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
         )}
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">
               <FileText className="h-4 w-4 mr-2" />
               Details
+            </TabsTrigger>
+            <TabsTrigger value="attachments">
+              <Paperclip className="h-4 w-4 mr-2" />
+              Attachments
             </TabsTrigger>
             {entry && (
               <>
@@ -416,6 +422,17 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
                 Share with Supervisor
               </Label>
             </div>
+          </TabsContent>
+
+          <TabsContent value="attachments">
+            <DiaryEntryAttachments
+              entryId={entry?.id}
+              attachments={formData.attachments || []}
+              onAttachmentsChange={(attachments) =>
+                setFormData({ ...formData, attachments })
+              }
+              disabled={loading}
+            />
           </TabsContent>
 
           {entry && (
