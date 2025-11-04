@@ -228,6 +228,51 @@ export type Database = {
         }
         Relationships: []
       }
+      attorney_monthly_reports: {
+        Row: {
+          attorney_id: string
+          created_at: string | null
+          generated_at: string | null
+          hourly_rate_used: number
+          id: string
+          report_data: Json | null
+          report_month: string
+          total_attorney_time_saved_minutes: number
+          total_cases: number
+          total_cost_savings: number
+          total_time_minutes: number
+          updated_at: string | null
+        }
+        Insert: {
+          attorney_id: string
+          created_at?: string | null
+          generated_at?: string | null
+          hourly_rate_used?: number
+          id?: string
+          report_data?: Json | null
+          report_month: string
+          total_attorney_time_saved_minutes?: number
+          total_cases?: number
+          total_cost_savings?: number
+          total_time_minutes?: number
+          updated_at?: string | null
+        }
+        Update: {
+          attorney_id?: string
+          created_at?: string | null
+          generated_at?: string | null
+          hourly_rate_used?: number
+          id?: string
+          report_data?: Json | null
+          report_month?: string
+          total_attorney_time_saved_minutes?: number
+          total_cases?: number
+          total_cost_savings?: number
+          total_time_minutes?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       attorney_performance: {
         Row: {
           accepted: number | null
@@ -3680,6 +3725,14 @@ export type Database = {
         Returns: Json
       }
       expire_assignment_offers: { Args: never; Returns: undefined }
+      generate_all_attorney_monthly_reports: {
+        Args: { p_report_month?: string }
+        Returns: Json
+      }
+      generate_attorney_monthly_report: {
+        Args: { p_attorney_id: string; p_report_month: string }
+        Returns: Json
+      }
       generate_client_id: {
         Args: { p_attorney_code: string; p_client_type: string }
         Returns: string
