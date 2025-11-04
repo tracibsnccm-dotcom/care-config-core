@@ -26,6 +26,15 @@ import { DiaryAIAssistant } from "@/components/RNClinicalLiaison/DiaryAIAssistan
 import { DiaryNaturalLanguageSearch } from "@/components/RNClinicalLiaison/DiaryNaturalLanguageSearch";
 import { DiaryWorkloadHeatmap } from "@/components/RNClinicalLiaison/DiaryWorkloadHeatmap";
 import { DiaryProductivityInsights } from "@/components/RNClinicalLiaison/DiaryProductivityInsights";
+import { DiaryTeamManagement } from "@/components/RNClinicalLiaison/DiaryTeamManagement";
+import { DiaryTemplates } from "@/components/RNClinicalLiaison/DiaryTemplates";
+import { DiaryRecurringEntries } from "@/components/RNClinicalLiaison/DiaryRecurringEntries";
+import { DiaryTeamCalendar } from "@/components/RNClinicalLiaison/DiaryBulkOperations";
+import { DiaryProductivityDashboard } from "@/components/RNClinicalLiaison/DiaryProductivityDashboard";
+import { DiaryHIPAAExport } from "@/components/RNClinicalLiaison/DiaryHIPAAExport";
+import { DiaryQuickActions } from "@/components/RNClinicalLiaison/DiaryQuickActions";
+import { DiaryNotificationsPanel } from "@/components/RNClinicalLiaison/DiaryNotificationsPanel";
+import { DiaryBulkSelection } from "@/components/RNClinicalLiaison/DiaryBulkSelection";
 import { useDiaryNotifications } from "@/hooks/useDiaryNotifications";
 import { toast } from "sonner";
 
@@ -226,6 +235,10 @@ export default function RNDiary() {
                   <Clock className="h-4 w-4 mr-2" />
                   List
                 </TabsTrigger>
+                <TabsTrigger value="productivity">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Productivity
+                </TabsTrigger>
                 <TabsTrigger value="analytics">
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analytics
@@ -234,10 +247,22 @@ export default function RNDiary() {
                   <Sparkles className="h-4 w-4 mr-2" />
                   AI Assistant
                 </TabsTrigger>
+                <TabsTrigger value="team-calendar">
+                  <Users className="h-4 w-4 mr-2" />
+                  Team Calendar
+                </TabsTrigger>
+                <TabsTrigger value="templates">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Templates
+                </TabsTrigger>
+                <TabsTrigger value="recurring">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Recurring
+                </TabsTrigger>
                 {isSupervisor && (
                   <TabsTrigger value="team">
                     <Users className="h-4 w-4 mr-2" />
-                    Team
+                    Team Mgmt
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -385,6 +410,16 @@ export default function RNDiary() {
               )}
             </TabsContent>
 
+            {/* Productivity Dashboard */}
+            <TabsContent value="productivity" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="md:col-span-2">
+                  <DiaryProductivityDashboard />
+                </div>
+                <DiaryNotificationsPanel />
+              </div>
+            </TabsContent>
+
             {/* Analytics View */}
             <TabsContent value="analytics" className="space-y-6">
               <DiaryProductivityInsights
@@ -392,6 +427,7 @@ export default function RNDiary() {
                 rnId={!isSupervisor ? session?.user?.id : undefined}
               />
               <DiaryAnalytics entries={filteredEntries as any} />
+              <DiaryHIPAAExport />
             </TabsContent>
 
             {/* AI Assistant View */}
@@ -425,13 +461,38 @@ export default function RNDiary() {
               />
             </TabsContent>
 
+            {/* Team Calendar */}
+            <TabsContent value="team-calendar" className="space-y-6">
+              <DiaryTeamCalendar />
+            </TabsContent>
+
+            {/* Templates */}
+            <TabsContent value="templates" className="space-y-6">
+              <DiaryTemplates onUseTemplate={handleTemplateSelect} />
+            </TabsContent>
+
+            {/* Recurring Entries */}
+            <TabsContent value="recurring" className="space-y-6">
+              <DiaryRecurringEntries />
+            </TabsContent>
+
             {/* Team Management (Supervisor Only) */}
             {isSupervisor && (
-              <TabsContent value="team">
+              <TabsContent value="team" className="space-y-6">
+                <DiaryTeamManagement />
                 <RNTeamManagement />
               </TabsContent>
             )}
           </Tabs>
+
+          {/* Quick Actions FAB */}
+          <DiaryQuickActions />
+
+          {/* Bulk Selection Bar */}
+          <DiaryBulkSelection 
+            selectedEntries={selectedEntries} 
+            onClearSelection={() => setSelectedEntries([])} 
+          />
         </div>
       </div>
 

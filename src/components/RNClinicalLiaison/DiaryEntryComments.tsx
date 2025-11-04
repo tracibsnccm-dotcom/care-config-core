@@ -10,7 +10,7 @@ import { format } from "date-fns";
 interface Comment {
   id: string;
   comment_text: string;
-  created_by: string;
+  author_id: string;
   created_at: string;
   profiles?: {
     display_name?: string;
@@ -42,7 +42,7 @@ export function DiaryEntryComments({ entryId }: DiaryEntryCommentsProps) {
       
       // Fetch user profiles separately
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(c => c.created_by))];
+        const userIds = [...new Set(data.map(c => c.author_id))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, display_name")
@@ -50,7 +50,7 @@ export function DiaryEntryComments({ entryId }: DiaryEntryCommentsProps) {
 
         const enrichedComments = data.map(comment => ({
           ...comment,
-          profiles: profiles?.find(p => p.user_id === comment.created_by) || null
+          profiles: profiles?.find(p => p.user_id === comment.author_id) || null
         }));
         
         setComments(enrichedComments as any);
@@ -78,7 +78,7 @@ export function DiaryEntryComments({ entryId }: DiaryEntryCommentsProps) {
         .insert({
           entry_id: entryId,
           comment_text: newComment,
-          created_by: user.id,
+          author_id: user.id,
         });
 
       if (error) throw error;
