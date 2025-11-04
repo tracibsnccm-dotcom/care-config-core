@@ -3078,6 +3078,7 @@ export type Database = {
       }
       rn_diary_entries: {
         Row: {
+          attachments: Json | null
           attendees: Json | null
           case_id: string | null
           completed_at: string | null
@@ -3113,6 +3114,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attachments?: Json | null
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
@@ -3148,6 +3150,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attachments?: Json | null
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
