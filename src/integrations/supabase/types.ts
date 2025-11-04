@@ -3081,6 +3081,8 @@ export type Database = {
           attendees: Json | null
           case_id: string | null
           completed_at: string | null
+          completed_by: string | null
+          completion_status: string | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
@@ -3089,13 +3091,24 @@ export type Database = {
           duration_minutes: number | null
           entry_type: string
           id: string
+          is_recurring: boolean | null
+          linked_time_entry_id: string | null
           location: string | null
           metadata: Json | null
+          outcome_notes: string | null
+          parent_entry_id: string | null
+          priority: string | null
+          recurrence_end_date: string | null
+          recurrence_pattern: string | null
+          reminder_enabled: boolean | null
+          reminder_minutes_before: number | null
           requires_contact: boolean | null
           rn_id: string
           scheduled_date: string
           scheduled_time: string | null
+          shared_with_supervisor: boolean | null
           status: string
+          template_name: string | null
           title: string
           updated_at: string
         }
@@ -3103,6 +3116,8 @@ export type Database = {
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
+          completed_by?: string | null
+          completion_status?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -3111,13 +3126,24 @@ export type Database = {
           duration_minutes?: number | null
           entry_type: string
           id?: string
+          is_recurring?: boolean | null
+          linked_time_entry_id?: string | null
           location?: string | null
           metadata?: Json | null
+          outcome_notes?: string | null
+          parent_entry_id?: string | null
+          priority?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
+          reminder_enabled?: boolean | null
+          reminder_minutes_before?: number | null
           requires_contact?: boolean | null
           rn_id: string
           scheduled_date: string
           scheduled_time?: string | null
+          shared_with_supervisor?: boolean | null
           status?: string
+          template_name?: string | null
           title: string
           updated_at?: string
         }
@@ -3125,6 +3151,8 @@ export type Database = {
           attendees?: Json | null
           case_id?: string | null
           completed_at?: string | null
+          completed_by?: string | null
+          completion_status?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -3133,13 +3161,24 @@ export type Database = {
           duration_minutes?: number | null
           entry_type?: string
           id?: string
+          is_recurring?: boolean | null
+          linked_time_entry_id?: string | null
           location?: string | null
           metadata?: Json | null
+          outcome_notes?: string | null
+          parent_entry_id?: string | null
+          priority?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
+          reminder_enabled?: boolean | null
+          reminder_minutes_before?: number | null
           requires_contact?: boolean | null
           rn_id?: string
           scheduled_date?: string
           scheduled_time?: string | null
+          shared_with_supervisor?: boolean | null
           status?: string
+          template_name?: string | null
           title?: string
           updated_at?: string
         }
@@ -3149,6 +3188,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_diary_entries_parent_entry_id_fkey"
+            columns: ["parent_entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -3388,6 +3434,62 @@ export type Database = {
           strengths?: string | null
           supervisor_notes?: string | null
           task_completion_score?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rn_team_members: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: string
+          rn_user_id: string
+          team_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          rn_user_id: string
+          team_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          rn_user_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "rn_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_teams: {
+        Row: {
+          created_at: string
+          id: string
+          supervisor_id: string
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          supervisor_id: string
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          supervisor_id?: string
+          team_name?: string
           updated_at?: string
         }
         Relationships: []
@@ -3801,6 +3903,10 @@ export type Database = {
       generate_client_id: {
         Args: { p_attorney_code: string; p_client_type: string }
         Returns: string
+      }
+      generate_recurring_diary_entries: {
+        Args: { p_parent_entry_id: string; p_weeks_ahead?: number }
+        Returns: number
       }
       get_checkin_trends: {
         Args: {
