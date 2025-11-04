@@ -32,6 +32,13 @@ import { MetricNoteDialog } from "@/components/MetricNoteDialog";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 import { supabase } from "@/integrations/supabase/client";
+import { RNQuickActionsBar } from "@/components/RNQuickActionsBar";
+import { RNRecentActivityFeed } from "@/components/RNRecentActivityFeed";
+import { RNUpcomingDeadlines } from "@/components/RNUpcomingDeadlines";
+import { RNCaseHealthOverview } from "@/components/RNCaseHealthOverview";
+import { RNResourceLibrary } from "@/components/RNResourceLibrary";
+import { RNTeamPerformance } from "@/components/RNTeamPerformance";
+import { RNClientSatisfaction } from "@/components/RNClientSatisfaction";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -147,6 +154,11 @@ export default function RNPortalLanding() {
           </p>
         </header>
 
+          {/* Quick Actions Bar */}
+          <section className="mb-6">
+            <RNQuickActionsBar />
+          </section>
+
           {/* Metric Note Dialog */}
           {selectedMetric && (
             <MetricNoteDialog
@@ -173,6 +185,11 @@ export default function RNPortalLanding() {
               </Alert>
             </div>
           )}
+
+          {/* Case Health Overview */}
+          <section className="mb-6">
+            <RNCaseHealthOverview />
+          </section>
 
           {/* Quality & Performance Metrics - Always Visible */}
           {metricsData && (
@@ -307,6 +324,11 @@ export default function RNPortalLanding() {
               <CardContent>
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                    <RNRecentActivityFeed />
+                    <RNUpcomingDeadlines />
+                  </div>
+                  
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="p-3 rounded-lg border bg-card">
                       <div className="text-xs text-muted-foreground">Today's Schedule</div>
@@ -554,6 +576,17 @@ export default function RNPortalLanding() {
           <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <RNToDoList />
           </div>
+
+          {/* Resource Library Card */}
+          <div className="rounded-2xl shadow-sm">
+            <RNResourceLibrary />
+          </div>
+        </div>
+
+        {/* Performance & Satisfaction Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <RNTeamPerformance />
+          <RNClientSatisfaction />
         </div>
 
         {/* Settings & Profile */}
