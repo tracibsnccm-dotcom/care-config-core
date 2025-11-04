@@ -35,6 +35,11 @@ import { DiaryHIPAAExport } from "@/components/RNClinicalLiaison/DiaryHIPAAExpor
 import { DiaryQuickActions } from "@/components/RNClinicalLiaison/DiaryQuickActions";
 import { DiaryNotificationsPanel } from "@/components/RNClinicalLiaison/DiaryNotificationsPanel";
 import { DiaryBulkSelection } from "@/components/RNClinicalLiaison/DiaryBulkSelection";
+import { DiaryAnalyticsDashboard } from "@/components/RNClinicalLiaison/DiaryAnalyticsDashboard";
+import { DiaryAdvancedSearch } from "@/components/RNClinicalLiaison/DiaryAdvancedSearch";
+import { DiarySmartSuggestions } from "@/components/RNClinicalLiaison/DiarySmartSuggestions";
+import { DiaryTeamHandoff } from "@/components/RNClinicalLiaison/DiaryTeamHandoff";
+import { DiaryQualityChecker } from "@/components/RNClinicalLiaison/DiaryQualityChecker";
 import { useDiaryNotifications } from "@/hooks/useDiaryNotifications";
 import { toast } from "sonner";
 
@@ -259,6 +264,14 @@ export default function RNDiary() {
                   <Clock className="h-4 w-4 mr-2" />
                   Recurring
                 </TabsTrigger>
+                <TabsTrigger value="advanced-analytics">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Advanced Analytics
+                </TabsTrigger>
+                <TabsTrigger value="team-handoffs">
+                  <Users className="h-4 w-4 mr-2" />
+                  Team Handoffs
+                </TabsTrigger>
                 {isSupervisor && (
                   <TabsTrigger value="team">
                     <Users className="h-4 w-4 mr-2" />
@@ -276,19 +289,8 @@ export default function RNDiary() {
 
             {/* Search & Filter */}
             <div className="space-y-4">
-              <DiaryNaturalLanguageSearch
-                onFiltersApply={(nlFilters) => {
-                  setFilters((prev) => ({
-                    ...prev,
-                    ...nlFilters,
-                    searchTerm: nlFilters.keywords?.join(" ") || prev.searchTerm
-                  }));
-                }}
-              />
-              <DiarySearchFilter 
-                onFilterChange={setFilters}
-                showRNFilter={isSupervisor}
-              />
+              <DiaryAdvancedSearch onFilterChange={setFilters as any} />
+              <DiarySmartSuggestions />
             </div>
 
             {/* Calendar View */}
@@ -474,6 +476,16 @@ export default function RNDiary() {
             {/* Recurring Entries */}
             <TabsContent value="recurring" className="space-y-6">
               <DiaryRecurringEntries />
+            </TabsContent>
+
+            {/* Advanced Analytics */}
+            <TabsContent value="advanced-analytics" className="space-y-6">
+              <DiaryAnalyticsDashboard />
+            </TabsContent>
+
+            {/* Team Handoffs */}
+            <TabsContent value="team-handoffs" className="space-y-6">
+              <DiaryTeamHandoff />
             </TabsContent>
 
             {/* Team Management (Supervisor Only) */}

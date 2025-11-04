@@ -1,294 +1,268 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Calendar, CheckCircle2, Clock, TrendingUp, Users, AlertCircle } from "lucide-react";
-import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+} from "recharts";
+import { TrendingUp, Clock, Target, Users } from "lucide-react";
+import { format, subDays, startOfWeek } from "date-fns";
 
-interface AnalyticsData {
-  totalEntries: number;
-  completedEntries: number;
-  pendingEntries: number;
-  overdueEntries: number;
-  completionRate: number;
-  avgResponseTime: number;
-  entriesByType: Array<{ name: string; value: number }>;
-  completionTrend: Array<{ date: string; completed: number; pending: number }>;
-  rnPerformance: Array<{ name: string; completionRate: number; totalEntries: number }>;
-}
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 export function DiaryAnalyticsDashboard() {
-  const [timeRange, setTimeRange] = useState("7");
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
+  const { data: analytics } = useQuery({
+    queryKey: ["diary-analytics", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
 
-  const loadAnalytics = async () => {
-    setLoading(true);
-    try {
-      const days = parseInt(timeRange);
-      const startDate = subDays(new Date(), days).toISOString().split("T")[0];
-
-      // Fetch entries for the time range
-      const { data: entries, error } = await supabase
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      const { data: entries } = await supabase
         .from("rn_diary_entries")
-        .select(`
-          id,
-          entry_type,
-          completion_status,
-          scheduled_date,
-          created_at,
-          completed_at,
-          rn_id,
-          profiles!rn_id(display_name)
-        `)
-        .gte("scheduled_date", startDate);
+        .select("*")
+        .eq("rn_id", user.id)
+        .gte("scheduled_date", format(thirtyDaysAgo, "yyyy-MM-dd"));
 
-      if (error) throw error;
+      if (!entries) return null;
 
-      // Calculate metrics
-      const total = entries?.length || 0;
-      const completed = entries?.filter((e) => e.completion_status === "completed").length || 0;
-      const pending = entries?.filter((e) => e.completion_status === "pending").length || 0;
-      const overdue = entries?.filter((e) => e.completion_status === "overdue").length || 0;
-      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      // Entry type distribution
+      const byType: Record<string, number> = {};
+      entries.forEach(e => {
+        byType[e.entry_type] = (byType[e.entry_type] || 0) + 1;
+      });
 
-      // Calculate average response time (time from creation to completion)
-      const completedWithTime = entries?.filter(
-        (e) => e.completion_status === "completed" && e.completed_at && e.created_at
+      // Priority distribution
+      const byPriority: Record<string, number> = {};
+      entries.forEach(e => {
+        byPriority[e.priority || 'medium'] = (byPriority[e.priority || 'medium'] || 0) + 1;
+      });
+
+      // Time allocation (by entry type)
+      const timeAllocation: Record<string, number> = {};
+      entries.forEach(e => {
+        if (e.actual_duration_minutes) {
+          timeAllocation[e.entry_type] = (timeAllocation[e.entry_type] || 0) + e.actual_duration_minutes;
+        }
+      });
+
+      // Weekly trends
+      const weeklyData: Record<string, { completed: number; total: number; week: string }> = {};
+      entries.forEach(e => {
+        const weekStart = startOfWeek(new Date(e.scheduled_date));
+        const weekKey = format(weekStart, "MMM dd");
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = { completed: 0, total: 0, week: weekKey };
+        }
+        weeklyData[weekKey].total++;
+        if (e.completion_status === 'completed') {
+          weeklyData[weekKey].completed++;
+        }
+      });
+
+      return {
+        byType: Object.entries(byType).map(([name, value]) => ({ name: name.replace(/_/g, ' '), value })),
+        byPriority: Object.entries(byPriority).map(([name, value]) => ({ name, value })),
+        timeAllocation: Object.entries(timeAllocation).map(([name, minutes]) => ({ 
+          name: name.replace(/_/g, ' '), 
+          hours: Math.round(minutes / 60 * 10) / 10 
+        })),
+        weeklyTrends: Object.values(weeklyData),
+        totalEntries: entries.length,
+        completedEntries: entries.filter(e => e.completion_status === 'completed').length,
+        avgTimePerEntry: entries.filter(e => e.actual_duration_minutes).length > 0 
+          ? Math.round(entries.reduce((sum, e) => sum + (e.actual_duration_minutes || 0), 0) / 
+              entries.filter(e => e.actual_duration_minutes).length)
+          : 0
+      };
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch team comparison data
+  const { data: teamComparison } = useQuery({
+    queryKey: ["team-comparison", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data: allRNs } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "RN_CCM");
+
+      if (!allRNs) return null;
+
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      const teamData = await Promise.all(
+        allRNs.map(async (rn) => {
+          const { data: entries, count } = await supabase
+            .from("rn_diary_entries")
+            .select("*", { count: 'exact' })
+            .eq("rn_id", rn.user_id)
+            .gte("scheduled_date", format(thirtyDaysAgo, "yyyy-MM-dd"));
+
+          const completed = entries?.filter(e => e.completion_status === 'completed').length || 0;
+          
+          return {
+            rnId: rn.user_id,
+            total: count || 0,
+            completed,
+            rate: count ? Math.round((completed / count) * 100) : 0
+          };
+        })
       );
-      const avgResponseTime =
-        completedWithTime && completedWithTime.length > 0
-          ? completedWithTime.reduce((sum, e) => {
-              const diff =
-                new Date(e.completed_at!).getTime() - new Date(e.created_at).getTime();
-              return sum + diff / (1000 * 60 * 60); // Convert to hours
-            }, 0) / completedWithTime.length
-          : 0;
 
-      // Entries by type
-      const typeGroups = entries?.reduce((acc, e) => {
-        const type = e.entry_type || "other";
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const myData = teamData.find(d => d.rnId === user.id);
+      const teamAvg = teamData.reduce((sum, d) => sum + d.rate, 0) / teamData.length;
 
-      const entriesByType = Object.entries(typeGroups || {}).map(([name, value]) => ({
-        name: name.replace("_", " "),
-        value,
-      }));
+      return {
+        myRate: myData?.rate || 0,
+        teamAvg: Math.round(teamAvg),
+        myRank: teamData.sort((a, b) => b.rate - a.rate).findIndex(d => d.rnId === user.id) + 1,
+        totalRNs: teamData.length
+      };
+    },
+    enabled: !!user?.id,
+  });
 
-      // Completion trend (last 7 days)
-      const trendDays = 7;
-      const completionTrend = Array.from({ length: trendDays }, (_, i) => {
-        const date = subDays(new Date(), trendDays - i - 1);
-        const dateStr = format(date, "MMM dd");
-        const dayEntries = entries?.filter(
-          (e) => format(new Date(e.scheduled_date), "MMM dd") === dateStr
-        );
-        return {
-          date: dateStr,
-          completed: dayEntries?.filter((e) => e.completion_status === "completed").length || 0,
-          pending: dayEntries?.filter((e) => e.completion_status === "pending").length || 0,
-        };
-      });
-
-      // RN performance
-      const rnGroups = entries?.reduce((acc, e) => {
-        const rnName = (e.profiles as any)?.display_name || "Unknown";
-        if (!acc[rnName]) {
-          acc[rnName] = { total: 0, completed: 0 };
-        }
-        acc[rnName].total++;
-        if (e.completion_status === "completed") {
-          acc[rnName].completed++;
-        }
-        return acc;
-      }, {} as Record<string, { total: number; completed: number }>);
-
-      const rnPerformance = Object.entries(rnGroups || {})
-        .map(([name, stats]) => ({
-          name,
-          completionRate: Math.round((stats.completed / stats.total) * 100),
-          totalEntries: stats.total,
-        }))
-        .sort((a, b) => b.completionRate - a.completionRate)
-        .slice(0, 10);
-
-      setAnalytics({
-        totalEntries: total,
-        completedEntries: completed,
-        pendingEntries: pending,
-        overdueEntries: overdue,
-        completionRate,
-        avgResponseTime: Math.round(avgResponseTime),
-        entriesByType,
-        completionTrend,
-        rnPerformance,
-      });
-    } catch (error) {
-      console.error("Error loading analytics:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!analytics) return null;
+  if (!analytics) return <div>Loading analytics...</div>;
 
   return (
     <div className="space-y-6">
-      {/* Time Range Selector */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Diary Analytics</h2>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="14">Last 14 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalEntries}</div>
-          </CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="h-5 w-5 text-blue-500" />
+            <h3 className="font-semibold">Total Entries</h3>
+          </div>
+          <p className="text-3xl font-bold">{analytics.totalEntries}</p>
+          <p className="text-sm text-muted-foreground">Last 30 days</p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.completionRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {analytics.completedEntries} of {analytics.totalEntries}
-            </p>
-          </CardContent>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-5 w-5 text-green-500" />
+            <h3 className="font-semibold">Completion Rate</h3>
+          </div>
+          <p className="text-3xl font-bold">
+            {Math.round((analytics.completedEntries / analytics.totalEntries) * 100)}%
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {analytics.completedEntries} completed
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.avgResponseTime}h</div>
-          </CardContent>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <h3 className="font-semibold">Avg Time/Entry</h3>
+          </div>
+          <p className="text-3xl font-bold">{analytics.avgTimePerEntry}m</p>
+          <p className="text-sm text-muted-foreground">Average duration</p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{analytics.overdueEntries}</div>
-          </CardContent>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-5 w-5 text-purple-500" />
+            <h3 className="font-semibold">Team Ranking</h3>
+          </div>
+          <p className="text-3xl font-bold">
+            #{teamComparison?.myRank || '-'} / {teamComparison?.totalRNs || '-'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Team avg: {teamComparison?.teamAvg || 0}%
+          </p>
         </Card>
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Completion Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Completion Trend</CardTitle>
-            <CardDescription>Daily completed vs pending entries</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.completionTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="completed" stroke="#22c55e" strokeWidth={2} />
-                <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="types" className="w-full">
+        <TabsList>
+          <TabsTrigger value="types">Entry Types</TabsTrigger>
+          <TabsTrigger value="time">Time Allocation</TabsTrigger>
+          <TabsTrigger value="trends">Weekly Trends</TabsTrigger>
+          <TabsTrigger value="priority">Priority Distribution</TabsTrigger>
+        </TabsList>
 
-        {/* Entries by Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Entries by Type</CardTitle>
-            <CardDescription>Distribution of entry types</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <TabsContent value="types" className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Entry Distribution by Type</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={analytics.entriesByType}
+                  data={analytics.byType}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {analytics.entriesByType.map((_, index) => (
+                  {analytics.byType.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          </Card>
+        </TabsContent>
 
-      {/* RN Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>RN Performance</CardTitle>
-          <CardDescription>Completion rates by RN Case Manager</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={analytics.rnPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="completionRate" fill="#3b82f6" name="Completion Rate %" />
-              <Bar dataKey="totalEntries" fill="#10b981" name="Total Entries" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        <TabsContent value="time" className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Time Spent by Entry Type (Hours)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analytics.timeAllocation}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="hours" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="trends" className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Weekly Completion Trends</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={analytics.weeklyTrends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="week" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="completed" stroke="#10B981" name="Completed" />
+                <Line type="monotone" dataKey="total" stroke="#3B82F6" name="Total" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="priority" className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Entries by Priority</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analytics.byPriority}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#8B5CF6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

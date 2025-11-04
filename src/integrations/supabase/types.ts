@@ -2853,6 +2853,53 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_ai_suggestions: {
+        Row: {
+          actioned_at: string | null
+          case_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          rn_id: string
+          status: string | null
+          suggestion_text: string
+          suggestion_type: string
+        }
+        Insert: {
+          actioned_at?: string | null
+          case_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rn_id: string
+          status?: string | null
+          suggestion_text: string
+          suggestion_type: string
+        }
+        Update: {
+          actioned_at?: string | null
+          case_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rn_id?: string
+          status?: string | null
+          suggestion_text?: string
+          suggestion_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_ai_suggestions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_assessments: {
         Row: {
           assessment_data: Json | null
@@ -3451,6 +3498,42 @@ export type Database = {
           },
         ]
       }
+      rn_diary_entry_tags: {
+        Row: {
+          created_at: string | null
+          entry_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entry_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entry_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_entry_tags_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_diary_entry_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_diary_entry_versions: {
         Row: {
           changed_at: string
@@ -3576,6 +3659,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rn_diary_tags: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          tag_name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          tag_name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          tag_name?: string
+        }
+        Relationships: []
       }
       rn_diary_templates: {
         Row: {
@@ -3905,6 +4012,130 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_quality_scores: {
+        Row: {
+          calculated_at: string | null
+          calculated_by: string | null
+          completeness_score: number | null
+          compliance_flags: Json | null
+          documentation_quality: number | null
+          entry_id: string
+          id: string
+          required_fields_met: boolean | null
+          timeliness_score: number | null
+        }
+        Insert: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          completeness_score?: number | null
+          compliance_flags?: Json | null
+          documentation_quality?: number | null
+          entry_id: string
+          id?: string
+          required_fields_met?: boolean | null
+          timeliness_score?: number | null
+        }
+        Update: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          completeness_score?: number | null
+          compliance_flags?: Json | null
+          documentation_quality?: number | null
+          entry_id?: string
+          id?: string
+          required_fields_met?: boolean | null
+          timeliness_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_quality_scores_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_saved_filters: {
+        Row: {
+          created_at: string | null
+          filter_config: Json
+          filter_name: string
+          id: string
+          is_favorite: boolean | null
+          rn_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filter_config?: Json
+          filter_name: string
+          id?: string
+          is_favorite?: boolean | null
+          rn_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filter_config?: Json
+          filter_name?: string
+          id?: string
+          is_favorite?: boolean | null
+          rn_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rn_team_handoffs: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          action_items: Json | null
+          case_id: string
+          created_at: string | null
+          from_rn_id: string
+          handoff_notes: string
+          handoff_type: string
+          id: string
+          priority: string | null
+          to_rn_id: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          action_items?: Json | null
+          case_id: string
+          created_at?: string | null
+          from_rn_id: string
+          handoff_notes: string
+          handoff_type: string
+          id?: string
+          priority?: string | null
+          to_rn_id: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          action_items?: Json | null
+          case_id?: string
+          created_at?: string | null
+          from_rn_id?: string
+          handoff_notes?: string
+          handoff_type?: string
+          id?: string
+          priority?: string | null
+          to_rn_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_team_handoffs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rn_team_members: {
         Row: {
           added_at: string
@@ -4090,6 +4321,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rn_workload_analytics: {
+        Row: {
+          analysis_date: string
+          avg_completion_time_minutes: number | null
+          by_entry_type: Json | null
+          by_priority: Json | null
+          completion_rate: number | null
+          created_at: string | null
+          id: string
+          overdue_count: number | null
+          peak_hours: Json | null
+          rn_id: string
+          team_comparison: Json | null
+          time_allocation: Json | null
+          total_entries: number | null
+        }
+        Insert: {
+          analysis_date: string
+          avg_completion_time_minutes?: number | null
+          by_entry_type?: Json | null
+          by_priority?: Json | null
+          completion_rate?: number | null
+          created_at?: string | null
+          id?: string
+          overdue_count?: number | null
+          peak_hours?: Json | null
+          rn_id: string
+          team_comparison?: Json | null
+          time_allocation?: Json | null
+          total_entries?: number | null
+        }
+        Update: {
+          analysis_date?: string
+          avg_completion_time_minutes?: number | null
+          by_entry_type?: Json | null
+          by_priority?: Json | null
+          completion_rate?: number | null
+          created_at?: string | null
+          id?: string
+          overdue_count?: number | null
+          peak_hours?: Json | null
+          rn_id?: string
+          team_comparison?: Json | null
+          time_allocation?: Json | null
+          total_entries?: number | null
+        }
+        Relationships: []
       }
       round_robin_settings: {
         Row: {
@@ -4404,6 +4683,10 @@ export type Database = {
       calculate_alert_sla_deadline: {
         Args: { p_alert_type: string; p_shift_start: string }
         Returns: string
+      }
+      calculate_entry_quality_score: {
+        Args: { p_entry_id: string }
+        Returns: Json
       }
       calculate_rn_daily_metrics: {
         Args: { p_date?: string }
