@@ -26,13 +26,25 @@ interface DiaryEntry {
   };
 }
 
-export function SupervisorDiaryCalendar() {
+interface SupervisorDiaryCalendarProps {
+  entries: any[];
+  onDateClick: (date: Date) => void;
+  onEntryClick: (entry: any) => void;
+}
+
+export function SupervisorDiaryCalendar({ entries: providedEntries, onDateClick, onEntryClick }: SupervisorDiaryCalendarProps) {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string>("");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
+
+  // Filter provided entries by team
+  const entries = providedEntries.filter(entry => {
+    if (!selectedTeam || teamMembers.length === 0) return false;
+    const rnIds = teamMembers.map(m => m.rn_user_id);
+    return rnIds.includes(entry.rn_id);
+  });
 
   useEffect(() => {
     fetchTeams();
@@ -41,9 +53,8 @@ export function SupervisorDiaryCalendar() {
   useEffect(() => {
     if (selectedTeam) {
       fetchTeamMembers();
-      fetchTeamDiaryEntries();
     }
-  }, [selectedTeam, currentMonth]);
+  }, [selectedTeam]);
 
   async function fetchTeams() {
     try {
@@ -81,45 +92,6 @@ export function SupervisorDiaryCalendar() {
       setTeamMembers((data || []) as any);
     } catch (error) {
       console.error("Error fetching team members:", error);
-    }
-  }
-
-  async function fetchTeamDiaryEntries() {
-    if (!selectedTeam || teamMembers.length === 0) return;
-
-    try {
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
-
-      const rnIds = teamMembers.map(m => m.rn_user_id);
-
-      const { data, error } = await supabase
-        .from("rn_diary_entries")
-        .select("*")
-        .in("rn_id", rnIds)
-        .eq("shared_with_supervisor", true)
-        .gte("scheduled_date", monthStart.toISOString().split('T')[0])
-        .lte("scheduled_date", monthEnd.toISOString().split('T')[0])
-        .order("scheduled_date", { ascending: true });
-
-      if (error) throw error;
-
-      // Fetch RN profiles for entries
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", rnIds);
-
-      const profilesMap = new Map(profiles?.map(p => [p.id, p]));
-
-      const enrichedEntries = (data || []).map(entry => ({
-        ...entry,
-        rn_profile: profilesMap.get(entry.rn_id)
-      }));
-
-      setEntries(enrichedEntries as any);
-    } catch (error) {
-      console.error("Error fetching diary entries:", error);
     }
   }
 
@@ -207,8 +179,9 @@ export function SupervisorDiaryCalendar() {
                 return (
                   <div
                     key={idx}
+                    onClick={() => onDateClick(day)}
                     className={`
-                      min-h-[100px] p-2 border rounded-lg
+                      min-h-[100px] p-2 border rounded-lg cursor-pointer hover:border-primary transition-colors
                       ${!isCurrentMonth ? "opacity-30" : ""}
                       ${today ? "border-primary bg-primary/5" : ""}
                     `}
@@ -220,7 +193,11 @@ export function SupervisorDiaryCalendar() {
                       {dayEntries.map((entry) => (
                         <div
                           key={entry.id}
-                          className={`text-xs p-1 rounded truncate ${
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEntryClick(entry);
+                          }}
+                          className={`text-xs p-1 rounded truncate cursor-pointer ${
                             entry.completion_status === "completed" ? "bg-green-100 text-green-800" :
                             entry.completion_status === "overdue" ? "bg-red-100 text-red-800" :
                             "bg-blue-100 text-blue-800"

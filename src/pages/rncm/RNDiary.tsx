@@ -3,12 +3,20 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Plus, BarChart3, Users, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
 import { useRNDiary, useSupervisorDiary } from "@/hooks/useRNData";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DiaryEntryForm } from "@/components/RNClinicalLiaison/DiaryEntryForm";
+import { DiaryEntryTemplates } from "@/components/RNClinicalLiaison/DiaryEntryTemplates";
+import { DiaryCalendarView } from "@/components/RNClinicalLiaison/DiaryCalendarView";
+import { DiaryBulkActions } from "@/components/RNClinicalLiaison/DiaryBulkActions";
+import { DiaryCompletionWorkflow } from "@/components/RNClinicalLiaison/DiaryCompletionWorkflow";
+import { DiaryAnalytics } from "@/components/RNClinicalLiaison/DiaryAnalytics";
+import { SupervisorDiaryCalendar } from "@/components/RNClinicalLiaison/SupervisorDiaryCalendar";
+import { RNTeamManagement } from "@/components/RNClinicalLiaison/RNTeamManagement";
 
 export default function RNDiary() {
   const { role } = useApp();
@@ -16,30 +24,45 @@ export default function RNDiary() {
   const { entries: myEntries, loading: myLoading } = useRNDiary();
   const { entries: allEntries, loading: allLoading } = useSupervisorDiary();
   
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [formOpen, setFormOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [completionEntry, setCompletionEntry] = useState<any>(null);
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+  const [prefillData, setPrefillData] = useState<any>(null);
   
   const entries = isSupervisor ? allEntries : myEntries;
   const loading = isSupervisor ? allLoading : myLoading;
 
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Start on Monday
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-  const getEntriesForDay = (date: Date) => {
-    return entries.filter((entry) => 
-      isSameDay(new Date(entry.scheduled_date), date)
-    );
+  const handleEntryClick = (entry: any) => {
+    if (entry.completion_status === "pending" || entry.completion_status === "overdue") {
+      setCompletionEntry(entry);
+    } else {
+      setSelectedEntry(entry);
+      setFormOpen(true);
+    }
   };
 
-  const getEntryTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      client_appointment: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-      provider_call: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      attorney_meeting: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-      client_followup: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-      assessment: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-    };
-    return colors[type] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+  const handleDateClick = (date: Date) => {
+    setPrefillData({ scheduled_date: format(date, "yyyy-MM-dd") });
+    setFormOpen(true);
+  };
+
+  const handleTemplateSelect = (template: any) => {
+    setPrefillData(template);
+    setTemplatesOpen(false);
+    setFormOpen(true);
+  };
+
+  const handleSuccess = () => {
+    myLoading ? null : null; // Trigger refetch
+    allLoading ? null : null;
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedEntries(prev => 
+      prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
+    );
   };
 
   if (loading) {
@@ -66,113 +89,113 @@ export default function RNDiary() {
               <Calendar className="w-4 h-4" />
               <span>{isSupervisor ? "Team Diary" : "My Diary"}</span>
             </div>
-            <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-[#0f2a6a]">
-              {isSupervisor ? "Team Schedule & Diary" : "My Schedule & Diary"}
-            </h1>
-            <p className="mt-2 text-[#0f2a6a]/80 max-w-2xl">
-              {isSupervisor 
-                ? "View all appointments, calls, and follow-ups across the team. Reassign tasks as needed."
-                : "View your appointments, calls, and scheduled follow-ups in one place."}
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-[#0f2a6a]">
+                  {isSupervisor ? "Team Schedule & Diary" : "My Schedule & Diary"}
+                </h1>
+                <p className="mt-2 text-[#0f2a6a]/80 max-w-2xl">
+                  {isSupervisor 
+                    ? "View all appointments, calls, and follow-ups across the team. Reassign tasks as needed."
+                    : "View your appointments, calls, and scheduled follow-ups in one place."}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => setTemplatesOpen(true)} variant="outline">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Templates
+                </Button>
+                <Button onClick={() => { setPrefillData(null); setSelectedEntry(null); setFormOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Entry
+                </Button>
+              </div>
+            </div>
           </header>
 
-          <Tabs defaultValue="week" className="space-y-6">
+          <Tabs defaultValue="calendar" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="week">Week View</TabsTrigger>
-              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="calendar">
+                <Calendar className="h-4 w-4 mr-2" />
+                Calendar
+              </TabsTrigger>
+              <TabsTrigger value="list">
+                <Clock className="h-4 w-4 mr-2" />
+                List
+              </TabsTrigger>
+              <TabsTrigger value="analytics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </TabsTrigger>
+              {isSupervisor && (
+                <TabsTrigger value="team">
+                  <Users className="h-4 w-4 mr-2" />
+                  Team
+                </TabsTrigger>
+              )}
             </TabsList>
 
-            <TabsContent value="week" className="space-y-6">
-              {/* Week Navigation */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 7)))}
-                    >
-                      ← Previous Week
-                    </Button>
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">
-                        {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 7)))}
-                    >
-                      Next Week →
-                    </Button>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              {/* Weekly Calendar Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                {weekDays.map((day) => {
-                  const dayEntries = getEntriesForDay(day);
-                  const isToday = isSameDay(day, new Date());
-                  
-                  return (
-                    <Card key={day.toISOString()} className={isToday ? "border-[#0f2a6a] border-2" : ""}>
-                      <CardHeader className="pb-3">
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-muted-foreground">
-                            {format(day, "EEE")}
-                          </div>
-                          <div className={`text-2xl font-bold ${isToday ? "text-[#0f2a6a]" : ""}`}>
-                            {format(day, "d")}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {dayEntries.length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center">No entries</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {dayEntries.map((entry) => (
-                              <div 
-                                key={entry.id}
-                                className={`p-2 rounded text-xs ${getEntryTypeColor(entry.entry_type)}`}
-                              >
-                                <div className="font-medium flex items-center gap-1">
-                                  {entry.scheduled_time && (
-                                    <Clock className="w-3 h-3" />
-                                  )}
-                                  {entry.scheduled_time ? entry.scheduled_time.slice(0, 5) : "All day"}
-                                </div>
-                                <div className="mt-1 line-clamp-2">{entry.title}</div>
-                                {isSupervisor && entry.metadata?.rn_name && (
-                                  <div className="mt-1 flex items-center gap-1 text-xs opacity-75">
-                                    <User className="w-3 h-3" />
-                                    {entry.metadata.rn_name}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+            {/* Calendar View */}
+            <TabsContent value="calendar" className="space-y-6">
+              <DiaryBulkActions
+                selectedEntries={selectedEntries}
+                onActionComplete={handleSuccess}
+                onClearSelection={() => setSelectedEntries([])}
+              />
+              
+              {isSupervisor ? (
+                <SupervisorDiaryCalendar
+                  entries={entries}
+                  onDateClick={handleDateClick}
+                  onEntryClick={handleEntryClick}
+                />
+              ) : (
+              <DiaryCalendarView
+                entries={entries as any}
+                onDateClick={handleDateClick}
+                onEntryClick={handleEntryClick}
+              />
+              )}
             </TabsContent>
 
+            {/* List View */}
             <TabsContent value="list" className="space-y-4">
+              <DiaryBulkActions
+                selectedEntries={selectedEntries}
+                onActionComplete={handleSuccess}
+                onClearSelection={() => setSelectedEntries([])}
+              />
+
               {entries.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <p className="text-muted-foreground">No diary entries found</p>
+                    <Button className="mt-4" onClick={() => setFormOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Entry
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
                 entries.map((entry) => (
-                  <Card key={entry.id} className="hover:shadow-md transition-shadow">
+                  <Card 
+                    key={entry.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleEntryClick(entry)}
+                  >
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.includes(entry.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleSelection(entry.id);
+                          }}
+                          className="mt-1"
+                        />
+                        
                         <div className="text-center min-w-[80px]">
                           <div className="text-sm font-semibold">
                             {format(new Date(entry.scheduled_date), "MMM d")}
@@ -192,30 +215,26 @@ export default function RNDiary() {
                                 <p className="text-sm text-muted-foreground mt-1">{entry.description}</p>
                               )}
                               
-                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                <Badge className={getEntryTypeColor(entry.entry_type)}>
-                                  {entry.entry_type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+                                <Badge variant="outline">
+                                  {entry.entry_type.replace("_", " ")}
                                 </Badge>
                                 
                                 {entry.location && (
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1 text-muted-foreground">
                                     <MapPin className="w-4 h-4" />
                                     {entry.location}
                                   </div>
                                 )}
                                 
                                 {isSupervisor && entry.metadata?.rn_name && (
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1 text-muted-foreground">
                                     <User className="w-4 h-4" />
                                     {entry.metadata.rn_name}
                                   </div>
                                 )}
                               </div>
                             </div>
-                            
-                            <Badge variant={entry.status === "scheduled" ? "secondary" : "default"}>
-                              {entry.status}
-                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -224,9 +243,53 @@ export default function RNDiary() {
                 ))
               )}
             </TabsContent>
+
+            {/* Analytics View */}
+            <TabsContent value="analytics">
+              <DiaryAnalytics entries={entries} />
+            </TabsContent>
+
+            {/* Team Management (Supervisor Only) */}
+            {isSupervisor && (
+              <TabsContent value="team">
+                <RNTeamManagement />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
+
+      {/* Modals */}
+      <DiaryEntryForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSuccess={handleSuccess}
+        entry={selectedEntry}
+        prefillData={prefillData}
+      />
+
+      <DiaryCompletionWorkflow
+        entry={completionEntry}
+        open={!!completionEntry}
+        onOpenChange={(open) => !open && setCompletionEntry(null)}
+        onCompleted={handleSuccess}
+      />
+
+      {templatesOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Quick Entry Templates</h2>
+                <Button variant="ghost" onClick={() => setTemplatesOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <DiaryEntryTemplates onSelectTemplate={handleTemplateSelect} />
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
