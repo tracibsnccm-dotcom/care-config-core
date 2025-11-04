@@ -14,7 +14,8 @@ import {
   Calendar,
   ClipboardCheck,
   AlertCircle,
-  TrendingDown
+  TrendingDown,
+  StickyNote
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import { ROLES } from "@/config/rcms";
 import { useRNAssignments, useRNAssessments, useRNDiary } from "@/hooks/useRNData";
 import { format } from "date-fns";
 import { RNToDoList } from "@/components/RNToDoList";
+import { MetricNoteDialog } from "@/components/MetricNoteDialog";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 
@@ -38,6 +40,13 @@ export default function RNPortalLanding() {
   const { entries: diaryEntries } = useRNDiary();
   const [metricsData, setMetricsData] = useState<RNMetricsData | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<{
+    name: string;
+    label: string;
+    value: number;
+    target: number;
+  } | null>(null);
 
   const newAssignments = assignments.filter((a) => {
     const assignedDate = new Date(a.assigned_at);
@@ -59,6 +68,20 @@ export default function RNPortalLanding() {
         setMetricsLoading(false);
       });
   }, []);
+
+  const handleMetricClick = (name: string, label: string, value: number, target: number) => {
+    setSelectedMetric({ name, label, value, target });
+    setNoteDialogOpen(true);
+  };
+
+  const hasNote = (metricName: string) => {
+    try {
+      const saved = localStorage.getItem(`metric-notes-${metricName}`);
+      return saved && JSON.parse(saved).length > 0;
+    } catch {
+      return false;
+    }
+  };
 
   const getColorClass = (value: number, target: number) => {
     if (value >= target) return "bg-green-500";
@@ -88,6 +111,18 @@ export default function RNPortalLanding() {
             Your performance metrics, assigned cases, and quick access to all tools.
           </p>
         </header>
+
+          {/* Metric Note Dialog */}
+          {selectedMetric && (
+            <MetricNoteDialog
+              open={noteDialogOpen}
+              onOpenChange={setNoteDialogOpen}
+              metricName={selectedMetric.name}
+              metricLabel={selectedMetric.label}
+              currentValue={selectedMetric.value}
+              targetValue={selectedMetric.target}
+            />
+          )}
 
           {/* Compact Emergency Alerts Banner */}
           {hasEmergencies && (
@@ -184,7 +219,21 @@ export default function RNPortalLanding() {
                         type: "compliance"
                       },
                     ].map((m, i) => (
-                      <div key={i} className="rounded-lg border border-border bg-card p-3">
+                      <div 
+                        key={i} 
+                        className="rounded-lg border border-border bg-card p-3 hover:shadow-md transition-all cursor-pointer relative group"
+                        onClick={() => handleMetricClick(
+                          `${m.type}_${m.label.toLowerCase().replace(/\s+/g, '_')}`,
+                          m.label,
+                          m.value,
+                          m.target
+                        )}
+                      >
+                        {hasNote(`${m.type}_${m.label.toLowerCase().replace(/\s+/g, '_')}`) && (
+                          <div className="absolute top-2 right-2">
+                            <StickyNote className="h-3 w-3 text-blue-600" />
+                          </div>
+                        )}
                         <div className="text-xs font-medium text-muted-foreground mb-1">{m.label}</div>
                         <div className="text-xl font-bold text-foreground mb-2">{m.value}%</div>
                         <div className="h-1.5 rounded bg-muted mb-2">
@@ -200,6 +249,7 @@ export default function RNPortalLanding() {
                             <span>{m.weekChange}</span>
                           </div>
                         </div>
+                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity pointer-events-none" />
                       </div>
                     ))}
                   </div>
