@@ -14,10 +14,11 @@ import { DiaryConflictWarning } from "./DiaryConflictWarning";
 import { DiaryEntryComments } from "./DiaryEntryComments";
 import { DiaryEntryHistory } from "./DiaryEntryHistory";
 import { DiaryEntryAttachments } from "./DiaryEntryAttachments";
+import { VoiceDictation } from "./VoiceDictation";
 import { useDiaryConflicts } from "@/hooks/useDiaryConflicts";
 import { useAuth } from "@/auth/supabaseAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, X, FileText, MessageSquare, History as HistoryIcon, Paperclip } from "lucide-react";
+import { Save, X, FileText, MessageSquare, History as HistoryIcon, Paperclip, Mic } from "lucide-react";
 
 interface DiaryEntryFormProps {
   open: boolean;
@@ -176,10 +177,14 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
         )}
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="details">
               <FileText className="h-4 w-4 mr-2" />
               Details
+            </TabsTrigger>
+            <TabsTrigger value="voice">
+              <Mic className="h-4 w-4 mr-2" />
+              Voice
             </TabsTrigger>
             <TabsTrigger value="attachments">
               <Paperclip className="h-4 w-4 mr-2" />
@@ -422,6 +427,17 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
                 Share with Supervisor
               </Label>
             </div>
+          </TabsContent>
+
+          <TabsContent value="voice">
+            <VoiceDictation
+              onTranscript={(text) => {
+                setFormData({
+                  ...formData,
+                  description: (formData.description || "") + " " + text,
+                });
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="attachments">

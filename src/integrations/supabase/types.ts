@@ -2594,7 +2594,9 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          phone_number: string | null
           profile_photo_url: string | null
+          sms_notifications_enabled: boolean | null
           updated_at: string | null
           user_id: string | null
         }
@@ -2604,7 +2606,9 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          phone_number?: string | null
           profile_photo_url?: string | null
+          sms_notifications_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2614,7 +2618,9 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          phone_number?: string | null
           profile_photo_url?: string | null
+          sms_notifications_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -3770,6 +3776,56 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_notifications: {
+        Row: {
+          created_at: string
+          entry_id: string | null
+          error_message: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          notification_type: string
+          phone_number: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          phone_number: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          phone_number?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_notifications_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
             referencedColumns: ["id"]
           },
         ]

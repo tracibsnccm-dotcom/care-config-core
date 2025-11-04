@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const resendApiKey = Deno.env.get("RESEND_API_KEY")!
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,11 +81,17 @@ serve(async (req) => {
       // Send reminder if within reminder window
       if (now >= reminderTime && minutesUntilScheduled > 0) {
         try {
-          await resend.emails.send({
-            from: "Lovable Health <notifications@resend.dev>",
-            to: [rnProfile.email],
-            subject: `⏰ Reminder: ${entry.title} in ${minutesUntilScheduled} minutes`,
-            html: `
+          const emailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Lovable Health <notifications@resend.dev>",
+              to: [rnProfile.email],
+              subject: `⏰ Reminder: ${entry.title} in ${minutesUntilScheduled} minutes`,
+              html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">Upcoming Diary Entry</h2>
                 <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -98,8 +103,13 @@ serve(async (req) => {
                 </div>
                 <p>Please prepare for this scheduled entry.</p>
               </div>
-            `,
+            `
+            }),
           });
+
+          if (!emailResponse.ok) {
+            throw new Error(`Resend API error: ${await emailResponse.text()}`);
+          }
 
           // Update metadata to mark reminder as sent
           await supabase
@@ -126,11 +136,17 @@ serve(async (req) => {
 
         // Send overdue notification to RN
         try {
-          await resend.emails.send({
-            from: "Lovable Health <notifications@resend.dev>",
-            to: [rnProfile.email],
-            subject: `⚠️ Overdue: ${entry.title}`,
-            html: `
+          const overdueResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Lovable Health <notifications@resend.dev>",
+              to: [rnProfile.email],
+              subject: `⚠️ Overdue: ${entry.title}`,
+              html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #dc2626;">Overdue Diary Entry</h2>
                 <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
@@ -142,8 +158,13 @@ serve(async (req) => {
                 </div>
                 <p style="color: #dc2626;"><strong>Action required:</strong> Please complete this entry or reschedule it.</p>
               </div>
-            `,
+            `
+            }),
           });
+
+          if (!overdueResponse.ok) {
+            throw new Error(`Resend API error: ${await overdueResponse.text()}`);
+          }
           console.log(`⚠️ Overdue notification sent for entry ${entry.id}`);
         } catch (emailError) {
           console.error(`❌ Failed to send overdue notification for entry ${entry.id}:`, emailError);
@@ -168,11 +189,17 @@ serve(async (req) => {
 
               if (supervisorProfile?.email) {
                 try {
-                  await resend.emails.send({
-                    from: "Lovable Health <notifications@resend.dev>",
-                    to: [supervisorProfile.email],
-                    subject: `🚨 Supervisor Alert: Overdue ${entry.priority} Priority Entry`,
-                    html: `
+                  const escalationResponse = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: {
+                      "Authorization": `Bearer ${resendApiKey}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      from: "Lovable Health <notifications@resend.dev>",
+                      to: [supervisorProfile.email],
+                      subject: `🚨 Supervisor Alert: Overdue ${entry.priority} Priority Entry`,
+                      html: `
                       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <h2 style="color: #dc2626;">Supervisor Escalation</h2>
                         <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
@@ -185,8 +212,13 @@ serve(async (req) => {
                         </div>
                         <p style="color: #dc2626;"><strong>Supervisor action may be required.</strong></p>
                       </div>
-                    `,
+                    `
+                    }),
                   });
+
+                  if (!escalationResponse.ok) {
+                    throw new Error(`Resend API error: ${await escalationResponse.text()}`);
+                  }
                   escalationsSent.push(entry.id);
                   console.log(`🚨 Supervisor escalation sent for entry ${entry.id}`);
                 } catch (emailError) {
