@@ -306,6 +306,30 @@ export default function RNPortalLanding() {
         {/* Main Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link
+            to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
+                {isSupervisor ? <Users className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">
+                  {isSupervisor ? "Team Dashboard" : "Detailed Analytics"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {isSupervisor 
+                    ? "Monitor team performance, manage assignments, and review quality metrics."
+                    : "View comprehensive metrics dashboard with historical trends and analytics."}
+                </p>
+                <Badge className="mt-3" variant="secondary">
+                  {isSupervisor ? "Supervisor View" : "Advanced View"}
+                </Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
             to="/cases"
             className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
           >
