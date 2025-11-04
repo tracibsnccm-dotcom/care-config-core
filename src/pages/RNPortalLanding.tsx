@@ -36,7 +36,6 @@ import { RNQuickActionsBar } from "@/components/RNQuickActionsBar";
 import { RNRecentActivityFeed } from "@/components/RNRecentActivityFeed";
 import { RNUpcomingDeadlines } from "@/components/RNUpcomingDeadlines";
 import { RNCaseHealthOverview } from "@/components/RNCaseHealthOverview";
-import { RNResourceLibrary } from "@/components/RNResourceLibrary";
 import { RNTeamPerformance } from "@/components/RNTeamPerformance";
 import { RNClientSatisfaction } from "@/components/RNClientSatisfaction";
 
@@ -314,11 +313,10 @@ export default function RNPortalLanding() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="diary">My Diary - Upcoming Schedule</TabsTrigger>
                   <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
-                  <TabsTrigger value="resources">Resources</TabsTrigger>
                 </TabsList>
               </CardHeader>
               
@@ -416,11 +414,6 @@ export default function RNPortalLanding() {
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">No alerts at this time</p>
                   )}
-                </TabsContent>
-
-                {/* Resources Tab */}
-                <TabsContent value="resources" className="mt-0">
-                  <RNResourceLibrary />
                 </TabsContent>
               </CardContent>
             </Tabs>
