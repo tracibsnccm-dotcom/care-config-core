@@ -4,9 +4,12 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import RNCM_Compliance_Demo from "./RNCMCompliance";
+import RNQualityDashboard from "./RNQualityDashboard";
 
 export default function RNDashboard() {
   const { role } = useApp();
@@ -139,18 +142,28 @@ export default function RNDashboard() {
             <span className="opacity-70">Individual View</span>
           </div>
           <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-[#0f2a6a]">
-            My RN Dashboard
+            RN Dashboard
           </h1>
           <p className="mt-2 text-[#0f2a6a]/80 max-w-2xl">
-            Track your individual performance, assigned cases, and quality metrics. Maintain 24h/48h note timeliness standards.
+            Track performance, quality metrics, and compliance. Access all oversight tools in one place.
           </p>
           <div className="mt-3 text-sm text-[#0f2a6a]/70">
             Period: <span className="font-semibold">{metrics.period}</span>
           </div>
         </header>
 
-        {/* Alerts Section */}
-        {metrics.alerts.length > 0 && (
+        {/* Tabbed Interface */}
+        <Tabs defaultValue="performance" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="performance">My Performance</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+          </TabsList>
+
+          {/* Performance Tab (Original Dashboard Content) */}
+          <TabsContent value="performance" className="space-y-6">
+            {/* Alerts Section */}
+            {metrics.alerts.length > 0 && (
           <section className="mb-6">
             <h2 className="text-lg font-bold text-[#0f2a6a] mb-3">Active Alerts</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -217,25 +230,20 @@ export default function RNDashboard() {
                 ))}
               </div>
             </CardContent>
-          </Card>
-        </section>
+            </Card>
+          </section>
+          </TabsContent>
 
-        {/* Implementation notes */}
-        <section className="mt-8">
-          <Card className="border-dashed">
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground">
-                <strong className="text-foreground">Implementation To Do:</strong>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li>Replace mock data with Apps Script or API endpoint (see <code className="text-xs bg-muted px-1 py-0.5 rounded">src/lib/rnMetrics.ts</code>)</li>
-                  <li>Add detailed drill-down for supervisor role</li>
-                  <li>Implement case-level navigation from alerts</li>
-                  <li>Never expose PHI in URLs; only aggregate/derived metrics</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+          {/* Compliance Tab */}
+          <TabsContent value="compliance">
+            <RNCM_Compliance_Demo />
+          </TabsContent>
+
+          {/* Quality Tab */}
+          <TabsContent value="quality">
+            <RNQualityDashboard currentRole={role as any} />
+          </TabsContent>
+        </Tabs>
         </div>
       </div>
     </AppLayout>
