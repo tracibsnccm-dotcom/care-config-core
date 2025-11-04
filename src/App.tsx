@@ -24,6 +24,9 @@ import ClientPortal from "./pages/ClientPortal";
 import ProviderPortal from "./pages/ProviderPortal";
 import RNPortal from "./pages/rn/RNPortal";
 import RNPortalLanding from "./pages/RNPortalLanding";
+import RNCaseload from "./pages/rncm/RNCaseload";
+import RNInsuranceAuth from "./pages/rncm/RNInsuranceAuth";
+import RNTimeTracking from "./pages/rncm/RNTimeTracking";
 import ClientJournalDashboard from "./pages/ClientJournalDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Reports from "./pages/Reports";
@@ -187,6 +190,18 @@ const App = () => (
             <Route
               path="/rn-cm/quality"
               element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNQualityDashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/caseload"
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCaseload /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/insurance-auth"
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNInsuranceAuth /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/time-tracking"
+              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
             />
             <Route
               path="/concerns-complaints"

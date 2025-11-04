@@ -38,6 +38,8 @@ import { RNUpcomingDeadlines } from "@/components/RNUpcomingDeadlines";
 import { RNCaseHealthOverview } from "@/components/RNCaseHealthOverview";
 import { RNTeamPerformance } from "@/components/RNTeamPerformance";
 import { RNClientSatisfaction } from "@/components/RNClientSatisfaction";
+import { RNCaseloadAtAGlance } from "@/components/RNCaseloadAtAGlance";
+import { RNCommunicationPriority } from "@/components/RNCommunicationPriority";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -341,16 +343,21 @@ export default function RNPortalLanding() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="diary">My Diary - Upcoming Schedule</TabsTrigger>
                   <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
+                  <TabsTrigger value="documentation">Documentation Queue</TabsTrigger>
                 </TabsList>
               </CardHeader>
               
               <CardContent>
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                    <RNCaseloadAtAGlance />
+                    <RNCommunicationPriority />
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <RNRecentActivityFeed />
                     <RNUpcomingDeadlines />
@@ -416,6 +423,63 @@ export default function RNPortalLanding() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">No alerts at this time</p>
+                  )}
+                </TabsContent>
+
+                {/* Documentation Queue Tab */}
+                <TabsContent value="documentation" className="mt-0">
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold">Care Plan - Sarah M.</h4>
+                          <p className="text-sm text-muted-foreground">RCMS-2024-001</p>
+                        </div>
+                        <Badge className="bg-yellow-500 hover:bg-yellow-600">Unsigned</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Care plan needs final review and signature
+                      </p>
+                      <Button size="sm">Review & Sign</Button>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold">Assessment Notes - John D.</h4>
+                          <p className="text-sm text-muted-foreground">RCMS-2024-002</p>
+                        </div>
+                        <Badge className="bg-orange-500 hover:bg-orange-600">Incomplete</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Missing required fields: Risk assessment, Care coordination notes
+                      </p>
+                      <Button size="sm">Complete Assessment</Button>
+                    </div>
+
+                    <div className="p-4 rounded-lg border">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold">Progress Note - Maria G.</h4>
+                          <p className="text-sm text-muted-foreground">RCMS-2024-003</p>
+                        </div>
+                        <Badge variant="outline">Draft</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Draft saved 2 hours ago, needs final review
+                      </p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">Continue Editing</Button>
+                        <Button size="sm">Finalize</Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {pendingAssessments.length === 0 && (
+                    <div className="text-center py-8">
+                      <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
+                      <p className="text-muted-foreground">All documentation is up to date!</p>
+                    </div>
                   )}
                 </TabsContent>
               </CardContent>

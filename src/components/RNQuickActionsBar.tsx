@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink } from "lucide-react";
+import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Resource {
@@ -15,6 +15,7 @@ interface Resource {
 export function RNQuickActionsBar() {
   const navigate = useNavigate();
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
 
   const resources: Resource[] = [
     {
@@ -65,17 +66,29 @@ export function RNQuickActionsBar() {
     { icon: Users, label: "Team Chat", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: AlertCircle, label: "Report Alert", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: Activity, label: "Log Activity", onClick: () => navigate("/rn-clinical-liaison") },
+    { 
+      icon: isTracking ? Square : Play, 
+      label: isTracking ? "Stop Timer" : "Start Timer", 
+      onClick: () => {
+        if (!isTracking) {
+          setIsTracking(true);
+        } else {
+          navigate("/rn/time-tracking");
+        }
+      },
+      className: isTracking ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" : ""
+    },
     { icon: BookOpen, label: "Resources", onClick: () => setResourceDialogOpen(true) },
   ];
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-8 gap-2">
         {actions.map((action) => (
           <Button
             key={action.label}
             variant="outline"
-            className="flex flex-col items-center gap-2 h-auto py-4"
+            className={`flex flex-col items-center gap-2 h-auto py-4 ${action.className || ""}`}
             onClick={action.onClick}
           >
             <action.icon className="h-5 w-5" />
