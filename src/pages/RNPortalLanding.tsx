@@ -61,8 +61,8 @@ export default function RNPortalLanding() {
             <EmergencyAlertsCard />
           </div>
 
-          {/* Quick Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          {/* Quick Stats Overview - First Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Today's Schedule</CardTitle>
@@ -94,8 +94,11 @@ export default function RNPortalLanding() {
                 <p className="text-xs text-muted-foreground mt-1">To be completed</p>
               </CardContent>
             </Card>
+          </div>
 
-            <Card>
+          {/* Action Cards Section - Second Row (Centered) */}
+          <div className="flex justify-center gap-4 mb-8">
+            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Follow-Ups Required</CardTitle>
               </CardHeader>
@@ -104,12 +107,8 @@ export default function RNPortalLanding() {
                 <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Action Cards Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {/* Incomplete Assessments Card */}
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ClipboardCheck className="w-5 h-5 text-yellow-600" />
