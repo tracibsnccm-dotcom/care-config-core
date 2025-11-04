@@ -3396,6 +3396,9 @@ export type Database = {
         Row: {
           activity_description: string | null
           activity_type: string
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           attorney_id: string | null
           case_id: string
           created_at: string
@@ -3404,13 +3407,19 @@ export type Database = {
           hourly_rate_used: number | null
           id: string
           metadata: Json | null
+          rejection_reason: string | null
           rn_user_id: string
+          submitted_at: string | null
+          submitted_for_approval: boolean | null
           time_spent_minutes: number
           updated_at: string
         }
         Insert: {
           activity_description?: string | null
           activity_type: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           attorney_id?: string | null
           case_id: string
           created_at?: string
@@ -3419,13 +3428,19 @@ export type Database = {
           hourly_rate_used?: number | null
           id?: string
           metadata?: Json | null
+          rejection_reason?: string | null
           rn_user_id: string
+          submitted_at?: string | null
+          submitted_for_approval?: boolean | null
           time_spent_minutes: number
           updated_at?: string
         }
         Update: {
           activity_description?: string | null
           activity_type?: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           attorney_id?: string | null
           case_id?: string
           created_at?: string
@@ -3434,7 +3449,10 @@ export type Database = {
           hourly_rate_used?: number | null
           id?: string
           metadata?: Json | null
+          rejection_reason?: string | null
           rn_user_id?: string
+          submitted_at?: string | null
+          submitted_for_approval?: boolean | null
           time_spent_minutes?: number
           updated_at?: string
         }
@@ -3444,6 +3462,53 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_time_entry_audit: {
+        Row: {
+          action: string
+          change_reason: string | null
+          changed_at: string
+          changed_by: string
+          created_at: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          time_entry_id: string
+        }
+        Insert: {
+          action: string
+          change_reason?: string | null
+          changed_at?: string
+          changed_by: string
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          time_entry_id: string
+        }
+        Update: {
+          action?: string
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          time_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_time_entry_audit_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_time_entries"
             referencedColumns: ["id"]
           },
         ]
