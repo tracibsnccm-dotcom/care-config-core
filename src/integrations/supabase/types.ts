@@ -3084,6 +3084,7 @@ export type Database = {
       }
       rn_diary_entries: {
         Row: {
+          actual_duration_minutes: number | null
           approval_notes: string | null
           approval_status: string | null
           approved_at: string | null
@@ -3102,6 +3103,7 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           entry_type: string
+          estimated_duration_minutes: number | null
           id: string
           is_recurring: boolean | null
           label: string | null
@@ -3111,6 +3113,7 @@ export type Database = {
           metadata: Json | null
           outcome_notes: string | null
           parent_entry_id: string | null
+          parent_recurring_id: string | null
           priority: string | null
           recurrence_end_date: string | null
           recurrence_pattern: string | null
@@ -3124,10 +3127,13 @@ export type Database = {
           shared_with_supervisor: boolean | null
           status: string
           template_name: string | null
+          time_tracking_completed_at: string | null
+          time_tracking_started_at: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          actual_duration_minutes?: number | null
           approval_notes?: string | null
           approval_status?: string | null
           approved_at?: string | null
@@ -3146,6 +3152,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           entry_type: string
+          estimated_duration_minutes?: number | null
           id?: string
           is_recurring?: boolean | null
           label?: string | null
@@ -3155,6 +3162,7 @@ export type Database = {
           metadata?: Json | null
           outcome_notes?: string | null
           parent_entry_id?: string | null
+          parent_recurring_id?: string | null
           priority?: string | null
           recurrence_end_date?: string | null
           recurrence_pattern?: string | null
@@ -3168,10 +3176,13 @@ export type Database = {
           shared_with_supervisor?: boolean | null
           status?: string
           template_name?: string | null
+          time_tracking_completed_at?: string | null
+          time_tracking_started_at?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          actual_duration_minutes?: number | null
           approval_notes?: string | null
           approval_status?: string | null
           approved_at?: string | null
@@ -3190,6 +3201,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           entry_type?: string
+          estimated_duration_minutes?: number | null
           id?: string
           is_recurring?: boolean | null
           label?: string | null
@@ -3199,6 +3211,7 @@ export type Database = {
           metadata?: Json | null
           outcome_notes?: string | null
           parent_entry_id?: string | null
+          parent_recurring_id?: string | null
           priority?: string | null
           recurrence_end_date?: string | null
           recurrence_pattern?: string | null
@@ -3212,6 +3225,8 @@ export type Database = {
           shared_with_supervisor?: boolean | null
           status?: string
           template_name?: string | null
+          time_tracking_completed_at?: string | null
+          time_tracking_started_at?: string | null
           title?: string
           updated_at?: string
         }
@@ -3228,6 +3243,13 @@ export type Database = {
             columns: ["parent_entry_id"]
             isOneToOne: false
             referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_diary_entries_parent_recurring_id_fkey"
+            columns: ["parent_recurring_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_recurring"
             referencedColumns: ["id"]
           },
         ]
@@ -3346,6 +3368,115 @@ export type Database = {
             columns: ["entry_id"]
             isOneToOne: false
             referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_recurring: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          priority: string | null
+          recurrence_days: number[] | null
+          recurrence_pattern: string
+          rn_id: string
+          scheduled_time: string | null
+          start_date: string
+          template_id: string | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string | null
+          recurrence_days?: number[] | null
+          recurrence_pattern: string
+          rn_id: string
+          scheduled_time?: string | null
+          start_date: string
+          template_id?: string | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string | null
+          recurrence_days?: number[] | null
+          recurrence_pattern?: string
+          rn_id?: string
+          scheduled_time?: string | null
+          start_date?: string
+          template_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_recurring_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_diary_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description_template: string | null
+          estimated_duration_minutes: number | null
+          id: string
+          is_shared: boolean | null
+          priority: string | null
+          team_id: string | null
+          template_name: string
+          title_template: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description_template?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_shared?: boolean | null
+          priority?: string | null
+          team_id?: string | null
+          template_name: string
+          title_template: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description_template?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_shared?: boolean | null
+          priority?: string | null
+          team_id?: string | null
+          template_name?: string
+          title_template?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_diary_templates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "rn_teams"
             referencedColumns: ["id"]
           },
         ]
@@ -3595,6 +3726,7 @@ export type Database = {
           added_by: string | null
           id: string
           rn_user_id: string
+          role: string
           team_id: string
         }
         Insert: {
@@ -3602,6 +3734,7 @@ export type Database = {
           added_by?: string | null
           id?: string
           rn_user_id: string
+          role?: string
           team_id: string
         }
         Update: {
@@ -3609,6 +3742,7 @@ export type Database = {
           added_by?: string | null
           id?: string
           rn_user_id?: string
+          role?: string
           team_id?: string
         }
         Relationships: [
@@ -3624,6 +3758,8 @@ export type Database = {
       rn_teams: {
         Row: {
           created_at: string
+          created_by: string | null
+          description: string | null
           id: string
           supervisor_id: string
           team_name: string
@@ -3631,6 +3767,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: string
           supervisor_id: string
           team_name: string
@@ -3638,6 +3776,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: string
           supervisor_id?: string
           team_name?: string
@@ -4105,10 +4245,12 @@ export type Database = {
         Args: { p_attorney_code: string; p_client_type: string }
         Returns: string
       }
-      generate_recurring_diary_entries: {
-        Args: { p_parent_entry_id: string; p_weeks_ahead?: number }
-        Returns: number
-      }
+      generate_recurring_diary_entries:
+        | {
+            Args: { p_parent_entry_id: string; p_weeks_ahead?: number }
+            Returns: number
+          }
+        | { Args: never; Returns: undefined }
       get_checkin_trends: {
         Args: {
           p_case_id: string

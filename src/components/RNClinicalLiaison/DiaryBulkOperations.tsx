@@ -24,7 +24,7 @@ export function DiaryTeamCalendar() {
       const { data, error } = await supabase
         .from("rn_team_members")
         .select("team_id, rn_teams(id, team_name)")
-        .eq("user_id", user.id);
+        .eq("rn_user_id", user.id);
       if (error) throw error;
       return data.map(t => t.rn_teams);
     },
@@ -37,7 +37,7 @@ export function DiaryTeamCalendar() {
       if (!selectedTeamId) return [];
       const { data, error } = await supabase
         .from("rn_team_members")
-        .select("user_id, profiles:user_id(display_name, email)")
+        .select("rn_user_id, profiles:rn_user_id(display_name, email)")
         .eq("team_id", selectedTeamId);
       if (error) throw error;
       return data;
@@ -49,7 +49,7 @@ export function DiaryTeamCalendar() {
     queryKey: ["team-diary-entries", selectedTeamId, selectedDate],
     queryFn: async () => {
       if (!selectedTeamId || !teamMembers) return [];
-      const memberIds = teamMembers.map(m => m.user_id);
+      const memberIds = teamMembers.map((m: any) => m.rn_user_id);
       
       const { data, error } = await supabase
         .from("rn_diary_entries")
@@ -111,7 +111,7 @@ export function DiaryTeamCalendar() {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {teamMembers?.map((member: any) => (
-                  <div key={member.user_id} className="bg-secondary px-3 py-1 rounded-full text-sm">
+                  <div key={member.rn_user_id} className="bg-secondary px-3 py-1 rounded-full text-sm">
                     {member.profiles?.display_name}
                   </div>
                 ))}

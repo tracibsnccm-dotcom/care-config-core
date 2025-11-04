@@ -27,15 +27,15 @@ export function DiaryTeamManagement() {
   const { data: teams, isLoading } = useQuery({
     queryKey: ["rn-teams"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from("rn_teams")
         .select(`
           *,
           rn_team_members(
             id,
-            user_id,
+            rn_user_id,
             role,
-            profiles:user_id(display_name, email)
+            profiles:rn_user_id(display_name, email)
           )
         `)
         .order("created_at", { ascending: false });
@@ -65,6 +65,7 @@ export function DiaryTeamManagement() {
         .insert({
           team_name: teamName,
           description,
+          supervisor_id: user.id,
           created_by: user.id,
         })
         .select()
@@ -77,7 +78,7 @@ export function DiaryTeamManagement() {
         .from("rn_team_members")
         .insert({
           team_id: team.id,
-          user_id: user.id,
+          rn_user_id: user.id,
           role: "owner",
         });
 
@@ -103,7 +104,7 @@ export function DiaryTeamManagement() {
         .from("rn_team_members")
         .insert({
           team_id: teamId,
-          user_id: userId,
+          rn_user_id: userId,
           role,
         });
       if (error) throw error;
@@ -202,7 +203,7 @@ export function DiaryTeamManagement() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs bg-secondary px-2 py-1 rounded">{member.role}</span>
-                          {member.user_id !== user?.id && (
+                          {member.rn_user_id !== user?.id && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -220,7 +221,7 @@ export function DiaryTeamManagement() {
                 <AddTeamMemberDialog
                   teamId={team.id}
                   availableUsers={availableUsers || []}
-                  existingMembers={team.rn_team_members?.map((m: any) => m.user_id) || []}
+                  existingMembers={team.rn_team_members?.map((m: any) => m.rn_user_id) || []}
                   onAddMember={(userId, role) => addMemberMutation.mutate({ teamId: team.id, userId, role })}
                 />
               </div>
