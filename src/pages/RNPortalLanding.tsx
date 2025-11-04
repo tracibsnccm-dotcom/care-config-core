@@ -100,39 +100,36 @@ export default function RNPortalLanding() {
           <div className="flex justify-center gap-4 mb-8">
             <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Follow-Ups Required</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{requireFollowup.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
-              </CardContent>
-            </Card>
-
-            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <ClipboardCheck className="w-5 h-5 text-yellow-600" />
-                  Incomplete Assessments
-                </CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Incomplete Assessments</CardTitle>
               </CardHeader>
               <CardContent>
                 {pendingAssessments.length === 0 ? (
                   <p className="text-sm text-muted-foreground">All assessments completed</p>
                 ) : (
                   <div className="space-y-2">
-                    {pendingAssessments.slice(0, 3).map((assessment) => (
+                    {pendingAssessments.slice(0, 2).map((assessment) => (
                       <div key={assessment.id} className="p-2 rounded bg-yellow-50 dark:bg-yellow-900/20 text-sm">
-                        <div className="font-medium">{assessment.assessment_type}</div>
+                        <div className="font-medium text-sm">{assessment.assessment_type}</div>
                         <div className="text-xs text-muted-foreground">
                           {assessment.due_date ? `Due: ${format(new Date(assessment.due_date), "MMM d")}` : "No due date"}
                         </div>
                       </div>
                     ))}
-                    {pendingAssessments.length > 3 && (
-                      <p className="text-xs text-yellow-600 mt-2">+{pendingAssessments.length - 3} more pending</p>
+                    {pendingAssessments.length > 2 && (
+                      <p className="text-xs text-yellow-600 mt-2">+{pendingAssessments.length - 2} more pending</p>
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="w-full md:w-[calc(33.333%-0.5rem)] hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Follow-Ups Required</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{requireFollowup.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
               </CardContent>
             </Card>
           </div>
