@@ -44,6 +44,7 @@ import { RNComplianceAlerts } from "@/components/RNComplianceAlerts";
 import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
 import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
+import { RNNavigationGuard } from "@/components/RNNavigationGuard";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -347,12 +348,39 @@ export default function RNPortalLanding() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="diary">My Diary - Upcoming Schedule</TabsTrigger>
-                  <TabsTrigger value="alerts">Alerts & Tasks</TabsTrigger>
-                  <TabsTrigger value="documentation">Documentation Queue</TabsTrigger>
-                </TabsList>
+                <RNNavigationGuard>
+                  {({ handleNavigation, hasIncompleteAlerts }) => (
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger 
+                        value="overview"
+                        onClick={(e) => handleNavigation(e)}
+                      >
+                        Overview
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="diary"
+                        onClick={(e) => handleNavigation(e)}
+                      >
+                        My Diary - Upcoming Schedule
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="alerts"
+                        onClick={(e) => handleNavigation(e)}
+                      >
+                        Alerts & Tasks
+                        {hasIncompleteAlerts && (
+                          <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="documentation"
+                        onClick={(e) => handleNavigation(e)}
+                      >
+                        Documentation Queue
+                      </TabsTrigger>
+                    </TabsList>
+                  )}
+                </RNNavigationGuard>
               </CardHeader>
               
               <CardContent>
