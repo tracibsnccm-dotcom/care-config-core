@@ -19,6 +19,7 @@ import { DiaryLabelManager } from "./DiaryLabelManager";
 import { DiaryEntryDependencies } from "./DiaryEntryDependencies";
 import { DiaryCustomFields } from "./DiaryCustomFields";
 import { DiarySupervisorApproval } from "./DiarySupervisorApproval";
+import { DiaryCaseTimelineSync } from "./DiaryCaseTimelineSync";
 import { useDiaryConflicts } from "@/hooks/useDiaryConflicts";
 import { useAuth } from "@/auth/supabaseAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -462,6 +463,15 @@ export function DiaryEntryForm({ open, onOpenChange, onSuccess, entry, caseId, p
                 approvedBy={entry.approved_by}
                 approvedAt={entry.approved_at}
                 approvalNotes={entry.approval_notes}
+              />
+            )}
+
+            {/* Case Timeline Sync */}
+            {entry && caseId && (
+              <DiaryCaseTimelineSync
+                entryId={entry.id}
+                caseId={caseId}
+                autoSync={true}
               />
             )}
 

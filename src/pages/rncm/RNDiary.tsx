@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, User, Plus, BarChart3, Users, X } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Plus, BarChart3, Users, X, Sparkles } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/auth/supabaseAuth";
 import { ROLES } from "@/config/rcms";
@@ -22,6 +22,10 @@ import { DiarySearchFilter, DiaryFilters } from "@/components/RNClinicalLiaison/
 import { DiaryPDFExport } from "@/components/RNClinicalLiaison/DiaryPDFExport";
 import { DiaryQuickStats } from "@/components/RNClinicalLiaison/DiaryQuickStats";
 import { DiaryKeyboardShortcuts, useKeyboardShortcuts } from "@/components/RNClinicalLiaison/DiaryKeyboardShortcuts";
+import { DiaryAIAssistant } from "@/components/RNClinicalLiaison/DiaryAIAssistant";
+import { DiaryNaturalLanguageSearch } from "@/components/RNClinicalLiaison/DiaryNaturalLanguageSearch";
+import { DiaryWorkloadHeatmap } from "@/components/RNClinicalLiaison/DiaryWorkloadHeatmap";
+import { DiaryProductivityInsights } from "@/components/RNClinicalLiaison/DiaryProductivityInsights";
 import { useDiaryNotifications } from "@/hooks/useDiaryNotifications";
 import { toast } from "sonner";
 
@@ -226,6 +230,10 @@ export default function RNDiary() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analytics
                 </TabsTrigger>
+                <TabsTrigger value="ai-assistant">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Assistant
+                </TabsTrigger>
                 {isSupervisor && (
                   <TabsTrigger value="team">
                     <Users className="h-4 w-4 mr-2" />
@@ -242,13 +250,29 @@ export default function RNDiary() {
             </div>
 
             {/* Search & Filter */}
-            <DiarySearchFilter 
-              onFilterChange={setFilters}
-              showRNFilter={isSupervisor}
-            />
+            <div className="space-y-4">
+              <DiaryNaturalLanguageSearch
+                onFiltersApply={(nlFilters) => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    ...nlFilters,
+                    searchTerm: nlFilters.keywords?.join(" ") || prev.searchTerm
+                  }));
+                }}
+              />
+              <DiarySearchFilter 
+                onFilterChange={setFilters}
+                showRNFilter={isSupervisor}
+              />
+            </div>
 
             {/* Calendar View */}
             <TabsContent value="calendar" className="space-y-6">
+              <DiaryWorkloadHeatmap
+                entries={filteredEntries as any}
+                startDate={new Date()}
+              />
+              
               <DiaryBulkActions
                 selectedEntries={selectedEntries}
                 onActionComplete={handleSuccess}
@@ -362,8 +386,43 @@ export default function RNDiary() {
             </TabsContent>
 
             {/* Analytics View */}
-            <TabsContent value="analytics">
+            <TabsContent value="analytics" className="space-y-6">
+              <DiaryProductivityInsights
+                entries={filteredEntries as any}
+                rnId={!isSupervisor ? session?.user?.id : undefined}
+              />
               <DiaryAnalytics entries={filteredEntries as any} />
+            </TabsContent>
+
+            {/* AI Assistant View */}
+            <TabsContent value="ai-assistant" className="space-y-6">
+              <DiaryAIAssistant
+                entries={filteredEntries as any}
+                currentEntry={selectedEntry}
+                onSuggestionApply={(suggestion) => {
+                  if (suggestion.title) {
+                    // Create new entry from AI suggestion
+                    setPrefillData({
+                      title: suggestion.title,
+                      priority: suggestion.suggested_priority || suggestion.priority,
+                      entry_type: suggestion.entry_type || "follow_up",
+                      scheduled_date: suggestion.suggested_date || format(new Date(), "yyyy-MM-dd"),
+                      label: suggestion.suggested_label,
+                    });
+                    setFormOpen(true);
+                  } else if (suggestion.suggested_label) {
+                    // Apply AI categorization
+                    setSelectedEntry((prev: any) => ({
+                      ...prev,
+                      label: suggestion.suggested_label,
+                      priority: suggestion.suggested_priority,
+                      label_color: suggestion.suggested_label === "urgent" ? "red" : 
+                                   suggestion.suggested_label === "routine" ? "blue" : "gray"
+                    }));
+                    toast.success("AI suggestions applied!");
+                  }
+                }}
+              />
             </TabsContent>
 
             {/* Team Management (Supervisor Only) */}
