@@ -20,7 +20,7 @@ export function DiaryTimeTracker({ entryId, onTimeRecorded }: DiaryTimeTrackerPr
 
     const fetchTotalTime = async () => {
       const { data, error } = await supabase
-        .from("rn_entry_time_tracking")
+        .from("rn_entry_time_tracking" as any)
         .select("time_spent_minutes")
         .eq("entry_id", entryId);
 
@@ -29,7 +29,7 @@ export function DiaryTimeTracker({ entryId, onTimeRecorded }: DiaryTimeTrackerPr
         return;
       }
 
-      const total = data.reduce((sum, record) => sum + record.time_spent_minutes, 0);
+      const total = (data as any[]).reduce((sum: number, record: any) => sum + record.time_spent_minutes, 0);
       setTotalTime(total);
     };
 
@@ -44,7 +44,7 @@ export function DiaryTimeTracker({ entryId, onTimeRecorded }: DiaryTimeTrackerPr
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { error } = await supabase.from("rn_entry_time_tracking").insert({
+        const { error } = await supabase.from("rn_entry_time_tracking" as any).insert({
           entry_id: entryId,
           rn_id: user.id,
           time_spent_minutes: recordedMinutes,

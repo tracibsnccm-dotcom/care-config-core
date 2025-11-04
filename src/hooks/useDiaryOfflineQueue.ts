@@ -24,13 +24,13 @@ export function useDiaryOfflineQueue() {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from("rn_offline_queue")
+          .from("rn_offline_queue" as any)
           .select("*")
           .eq("rn_id", user.id)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
-        setQueueItems(data || []);
+        setQueueItems((data || []) as OfflineQueueItem[]);
       } catch (error) {
         console.error("Error fetching offline queue:", error);
       } finally {
@@ -75,7 +75,7 @@ export function useDiaryOfflineQueue() {
       }
 
       // Remove from queue on success
-      await supabase.from("rn_offline_queue").delete().eq("id", itemId);
+      await supabase.from("rn_offline_queue" as any).delete().eq("id", itemId);
       
       toast.success("Sync completed successfully");
     } catch (error) {
@@ -83,9 +83,9 @@ export function useDiaryOfflineQueue() {
       
       // Update retry count and error
       await supabase
-        .from("rn_offline_queue")
+        .from("rn_offline_queue" as any)
         .update({
-          retry_count: supabase.rpc("increment", { x: 1 }),
+          retry_count: queueItems.find(i => i.id === itemId)!.retry_count + 1,
           last_error: error instanceof Error ? error.message : "Unknown error",
         })
         .eq("id", itemId);
@@ -100,7 +100,7 @@ export function useDiaryOfflineQueue() {
       if (!user) return;
 
       const { error } = await supabase
-        .from("rn_offline_queue")
+        .from("rn_offline_queue" as any)
         .delete()
         .eq("rn_id", user.id);
 

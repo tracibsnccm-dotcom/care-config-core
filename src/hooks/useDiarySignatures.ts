@@ -22,7 +22,7 @@ export function useDiarySignatures(entryId: string | undefined) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_entry_signatures")
+          .from("rn_entry_signatures" as any)
           .select("*")
           .eq("entry_id", entryId)
           .order("signed_at", { ascending: false });
@@ -47,7 +47,7 @@ export function useDiarySignatures(entryId: string | undefined) {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("rn_entry_signatures")
+        .from("rn_entry_signatures" as any)
         .insert({
           entry_id: entryId,
           signature_data: signatureData,

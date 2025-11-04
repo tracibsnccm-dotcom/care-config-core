@@ -31,14 +31,14 @@ export function useDiaryCustomFields() {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from("rn_custom_fields")
+          .from("rn_custom_fields" as any)
           .select("*")
           .eq("created_by", user.id)
           .eq("is_active", true)
           .order("display_order", { ascending: true });
 
         if (error) throw error;
-        setFields(data || []);
+        setFields((data || []) as CustomField[]);
       } catch (error) {
         console.error("Error fetching custom fields:", error);
       } finally {
@@ -55,7 +55,7 @@ export function useDiaryCustomFields() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("rn_custom_fields")
+        .from("rn_custom_fields" as any)
         .insert({ ...field, created_by: user.id })
         .select()
         .single();
@@ -75,7 +75,7 @@ export function useDiaryCustomFields() {
   const deleteField = async (fieldId: string) => {
     try {
       const { error } = await supabase
-        .from("rn_custom_fields")
+        .from("rn_custom_fields" as any)
         .update({ is_active: false })
         .eq("id", fieldId);
 
@@ -103,12 +103,12 @@ export function useDiaryCustomFieldValues(entryId: string | undefined) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_entry_custom_fields")
+          .from("rn_entry_custom_fields" as any)
           .select("*")
           .eq("entry_id", entryId);
 
         if (error) throw error;
-        setValues(data || []);
+        setValues((data || []) as CustomFieldValue[]);
       } catch (error) {
         console.error("Error fetching custom field values:", error);
       } finally {
@@ -124,7 +124,7 @@ export function useDiaryCustomFieldValues(entryId: string | undefined) {
 
     try {
       const { error } = await supabase
-        .from("rn_entry_custom_fields")
+        .from("rn_entry_custom_fields" as any)
         .upsert({
           entry_id: entryId,
           custom_field_id: customFieldId,

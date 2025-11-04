@@ -21,7 +21,7 @@ export function useDiaryPredictivePhrases(contextCategory?: string) {
         if (!user) return;
 
         let query = supabase
-          .from("rn_predictive_phrases")
+          .from("rn_predictive_phrases" as any)
           .select("*")
           .eq("rn_id", user.id)
           .order("usage_count", { ascending: false })

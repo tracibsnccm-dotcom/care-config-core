@@ -25,13 +25,13 @@ export function useDiaryAttachments(entryId: string | undefined) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_entry_attachments")
+          .from("rn_entry_attachments" as any)
           .select("*")
           .eq("entry_id", entryId)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setAttachments(data || []);
+        setAttachments((data || []) as Attachment[]);
       } catch (error) {
         console.error("Error fetching attachments:", error);
         toast.error("Failed to load attachments");
@@ -81,7 +81,7 @@ export function useDiaryAttachments(entryId: string | undefined) {
       if (uploadError) throw uploadError;
 
       const { data, error } = await supabase
-        .from("rn_entry_attachments")
+        .from("rn_entry_attachments" as any)
         .insert({
           entry_id: entryId,
           file_name: file.name,
@@ -133,7 +133,7 @@ export function useDiaryAttachments(entryId: string | undefined) {
       await supabase.storage.from("diary-attachments").remove([filePath]);
 
       const { error } = await supabase
-        .from("rn_entry_attachments")
+        .from("rn_entry_attachments" as any)
         .delete()
         .eq("id", attachmentId);
 

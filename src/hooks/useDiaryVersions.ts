@@ -22,7 +22,7 @@ export function useDiaryVersions(entryId: string | undefined) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_entry_versions")
+          .from("rn_entry_versions" as any)
           .select("*")
           .eq("entry_id", entryId)
           .order("version_number", { ascending: false });

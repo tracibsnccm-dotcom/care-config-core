@@ -27,13 +27,13 @@ export function useDiaryGoals(rnId: string | undefined) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_goals")
+          .from("rn_goals" as any)
           .select("*")
           .eq("rn_id", rnId)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setGoals(data || []);
+        setGoals((data || []) as Goal[]);
       } catch (error) {
         console.error("Error fetching goals:", error);
         toast.error("Failed to load goals");
@@ -68,7 +68,7 @@ export function useDiaryGoals(rnId: string | undefined) {
   const createGoal = async (goal: Partial<Goal>) => {
     try {
       const { data, error } = await supabase
-        .from("rn_goals")
+        .from("rn_goals" as any)
         .insert({ ...goal, rn_id: rnId })
         .select()
         .single();
@@ -87,7 +87,7 @@ export function useDiaryGoals(rnId: string | undefined) {
   const updateGoal = async (goalId: string, updates: Partial<Goal>) => {
     try {
       const { error } = await supabase
-        .from("rn_goals")
+        .from("rn_goals" as any)
         .update(updates)
         .eq("id", goalId);
 
@@ -103,7 +103,7 @@ export function useDiaryGoals(rnId: string | undefined) {
   const deleteGoal = async (goalId: string) => {
     try {
       const { error } = await supabase
-        .from("rn_goals")
+        .from("rn_goals" as any)
         .delete()
         .eq("id", goalId);
 

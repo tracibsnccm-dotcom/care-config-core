@@ -24,12 +24,12 @@ export function useDiaryLearningResources() {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("rn_learning_resources")
+          .from("rn_learning_resources" as any)
           .select("*")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setResources(data || []);
+        setResources((data || []) as LearningResource[]);
       } catch (error) {
         console.error("Error fetching learning resources:", error);
         toast.error("Failed to load learning resources");
@@ -66,7 +66,7 @@ export function useDiaryLearningResources() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("rn_learning_resources")
+        .from("rn_learning_resources" as any)
         .insert({ ...resource, created_by: user.id })
         .select()
         .single();
@@ -85,7 +85,7 @@ export function useDiaryLearningResources() {
   const toggleFavorite = async (resourceId: string, isFavorite: boolean) => {
     try {
       const { error } = await supabase
-        .from("rn_learning_resources")
+        .from("rn_learning_resources" as any)
         .update({ is_favorite: !isFavorite })
         .eq("id", resourceId);
 
@@ -99,7 +99,7 @@ export function useDiaryLearningResources() {
   const deleteResource = async (resourceId: string) => {
     try {
       const { error } = await supabase
-        .from("rn_learning_resources")
+        .from("rn_learning_resources" as any)
         .delete()
         .eq("id", resourceId);
 

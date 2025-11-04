@@ -23,15 +23,15 @@ export function useDiaryDrafts() {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from("rn_entry_drafts")
+          .from("rn_entry_drafts" as any)
           .select("*")
           .eq("rn_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== "PGRST116") throw error;
-        setDraft(data);
+        if (error) throw error;
+        setDraft(data as DiaryDraft | null);
       } catch (error) {
         console.error("Error fetching draft:", error);
       } finally {
@@ -49,7 +49,7 @@ export function useDiaryDrafts() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("rn_entry_drafts")
+        .from("rn_entry_drafts" as any)
         .upsert({
           rn_id: user.id,
           draft_data: draftData,
@@ -72,7 +72,7 @@ export function useDiaryDrafts() {
       if (!user) return;
 
       const { error } = await supabase
-        .from("rn_entry_drafts")
+        .from("rn_entry_drafts" as any)
         .delete()
         .eq("rn_id", user.id);
 
