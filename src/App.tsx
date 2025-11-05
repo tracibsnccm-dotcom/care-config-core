@@ -26,6 +26,7 @@ import ProviderProfileSetup from "./pages/provider/ProviderProfileSetup";
 import ProviderDetail from "./pages/ProviderDetail";
 import RNPortal from "./pages/rn/RNPortal";
 import RNPortalLanding from "./pages/RNPortalLanding";
+import RNWorkQueue from "./pages/RNWorkQueue";
 import RNCaseload from "./pages/rncm/RNCaseload";
 import RNInsuranceAuth from "./pages/rncm/RNInsuranceAuth";
 import RNTimeTracking from "./pages/rncm/RNTimeTracking";
@@ -182,6 +183,10 @@ const App = () => (
             <Route
               path="/rn-portal-landing"
               element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortalLanding /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn-work-queue"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNWorkQueue /></ProtectedRoute>}
             />
             <Route
               path="/rn-supervisor-dashboard"

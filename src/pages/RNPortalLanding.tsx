@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   FileText, 
   CheckCircle, 
@@ -51,9 +51,9 @@ import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
 import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNNavigationGuard } from "@/components/RNNavigationGuard";
-import { RNWorkQueue } from "@/components/RNClinicalLiaison/RNWorkQueue";
 
 export default function RNPortalLanding() {
+  const navigate = useNavigate();
   const { role } = useApp();
   const isSupervisor = role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
   const { assignments } = useRNAssignments();
@@ -351,19 +351,24 @@ export default function RNPortalLanding() {
             </div>
           </section>
 
+          {/* My Work Queue Navigation Button */}
+          <div className="mb-6">
+            <Button 
+              onClick={() => navigate("/rn-work-queue")}
+              size="lg"
+              className="w-full text-lg font-semibold"
+            >
+              My Work Queue
+            </Button>
+          </div>
+
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
-            <Tabs defaultValue="work-queue" className="w-full">
+            <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
                 <RNNavigationGuard>
                   {({ handleNavigation, hasIncompleteAlerts }) => (
-                    <TabsList className="grid w-full grid-cols-5">
-                      <TabsTrigger 
-                        value="work-queue"
-                        onClick={(e) => handleNavigation(e)}
-                      >
-                        My Work Queue
-                      </TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger 
                         value="overview"
                         onClick={(e) => handleNavigation(e)}
@@ -397,10 +402,6 @@ export default function RNPortalLanding() {
               </CardHeader>
               
               <CardContent>
-                {/* My Work Queue Tab */}
-                <TabsContent value="work-queue" className="mt-0">
-                  <RNWorkQueue />
-                </TabsContent>
 
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
