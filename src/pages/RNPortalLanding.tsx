@@ -364,7 +364,7 @@ export default function RNPortalLanding() {
                           e.preventDefault();
                           navigate("/rn-work-queue");
                         }}
-                        className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600 hover:from-yellow-600 hover:to-amber-600 font-semibold"
+                        className="bg-[#D4AF37] text-white data-[state=active]:bg-[#C5A028] hover:bg-[#C5A028] font-semibold border-none"
                       >
                         My Work Queue
                       </TabsTrigger>
