@@ -12,6 +12,7 @@ export const ROLES = {
   RN_CM_DIRECTOR: "RN_CM_DIRECTOR",      // RN Clinical Directors
   COMPLIANCE: "COMPLIANCE",              // Compliance staff
   STAFF: "STAFF",                        // firm staff (external)
+  PROVIDER: "PROVIDER",                  // External providers (upload docs, messages only)
   RCMS_STAFF: "RCMS_STAFF",              // RCMS internal ops (administrative)
   SUPER_USER: "SUPER_USER",
   SUPER_ADMIN: "SUPER_ADMIN",
@@ -24,6 +25,7 @@ export const FEATURE = {
   VIEW_CLINICAL_NOTES: "VIEW_CLINICAL_NOTES", // RN clinical notes
   VIEW_ATTORNEY_NOTES: "VIEW_ATTORNEY_NOTES", // Attorney case notes
   UPLOAD_DOCUMENTS: "UPLOAD_DOCUMENTS",     // Can upload files to cases
+  SEND_MESSAGES: "SEND_MESSAGES",           // Can send messages about cases
   EXPORT: "EXPORT",
   ROUTE_PROVIDER: "ROUTE_PROVIDER",
 } as const;
@@ -86,6 +88,9 @@ export function sameFirm(user: User | undefined, theCase: RcmsCase | undefined):
  * - STAFF: Firm staff - can see address/phone/DOB, upload docs, NO clinical/attorney notes
  * - RCMS_STAFF: RCMS operations - can see address/phone/DOB, upload docs, NO clinical/attorney notes
  * 
+ * PROVIDER ACCESS (No PHI, documents and messages only):
+ * - PROVIDER: External providers - can ONLY upload documents and send messages, NO access to any client info/PHI
+ * 
  * SUPER ADMIN: Full oversight access (audited)
  */
 export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?: User): boolean {
@@ -142,6 +147,18 @@ export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?
       return false;
     }
     
+    return false;
+  }
+
+  // PROVIDER - Minimal access (upload documents and send messages ONLY)
+  if (role === ROLES.PROVIDER) {
+    if (!signed) return false;
+    
+    // Can ONLY upload documents and send messages
+    if (feature === FEATURE.UPLOAD_DOCUMENTS) return true;
+    if (feature === FEATURE.SEND_MESSAGES) return true;
+    
+    // NO access to any other features (no PHI, no contact info, no clinical data)
     return false;
   }
 
