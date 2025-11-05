@@ -351,24 +351,23 @@ export default function RNPortalLanding() {
             </div>
           </section>
 
-          {/* My Work Queue Navigation Button */}
-          <div className="mb-6">
-            <Button 
-              onClick={() => navigate("/rn-work-queue")}
-              size="lg"
-              className="w-full text-lg font-semibold"
-            >
-              My Work Queue
-            </Button>
-          </div>
-
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
                 <RNNavigationGuard>
                   {({ handleNavigation, hasIncompleteAlerts }) => (
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
+                      <TabsTrigger 
+                        value="work-queue"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate("/rn-work-queue");
+                        }}
+                        className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600 hover:from-yellow-600 hover:to-amber-600 font-semibold"
+                      >
+                        My Work Queue
+                      </TabsTrigger>
                       <TabsTrigger 
                         value="overview"
                         onClick={(e) => handleNavigation(e)}
