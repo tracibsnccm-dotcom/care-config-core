@@ -3,7 +3,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "CLIENT" | "ATTORNEY" | "STAFF" | "RN_CCM" | "PROVIDER" | "SUPER_USER" | "SUPER_ADMIN";
+type AppRole = "CLIENT" | "ATTORNEY" | "STAFF" | "RN_CM" | "CLINICAL_STAFF_EXTERNAL" | "RCMS_CLINICAL_MGMT" | "RCMS_STAFF" | "PROVIDER" | "SUPER_USER" | "SUPER_ADMIN";
 
 /**
  * Assign a role to a user (Admin only)

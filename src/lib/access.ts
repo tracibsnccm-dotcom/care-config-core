@@ -6,9 +6,11 @@
 export const ROLES = {
   CLIENT: "CLIENT",
   ATTORNEY: "ATTORNEY",
-  RN_CCM: "RN_CCM",          // firm RN-CCM (external)
-  STAFF: "STAFF",            // firm staff (external)
-  RCMS_STAFF: "RCMS_STAFF",  // RCMS internal ops (no backdoor to firm cases)
+  RN_CM: "RN_CM",                        // RCMS Internal Nurses (more clinical/care management capabilities)
+  CLINICAL_STAFF_EXTERNAL: "CLINICAL_STAFF_EXTERNAL",  // External clinical staff (restricted access)
+  RCMS_CLINICAL_MGMT: "RCMS_CLINICAL_MGMT",  // RCMS Clinical Supervisors/Managers/Directors
+  STAFF: "STAFF",                        // firm staff (external)
+  RCMS_STAFF: "RCMS_STAFF",              // RCMS internal ops (administrative)
   SUPER_USER: "SUPER_USER",
   SUPER_ADMIN: "SUPER_ADMIN",
 } as const;
@@ -94,8 +96,22 @@ export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?
     return true; // identity + clinical allowed when attorney sharing is true
   }
 
-  // RN-CCM — firm users (tight): same firm + designated + consent
-  if (role === ROLES.RN_CCM) {
+  // RN CM — RCMS Internal Nurses: full clinical/care management capabilities
+  if (role === ROLES.RN_CM) {
+    if (!signed) return false;
+    if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
+    if (feature === FEATURE.VIEW_IDENTITY) return shareWithProviders;
+    if (feature === FEATURE.EXPORT) return false;  // Still no export for RN CM
+    return false;
+  }
+
+  // RCMS Clinical Management — RCMS Clinical Supervisors/Managers/Directors: full access
+  if (role === ROLES.RCMS_CLINICAL_MGMT) {
+    return true;  // Full access for clinical management
+  }
+
+  // CLINICAL_STAFF_EXTERNAL — External clinical staff (restricted): same as old RN_CCM
+  if (role === ROLES.CLINICAL_STAFF_EXTERNAL) {
     if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
     if (!signed) return false;
     if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
@@ -195,6 +211,6 @@ export function getDisplayName(role: Role, theCase: any, user?: User): string {
  * Check if a role can search by name
  */
 export function canSearchByName(role: Role): boolean {
-  const searchRoles: Role[] = [ROLES.ATTORNEY, ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
+  const searchRoles: Role[] = [ROLES.ATTORNEY, ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
   return searchRoles.includes(role);
 }

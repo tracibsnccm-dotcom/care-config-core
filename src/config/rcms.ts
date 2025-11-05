@@ -3,7 +3,9 @@
 export const ROLES = {
   CLIENT: "CLIENT",
   ATTORNEY: "ATTORNEY",
-  RN_CCM: "RN_CCM",
+  RN_CM: "RN_CM",
+  CLINICAL_STAFF_EXTERNAL: "CLINICAL_STAFF_EXTERNAL",
+  RCMS_CLINICAL_MGMT: "RCMS_CLINICAL_MGMT",
   STAFF: "STAFF",
   RCMS_STAFF: "RCMS_STAFF",
   SUPER_USER: "SUPER_USER",
@@ -62,7 +64,7 @@ export const RCMS_CONFIG = {
       policy: "Full allowance available immediately; first reset on next quarter date; no proration.",
     },
   },
-  sensitiveAccessRoles: [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN],
+  sensitiveAccessRoles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN],
 };
 
 export type Gender = "female" | "male" | "nonbinary" | "prefer_not_to_say";
