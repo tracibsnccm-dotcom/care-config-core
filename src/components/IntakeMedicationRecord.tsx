@@ -16,11 +16,16 @@ import {
 
 export interface MedicationEntry {
   id: string;
-  name: string;
+  brandName: string;
+  genericName: string;
   dose: string;
+  frequency: string;
+  route: string;
   purpose: string;
   prescriber: string;
   startDate: string;
+  endDate: string;
+  pharmacy: string;
   notes: string;
 }
 
@@ -50,11 +55,16 @@ export function IntakeMedicationRecord({
 }: IntakeMedicationRecordProps) {
   const createEmptyMed = (): MedicationEntry => ({
     id: `med-${Date.now()}-${Math.random()}`,
-    name: "",
+    brandName: "",
+    genericName: "",
     dose: "",
+    frequency: "",
+    route: "",
     purpose: "",
     prescriber: "",
     startDate: "",
+    endDate: "",
+    pharmacy: "",
     notes: "",
   });
 
@@ -135,47 +145,34 @@ export function IntakeMedicationRecord({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor={`${med.id}-name`} className="text-xs">
-            Medication Name *
+          <Label htmlFor={`${med.id}-brandName`} className="text-xs">
+            Brand Name *
           </Label>
           <Input
-            id={`${med.id}-name`}
-            value={med.name}
-            onChange={(e) => onUpdate("name", e.target.value)}
+            id={`${med.id}-brandName`}
+            value={med.brandName}
+            onChange={(e) => onUpdate("brandName", e.target.value)}
+            placeholder="e.g., Advil"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-genericName`} className="text-xs">
+            Generic Name
+          </Label>
+          <Input
+            id={`${med.id}-genericName`}
+            value={med.genericName}
+            onChange={(e) => onUpdate("genericName", e.target.value)}
             placeholder="e.g., Ibuprofen"
             className="h-9"
           />
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor={`${med.id}-dose`} className="text-xs">
-            Dose/Strength
-          </Label>
-          <Input
-            id={`${med.id}-dose`}
-            value={med.dose}
-            onChange={(e) => onUpdate("dose", e.target.value)}
-            placeholder="e.g., 400mg"
-            className="h-9"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor={`${med.id}-purpose`} className="text-xs">
-            Purpose/Condition
-          </Label>
-          <Input
-            id={`${med.id}-purpose`}
-            value={med.purpose}
-            onChange={(e) => onUpdate("purpose", e.target.value)}
-            placeholder="e.g., Pain management"
-            className="h-9"
-          />
-        </div>
-
-        <div className="space-y-1">
           <Label htmlFor={`${med.id}-prescriber`} className="text-xs">
-            Prescriber
+            Prescribing Physician *
           </Label>
           <Input
             id={`${med.id}-prescriber`}
@@ -187,14 +184,143 @@ export function IntakeMedicationRecord({
         </div>
 
         <div className="space-y-1">
+          <Label htmlFor={`${med.id}-purpose`} className="text-xs">
+            Purpose/Diagnosis *
+          </Label>
+          <Select
+            value={med.purpose}
+            onValueChange={(value) => onUpdate("purpose", value)}
+          >
+            <SelectTrigger id={`${med.id}-purpose`} className="h-9">
+              <SelectValue placeholder="Select diagnosis" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="back_pain">Back Pain</SelectItem>
+              <SelectItem value="neck_pain">Neck Pain</SelectItem>
+              <SelectItem value="headache">Headache/Migraine</SelectItem>
+              <SelectItem value="anxiety">Anxiety</SelectItem>
+              <SelectItem value="depression">Depression</SelectItem>
+              <SelectItem value="ptsd">PTSD</SelectItem>
+              <SelectItem value="sleep_disorder">Sleep Disorder</SelectItem>
+              <SelectItem value="muscle_spasm">Muscle Spasm</SelectItem>
+              <SelectItem value="nerve_pain">Nerve Pain</SelectItem>
+              <SelectItem value="inflammation">Inflammation</SelectItem>
+              <SelectItem value="infection">Infection</SelectItem>
+              <SelectItem value="hypertension">Hypertension</SelectItem>
+              <SelectItem value="diabetes">Diabetes</SelectItem>
+              <SelectItem value="cardiac">Cardiac Condition</SelectItem>
+              <SelectItem value="respiratory">Respiratory Condition</SelectItem>
+              <SelectItem value="gastrointestinal">Gastrointestinal</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-dose`} className="text-xs">
+            Dosage *
+          </Label>
+          <Input
+            id={`${med.id}-dose`}
+            value={med.dose}
+            onChange={(e) => onUpdate("dose", e.target.value)}
+            placeholder="e.g., 50mg"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-frequency`} className="text-xs">
+            Frequency *
+          </Label>
+          <Select
+            value={med.frequency}
+            onValueChange={(value) => onUpdate("frequency", value)}
+          >
+            <SelectTrigger id={`${med.id}-frequency`} className="h-9">
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="once_daily">Once daily</SelectItem>
+              <SelectItem value="twice_daily">Twice daily</SelectItem>
+              <SelectItem value="three_times_daily">Three times daily</SelectItem>
+              <SelectItem value="four_times_daily">Four times daily</SelectItem>
+              <SelectItem value="every_4_hours">Every 4 hours</SelectItem>
+              <SelectItem value="every_6_hours">Every 6 hours</SelectItem>
+              <SelectItem value="every_8_hours">Every 8 hours</SelectItem>
+              <SelectItem value="every_12_hours">Every 12 hours</SelectItem>
+              <SelectItem value="as_needed">As needed (PRN)</SelectItem>
+              <SelectItem value="bedtime">At bedtime</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-route`} className="text-xs">
+            Route *
+          </Label>
+          <Select
+            value={med.route}
+            onValueChange={(value) => onUpdate("route", value)}
+          >
+            <SelectTrigger id={`${med.id}-route`} className="h-9">
+              <SelectValue placeholder="Select route" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="oral">Oral</SelectItem>
+              <SelectItem value="topical">Topical</SelectItem>
+              <SelectItem value="injectable_im">Injectable (IM)</SelectItem>
+              <SelectItem value="injectable_iv">Injectable (IV)</SelectItem>
+              <SelectItem value="injectable_subq">Injectable (SubQ)</SelectItem>
+              <SelectItem value="sublingual">Sublingual</SelectItem>
+              <SelectItem value="transdermal">Transdermal (Patch)</SelectItem>
+              <SelectItem value="inhalation">Inhalation</SelectItem>
+              <SelectItem value="rectal">Rectal</SelectItem>
+              <SelectItem value="ophthalmic">Ophthalmic (Eye)</SelectItem>
+              <SelectItem value="otic">Otic (Ear)</SelectItem>
+              <SelectItem value="nasal">Nasal</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
           <Label htmlFor={`${med.id}-startDate`} className="text-xs">
-            Start Date
+            Start Date *
           </Label>
           <Input
             id={`${med.id}-startDate`}
             type="date"
             value={med.startDate}
             onChange={(e) => onUpdate("startDate", e.target.value)}
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-endDate`} className="text-xs">
+            End Date (if discontinued)
+          </Label>
+          <Input
+            id={`${med.id}-endDate`}
+            type="date"
+            value={med.endDate}
+            onChange={(e) => onUpdate("endDate", e.target.value)}
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor={`${med.id}-pharmacy`} className="text-xs">
+            Pharmacy Used *
+          </Label>
+          <Input
+            id={`${med.id}-pharmacy`}
+            value={med.pharmacy}
+            onChange={(e) => onUpdate("pharmacy", e.target.value)}
+            placeholder="e.g., CVS Pharmacy - Main St"
             className="h-9"
           />
         </div>

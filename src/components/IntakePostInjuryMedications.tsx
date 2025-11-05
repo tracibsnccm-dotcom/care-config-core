@@ -3,16 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Info, Plus, X } from "lucide-react";
-
-export interface MedicationEntry {
-  id: string;
-  name: string;
-  dose: string;
-  purpose: string;
-  prescriber: string;
-  startDate: string;
-  notes: string;
-}
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { type MedicationEntry } from "@/components/IntakeMedicationRecord";
 
 interface IntakePostInjuryMedicationsProps {
   medications: MedicationEntry[];
@@ -24,7 +22,20 @@ export function IntakePostInjuryMedications({
   onChange,
 }: IntakePostInjuryMedicationsProps) {
   const addMedication = () => {
-    onChange([...medications, { id: crypto.randomUUID(), name: '', dose: '', purpose: '', prescriber: '', startDate: '', notes: '' }]);
+    onChange([...medications, { 
+      id: crypto.randomUUID(), 
+      brandName: '', 
+      genericName: '', 
+      dose: '', 
+      frequency: '', 
+      route: '', 
+      purpose: '', 
+      prescriber: '', 
+      startDate: '', 
+      endDate: '', 
+      pharmacy: '', 
+      notes: '' 
+    }]);
   };
 
   const removeMedication = (index: number) => {
@@ -64,16 +75,64 @@ export function IntakePostInjuryMedications({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor={`post-med-name-${index}`}>Medication Name*</Label>
+                  <Label htmlFor={`post-med-brand-${index}`}>Brand Name*</Label>
                   <Input
-                    id={`post-med-name-${index}`}
-                    value={med.name}
-                    onChange={(e) => updateMedication(index, 'name', e.target.value)}
+                    id={`post-med-brand-${index}`}
+                    value={med.brandName}
+                    onChange={(e) => updateMedication(index, 'brandName', e.target.value)}
+                    placeholder="e.g., Advil"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor={`post-med-generic-${index}`}>Generic Name</Label>
+                  <Input
+                    id={`post-med-generic-${index}`}
+                    value={med.genericName}
+                    onChange={(e) => updateMedication(index, 'genericName', e.target.value)}
                     placeholder="e.g., Ibuprofen"
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`post-med-dose-${index}`}>Dose/Strength</Label>
+                  <Label htmlFor={`post-med-prescriber-${index}`}>Prescribing Physician*</Label>
+                  <Input
+                    id={`post-med-prescriber-${index}`}
+                    value={med.prescriber}
+                    onChange={(e) => updateMedication(index, 'prescriber', e.target.value)}
+                    placeholder="e.g., Dr. Johnson"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor={`post-med-purpose-${index}`}>Purpose/Diagnosis*</Label>
+                  <Select
+                    value={med.purpose}
+                    onValueChange={(value) => updateMedication(index, 'purpose', value)}
+                  >
+                    <SelectTrigger id={`post-med-purpose-${index}`}>
+                      <SelectValue placeholder="Select diagnosis" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="back_pain">Back Pain</SelectItem>
+                      <SelectItem value="neck_pain">Neck Pain</SelectItem>
+                      <SelectItem value="headache">Headache/Migraine</SelectItem>
+                      <SelectItem value="anxiety">Anxiety</SelectItem>
+                      <SelectItem value="depression">Depression</SelectItem>
+                      <SelectItem value="ptsd">PTSD</SelectItem>
+                      <SelectItem value="sleep_disorder">Sleep Disorder</SelectItem>
+                      <SelectItem value="muscle_spasm">Muscle Spasm</SelectItem>
+                      <SelectItem value="nerve_pain">Nerve Pain</SelectItem>
+                      <SelectItem value="inflammation">Inflammation</SelectItem>
+                      <SelectItem value="infection">Infection</SelectItem>
+                      <SelectItem value="hypertension">Hypertension</SelectItem>
+                      <SelectItem value="diabetes">Diabetes</SelectItem>
+                      <SelectItem value="cardiac">Cardiac Condition</SelectItem>
+                      <SelectItem value="respiratory">Respiratory Condition</SelectItem>
+                      <SelectItem value="gastrointestinal">Gastrointestinal</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor={`post-med-dose-${index}`}>Dosage*</Label>
                   <Input
                     id={`post-med-dose-${index}`}
                     value={med.dose}
@@ -82,21 +141,81 @@ export function IntakePostInjuryMedications({
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`post-med-purpose-${index}`}>Purpose/Condition</Label>
+                  <Label htmlFor={`post-med-frequency-${index}`}>Frequency*</Label>
+                  <Select
+                    value={med.frequency}
+                    onValueChange={(value) => updateMedication(index, 'frequency', value)}
+                  >
+                    <SelectTrigger id={`post-med-frequency-${index}`}>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="once_daily">Once daily</SelectItem>
+                      <SelectItem value="twice_daily">Twice daily</SelectItem>
+                      <SelectItem value="three_times_daily">Three times daily</SelectItem>
+                      <SelectItem value="four_times_daily">Four times daily</SelectItem>
+                      <SelectItem value="every_4_hours">Every 4 hours</SelectItem>
+                      <SelectItem value="every_6_hours">Every 6 hours</SelectItem>
+                      <SelectItem value="every_8_hours">Every 8 hours</SelectItem>
+                      <SelectItem value="every_12_hours">Every 12 hours</SelectItem>
+                      <SelectItem value="as_needed">As needed (PRN)</SelectItem>
+                      <SelectItem value="bedtime">At bedtime</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor={`post-med-route-${index}`}>Route*</Label>
+                  <Select
+                    value={med.route}
+                    onValueChange={(value) => updateMedication(index, 'route', value)}
+                  >
+                    <SelectTrigger id={`post-med-route-${index}`}>
+                      <SelectValue placeholder="Select route" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="oral">Oral</SelectItem>
+                      <SelectItem value="topical">Topical</SelectItem>
+                      <SelectItem value="injectable_im">Injectable (IM)</SelectItem>
+                      <SelectItem value="injectable_iv">Injectable (IV)</SelectItem>
+                      <SelectItem value="injectable_subq">Injectable (SubQ)</SelectItem>
+                      <SelectItem value="sublingual">Sublingual</SelectItem>
+                      <SelectItem value="transdermal">Transdermal (Patch)</SelectItem>
+                      <SelectItem value="inhalation">Inhalation</SelectItem>
+                      <SelectItem value="rectal">Rectal</SelectItem>
+                      <SelectItem value="ophthalmic">Ophthalmic (Eye)</SelectItem>
+                      <SelectItem value="otic">Otic (Ear)</SelectItem>
+                      <SelectItem value="nasal">Nasal</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor={`post-med-start-${index}`}>Start Date*</Label>
                   <Input
-                    id={`post-med-purpose-${index}`}
-                    value={med.purpose}
-                    onChange={(e) => updateMedication(index, 'purpose', e.target.value)}
-                    placeholder="e.g., Pain management"
+                    id={`post-med-start-${index}`}
+                    type="date"
+                    value={med.startDate}
+                    onChange={(e) => updateMedication(index, 'startDate', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`post-med-prescriber-${index}`}>Prescriber</Label>
+                  <Label htmlFor={`post-med-end-${index}`}>End Date</Label>
                   <Input
-                    id={`post-med-prescriber-${index}`}
-                    value={med.prescriber}
-                    onChange={(e) => updateMedication(index, 'prescriber', e.target.value)}
-                    placeholder="e.g., Dr. Johnson"
+                    id={`post-med-end-${index}`}
+                    type="date"
+                    value={med.endDate}
+                    onChange={(e) => updateMedication(index, 'endDate', e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor={`post-med-pharmacy-${index}`}>Pharmacy Used*</Label>
+                  <Input
+                    id={`post-med-pharmacy-${index}`}
+                    value={med.pharmacy}
+                    onChange={(e) => updateMedication(index, 'pharmacy', e.target.value)}
+                    placeholder="e.g., CVS Pharmacy - Main St"
                   />
                 </div>
               </div>

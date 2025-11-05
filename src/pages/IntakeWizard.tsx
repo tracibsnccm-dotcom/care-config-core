@@ -321,24 +321,24 @@ export default function IntakeWizard() {
 
         // Save medications from intake to client_medications table
         const allMeds = [
-          ...preInjuryMeds.filter(m => m.name.trim()).map(med => ({
+          ...preInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
             case_id: newCase.id,
             client_id: userData.user.id,
-            medication_name: med.name,
+            medication_name: med.brandName || med.genericName,
             dosage: med.dose || null,
-            frequency: med.purpose || null,
+            frequency: med.frequency || null,
             prescribing_doctor: med.prescriber || null,
             start_date: med.startDate || null,
             side_effects: med.notes || null,
             injury_timing: 'pre-injury',
             is_active: true,
           })),
-          ...postInjuryMeds.filter(m => m.name.trim()).map(med => ({
+          ...postInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
             case_id: newCase.id,
             client_id: userData.user.id,
-            medication_name: med.name,
+            medication_name: med.brandName || med.genericName,
             dosage: med.dose || null,
-            frequency: med.purpose || null,
+            frequency: med.frequency || null,
             prescribing_doctor: med.prescriber || null,
             start_date: med.startDate || null,
             side_effects: med.notes || null,
@@ -561,8 +561,9 @@ export default function IntakeWizard() {
         doc.text("Pre-Injury:", 20, yPos);
         yPos += 6;
         preInjuryMeds.forEach(med => {
-          if (med.name.trim()) {
-            doc.text(`  • ${med.name}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
+          const medName = med.brandName || med.genericName;
+          if (medName && medName.trim()) {
+            doc.text(`  • ${medName}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
             yPos += 5;
           }
         });
@@ -572,8 +573,9 @@ export default function IntakeWizard() {
         doc.text("Post-Injury:", 20, yPos);
         yPos += 6;
         postInjuryMeds.forEach(med => {
-          if (med.name.trim()) {
-            doc.text(`  • ${med.name}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
+          const medName = med.brandName || med.genericName;
+          if (medName && medName.trim()) {
+            doc.text(`  • ${medName}${med.dose ? ` (${med.dose})` : ''}`, 25, yPos);
             yPos += 5;
           }
         });
