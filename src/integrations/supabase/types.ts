@@ -1929,6 +1929,62 @@ export type Database = {
         }
         Relationships: []
       }
+      client_satisfaction_surveys: {
+        Row: {
+          care_quality_rating: number | null
+          case_id: string | null
+          client_id: string | null
+          comments: string | null
+          communication_rating: number | null
+          created_at: string | null
+          id: string
+          overall_rating: number
+          professionalism_rating: number | null
+          responsiveness_rating: number | null
+          rn_id: string | null
+          survey_date: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          care_quality_rating?: number | null
+          case_id?: string | null
+          client_id?: string | null
+          comments?: string | null
+          communication_rating?: number | null
+          created_at?: string | null
+          id?: string
+          overall_rating: number
+          professionalism_rating?: number | null
+          responsiveness_rating?: number | null
+          rn_id?: string | null
+          survey_date?: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          care_quality_rating?: number | null
+          case_id?: string | null
+          client_id?: string | null
+          comments?: string | null
+          communication_rating?: number | null
+          created_at?: string | null
+          id?: string
+          overall_rating?: number
+          professionalism_rating?: number | null
+          responsiveness_rating?: number | null
+          rn_id?: string | null
+          survey_date?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_satisfaction_surveys_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_sensitive_disclosures: {
         Row: {
           audit_event: string | null
@@ -2035,6 +2091,69 @@ export type Database = {
           notes?: string | null
           start_date?: string | null
           treatment_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clinical_audits: {
+        Row: {
+          audit_name: string
+          audit_type: string
+          auditor_id: string | null
+          cases_reviewed: number | null
+          completed_date: string | null
+          compliance_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          findings: string | null
+          follow_up_date: string | null
+          follow_up_required: boolean | null
+          id: string
+          metadata: Json | null
+          priority: string | null
+          recommendations: string | null
+          scheduled_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          audit_name: string
+          audit_type: string
+          auditor_id?: string | null
+          cases_reviewed?: number | null
+          completed_date?: string | null
+          compliance_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          findings?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          recommendations?: string | null
+          scheduled_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          audit_name?: string
+          audit_type?: string
+          auditor_id?: string | null
+          cases_reviewed?: number | null
+          completed_date?: string | null
+          compliance_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          findings?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          recommendations?: string | null
+          scheduled_date?: string
+          status?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -2333,6 +2452,60 @@ export type Database = {
           status_changed_at?: string | null
           updated_at?: string
           visit_date?: string | null
+        }
+        Relationships: []
+      }
+      credentials_tracking: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          credential_name: string
+          credential_type: string
+          documents: Json | null
+          expiration_date: string
+          id: string
+          issue_date: string | null
+          issuing_organization: string | null
+          license_number: string | null
+          notes: string | null
+          renewal_reminder_sent: boolean | null
+          staff_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_name: string
+          credential_type: string
+          documents?: Json | null
+          expiration_date: string
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          license_number?: string | null
+          notes?: string | null
+          renewal_reminder_sent?: boolean | null
+          staff_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_name?: string
+          credential_type?: string
+          documents?: Json | null
+          expiration_date?: string
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          license_number?: string | null
+          notes?: string | null
+          renewal_reminder_sent?: boolean | null
+          staff_id?: string
+          status?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2815,6 +2988,56 @@ export type Database = {
           usage_count?: number | null
         }
         Relationships: []
+      }
+      financial_metrics: {
+        Row: {
+          amount: number
+          attorney_id: string | null
+          case_id: string | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          metric_date: string
+          metric_type: string
+        }
+        Insert: {
+          amount: number
+          attorney_id?: string | null
+          case_id?: string | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_date?: string
+          metric_type: string
+        }
+        Update: {
+          amount?: number
+          attorney_id?: string | null
+          case_id?: string | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_date?: string
+          metric_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_metrics_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       intake_drafts: {
         Row: {
@@ -3642,6 +3865,78 @@ export type Database = {
         }
         Relationships: []
       }
+      quality_improvement_projects: {
+        Row: {
+          actual_completion: string | null
+          barriers: string | null
+          baseline_metric: number | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          current_metric: number | null
+          description: string | null
+          id: string
+          improvement_percentage: number | null
+          interventions: string | null
+          milestones: Json | null
+          priority: string
+          project_lead: string | null
+          project_name: string
+          start_date: string
+          status: string
+          target_completion: string | null
+          target_metric: number | null
+          team_members: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_completion?: string | null
+          barriers?: string | null
+          baseline_metric?: number | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          current_metric?: number | null
+          description?: string | null
+          id?: string
+          improvement_percentage?: number | null
+          interventions?: string | null
+          milestones?: Json | null
+          priority?: string
+          project_lead?: string | null
+          project_name: string
+          start_date: string
+          status?: string
+          target_completion?: string | null
+          target_metric?: number | null
+          team_members?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_completion?: string | null
+          barriers?: string | null
+          baseline_metric?: number | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_metric?: number | null
+          description?: string | null
+          id?: string
+          improvement_percentage?: number | null
+          interventions?: string | null
+          milestones?: Json | null
+          priority?: string
+          project_lead?: string | null
+          project_name?: string
+          start_date?: string
+          status?: string
+          target_completion?: string | null
+          target_metric?: number | null
+          team_members?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           acceptance_status: Database["public"]["Enums"]["referral_status"]
@@ -3760,6 +4055,140 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      resources_inventory: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          cost: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          last_maintenance_date: string | null
+          location: string | null
+          maintenance_schedule: string | null
+          metadata: Json | null
+          next_maintenance_date: string | null
+          notes: string | null
+          purchase_date: string | null
+          quantity: number | null
+          resource_name: string
+          resource_type: string
+          status: string
+          updated_at: string | null
+          warranty_expiration: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          cost?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_maintenance_date?: string | null
+          location?: string | null
+          maintenance_schedule?: string | null
+          metadata?: Json | null
+          next_maintenance_date?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          quantity?: number | null
+          resource_name: string
+          resource_type: string
+          status?: string
+          updated_at?: string | null
+          warranty_expiration?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          cost?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_maintenance_date?: string | null
+          location?: string | null
+          maintenance_schedule?: string | null
+          metadata?: Json | null
+          next_maintenance_date?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          quantity?: number | null
+          resource_name?: string
+          resource_type?: string
+          status?: string
+          updated_at?: string | null
+          warranty_expiration?: string | null
+        }
+        Relationships: []
+      }
+      risk_events: {
+        Row: {
+          case_id: string | null
+          corrective_actions: string | null
+          created_at: string | null
+          description: string
+          event_type: string
+          id: string
+          immediate_action: string | null
+          metadata: Json | null
+          preventive_measures: string | null
+          reported_by: string | null
+          reported_date: string
+          resolved_by: string | null
+          resolved_date: string | null
+          root_cause: string | null
+          severity: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          description: string
+          event_type: string
+          id?: string
+          immediate_action?: string | null
+          metadata?: Json | null
+          preventive_measures?: string | null
+          reported_by?: string | null
+          reported_date?: string
+          resolved_by?: string | null
+          resolved_date?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          description?: string
+          event_type?: string
+          id?: string
+          immediate_action?: string | null
+          metadata?: Json | null
+          preventive_measures?: string | null
+          reported_by?: string | null
+          reported_date?: string
+          resolved_by?: string | null
+          resolved_date?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rn_ai_suggestions: {
         Row: {
@@ -5805,6 +6234,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      strategic_goals: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          goal_name: string
+          id: string
+          initiatives: Json | null
+          key_results: Json | null
+          metrics: Json | null
+          notes: string | null
+          owner_id: string | null
+          priority: string
+          progress_percentage: number | null
+          status: string
+          target_date: string | null
+          time_horizon: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          goal_name: string
+          id?: string
+          initiatives?: Json | null
+          key_results?: Json | null
+          metrics?: Json | null
+          notes?: string | null
+          owner_id?: string | null
+          priority?: string
+          progress_percentage?: number | null
+          status?: string
+          target_date?: string | null
+          time_horizon: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          goal_name?: string
+          id?: string
+          initiatives?: Json | null
+          key_results?: Json | null
+          metrics?: Json | null
+          notes?: string | null
+          owner_id?: string | null
+          priority?: string
+          progress_percentage?: number | null
+          status?: string
+          target_date?: string | null
+          time_horizon?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      team_communications: {
+        Row: {
+          attachments: Json | null
+          author_id: string | null
+          communication_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_urgent: boolean | null
+          message: string
+          priority: string
+          read_by: Json | null
+          target_roles: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          author_id?: string | null
+          communication_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_urgent?: boolean | null
+          message: string
+          priority?: string
+          read_by?: Json | null
+          target_roles?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          author_id?: string | null
+          communication_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_urgent?: boolean | null
+          message?: string
+          priority?: string
+          read_by?: Json | null
+          target_roles?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
