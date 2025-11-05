@@ -357,17 +357,7 @@ export default function RNPortalLanding() {
               <CardHeader className="pb-3">
                 <RNNavigationGuard>
                   {({ handleNavigation, hasIncompleteAlerts }) => (
-                    <TabsList className="grid w-full grid-cols-5">
-                      <TabsTrigger 
-                        value="work-queue"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate("/rn-work-queue");
-                        }}
-                        className="bg-[#D4AF37] text-white data-[state=active]:bg-[#C5A028] hover:bg-[#C5A028] font-semibold border-none"
-                      >
-                        My Work Queue
-                      </TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger 
                         value="overview"
                         onClick={(e) => handleNavigation(e)}
