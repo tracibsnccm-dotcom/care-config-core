@@ -25,6 +25,9 @@ import { TeamCaseManagement } from "@/components/ClinicalManagement/TeamCaseMana
 import { TeamPerformanceDashboard } from "@/components/ClinicalManagement/TeamPerformanceDashboard";
 import { WorkflowManagement } from "@/components/ClinicalManagement/WorkflowManagement";
 import { ManagementQuickActions } from "@/components/ClinicalManagement/ManagementQuickActions";
+import { StaffManagement } from "@/components/ClinicalManagement/StaffManagement";
+import { TrainingCompliance } from "@/components/ClinicalManagement/TrainingCompliance";
+import { WorkloadBalancer } from "@/components/ClinicalManagement/WorkloadBalancer";
 import { useState, useEffect } from "react";
 
 export default function ClinicalManagementPortal() {
@@ -141,14 +144,14 @@ export default function ClinicalManagementPortal() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-8">
                   <TabsTrigger value="overview" className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     Overview
                   </TabsTrigger>
                   <TabsTrigger value="reviews" className="flex items-center gap-2">
                     <ClipboardCheck className="h-4 w-4" />
-                    Review Queue
+                    Reviews
                     {pendingReviews > 0 && (
                       <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-yellow-600 animate-pulse" />
                     )}
@@ -162,11 +165,23 @@ export default function ClinicalManagementPortal() {
                   </TabsTrigger>
                   <TabsTrigger value="team-cases" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Team Cases
+                    Cases
                   </TabsTrigger>
                   <TabsTrigger value="performance" className="flex items-center gap-2">
                     <Target className="h-4 w-4" />
                     Performance
+                  </TabsTrigger>
+                  <TabsTrigger value="staff" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Staff
+                  </TabsTrigger>
+                  <TabsTrigger value="training" className="flex items-center gap-2">
+                    <ClipboardCheck className="h-4 w-4" />
+                    Training
+                  </TabsTrigger>
+                  <TabsTrigger value="workload" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Workload
                   </TabsTrigger>
                 </TabsList>
               </CardHeader>
@@ -272,6 +287,21 @@ export default function ClinicalManagementPortal() {
                 {/* Performance Tab */}
                 <TabsContent value="performance" className="mt-0">
                   <TeamPerformanceDashboard />
+                </TabsContent>
+
+                {/* Staff Tab */}
+                <TabsContent value="staff" className="mt-0">
+                  <StaffManagement />
+                </TabsContent>
+
+                {/* Training Tab */}
+                <TabsContent value="training" className="mt-0">
+                  <TrainingCompliance />
+                </TabsContent>
+
+                {/* Workload Tab */}
+                <TabsContent value="workload" className="mt-0">
+                  <WorkloadBalancer />
                 </TabsContent>
               </CardContent>
             </Tabs>

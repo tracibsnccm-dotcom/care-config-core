@@ -13,12 +13,14 @@ import {
   CheckCircle,
   AlertCircle,
   TrendingUp,
-  MessageSquareWarning
+  MessageSquareWarning,
+  Shield,
+  Award
 } from "lucide-react";
 
 interface ReviewItem {
   id: string;
-  type: "performance_review" | "documentation_review" | "case_review" | "compliance_review" | "quality_metrics" | "complaint" | "concern" | "emergency_alert";
+  type: "performance_review" | "documentation_review" | "case_review" | "compliance_review" | "quality_metrics" | "complaint" | "concern" | "emergency_alert" | "incident_report" | "training_compliance" | "regulatory_compliance" | "case_escalation";
   title: string;
   assignedTo: string;
   dueDate: string;
@@ -146,6 +148,47 @@ export function ManagementReviewQueue({ roleLevel }: ManagementReviewQueueProps)
           status: "due_today",
           roleRestriction: "all"
         },
+        {
+          id: "11",
+          type: "incident_report",
+          title: "Incident Report - Medication Error Case #2024-091",
+          assignedTo: "Team Wide",
+          dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "critical",
+          status: "overdue",
+          daysOverdue: 1,
+          roleRestriction: "director"
+        },
+        {
+          id: "12",
+          type: "training_compliance",
+          title: "Q4 Training Compliance Review",
+          assignedTo: "Clinical Management",
+          dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "medium",
+          status: "upcoming",
+          roleRestriction: "all"
+        },
+        {
+          id: "13",
+          type: "regulatory_compliance",
+          title: "State Licensing Audit Preparation",
+          assignedTo: "Compliance Team",
+          dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          status: "upcoming",
+          roleRestriction: "director"
+        },
+        {
+          id: "14",
+          type: "case_escalation",
+          title: "Case Escalation - High-Risk Client #2024-103",
+          assignedTo: "Sarah Johnson",
+          dueDate: new Date().toISOString(),
+          priority: "critical",
+          status: "due_today",
+          roleRestriction: "all"
+        },
       ];
 
       // Filter by role level
@@ -218,6 +261,10 @@ export function ManagementReviewQueue({ roleLevel }: ManagementReviewQueueProps)
       complaint: MessageSquareWarning,
       concern: AlertCircle,
       emergency_alert: AlertTriangle,
+      incident_report: FileText,
+      training_compliance: Award,
+      regulatory_compliance: Shield,
+      case_escalation: AlertCircle,
     };
     const Icon = icons[type];
     return <Icon className="h-4 w-4" />;

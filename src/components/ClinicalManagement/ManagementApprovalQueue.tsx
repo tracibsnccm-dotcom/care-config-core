@@ -10,13 +10,15 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Calendar
+  Calendar,
+  DollarSign,
+  Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ApprovalItem {
   id: string;
-  type: "case_reassignment" | "pto_request" | "overtime_approval" | "schedule_change" | "resource_request";
+  type: "case_reassignment" | "pto_request" | "overtime_approval" | "schedule_change" | "resource_request" | "training_request" | "equipment_request" | "hiring_approval" | "policy_change" | "budget_approval";
   title: string;
   requestedBy: string;
   requestedAt: string;
@@ -86,6 +88,51 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
           priority: "medium",
           details: "Request for advanced wound care training course for 3 team members. Est. cost: $1,200."
         },
+        {
+          id: "6",
+          type: "training_request",
+          title: "Advanced Wound Care Certification",
+          requestedBy: "Lisa Martinez, RN",
+          requestedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+          priority: "medium",
+          details: "3-day certification course - $1,200 cost. Will enhance team capabilities for complex cases."
+        },
+        {
+          id: "7",
+          type: "equipment_request",
+          title: "New Portable Oxygen Concentrators (3 units)",
+          requestedBy: "Equipment Coordinator",
+          requestedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          details: "Critical equipment needed for new high-acuity cases - $4,500 total investment."
+        },
+        {
+          id: "8",
+          type: "hiring_approval",
+          title: "New RN Position - Home Health Team",
+          requestedBy: "HR Department",
+          requestedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          details: "Approval needed to post and fill vacant RN position due to increased caseload."
+        },
+        {
+          id: "9",
+          type: "budget_approval",
+          title: "Q1 Department Budget Adjustment",
+          requestedBy: "Finance Department",
+          requestedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          priority: "medium",
+          details: "Requesting 8% budget increase for staffing and equipment upgrades."
+        },
+        {
+          id: "10",
+          type: "policy_change",
+          title: "Updated Documentation Policy",
+          requestedBy: "Compliance Officer",
+          requestedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          priority: "medium",
+          details: "Revised policy for electronic health record documentation standards to meet new regulations."
+        },
       ];
 
       // Sort by priority and requested date
@@ -148,6 +195,11 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
       overtime_approval: Clock,
       schedule_change: Calendar,
       resource_request: FileText,
+      training_request: FileText,
+      equipment_request: Users,
+      hiring_approval: Users,
+      budget_approval: DollarSign,
+      policy_change: FileText,
     };
     const Icon = icons[type] || AlertCircle;
     return <Icon className="h-4 w-4" />;
