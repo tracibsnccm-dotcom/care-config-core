@@ -15,6 +15,8 @@ import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
 import { CaseTimelineView } from "@/components/CaseTimelineView";
 import { AICaseSummarizer } from "@/components/AICaseSummarizer";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
+import { ProviderNotesDisplay } from "@/components/case/ProviderNotesDisplay";
+import { DocumentShareRequest } from "@/components/rn/DocumentShareRequest";
 import { 
   ArrowLeft, 
   User, 
@@ -444,6 +446,20 @@ export default function CaseDetail() {
         {canView && caseId && (role === "RN_CM" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
           <div className="mt-6">
             <SensitiveDataAuditView caseId={caseId} />
+          </div>
+        )}
+
+        {/* Provider Notes Display */}
+        {canView && caseId && (role === "RN_CM" || role === "ATTORNEY" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6">
+            <ProviderNotesDisplay caseId={caseId} />
+          </div>
+        )}
+
+        {/* Document Share Request - RN CM Only */}
+        {canView && caseId && (role === "RN_CM" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6 flex justify-end">
+            <DocumentShareRequest caseId={caseId} clientId={caseData.client.rcmsId} />
           </div>
         )}
       </div>

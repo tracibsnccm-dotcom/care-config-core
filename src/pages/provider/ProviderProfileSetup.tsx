@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { ProviderAvailabilityScheduler } from "@/components/provider/ProviderAvailabilityScheduler";
 import { User, MapPin, Phone, Mail, FileText, Clock } from "lucide-react";
 
 export default function ProviderProfileSetup() {
@@ -344,6 +345,9 @@ export default function ProviderProfileSetup() {
               </div>
             </div>
           </Card>
+
+          {/* Availability Scheduler */}
+          <ProviderAvailabilityScheduler />
 
           {/* Save Button */}
           <div className="flex justify-end gap-3">

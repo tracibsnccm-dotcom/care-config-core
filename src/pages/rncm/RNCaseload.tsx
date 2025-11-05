@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DocumentApprovalQueue } from "@/components/rn/DocumentApprovalQueue";
 import { Search, Filter, AlertTriangle, Clock, User, ClipboardCheck, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 
@@ -390,6 +391,11 @@ export default function RNCaseload() {
                   </Tabs>
                 </CardContent>
               </Card>
+
+              {/* Document Approval Queue */}
+              <div className="mt-6">
+                <DocumentApprovalQueue />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
