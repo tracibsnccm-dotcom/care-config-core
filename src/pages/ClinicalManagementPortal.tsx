@@ -28,6 +28,16 @@ import { ManagementQuickActions } from "@/components/ClinicalManagement/Manageme
 import { StaffManagement } from "@/components/ClinicalManagement/StaffManagement";
 import { TrainingCompliance } from "@/components/ClinicalManagement/TrainingCompliance";
 import { WorkloadBalancer } from "@/components/ClinicalManagement/WorkloadBalancer";
+import { QualityImprovement } from "@/components/ClinicalManagement/QualityImprovement";
+import { ClinicalAudits } from "@/components/ClinicalManagement/ClinicalAudits";
+import { ClientSatisfaction } from "@/components/ClinicalManagement/ClientSatisfaction";
+import { TeamCommunications } from "@/components/ClinicalManagement/TeamCommunications";
+import { FinancialDashboard } from "@/components/ClinicalManagement/FinancialDashboard";
+import { RiskManagement } from "@/components/ClinicalManagement/RiskManagement";
+import { CredentialingTracker } from "@/components/ClinicalManagement/CredentialingTracker";
+import { ResourceManagement } from "@/components/ClinicalManagement/ResourceManagement";
+import { SchedulingCalendar } from "@/components/ClinicalManagement/SchedulingCalendar";
+import { GoalsStrategic } from "@/components/ClinicalManagement/GoalsStrategic";
 import { useState, useEffect } from "react";
 
 export default function ClinicalManagementPortal() {
@@ -144,44 +154,66 @@ export default function ClinicalManagementPortal() {
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-8">
-                  <TabsTrigger value="overview" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
+                <TabsList className="grid w-full grid-cols-6 lg:grid-cols-9">
+                  <TabsTrigger value="overview">
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger value="reviews" className="flex items-center gap-2">
-                    <ClipboardCheck className="h-4 w-4" />
+                  <TabsTrigger value="reviews">
                     Reviews
                     {pendingReviews > 0 && (
                       <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-yellow-600 animate-pulse" />
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="approvals" className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4" />
+                  <TabsTrigger value="approvals">
                     Approvals
                     {pendingApprovals > 0 && (
                       <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="team-cases" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                  <TabsTrigger value="team-cases">
                     Cases
                   </TabsTrigger>
-                  <TabsTrigger value="performance" className="flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    Performance
-                  </TabsTrigger>
-                  <TabsTrigger value="staff" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                  <TabsTrigger value="staff">
                     Staff
                   </TabsTrigger>
-                  <TabsTrigger value="training" className="flex items-center gap-2">
-                    <ClipboardCheck className="h-4 w-4" />
+                  <TabsTrigger value="workload">
+                    Workload
+                  </TabsTrigger>
+                  <TabsTrigger value="training">
                     Training
                   </TabsTrigger>
-                  <TabsTrigger value="workload" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Workload
+                  <TabsTrigger value="performance">
+                    Performance
+                  </TabsTrigger>
+                  <TabsTrigger value="quality">
+                    Quality
+                  </TabsTrigger>
+                  <TabsTrigger value="audits">
+                    Audits
+                  </TabsTrigger>
+                  <TabsTrigger value="satisfaction">
+                    Satisfaction
+                  </TabsTrigger>
+                  <TabsTrigger value="communications">
+                    Comms
+                  </TabsTrigger>
+                  <TabsTrigger value="financial">
+                    Financial
+                  </TabsTrigger>
+                  <TabsTrigger value="risk">
+                    Risk
+                  </TabsTrigger>
+                  <TabsTrigger value="credentials">
+                    Credentials
+                  </TabsTrigger>
+                  <TabsTrigger value="resources">
+                    Resources
+                  </TabsTrigger>
+                  <TabsTrigger value="scheduling">
+                    Schedule
+                  </TabsTrigger>
+                  <TabsTrigger value="goals">
+                    Goals
                   </TabsTrigger>
                 </TabsList>
               </CardHeader>
@@ -302,6 +334,56 @@ export default function ClinicalManagementPortal() {
                 {/* Workload Tab */}
                 <TabsContent value="workload" className="mt-0">
                   <WorkloadBalancer />
+                </TabsContent>
+
+                {/* Quality Improvement Tab */}
+                <TabsContent value="quality" className="mt-0">
+                  <QualityImprovement />
+                </TabsContent>
+
+                {/* Clinical Audits Tab */}
+                <TabsContent value="audits" className="mt-0">
+                  <ClinicalAudits />
+                </TabsContent>
+
+                {/* Client Satisfaction Tab */}
+                <TabsContent value="satisfaction" className="mt-0">
+                  <ClientSatisfaction />
+                </TabsContent>
+
+                {/* Team Communications Tab */}
+                <TabsContent value="communications" className="mt-0">
+                  <TeamCommunications />
+                </TabsContent>
+
+                {/* Financial Dashboard Tab */}
+                <TabsContent value="financial" className="mt-0">
+                  <FinancialDashboard />
+                </TabsContent>
+
+                {/* Risk Management Tab */}
+                <TabsContent value="risk" className="mt-0">
+                  <RiskManagement />
+                </TabsContent>
+
+                {/* Credentialing Tracker Tab */}
+                <TabsContent value="credentials" className="mt-0">
+                  <CredentialingTracker />
+                </TabsContent>
+
+                {/* Resource Management Tab */}
+                <TabsContent value="resources" className="mt-0">
+                  <ResourceManagement />
+                </TabsContent>
+
+                {/* Scheduling Calendar Tab */}
+                <TabsContent value="scheduling" className="mt-0">
+                  <SchedulingCalendar />
+                </TabsContent>
+
+                {/* Goals & Strategic Planning Tab */}
+                <TabsContent value="goals" className="mt-0">
+                  <GoalsStrategic />
                 </TabsContent>
               </CardContent>
             </Tabs>
