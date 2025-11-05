@@ -10,6 +10,7 @@ import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import RNCM_Compliance_Demo from "./RNCMCompliance";
 import RNQualityDashboard from "./RNQualityDashboard";
+import { RNWorkQueue } from "@/components/RNClinicalLiaison/RNWorkQueue";
 
 export default function RNDashboard() {
   const { role } = useApp();
@@ -154,8 +155,9 @@ export default function RNDashboard() {
 
         {/* Tabbed Interface */}
         <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="performance">My Performance</TabsTrigger>
+            <TabsTrigger value="workqueue">Work Queue</TabsTrigger>
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
             <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
           </TabsList>
@@ -232,6 +234,11 @@ export default function RNDashboard() {
             </CardContent>
             </Card>
           </section>
+          </TabsContent>
+
+          {/* Work Queue Tab */}
+          <TabsContent value="workqueue">
+            <RNWorkQueue />
           </TabsContent>
 
           {/* Compliance Tab */}
