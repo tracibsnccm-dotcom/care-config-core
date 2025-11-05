@@ -167,8 +167,8 @@ export function MessageThread({ caseId }: MessageThreadProps) {
         .from("case_assignments")
         .select("user_id")
         .eq("case_id", caseId)
-        .eq("role", "RN_CCM")
-        .single();
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"])
+        .maybeSingle();
 
       if (rnAssignment?.user_id) {
         await supabase.rpc('notify_user', {

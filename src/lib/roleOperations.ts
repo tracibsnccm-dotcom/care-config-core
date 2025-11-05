@@ -3,7 +3,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "CLIENT" | "ATTORNEY" | "STAFF" | "RN_CM" | "CLINICAL_STAFF_EXTERNAL" | "RCMS_CLINICAL_MGMT" | "RCMS_STAFF" | "PROVIDER" | "SUPER_USER" | "SUPER_ADMIN";
+// Import from the Supabase types instead of defining our own
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database['public']['Enums']['app_role'];
 
 /**
  * Assign a role to a user (Admin only)

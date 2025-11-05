@@ -96,7 +96,7 @@ export function DiaryAnalyticsDashboard() {
       const { data: allRNs } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
       if (!allRNs) return null;
 

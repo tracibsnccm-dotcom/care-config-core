@@ -631,8 +631,8 @@ function AccessDenied() {
 export default function RNCM_Compliance_Demo() {
   const { role, cases } = useApp();
 
-  // Access control: Only RN_CCM, SUPER_USER, SUPER_ADMIN
-  const hasAccess = role === ROLES.RN_CCM || role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
+  // Access control: Only RN_CM, RCMS_CLINICAL_MGMT, SUPER_USER, SUPER_ADMIN
+  const hasAccess = role === ROLES.RN_CM || role === ROLES.RCMS_CLINICAL_MGMT || role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
 
   if (!hasAccess) {
     return <AccessDenied />;

@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 
 /* =================== CONFIG (edit in one place) =================== */
-type Role = "CLIENT"|"ATTORNEY"|"RN_CCM"|"STAFF"|"SUPER_USER"|"SUPER_ADMIN";
-const SEND_ALLOWED: Role[] = ["RN_CCM", "SUPER_USER", "SUPER_ADMIN"]; // only these can create portal shares
+type Role = "CLIENT"|"ATTORNEY"|"RN_CM"|"RCMS_CLINICAL_MGMT"|"CLINICAL_STAFF_EXTERNAL"|"STAFF"|"SUPER_USER"|"SUPER_ADMIN";
+const SEND_ALLOWED: Role[] = ["RN_CM", "RCMS_CLINICAL_MGMT", "SUPER_USER", "SUPER_ADMIN"]; // only these can create portal shares
 const COLORS = { ok:"#16a34a", warn:"#f59e0b", stop:"#dc2626", ink:"#0f2a6a", teal:"#128f8b" };
 
 /** In real life you’d issue tokens on the server and store them server-side.
@@ -76,7 +76,7 @@ export function PortalSharePanel({
   const [link,setLink] = useState<string>("");
 
   const blockedReason = useMemo(()=>{
-    if (!SEND_ALLOWED.includes(currentRole)) return "Only RN_CCM / SUPER_USER / SUPER_ADMIN can create portal shares.";
+    if (!SEND_ALLOWED.includes(currentRole)) return "Only RN_CM / RCMS_CLINICAL_MGMT / SUPER_USER / SUPER_ADMIN can create portal shares.";
     if (!consent?.scope?.shareWithProviders) return "Client has not consented to share with providers.";
     return "";
   }, [currentRole, consent]);
@@ -277,7 +277,7 @@ export function ProviderShareView() {
 /* =================== ONE-PAGE DEMO (optional) =================== */
 /** You can render this on a temporary route to try the flow end-to-end. */
 export default function PortalShareDemoPage() {
-  const currentRole: Role = "RN_CCM";
+  const currentRole: Role = "RN_CM";
   const consent: Consent = { scope: { shareWithProviders: true } };
   const caseInfo: CaseLite = {
     id: "RCMS-01234",

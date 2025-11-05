@@ -111,7 +111,9 @@ export function CareTeamContactBar({ caseId }: CareTeamContactBarProps) {
 
   function getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
-      RN_CCM: "RN Case Manager",
+      RN_CM: "RN Case Manager",
+      RCMS_CLINICAL_MGMT: "RN Clinical Manager",
+      CLINICAL_STAFF_EXTERNAL: "Clinical Staff",
       ATTORNEY: "Attorney",
       PROVIDER: "Provider",
       STAFF: "Staff",
@@ -121,7 +123,9 @@ export function CareTeamContactBar({ caseId }: CareTeamContactBarProps) {
 
   function getRoleColor(role: string): string {
     const colors: Record<string, string> = {
-      RN_CCM: "bg-blue-500",
+      RN_CM: "bg-blue-500",
+      RCMS_CLINICAL_MGMT: "bg-blue-600",
+      CLINICAL_STAFF_EXTERNAL: "bg-blue-400",
       ATTORNEY: "bg-purple-500",
       PROVIDER: "bg-green-500",
       STAFF: "bg-gray-500",

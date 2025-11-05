@@ -48,7 +48,7 @@ export function ClientQuickMessage({ caseId }: ClientQuickMessageProps) {
           profiles:user_id (display_name)
         `)
         .eq("case_id", caseId)
-        .in("role", ["RN_CCM", "ATTORNEY"]);
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT", "ATTORNEY"]);
 
       if (error) throw error;
       
@@ -137,7 +137,7 @@ export function ClientQuickMessage({ caseId }: ClientQuickMessageProps) {
             <SelectContent>
               {careTeam.map((member) => (
                 <SelectItem key={member.user_id} value={member.user_id}>
-                  {member.display_name} ({member.role === "RN_CCM" ? "RN Case Manager" : "Attorney"})
+                  {member.display_name} ({member.role === "RN_CM" || member.role === "RCMS_CLINICAL_MGMT" ? "RN Case Manager" : "Attorney"})
                 </SelectItem>
               ))}
             </SelectContent>

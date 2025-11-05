@@ -34,7 +34,7 @@ export function TeamCoordinationView() {
       const { data: rnUsers, error: usersError } = await supabase
         .from("user_roles")
         .select("user_id, profiles!inner(display_name)")
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
       if (usersError) throw usersError;
 

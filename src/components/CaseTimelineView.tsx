@@ -12,7 +12,7 @@ import { toast } from "sonner";
 interface TimelineNode {
   stage: string;
   timestamp: Date;
-  role: "CLIENT" | "RN_CCM" | "PROVIDER" | "ATTORNEY";
+  role: "CLIENT" | "RN_CM" | "RCMS_CLINICAL_MGMT" | "CLINICAL_STAFF_EXTERNAL" | "PROVIDER" | "ATTORNEY";
   description: string;
   icon: string;
 }
@@ -24,14 +24,18 @@ interface CaseTimelineViewProps {
 
 const roleColors = {
   CLIENT: "bg-blue-500",
-  RN_CCM: "bg-[hsl(var(--rcms-teal))]",
+  RN_CM: "bg-[hsl(var(--rcms-teal))]",
+  RCMS_CLINICAL_MGMT: "bg-[hsl(var(--rcms-teal))]",
+  CLINICAL_STAFF_EXTERNAL: "bg-[hsl(var(--rcms-teal))]",
   PROVIDER: "bg-green-500",
   ATTORNEY: "bg-[hsl(var(--rcms-gold))]",
 };
 
 const roleIcons = {
   CLIENT: "👤",
-  RN_CCM: "🩺",
+  RN_CM: "🩺",
+  RCMS_CLINICAL_MGMT: "🩺",
+  CLINICAL_STAFF_EXTERNAL: "🩺",
   PROVIDER: "🏥",
   ATTORNEY: "⚖️",
 };
@@ -53,7 +57,7 @@ export function CaseTimelineView({ caseId, nodes = [] }: CaseTimelineViewProps) 
     {
       stage: "Clinical Review",
       timestamp: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-      role: "RN_CCM",
+      role: "RN_CM",
       description: "Clinical assessment assigned",
       icon: "🔍",
     },

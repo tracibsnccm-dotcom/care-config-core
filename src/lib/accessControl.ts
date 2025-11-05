@@ -46,8 +46,8 @@ export function canAccess(
     return true;
   }
 
-  // RN_CCM (care manager) - needs signed + provider sharing
-  if (role === ROLES.RN_CCM) {
+  // RN_CM (care manager) - needs signed + provider sharing
+  if (role === ROLES.RN_CM) {
     if (!signed) return false;
     if (feature === FEATURE.ROUTE_PROVIDER || feature === FEATURE.VIEW_CLINICAL) {
       return shareWithProviders;

@@ -65,7 +65,7 @@ export function RNSupervisorPerformanceView() {
       const { data: rnUsers, error: rnError } = await supabase
         .from("user_roles")
         .select("user_id, profiles(display_name)")
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
       if (rnError) throw rnError;
 

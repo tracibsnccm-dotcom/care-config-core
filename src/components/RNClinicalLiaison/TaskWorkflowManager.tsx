@@ -38,7 +38,7 @@ export default function TaskWorkflowManager({ caseId }: TaskWorkflowManagerProps
     title: "",
     description: "",
     due_date: "",
-    assigned_role: "RN_CCM"
+    assigned_role: "RN_CM"
   });
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function TaskWorkflowManager({ caseId }: TaskWorkflowManagerProps
       
       toast.success("Task created successfully");
       setIsOpen(false);
-      setFormData({ title: "", description: "", due_date: "", assigned_role: "RN_CCM" });
+      setFormData({ title: "", description: "", due_date: "", assigned_role: "RN_CM" });
       fetchTasks();
     } catch (error: any) {
       toast.error("Failed to create task");
@@ -183,7 +183,8 @@ export default function TaskWorkflowManager({ caseId }: TaskWorkflowManagerProps
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="RN_CCM">RN Case Manager</SelectItem>
+                    <SelectItem value="RN_CM">RN Case Manager</SelectItem>
+                    <SelectItem value="RCMS_CLINICAL_MGMT">RN Clinical Manager</SelectItem>
                     <SelectItem value="ATTORNEY">Attorney</SelectItem>
                     <SelectItem value="CLIENT">Client</SelectItem>
                   </SelectContent>

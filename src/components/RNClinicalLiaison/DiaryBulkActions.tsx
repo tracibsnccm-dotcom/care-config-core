@@ -26,7 +26,7 @@ export function DiaryBulkActions({ selectedEntries, onActionComplete, onClearSel
     const { data } = await supabase
       .from("user_roles")
       .select("user_id, profiles!user_roles_user_id_fkey(display_name)")
-      .eq("role", "RN_CCM");
+      .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
     setAvailableRNs(data || []);
   };

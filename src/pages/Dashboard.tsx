@@ -175,8 +175,8 @@ export default function Dashboard() {
           .from("case_assignments")
           .select("user_id")
           .eq("case_id", selectedCaseId)
-          .eq("role", "RN_CCM")
-          .single();
+          .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"])
+          .maybeSingle();
 
         if (!rnError && rnAssignment) {
           const { data: profileData } = await supabase

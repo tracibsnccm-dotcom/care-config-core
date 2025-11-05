@@ -95,7 +95,7 @@ export default function CommunicationHub({ caseId, clientId }: CommunicationHubP
       const { error } = await supabase.from("attorney_rn_messages").insert({
         case_id: caseId,
         sender_id: user.id,
-        sender_role: "RN_CCM",
+        sender_role: "RN_CM",
         message_text: newMessage,
         is_important: false
       });

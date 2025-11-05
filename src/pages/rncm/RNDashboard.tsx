@@ -17,7 +17,7 @@ export default function RNDashboard() {
   const [loading, setLoading] = useState(true);
 
   // Role-based access check
-  const allowedRoles: string[] = [ROLES.RN_CCM, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
+  const allowedRoles: string[] = [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN];
   const hasAccess = allowedRoles.includes(role);
 
   useEffect(() => {

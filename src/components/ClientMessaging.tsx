@@ -253,7 +253,9 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
 
   const getRoleName = (role: string) => {
     switch (role) {
-      case "RN_CCM": return "RN Case Manager";
+      case "RN_CM": return "RN Case Manager";
+      case "RCMS_CLINICAL_MGMT": return "RN Clinical Manager";
+      case "CLINICAL_STAFF_EXTERNAL": return "Clinical Staff";
       case "ATTORNEY": return "Attorney";
       case "PROVIDER": return "Provider";
       case "STAFF": return "Staff";

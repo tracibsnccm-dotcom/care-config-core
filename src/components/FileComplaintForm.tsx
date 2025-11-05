@@ -106,7 +106,8 @@ export function FileComplaintForm({ onSuccess }: { onSuccess?: () => void }) {
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="RN_CCM">RN Care Manager</SelectItem>
+                <SelectItem value="RN_CM">RN Care Manager</SelectItem>
+                <SelectItem value="RCMS_CLINICAL_MGMT">RN Clinical Manager</SelectItem>
                 <SelectItem value="ATTORNEY">Attorney</SelectItem>
                 <SelectItem value="PROVIDER">Provider</SelectItem>
                 <SelectItem value="OTHER">Other</SelectItem>

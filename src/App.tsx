@@ -127,21 +127,21 @@ const App = () => (
             />
             <Route
               path="/e-sign-center"
-              element={<ProtectedRoute roles={["ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ESignCenter /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["ATTORNEY","RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><ESignCenter /></ProtectedRoute>}
             />
 
             {/* Client routes */}
             <Route
               path="/client-portal"
-              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortal /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortal /></ProtectedRoute>}
             />
             <Route
               path="/client-portal-legacy"
-              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortalRoute /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["CLIENT","ATTORNEY","RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientPortalRoute /></ProtectedRoute>}
             />
             <Route
               path="/journal-analytics"
-              element={<ProtectedRoute roles={["ATTORNEY","RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournalDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["ATTORNEY","RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><ClientJournalDashboard /></ProtectedRoute>}
             />
 
             {/* Provider routes */}
@@ -161,15 +161,15 @@ const App = () => (
             {/* RN routes */}
             <Route
               path="/rn-portal"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortal /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortal /></ProtectedRoute>}
             />
             <Route
               path="/rn-portal-landing"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortalLanding /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortalLanding /></ProtectedRoute>}
             />
             <Route
               path="/rn-dashboard"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNDashboard /></ProtectedRoute>}
             />
             <Route
               path="/rn-supervisor-dashboard"
@@ -181,27 +181,27 @@ const App = () => (
             />
             <Route
               path="/rn-diary"
-              element={<ProtectedRoute roles={["RN_CCM","SUPER_USER","SUPER_ADMIN"]}><RNDiary /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","SUPER_USER","SUPER_ADMIN"]}><RNDiary /></ProtectedRoute>}
             />
             <Route
               path="/rn-cm/compliance"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCMCompliance /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCMCompliance /></ProtectedRoute>}
             />
             <Route
               path="/rn-cm/quality"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNQualityDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNQualityDashboard /></ProtectedRoute>}
             />
             <Route
               path="/rn/caseload"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCaseload /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCaseload /></ProtectedRoute>}
             />
             <Route
               path="/rn/insurance-auth"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNInsuranceAuth /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNInsuranceAuth /></ProtectedRoute>}
             />
             <Route
               path="/rn/time-tracking"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
             />
             <Route
               path="/concerns-complaints"
@@ -221,7 +221,7 @@ const App = () => (
             />
             <Route
               path="/rn/settings"
-              element={<ProtectedRoute roles={["RN_CCM","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNSettings /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNSettings /></ProtectedRoute>}
             />
             <Route
               path="/referrals"

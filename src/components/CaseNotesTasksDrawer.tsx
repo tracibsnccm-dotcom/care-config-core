@@ -235,7 +235,9 @@ export function CaseNotesTasksDrawer({ caseId, open, onOpenChange }: CaseNotesTa
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ATTORNEY">Attorney</SelectItem>
-                      <SelectItem value="RN_CCM">RN CM</SelectItem>
+                      <SelectItem value="RN_CM">RN CM</SelectItem>
+                      <SelectItem value="RCMS_CLINICAL_MGMT">RN Clinical Manager</SelectItem>
+                      <SelectItem value="CLINICAL_STAFF_EXTERNAL">Clinical Staff</SelectItem>
                       <SelectItem value="PROVIDER">Provider</SelectItem>
                       <SelectItem value="STAFF">Staff</SelectItem>
                     </SelectContent>

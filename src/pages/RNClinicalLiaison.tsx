@@ -133,8 +133,8 @@ export default function RNClinicalLiaison() {
           .from("case_assignments")
           .select("user_id")
           .eq("case_id", selectedCaseId)
-          .eq("role", "RN_CCM")
-          .single();
+          .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"])
+          .maybeSingle();
 
         if (!rnError && rnAssignment) {
           // Fetch profile data separately

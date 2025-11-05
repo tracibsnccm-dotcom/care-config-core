@@ -62,7 +62,7 @@ export function DiaryTeamHandoff() {
       const { data } = await supabase
         .from("user_roles")
         .select("user_id, profiles(display_name)")
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
       return data || [];
     },
   });
@@ -76,7 +76,7 @@ export function DiaryTeamHandoff() {
         .from("case_assignments")
         .select("case_id, cases(id, client_label)")
         .eq("user_id", user.id)
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
       return data?.map(a => a.cases).filter(Boolean) || [];
     },
     enabled: !!user?.id,

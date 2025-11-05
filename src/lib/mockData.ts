@@ -230,7 +230,7 @@ export const mockProviders: Provider[] = [
 export const mockUsers = [
   { id: "ATT-001", name: "James Morrison", role: ROLES.ATTORNEY, email: "j.morrison@firm.com" },
   { id: "ATT-002", name: "Lisa Chen", role: ROLES.ATTORNEY, email: "l.chen@firm.com" },
-  { id: "RN-001", name: "Maria Garcia", role: ROLES.RN_CCM, email: "m.garcia@rcms.com" },
+  { id: "RN-001", name: "Maria Garcia", role: ROLES.RN_CM, email: "m.garcia@rcms.com" },
   { id: "STAFF-001", name: "Robert Johnson", role: ROLES.STAFF, email: "r.johnson@rcms.com" },
   { id: "ADMIN-001", name: "Admin User", role: ROLES.SUPER_ADMIN, email: "admin@rcms.com" },
 ];

@@ -143,7 +143,7 @@ export function DocumentActionsMenu({
         .from("case_assignments")
         .select("user_id")
         .eq("case_id", caseId)
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
       if (assignments && assignments.length > 0) {
         const rnIds = assignments.map(a => a.user_id);
@@ -213,7 +213,7 @@ export function DocumentActionsMenu({
         title: "Clinical Report Requested",
         description: `Clinical report requested for document: ${documentId}`,
         status: "pending",
-        assigned_role: "RN_CCM",
+        assigned_role: "RN_CM",
         created_by: user.data.user?.id,
       });
 

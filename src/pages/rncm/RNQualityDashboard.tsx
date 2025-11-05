@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 const CONFIG = {
   noteSLA: { greenHours: 24, yellowHours: 48 },
   requiredCallBizDays: 2,
-  rolesExportAllowed: ["RN_CCM", "SUPER_USER", "SUPER_ADMIN"] as const,
+  rolesExportAllowed: ["RN_CM", "RCMS_CLINICAL_MGMT", "SUPER_USER", "SUPER_ADMIN"] as const,
   colors: {
     onTime: "#16a34a",
     late: "#f59e0b",
@@ -18,7 +18,7 @@ const CONFIG = {
 type AllowedExportRole = typeof CONFIG.rolesExportAllowed[number];
 
 /* ───────────────────────── Types ───────────────────────── */
-type Role = "CLIENT"|"ATTORNEY"|"RN_CCM"|"STAFF"|"SUPER_USER"|"SUPER_ADMIN";
+type Role = "CLIENT"|"ATTORNEY"|"RN_CM"|"RCMS_CLINICAL_MGMT"|"CLINICAL_STAFF_EXTERNAL"|"STAFF"|"SUPER_USER"|"SUPER_ADMIN";
 
 type RNVisitNote = {
   caseId: string;
@@ -233,7 +233,7 @@ function StatCard({label, value, sub, color}:{label:string; value:string|number;
 }
 
 export default function RNQualityDashboard({
-  currentRole = "RN_CCM",
+  currentRole = "RN_CM",
   initialData
 }: {
   currentRole?: Role;
@@ -280,7 +280,7 @@ export default function RNQualityDashboard({
                   "rounded-md bg-gray-400 text-white px-3 py-2 font-semibold cursor-not-allowed"}
                 disabled={!exportAllowed(currentRole)}
                 onClick={()=> downloadCSV("rcms_rn_quality.csv", toCSV(filtered))}
-                title={exportAllowed(currentRole) ? "Download CSV" : "Export restricted to RN_CCM / SUPER_USER / SUPER_ADMIN"}
+                title={exportAllowed(currentRole) ? "Download CSV" : "Export restricted to RN_CM / RCMS_CLINICAL_MGMT / SUPER_USER / SUPER_ADMIN"}
               >
                 Export CSV
               </button>

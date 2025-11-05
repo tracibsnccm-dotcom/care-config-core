@@ -111,7 +111,7 @@ export function RNTeamManagement() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("user_id, profiles!user_roles_user_id_fkey(display_name, email)")
-        .eq("role", "RN_CCM");
+        .in("role", ["RN_CM", "RCMS_CLINICAL_MGMT"]);
 
       if (error) throw error;
 

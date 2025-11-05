@@ -144,7 +144,7 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
         .from('case_assignments')
         .select('user_id')
         .eq('case_id', caseId)
-        .eq('role', 'RN_CCM');
+        .in('role', ['RN_CM', 'RCMS_CLINICAL_MGMT']);
 
       if (assignments && assignments.length > 0) {
         // Create in-app message notification
@@ -159,7 +159,7 @@ export function VoiceConcernsForm({ caseId }: VoiceConcernsFormProps) {
           .insert({
             case_id: caseId,
             sender_id: user.user.id,
-            recipient_role: 'RN_CCM',
+            recipient_role: 'RN_CM',
             subject: '🔔 New Concern Report Submitted',
             message_text: `A new concern has been submitted by ${profile?.display_name || 'Client'} at ${new Date().toLocaleString()}. Please review in Voice Your Concerns.`,
             status: 'pending'
