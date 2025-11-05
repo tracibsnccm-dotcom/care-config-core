@@ -10,18 +10,22 @@ import {
   FileText, 
   User,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  MessageSquareWarning
 } from "lucide-react";
 
 interface ReviewItem {
   id: string;
-  type: "performance_review" | "documentation_review" | "case_review" | "compliance_review";
+  type: "performance_review" | "documentation_review" | "case_review" | "compliance_review" | "quality_metrics" | "complaint" | "concern" | "emergency_alert";
   title: string;
   assignedTo: string;
   dueDate: string;
   priority: "critical" | "high" | "medium" | "low";
   status: "overdue" | "due_today" | "upcoming";
   daysOverdue?: number;
+  roleRestriction?: "director" | "supervisor" | "manager" | "all";
 }
 
 interface ManagementReviewQueueProps {
@@ -38,59 +42,123 @@ export function ManagementReviewQueue({ roleLevel }: ManagementReviewQueueProps)
 
   const loadReviews = async () => {
     try {
-      // Mock data - in real app, fetch from database
+      // Mock data - in real app, fetch from database and filter by role
       const mockReviews: ReviewItem[] = [
         {
           id: "1",
           type: "performance_review",
-          title: "RN Performance Review - Sarah Johnson",
+          title: "Annual Performance Review - Sarah Johnson (RN CM)",
           assignedTo: "Sarah Johnson",
           dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           priority: "critical",
           status: "overdue",
-          daysOverdue: 2
+          daysOverdue: 2,
+          roleRestriction: "all"
         },
         {
           id: "2",
+          type: "emergency_alert",
+          title: "Emergency Alert Follow-Up - Client Suicidal Ideation",
+          assignedTo: "Emily Rodriguez",
+          dueDate: new Date().toISOString(),
+          priority: "critical",
+          status: "due_today",
+          roleRestriction: "all"
+        },
+        {
+          id: "3",
+          type: "complaint",
+          title: "Staff Complaint - Unprofessional Conduct",
+          assignedTo: "Team Wide",
+          dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          status: "upcoming",
+          roleRestriction: "director"
+        },
+        {
+          id: "4",
+          type: "concern",
+          title: "Client Concern - Care Coordinator Communication",
+          assignedTo: "Case Management Team",
+          dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          status: "overdue",
+          daysOverdue: 1,
+          roleRestriction: "director"
+        },
+        {
+          id: "5",
+          type: "quality_metrics",
+          title: "Monthly Quality Metrics Review - Documentation Compliance",
+          assignedTo: "Clinical Management",
+          dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "high",
+          status: "upcoming",
+          roleRestriction: "all"
+        },
+        {
+          id: "6",
           type: "documentation_review",
           title: "Documentation Quality Review - Case #12345",
           assignedTo: "Michael Chen",
           dueDate: new Date().toISOString(),
           priority: "high",
-          status: "due_today"
+          status: "due_today",
+          roleRestriction: "all"
         },
         {
-          id: "3",
+          id: "7",
           type: "case_review",
           title: "Complex Case Review - Patient Transfer",
           assignedTo: "Emily Rodriguez",
           dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
           priority: "high",
-          status: "upcoming"
+          status: "upcoming",
+          roleRestriction: "all"
         },
         {
-          id: "4",
+          id: "8",
           type: "compliance_review",
           title: "HIPAA Compliance Audit - Q4",
           assignedTo: "Team Wide",
           dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
           priority: "medium",
-          status: "upcoming"
+          status: "upcoming",
+          roleRestriction: "all"
         },
         {
-          id: "5",
+          id: "9",
           type: "performance_review",
-          title: "RN Performance Review - David Martinez",
+          title: "90-Day Performance Review - David Martinez",
           assignedTo: "David Martinez",
-          dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: "medium",
+          status: "upcoming",
+          roleRestriction: "all"
+        },
+        {
+          id: "10",
+          type: "emergency_alert",
+          title: "Emergency Alert Verification - High Pain Score",
+          assignedTo: "Jessica Wong",
+          dueDate: new Date().toISOString(),
           priority: "critical",
-          status: "overdue",
-          daysOverdue: 1
+          status: "due_today",
+          roleRestriction: "all"
         },
       ];
 
+      // Filter by role level
+      const filtered = mockReviews.filter(review => {
+        if (!review.roleRestriction || review.roleRestriction === "all") return true;
+        if (roleLevel === "executive") return true; // Directors see everything
+        if (roleLevel === "leadership" && review.roleRestriction !== "director") return true;
+        if (roleLevel === "operational" && review.roleRestriction === "manager") return true;
+        return false;
+      });
+
       // Sort by priority and due date
-      const sorted = mockReviews.sort((a, b) => {
+      const sorted = filtered.sort((a, b) => {
         // First by status (overdue > due_today > upcoming)
         const statusOrder = { overdue: 0, due_today: 1, upcoming: 2 };
         if (statusOrder[a.status] !== statusOrder[b.status]) {
@@ -146,6 +214,10 @@ export function ManagementReviewQueue({ roleLevel }: ManagementReviewQueueProps)
       documentation_review: FileText,
       case_review: AlertTriangle,
       compliance_review: CheckCircle,
+      quality_metrics: TrendingUp,
+      complaint: MessageSquareWarning,
+      concern: AlertCircle,
+      emergency_alert: AlertTriangle,
     };
     const Icon = icons[type];
     return <Icon className="h-4 w-4" />;
@@ -171,10 +243,16 @@ export function ManagementReviewQueue({ roleLevel }: ManagementReviewQueueProps)
 
       <div className="space-y-3">
         {reviews.map((review) => (
-          <Card key={review.id} className={review.status === "overdue" ? "border-red-300 bg-red-50/50" : ""}>
+          <Card key={review.id} className={
+            review.type === "emergency_alert" ? "border-red-500 bg-red-50/50 shadow-md" :
+            review.type === "complaint" || review.type === "concern" ? "border-orange-400 bg-orange-50/50" :
+            review.status === "overdue" ? "border-red-300 bg-red-50/50" : ""
+          }>
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 <div className={`p-2 rounded-lg ${
+                  review.type === "emergency_alert" ? "bg-red-200 animate-pulse" :
+                  review.type === "complaint" || review.type === "concern" ? "bg-orange-200" :
                   review.status === "overdue" ? "bg-red-100" : 
                   review.status === "due_today" ? "bg-yellow-100" : 
                   "bg-blue-100"
