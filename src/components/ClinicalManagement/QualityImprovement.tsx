@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Target, TrendingUp, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Target, TrendingUp, CheckCircle2, Clock } from "lucide-react";
 import { useQualityProjects } from "@/hooks/useQualityProjects";
 import { FilterBar } from "./shared/FilterBar";
 import { LoadingState } from "./shared/LoadingState";
@@ -37,75 +37,13 @@ export function QualityImprovement() {
   const avgProgress = useMemo(() => {
     if (!projects || projects.length === 0) return 0;
     const total = projects.reduce((sum, p) => {
-      // Calculate progress based on improvement percentage if available
       const progress = p.improvement_percentage || 0;
       return sum + progress;
     }, 0);
     return Math.round(total / projects.length);
   }, [projects]);
-    {
-      id: "qi-001",
-      title: "Reduce Documentation Errors by 25%",
-      category: "documentation",
-      status: "implementing",
-      owner: "Sarah Johnson, RN",
-      startDate: "2024-11-01",
-      targetDate: "2025-02-28",
-      progress: 60,
-      currentCycle: 2,
-      totalCycles: 4,
-      baseline: "18% error rate",
-      goal: "13.5% error rate",
-      currentMetric: "15% error rate"
-    },
-    {
-      id: "qi-002",
-      title: "Improve Patient Satisfaction Scores",
-      category: "clinical_outcomes",
-      status: "measuring",
-      owner: "Michael Chen, RN",
-      startDate: "2024-10-15",
-      targetDate: "2025-01-31",
-      progress: 75,
-      currentCycle: 3,
-      totalCycles: 4,
-      baseline: "82% satisfaction",
-      goal: "90% satisfaction",
-      currentMetric: "87% satisfaction"
-    },
-    {
-      id: "qi-003",
-      title: "Reduce Fall Risk Incidents",
-      category: "patient_safety",
-      status: "implementing",
-      owner: "Emily Rodriguez, RN",
-      startDate: "2024-12-01",
-      targetDate: "2025-03-31",
-      progress: 40,
-      currentCycle: 1,
-      totalCycles: 3,
-      baseline: "8 incidents/month",
-      goal: "4 incidents/month",
-      currentMetric: "6 incidents/month"
-    },
-    {
-      id: "qi-004",
-      title: "Streamline Care Coordination Process",
-      category: "efficiency",
-      status: "planning",
-      owner: "David Kim, RN",
-      startDate: "2025-01-15",
-      targetDate: "2025-04-30",
-      progress: 15,
-      currentCycle: 1,
-      totalCycles: 3,
-      baseline: "4.5 days avg",
-      goal: "2 days avg",
-      currentMetric: "4.2 days avg"
-    }
-  ]);
 
-  const getCategoryColor = (category: QIProject["category"]) => {
+  const getCategoryColor = (category: string) => {
     switch (category) {
       case "documentation":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
@@ -120,7 +58,7 @@ export function QualityImprovement() {
     }
   };
 
-  const getStatusColor = (status: QIProject["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "planning":
         return "bg-gray-500/10 text-gray-500 border-gray-500/20";
@@ -135,12 +73,9 @@ export function QualityImprovement() {
     }
   };
 
-  const handleViewProject = (projectId: string) => {
-    toast({
-      title: "Project Details",
-      description: `Opening details for ${projects.find(p => p.id === projectId)?.title}`,
-    });
-  };
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
   return (
     <div className="space-y-6">
@@ -155,6 +90,37 @@ export function QualityImprovement() {
         </Button>
       </div>
 
+      <FilterBar
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={[
+          {
+            name: "status",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            placeholder: "Status",
+            options: [
+              { label: "Planning", value: "planning" },
+              { label: "Implementing", value: "implementing" },
+              { label: "Measuring", value: "measuring" },
+              { label: "Completed", value: "completed" },
+            ],
+          },
+          {
+            name: "category",
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            placeholder: "Category",
+            options: [
+              { label: "Documentation", value: "documentation" },
+              { label: "Patient Safety", value: "patient_safety" },
+              { label: "Clinical Outcomes", value: "clinical_outcomes" },
+              { label: "Efficiency", value: "efficiency" },
+            ],
+          },
+        ]}
+      />
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -162,9 +128,7 @@ export function QualityImprovement() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {projects.filter(p => p.status !== "completed").length}
-            </div>
+            <div className="text-2xl font-bold">{activeProjects.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -173,9 +137,7 @@ export function QualityImprovement() {
             <CheckCircle2 className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {projects.filter(p => p.status === "completed").length}
-            </div>
+            <div className="text-2xl font-bold">{completedProjects.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -184,9 +146,7 @@ export function QualityImprovement() {
             <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {projects.filter(p => p.status === "implementing" || p.status === "measuring").length}
-            </div>
+            <div className="text-2xl font-bold">{inProgressProjects.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -195,81 +155,82 @@ export function QualityImprovement() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)}%
-            </div>
+            <div className="text-2xl font-bold">{avgProgress}%</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4">
-        {projects.map((project) => (
-          <Card key={project.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">{project.title}</CardTitle>
-                  <CardDescription>{project.owner}</CardDescription>
+      {!projects || projects.length === 0 ? (
+        <EmptyState
+          title="No quality improvement projects"
+          description="Start tracking quality improvement initiatives by creating your first project."
+          actionLabel="New QI Project"
+          onAction={() => {}}
+        />
+      ) : (
+        <div className="grid gap-4">
+          {projects.map((project) => (
+            <Card key={project.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{project.project_name}</CardTitle>
+                    <CardDescription>{project.description}</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className={getCategoryColor(project.category)}>
+                      {project.category.replace("_", " ").toUpperCase()}
+                    </Badge>
+                    <Badge variant="outline" className={getStatusColor(project.status)}>
+                      {project.status.toUpperCase()}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant="outline" className={getCategoryColor(project.category)}>
-                    {project.category.replace("_", " ").toUpperCase()}
-                  </Badge>
-                  <Badge variant="outline" className={getStatusColor(project.status)}>
-                    {project.status.toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-4">
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Baseline</div>
-                    <div className="text-sm font-medium mt-1">{project.baseline}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Current</div>
-                    <div className="text-sm font-medium mt-1">{project.currentMetric}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Goal</div>
-                    <div className="text-sm font-medium mt-1">{project.goal}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">PDSA Cycle</div>
-                    <div className="text-sm font-medium mt-1">
-                      {project.currentCycle} of {project.totalCycles}
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Baseline</div>
+                      <div className="text-sm font-medium mt-1">{project.baseline_metric || "N/A"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Current</div>
+                      <div className="text-sm font-medium mt-1">{project.current_metric || "N/A"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Goal</div>
+                      <div className="text-sm font-medium mt-1">{project.target_metric || "N/A"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Priority</div>
+                      <div className="text-sm font-medium mt-1">{project.priority.toUpperCase()}</div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">{project.progress}%</span>
+                  <div>
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{project.improvement_percentage || 0}%</span>
+                    </div>
+                    <Progress value={project.improvement_percentage || 0} />
                   </div>
-                  <Progress value={project.progress} />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Started: {new Date(project.start_date).toLocaleDateString()}</span>
+                    {project.target_completion && (
+                      <span>Target: {new Date(project.target_completion).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm">View Details</Button>
+                    <Button size="sm" variant="outline">Update Progress</Button>
+                    <Button size="sm" variant="outline">Edit</Button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Started: {project.startDate}</span>
-                  <span>Target: {project.targetDate}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleViewProject(project.id)}>
-                    View Details
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Document Cycle
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Update Metrics
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
