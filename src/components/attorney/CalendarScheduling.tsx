@@ -8,20 +8,21 @@ import { useState, useEffect } from "react";
 import { format, isSameDay, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Event {
+interface Appointment {
   id: string;
   title: string;
-  type: 'court' | 'meeting' | 'deadline' | 'appointment';
-  date: Date;
-  time: string;
-  location?: string;
-  caseId?: string;
-  priority: 'high' | 'medium' | 'low';
+  provider_name: string | null;
+  appointment_date: string;
+  appointment_time: string | null;
+  location: string | null;
+  notes: string | null;
+  status: string;
+  case_id: string;
 }
 
 export default function CalendarScheduling() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,55 +34,42 @@ export default function CalendarScheduling() {
       setLoading(true);
       const user = await supabase.auth.getUser();
       
-      // Fetch appointments from client_appointments table
-      const { data: appointments, error } = await supabase
+      const { data, error } = await supabase
         .from("client_appointments")
         .select(`
           id,
           title,
+          provider_name,
           appointment_date,
           appointment_time,
           location,
-          case_id,
-          provider_name,
-          status
+          notes,
+          status,
+          case_id
         `)
-        .gte("appointment_date", new Date().toISOString().split('T')[0])
+        .eq("status", "scheduled")
         .order("appointment_date", { ascending: true });
 
       if (error) throw error;
-
-      // Transform appointments to events
-      const appointmentEvents: Event[] = (appointments || []).map(apt => ({
-        id: apt.id,
-        title: apt.title,
-        type: 'appointment' as const,
-        date: parseISO(apt.appointment_date),
-        time: apt.appointment_time || '',
-        location: apt.location || undefined,
-        caseId: apt.case_id,
-        priority: 'medium' as const
-      }));
-
-      setEvents(appointmentEvents);
-    } catch (err) {
+      setAppointments(data || []);
+    } catch (err: any) {
       console.error("Error fetching appointments:", err);
     } finally {
       setLoading(false);
     }
   }
 
-  const selectedDateEvents = events.filter(event => 
-    isSameDay(event.date, selectedDate)
+  const selectedDateEvents = appointments.filter(apt => 
+    isSameDay(new Date(apt.appointment_date), selectedDate)
   );
 
-  const upcomingEvents = events
-    .filter(event => event.date >= new Date())
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const upcomingEvents = appointments
+    .filter(apt => new Date(apt.appointment_date) >= new Date())
+    .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
     .slice(0, 5);
 
-  const formatTime = (timeStr: string) => {
-    if (!timeStr) return 'All day';
+  const formatTime = (timeStr: string | null) => {
+    if (!timeStr) return "All day";
     const [hours, minutes] = timeStr.split(":");
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? "PM" : "AM";
@@ -124,20 +112,27 @@ export default function CalendarScheduling() {
             ) : selectedDateEvents.length > 0 ? (
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-3">
-                  {selectedDateEvents.map(event => (
-                    <div key={event.id} className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                  {selectedDateEvents.map(apt => (
+                    <div key={apt.id} className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <p className="font-medium text-foreground">{event.title}</p>
-                          <p className="text-sm text-muted-foreground">{formatTime(event.time)}</p>
+                          <p className="font-medium text-foreground">{apt.title}</p>
+                          {apt.provider_name && (
+                            <p className="text-sm text-muted-foreground">with {apt.provider_name}</p>
+                          )}
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {formatTime(apt.appointment_time)}
+                          </p>
                         </div>
-                        <Badge variant="outline">Appointment</Badge>
                       </div>
-                      {event.location && (
+                      {apt.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                           <MapPin className="h-4 w-4" />
-                          <span>{event.location}</span>
+                          <span>{apt.location}</span>
                         </div>
+                      )}
+                      {apt.notes && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">{apt.notes}</p>
                       )}
                     </div>
                   ))}
@@ -153,22 +148,35 @@ export default function CalendarScheduling() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
-          <ScrollArea className="h-[600px] pr-4">
-            <div className="space-y-4">
-              {upcomingEvents.map(event => (
-                <div key={event.id} className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer">
-                  <p className="font-medium text-sm text-foreground truncate">{event.title}</p>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                    <CalendarIcon className="h-3 w-3" />
-                    <span>{format(event.date, 'MMM d')}</span>
-                    <span>•</span>
-                    <span>{event.time}</span>
-                  </div>
-                </div>
+          <h3 className="text-lg font-semibold mb-4">Upcoming Appointments</h3>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="animate-pulse h-16 bg-muted rounded"></div>
               ))}
             </div>
-          </ScrollArea>
+          ) : (
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-4">
+                {upcomingEvents.length > 0 ? upcomingEvents.map(apt => (
+                  <div key={apt.id} className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer">
+                    <p className="font-medium text-sm text-foreground truncate">{apt.title}</p>
+                    {apt.provider_name && (
+                      <p className="text-xs text-muted-foreground">with {apt.provider_name}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <CalendarIcon className="h-3 w-3" />
+                      <span>{format(new Date(apt.appointment_date), 'MMM d')}</span>
+                      <span>•</span>
+                      <span>{apt.appointment_time ? formatTime(apt.appointment_time) : "All day"}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">No upcoming appointments</p>
+                )}
+              </div>
+            </ScrollArea>
+          )}
         </Card>
       </div>
     </div>
