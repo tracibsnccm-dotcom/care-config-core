@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_document_shares: {
+        Row: {
+          appointment_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          auto_selected_docs: Json | null
+          case_id: string | null
+          client_id: string | null
+          created_at: string | null
+          document_ids: Json | null
+          id: string
+          notes: string | null
+          provider_id: string | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_selected_docs?: Json | null
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          document_ids?: Json | null
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_selected_docs?: Json | null
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          document_ids?: Json | null
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_document_shares_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_document_shares_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_document_shares_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_audit_log: {
         Row: {
           assigned_attorney_id: string
@@ -1028,6 +1101,7 @@ export type Database = {
           notes: string | null
           provider_id: string | null
           provider_name: string | null
+          provider_ref_id: string | null
           reminder_sent: boolean | null
           status: string | null
           title: string
@@ -1044,6 +1118,7 @@ export type Database = {
           notes?: string | null
           provider_id?: string | null
           provider_name?: string | null
+          provider_ref_id?: string | null
           reminder_sent?: boolean | null
           status?: string | null
           title: string
@@ -1060,12 +1135,21 @@ export type Database = {
           notes?: string | null
           provider_id?: string | null
           provider_name?: string | null
+          provider_ref_id?: string | null
           reminder_sent?: boolean | null
           status?: string | null
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_appointments_provider_ref_id_fkey"
+            columns: ["provider_ref_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_checkins: {
         Row: {
@@ -2629,6 +2713,50 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_availability_slots: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          is_available: boolean | null
+          provider_id: string | null
+          start_time: string
+          time_slot: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          provider_id?: string | null
+          start_time: string
+          time_slot: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          provider_id?: string | null
+          start_time?: string
+          time_slot?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_availability_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_contact_requests: {
         Row: {
           approved_at: string | null
@@ -2740,44 +2868,68 @@ export type Database = {
         Row: {
           accepting_patients: boolean | null
           address: string | null
+          bio: string | null
+          city: string | null
           created_at: string | null
           email: string | null
           fax: string | null
           id: string
+          is_active: boolean | null
           name: string
           npi: string | null
           phone: string | null
           practice_name: string | null
           specialty: string
+          staff_name: string | null
+          staff_text_number: string | null
+          state: string | null
           updated_at: string | null
+          user_id: string | null
+          zip_code: string | null
         }
         Insert: {
           accepting_patients?: boolean | null
           address?: string | null
+          bio?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string | null
           fax?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           npi?: string | null
           phone?: string | null
           practice_name?: string | null
           specialty: string
+          staff_name?: string | null
+          staff_text_number?: string | null
+          state?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          zip_code?: string | null
         }
         Update: {
           accepting_patients?: boolean | null
           address?: string | null
+          bio?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string | null
           fax?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           npi?: string | null
           phone?: string | null
           practice_name?: string | null
           specialty?: string
+          staff_name?: string | null
+          staff_text_number?: string | null
+          state?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
