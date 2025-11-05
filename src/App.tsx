@@ -48,6 +48,12 @@ import Insights from "./pages/Insights";
 import ESignCenter from "./pages/ESignCenter";
 import Referrals from "./pages/Referrals";
 import AttorneyPolicy from "./pages/AttorneyPolicy";
+import RNEducationLibrary from "./pages/rncm/RNEducationLibrary";
+import RNCarePlanReminders from "./pages/rncm/RNCarePlanReminders";
+import RNCaseHandoffs from "./pages/rncm/RNCaseHandoffs";
+import RNClinicalGuidelines from "./pages/rncm/RNClinicalGuidelines";
+import RNCareWorkflows from "./pages/rncm/RNCareWorkflows";
+import RNVoiceDocumentation from "./pages/rncm/RNVoiceDocumentation";
 import AttorneyBilling from "./pages/AttorneyBilling";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
@@ -212,6 +218,30 @@ const App = () => (
             <Route
               path="/rn/time-tracking"
               element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/education-library"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNEducationLibrary /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/care-plan-reminders"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCarePlanReminders /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/case-handoffs"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCaseHandoffs /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/clinical-guidelines"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNClinicalGuidelines /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/care-workflows"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNCareWorkflows /></ProtectedRoute>}
+            />
+            <Route
+              path="/rn/voice-documentation"
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNVoiceDocumentation /></ProtectedRoute>}
             />
             <Route
               path="/concerns-complaints"
