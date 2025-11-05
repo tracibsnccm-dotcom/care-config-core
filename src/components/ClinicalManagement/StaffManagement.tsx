@@ -1,218 +1,211 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, UserX, Calendar, Award, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface StaffMember {
-  id: string;
-  name: string;
-  role: string;
-  status: "active" | "pto" | "training" | "leave";
-  caseload: number;
-  certifications: string[];
-  performanceScore: number;
-  nextReview: string;
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Download, Users, Mail, Phone, Briefcase } from "lucide-react";
+import { useStaffMembers, StaffMember } from "@/hooks/useStaffMembers";
+import { StaffFormDialog } from "./StaffManagement/StaffFormDialog";
+import { format } from "date-fns";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export function StaffManagement() {
-  const { toast } = useToast();
-  const [staffMembers] = useState<StaffMember[]>([
-    {
-      id: "staff-001",
-      name: "Sarah Johnson, RN",
-      role: "Clinical Nurse",
-      status: "active",
-      caseload: 12,
-      certifications: ["RN", "BSN", "CHPN"],
-      performanceScore: 94,
-      nextReview: "2025-03-15"
-    },
-    {
-      id: "staff-002",
-      name: "Michael Chen, RN",
-      role: "Clinical Nurse",
-      status: "active",
-      caseload: 15,
-      certifications: ["RN", "MSN"],
-      performanceScore: 88,
-      nextReview: "2025-02-20"
-    },
-    {
-      id: "staff-003",
-      name: "Emily Rodriguez, RN",
-      role: "Clinical Nurse",
-      status: "pto",
-      caseload: 10,
-      certifications: ["RN", "BSN"],
-      performanceScore: 91,
-      nextReview: "2025-04-10"
-    },
-    {
-      id: "staff-004",
-      name: "David Kim, RN",
-      role: "Senior Clinical Nurse",
-      status: "training",
-      caseload: 8,
-      certifications: ["RN", "MSN", "CHPN", "CNS"],
-      performanceScore: 96,
-      nextReview: "2025-03-01"
-    }
-  ]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
 
-  const getStatusColor = (status: StaffMember["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "pto":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "training":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case "leave":
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-      default:
-        return "";
+  const { staff, isLoading, createStaff, updateStaff, isCreating, isUpdating } = 
+    useStaffMembers({ role: roleFilter, search });
+
+  const handleSubmit = (data: Partial<StaffMember>) => {
+    if (selectedStaff) {
+      updateStaff({ id: selectedStaff.id, ...data });
+    } else {
+      createStaff(data);
     }
+    setDialogOpen(false);
+    setSelectedStaff(null);
   };
 
-  const getStatusIcon = (status: StaffMember["status"]) => {
-    switch (status) {
-      case "active":
-        return <UserCheck className="h-4 w-4" />;
-      case "pto":
-        return <Calendar className="h-4 w-4" />;
-      case "training":
-        return <Award className="h-4 w-4" />;
-      case "leave":
-        return <UserX className="h-4 w-4" />;
-      default:
-        return <Users className="h-4 w-4" />;
-    }
-  };
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Staff Directory Report", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${format(new Date(), "PPP")}`, 14, 22);
 
-  const handleViewProfile = (staffId: string) => {
-    toast({
-      title: "Staff Profile",
-      description: `Viewing profile for ${staffMembers.find(s => s.id === staffId)?.name}`,
+    const tableData = (staff || []).map(s => [
+      s.full_name,
+      s.role,
+      s.department,
+      s.caseload_count.toString(),
+      s.employment_status
+    ]);
+
+    autoTable(doc, {
+      startY: 28,
+      head: [["Name", "Role", "Department", "Caseload", "Status"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [15, 42, 106] }
     });
+
+    doc.save(`staff-directory-${format(new Date(), "yyyy-MM-dd")}.pdf`);
   };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      active: { variant: "default" as const },
+      on_leave: { variant: "secondary" as const },
+      terminated: { variant: "destructive" as const }
+    };
+    const style = styles[status as keyof typeof styles] || styles.active;
+    return (
+      <Badge variant={style.variant}>
+        {status.replace(/_/g, " ")}
+      </Badge>
+    );
+  };
+
+  // Filter by status on client side since hook doesn't have status filter
+  const filteredStaff = statusFilter 
+    ? staff?.filter(s => s.employment_status === statusFilter)
+    : staff;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Staff Management</h2>
-          <p className="text-muted-foreground">Manage team members and their assignments</p>
+          <h3 className="text-lg font-semibold">Staff Management</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage team members, assignments, and performance
+          </p>
         </div>
-        <Button>
-          <Users className="h-4 w-4 mr-2" />
-          Add Staff Member
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button size="sm" onClick={() => { setSelectedStaff(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Staff
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{staffMembers.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {staffMembers.filter(s => s.status === "active").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">On PTO</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {staffMembers.filter(s => s.status === "pto").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Caseload</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(staffMembers.reduce((sum, s) => sum + s.caseload, 0) / staffMembers.length)}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Filters */}
+      <div className="flex gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search staff..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="on_leave">On Leave</SelectItem>
+            <SelectItem value="terminated">Terminated</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="RN Case Manager">RN Case Manager</SelectItem>
+            <SelectItem value="RN Supervisor">RN Supervisor</SelectItem>
+            <SelectItem value="RN Director">RN Director</SelectItem>
+            <SelectItem value="Social Worker">Social Worker</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid gap-4">
-        {staffMembers.map((staff) => (
-          <Card key={staff.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl">{staff.name}</CardTitle>
-                  <CardDescription>{staff.role}</CardDescription>
-                </div>
-                <Badge variant="outline" className={getStatusColor(staff.status)}>
-                  <span className="flex items-center gap-1">
-                    {getStatusIcon(staff.status)}
-                    {staff.status.toUpperCase()}
-                  </span>
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Caseload</div>
-                  <div className="text-2xl font-bold">{staff.caseload}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Performance</div>
-                  <div className="text-2xl font-bold">{staff.performanceScore}%</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Certifications</div>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {staff.certifications.map((cert) => (
-                      <Badge key={cert} variant="secondary" className="text-xs">
-                        {cert}
-                      </Badge>
-                    ))}
+      {/* Staff List */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Loading staff...
+          </CardContent>
+        </Card>
+      ) : filteredStaff && filteredStaff.length > 0 ? (
+        <div className="grid gap-3">
+          {filteredStaff.map((member) => (
+            <Card key={member.id} className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => { setSelectedStaff(member); setDialogOpen(true); }}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      <div>
+                        <h4 className="font-semibold">{member.full_name}</h4>
+                        <p className="text-sm text-muted-foreground">{member.role}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground truncate">{member.email}</span>
+                      </div>
+                      {member.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{member.phone}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{member.department}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Caseload: </span>
+                        <span className="font-medium">{member.caseload_count}</span>
+                        {member.performance_score && (
+                          <span className="text-muted-foreground ml-2">• Score: {member.performance_score}%</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                      <span>Hired: {format(new Date(member.hire_date), "MMM dd, yyyy")}</span>
+                      {member.notes && <span className="line-clamp-1">• {member.notes}</span>}
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    {getStatusBadge(member.employment_status)}
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Next Review</div>
-                  <div className="text-sm font-medium mt-1">{staff.nextReview}</div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <Button size="sm" onClick={() => handleViewProfile(staff.id)}>
-                  View Profile
-                </Button>
-                <Button size="sm" variant="outline">
-                  Assign Cases
-                </Button>
-                <Button size="sm" variant="outline">
-                  Schedule Review
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No staff members found. Add your first staff member to get started.
+          </CardContent>
+        </Card>
+      )}
+
+      <StaffFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        staff={selectedStaff}
+        onSubmit={handleSubmit}
+        isSubmitting={isCreating || isUpdating}
+      />
     </div>
   );
 }
