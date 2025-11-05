@@ -36,7 +36,7 @@ import NotFound from "./pages/NotFound";
 import { ClientPortalRoute } from "./modules/rcms-client-portal-tab";
 import RNCMCompliance from "./pages/rncm/RNCMCompliance";
 import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
-import RNDashboard from "./pages/rncm/RNDashboard";
+
 import RNSupervisorDashboard from "./pages/rncm/RNSupervisorDashboard";
 import RNSupervisorPerformance from "./pages/rncm/RNSupervisorPerformance";
 import RNDiary from "./pages/rncm/RNDiary";
@@ -182,10 +182,6 @@ const App = () => (
             <Route
               path="/rn-portal-landing"
               element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNPortalLanding /></ProtectedRoute>}
-            />
-            <Route
-              path="/rn-dashboard"
-              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNDashboard /></ProtectedRoute>}
             />
             <Route
               path="/rn-supervisor-dashboard"

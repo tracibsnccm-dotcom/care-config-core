@@ -51,6 +51,7 @@ import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
 import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNNavigationGuard } from "@/components/RNNavigationGuard";
+import { RNWorkQueue } from "@/components/RNClinicalLiaison/RNWorkQueue";
 
 export default function RNPortalLanding() {
   const { role } = useApp();
@@ -352,11 +353,17 @@ export default function RNPortalLanding() {
 
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs defaultValue="work-queue" className="w-full">
               <CardHeader className="pb-3">
                 <RNNavigationGuard>
                   {({ handleNavigation, hasIncompleteAlerts }) => (
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
+                      <TabsTrigger 
+                        value="work-queue"
+                        onClick={(e) => handleNavigation(e)}
+                      >
+                        My Work Queue
+                      </TabsTrigger>
                       <TabsTrigger 
                         value="overview"
                         onClick={(e) => handleNavigation(e)}
@@ -367,7 +374,7 @@ export default function RNPortalLanding() {
                         value="diary"
                         onClick={(e) => handleNavigation(e)}
                       >
-                        My Diary - Upcoming Schedule
+                        My Diary
                       </TabsTrigger>
                       <TabsTrigger 
                         value="alerts"
@@ -390,6 +397,11 @@ export default function RNPortalLanding() {
               </CardHeader>
               
               <CardContent>
+                {/* My Work Queue Tab */}
+                <TabsContent value="work-queue" className="mt-0">
+                  <RNWorkQueue />
+                </TabsContent>
+
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
                   {/* Priority Section - First Row */}
@@ -543,29 +555,25 @@ export default function RNPortalLanding() {
 
         {/* Main Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Link
-            to={isSupervisor ? "/rn-supervisor-dashboard" : "/rn-dashboard"}
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                {isSupervisor ? <Users className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
+          {isSupervisor && (
+            <Link
+              to="/rn-supervisor-dashboard"
+              className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground text-lg">Team Dashboard</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Monitor team performance, manage assignments, and review quality metrics.
+                  </p>
+                  <Badge className="mt-3" variant="secondary">Supervisor View</Badge>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">
-                  {isSupervisor ? "Team Dashboard" : "Detailed Analytics"}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {isSupervisor 
-                    ? "Monitor team performance, manage assignments, and review quality metrics."
-                    : "View comprehensive metrics dashboard with historical trends and analytics."}
-                </p>
-                <Badge className="mt-3" variant="secondary">
-                  {isSupervisor ? "Supervisor View" : "Advanced View"}
-                </Badge>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          )}
 
           <Link
             to="/cases"

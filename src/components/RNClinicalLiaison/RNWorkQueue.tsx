@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   Clock, 
@@ -18,6 +17,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { format, parseISO, isBefore, isToday } from "date-fns";
+import { CaseDrawer } from "./CaseDrawer";
 
 type WorkQueueItem = {
   id: string;
@@ -35,7 +35,8 @@ export function RNWorkQueue() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"due_date" | "priority" | "type" | "status">("due_date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const navigate = useNavigate();
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ["user"],
@@ -172,7 +173,8 @@ export function RNWorkQueue() {
     if (hasEmergencies && !item.is_emergency) {
       return; // Do nothing
     }
-    navigate(`/case-management/${item.case_id}`);
+    setSelectedCaseId(item.case_id);
+    setDrawerOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -218,7 +220,14 @@ export function RNWorkQueue() {
   }
 
   return (
-    <div className="space-y-4">
+    <>
+      <CaseDrawer
+        caseId={selectedCaseId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
+      
+      <div className="space-y-4">
       {/* Emergency Alert Banner */}
       {hasEmergencies && (
         <Card className="border-red-500 bg-red-50 animate-pulse">
@@ -410,5 +419,6 @@ export function RNWorkQueue() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
