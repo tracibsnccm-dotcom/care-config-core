@@ -80,13 +80,13 @@ export default function CalendarScheduling() {
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 5);
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high': return <Badge variant="destructive">High Priority</Badge>;
-      case 'medium': return <Badge variant="secondary">Medium</Badge>;
-      case 'low': return <Badge variant="outline">Low</Badge>;
-      default: return null;
-    }
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return 'All day';
+    const [hours, minutes] = timeStr.split(":");
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
   };
 
   return (
@@ -129,9 +129,9 @@ export default function CalendarScheduling() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="font-medium text-foreground">{event.title}</p>
-                          <p className="text-sm text-muted-foreground">{event.time}</p>
+                          <p className="text-sm text-muted-foreground">{formatTime(event.time)}</p>
                         </div>
-                        {getPriorityBadge(event.priority)}
+                        <Badge variant="outline">Appointment</Badge>
                       </div>
                       {event.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
