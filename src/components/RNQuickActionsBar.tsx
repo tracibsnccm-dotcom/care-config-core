@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square } from "lucide-react";
+import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Resource {
@@ -60,6 +60,7 @@ export function RNQuickActionsBar() {
   };
 
   const actions = [
+    { icon: ClipboardList, label: "My Work Queue", onClick: () => navigate("/rn-work-queue"), variant: "default" },
     { icon: FileText, label: "New Note", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: MessageSquare, label: "Message Client", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: Calendar, label: "Schedule", onClick: () => navigate("/rn-diary") },
@@ -87,7 +88,7 @@ export function RNQuickActionsBar() {
         {actions.map((action) => (
           <Button
             key={action.label}
-            variant="outline"
+            variant={(action as any).variant ?? "outline"}
             className={`flex flex-col items-center gap-2 h-auto py-4 ${action.className || ""}`}
             onClick={action.onClick}
           >
