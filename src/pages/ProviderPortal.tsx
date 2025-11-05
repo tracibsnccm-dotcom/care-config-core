@@ -5,6 +5,8 @@ import { ProviderAppointmentCalendar } from "@/components/provider/ProviderAppoi
 import { ProviderMessages } from "@/components/provider/ProviderMessages";
 import { ProviderNotes } from "@/components/provider/ProviderNotes";
 import { ProviderCommentBox } from "@/components/provider/ProviderCommentBox";
+import { ProviderDocumentViewer } from "@/components/provider/ProviderDocumentViewer";
+import { AppointmentManagement } from "@/components/appointments/AppointmentManagement";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,15 +103,21 @@ export default function ProviderPortal() {
         </Card>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <ProviderAppointmentCalendar />
-            <ProviderCommentBox caseId={selectedCase} />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <ProviderAppointmentCalendar />
+              <ProviderCommentBox caseId={selectedCase} />
+            </div>
+            <div className="space-y-6">
+              <ProviderNotes />
+              <ProviderMessages />
+            </div>
           </div>
-          <div className="space-y-6">
-            <ProviderNotes />
-            <ProviderMessages />
-          </div>
+
+          {/* Full Width Sections */}
+          <AppointmentManagement />
+          <ProviderDocumentViewer />
         </div>
       </div>
     </AppLayout>

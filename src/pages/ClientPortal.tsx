@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity, Settings, LogOut, Shield } from "lucide-react";
+import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity, Settings, LogOut, Shield, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
@@ -329,6 +329,14 @@ export default function ClientPortal() {
               >
                 <Clock className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Appointments</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="providers"
+                className="data-[state=active]:bg-rcms-gold data-[state=active]:text-rcms-black hover:bg-rcms-gold/10 transition-all duration-300 whitespace-nowrap"
+                onClick={() => navigate("/providers")}
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Providers</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="medications"
