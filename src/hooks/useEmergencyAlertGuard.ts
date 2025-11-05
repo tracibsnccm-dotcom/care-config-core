@@ -95,7 +95,7 @@ export function useEmergencyAlertGuard() {
 
       // Notify supervisors
       await supabase.rpc("notify_roles", {
-        role_names: ["RN_CCM_DIRECTOR", "SUPER_ADMIN"],
+        role_names: ["RN_CM_DIRECTOR", "SUPER_ADMIN"],
         notification_title: "⚠️ Emergency Alert Compliance Issue",
         notification_message: `${profile?.display_name || 'An RN'} attempted to navigate away from emergency alerts 3 times without completion. Immediate follow-up required.`,
         notification_type: "error",
