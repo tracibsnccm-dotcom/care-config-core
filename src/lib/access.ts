@@ -8,7 +8,9 @@ export const ROLES = {
   ATTORNEY: "ATTORNEY",
   RN_CM: "RN_CM",                        // RCMS Internal Nurses (more clinical/care management capabilities)
   CLINICAL_STAFF_EXTERNAL: "CLINICAL_STAFF_EXTERNAL",  // External clinical staff (restricted access)
-  RCMS_CLINICAL_MGMT: "RCMS_CLINICAL_MGMT",  // RCMS Clinical Supervisors/Managers/Directors
+  RCMS_CLINICAL_MGMT: "RCMS_CLINICAL_MGMT",  // RCMS Clinical Supervisors/Managers
+  RN_CM_DIRECTOR: "RN_CM_DIRECTOR",      // RN Clinical Directors
+  COMPLIANCE: "COMPLIANCE",              // Compliance staff
   STAFF: "STAFF",                        // firm staff (external)
   RCMS_STAFF: "RCMS_STAFF",              // RCMS internal ops (administrative)
   SUPER_USER: "SUPER_USER",

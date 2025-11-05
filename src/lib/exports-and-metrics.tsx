@@ -1,9 +1,9 @@
 import React from "react";
 
 /** ─────────────────────────── Roles & Permissions (adjust if needed) ─────────────────────────── */
-export type Role = "CLIENT" | "ATTORNEY" | "RN_CM" | "CLINICAL_STAFF_EXTERNAL" | "RCMS_CLINICAL_MGMT" | "STAFF" | "RCMS_STAFF" | "SUPER_USER" | "SUPER_ADMIN";
+export type Role = "CLIENT" | "ATTORNEY" | "RN_CM" | "CLINICAL_STAFF_EXTERNAL" | "RCMS_CLINICAL_MGMT" | "RN_CM_DIRECTOR" | "COMPLIANCE" | "STAFF" | "RCMS_STAFF" | "SUPER_USER" | "SUPER_ADMIN";
 
-const EXPORT_ALLOWED: Role[] = ["RN_CM", "RCMS_CLINICAL_MGMT", "SUPER_USER", "SUPER_ADMIN"]; // keep attorneys out for clinical CSVs
+const EXPORT_ALLOWED: Role[] = ["RN_CM", "RCMS_CLINICAL_MGMT", "RN_CM_DIRECTOR", "COMPLIANCE", "SUPER_USER", "SUPER_ADMIN"]; // keep attorneys out for clinical CSVs
 
 export function exportAllowed(role: Role | undefined) {
   return !!role && EXPORT_ALLOWED.includes(role);

@@ -5256,6 +5256,8 @@ export type Database = {
         | "RN_CM"
         | "CLINICAL_STAFF_EXTERNAL"
         | "RCMS_CLINICAL_MGMT"
+        | "RN_CM_DIRECTOR"
+        | "COMPLIANCE"
       assignment_offer_status: "pending" | "accepted" | "declined" | "expired"
       disclosure_scope: "internal" | "minimal" | "full"
       payment_status: "pending" | "paid" | "failed" | "refunded"
@@ -5399,6 +5401,8 @@ export const Constants = {
         "RN_CM",
         "CLINICAL_STAFF_EXTERNAL",
         "RCMS_CLINICAL_MGMT",
+        "RN_CM_DIRECTOR",
+        "COMPLIANCE",
       ],
       assignment_offer_status: ["pending", "accepted", "declined", "expired"],
       disclosure_scope: ["internal", "minimal", "full"],
