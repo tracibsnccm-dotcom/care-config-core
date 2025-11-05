@@ -1,21 +1,65 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProviderCard } from "@/components/ProviderCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useApp } from "@/context/AppContext";
 import { Plus, Search, Megaphone, UserRound } from "lucide-react";
 import { VoiceConcernsForm } from "@/components/VoiceConcernsForm";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ClientAppointmentBooking } from "@/components/appointments/ClientAppointmentBooking";
+import { supabase } from "@/integrations/supabase/client";
 import { useCases } from "@/hooks/useSupabaseData";
+
+interface Provider {
+  id: string;
+  name: string;
+  specialty: string;
+  city: string;
+  state: string;
+  distanceMiles?: number;
+  active: boolean;
+  schedulingUrl?: string;
+}
 
 export default function Providers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
-  const { providers } = useApp();
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(true);
   const { cases: userCases } = useCases();
   const caseId = userCases?.[0]?.id as string | undefined;
+
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  async function fetchProviders() {
+    try {
+      const { data, error } = await supabase
+        .from("providers")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+
+      const formatted = (data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        specialty: p.specialty,
+        city: p.city || "",
+        state: p.state || "",
+        active: p.accepting_patients,
+      }));
+
+      setProviders(formatted);
+    } catch (error) {
+      console.error("Error fetching providers:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filteredProviders = providers.filter(
     (p) =>
@@ -33,6 +77,7 @@ export default function Providers() {
             <p className="text-muted-foreground mt-1">Find and manage healthcare providers</p>
           </div>
           <div className="flex gap-3">
+            {caseId && <ClientAppointmentBooking caseId={caseId} />}
             <Dialog open={voiceConcernsOpen} onOpenChange={setVoiceConcernsOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="bg-primary/10 hover:bg-primary/20 border-primary">
@@ -55,10 +100,6 @@ export default function Providers() {
                 )}
               </DialogContent>
             </Dialog>
-            <Button className="bg-primary hover:bg-primary-dark">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Provider
-            </Button>
           </div>
         </div>
 

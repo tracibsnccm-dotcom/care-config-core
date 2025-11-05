@@ -22,6 +22,7 @@ import IntakeWizard from "./pages/IntakeWizard";
 import ProviderRouter from "./pages/ProviderRouter";
 import ClientPortal from "./pages/ClientPortal";
 import ProviderPortal from "./pages/ProviderPortal";
+import ProviderProfileSetup from "./pages/provider/ProviderProfileSetup";
 import RNPortal from "./pages/rn/RNPortal";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import RNCaseload from "./pages/rncm/RNCaseload";
@@ -148,6 +149,10 @@ const App = () => (
             <Route
               path="/provider-portal"
               element={<ProtectedRoute roles={["PROVIDER","ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><ProviderPortal /></ProtectedRoute>}
+            />
+            <Route
+              path="/provider-profile-setup"
+              element={<ProtectedRoute roles={["PROVIDER","ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><ProviderProfileSetup /></ProtectedRoute>}
             />
             <Route
               path="/provider/share-demo"
