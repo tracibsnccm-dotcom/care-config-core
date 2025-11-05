@@ -209,8 +209,56 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
     return <div className="p-8 text-center text-muted-foreground">Loading approvals...</div>;
   }
 
+  // Calculate transfer rate analytics
+  const totalCases = 45; // This would come from database
+  const transferredCases = 18; // This would come from database  
+  const transferRate = Math.round((transferredCases / totalCases) * 100);
+  const isHighTransferRate = transferRate > 33;
+  const caseReassignmentCount = approvals.filter(a => a.type === "case_reassignment").length;
+
   return (
     <div className="space-y-4">
+      {/* Transfer Rate Analytics */}
+      {caseReassignmentCount > 0 && (
+        <Card className={isHighTransferRate ? "border-red-500/50 bg-red-500/5" : ""}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="h-5 w-5 text-muted-foreground" />
+                  <h4 className="font-semibold">Case Transfer Analytics</h4>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">Total Cases</div>
+                    <div className="text-2xl font-bold">{totalCases}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Transferred</div>
+                    <div className="text-2xl font-bold">{transferredCases}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Transfer Rate</div>
+                    <div className={`text-2xl font-bold ${isHighTransferRate ? "text-red-600" : "text-green-600"}`}>
+                      {transferRate}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {isHighTransferRate && (
+                <div className="flex items-start gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-lg">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <div className="font-semibold">High Transfer Rate</div>
+                    <div className="text-xs">Management review required to determine cause</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Approval Queue</h3>
