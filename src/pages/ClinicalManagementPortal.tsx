@@ -153,8 +153,8 @@ export default function ClinicalManagementPortal() {
           {/* Main Tabbed Interface */}
           <Card className="mb-6">
             <Tabs defaultValue="overview" className="w-full">
-              <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-6 lg:grid-cols-9">
+              <CardHeader className="pb-6">
+                <TabsList className="grid w-full grid-cols-6 lg:grid-cols-9 mb-2">
                   <TabsTrigger value="overview">
                     Overview
                   </TabsTrigger>
@@ -218,9 +218,9 @@ export default function ClinicalManagementPortal() {
                 </TabsList>
               </CardHeader>
               
-              <CardContent>
+              <CardContent className="pt-4">
                 {/* Overview Tab */}
-                <TabsContent value="overview" className="mt-0 space-y-4">
+                <TabsContent value="overview" className="mt-4 space-y-4">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <Card>
                       <CardHeader>
@@ -302,87 +302,87 @@ export default function ClinicalManagementPortal() {
                 </TabsContent>
 
                 {/* Review Queue Tab */}
-                <TabsContent value="reviews" className="mt-0">
+                <TabsContent value="reviews" className="mt-4">
                   <ManagementReviewQueue roleLevel={roleLevel} />
                 </TabsContent>
 
                 {/* Approvals Tab */}
-                <TabsContent value="approvals" className="mt-0">
+                <TabsContent value="approvals" className="mt-4">
                   <ManagementApprovalQueue roleLevel={roleLevel} />
                 </TabsContent>
 
                 {/* Team Cases Tab */}
-                <TabsContent value="team-cases" className="mt-0">
+                <TabsContent value="team-cases" className="mt-4">
                   <TeamCaseManagement />
                 </TabsContent>
 
                 {/* Performance Tab */}
-                <TabsContent value="performance" className="mt-0">
+                <TabsContent value="performance" className="mt-4">
                   <TeamPerformanceDashboard />
                 </TabsContent>
 
                 {/* Staff Tab */}
-                <TabsContent value="staff" className="mt-0">
+                <TabsContent value="staff" className="mt-4">
                   <StaffManagement />
                 </TabsContent>
 
                 {/* Training Tab */}
-                <TabsContent value="training" className="mt-0">
+                <TabsContent value="training" className="mt-4">
                   <TrainingCompliance />
                 </TabsContent>
 
                 {/* Workload Tab */}
-                <TabsContent value="workload" className="mt-0">
+                <TabsContent value="workload" className="mt-4">
                   <WorkloadBalancer />
                 </TabsContent>
 
                 {/* Quality Improvement Tab */}
-                <TabsContent value="quality" className="mt-0">
+                <TabsContent value="quality" className="mt-4">
                   <QualityImprovement />
                 </TabsContent>
 
                 {/* Clinical Audits Tab */}
-                <TabsContent value="audits" className="mt-0">
+                <TabsContent value="audits" className="mt-4">
                   <ClinicalAudits />
                 </TabsContent>
 
                 {/* Client Satisfaction Tab */}
-                <TabsContent value="satisfaction" className="mt-0">
+                <TabsContent value="satisfaction" className="mt-4">
                   <ClientSatisfaction />
                 </TabsContent>
 
                 {/* Team Communications Tab */}
-                <TabsContent value="communications" className="mt-0">
+                <TabsContent value="communications" className="mt-4">
                   <TeamCommunications />
                 </TabsContent>
 
                 {/* Financial Dashboard Tab */}
-                <TabsContent value="financial" className="mt-0">
+                <TabsContent value="financial" className="mt-4">
                   <FinancialDashboard />
                 </TabsContent>
 
                 {/* Risk Management Tab */}
-                <TabsContent value="risk" className="mt-0">
+                <TabsContent value="risk" className="mt-4">
                   <RiskManagement />
                 </TabsContent>
 
                 {/* Credentialing Tracker Tab */}
-                <TabsContent value="credentials" className="mt-0">
+                <TabsContent value="credentials" className="mt-4">
                   <CredentialingTracker />
                 </TabsContent>
 
                 {/* Resource Management Tab */}
-                <TabsContent value="resources" className="mt-0">
+                <TabsContent value="resources" className="mt-4">
                   <ResourceManagement />
                 </TabsContent>
 
                 {/* Scheduling Calendar Tab */}
-                <TabsContent value="scheduling" className="mt-0">
+                <TabsContent value="scheduling" className="mt-4">
                   <SchedulingCalendar />
                 </TabsContent>
 
                 {/* Goals & Strategic Planning Tab */}
-                <TabsContent value="goals" className="mt-0">
+                <TabsContent value="goals" className="mt-4">
                   <GoalsStrategic />
                 </TabsContent>
               </CardContent>
