@@ -68,7 +68,7 @@ export function ResolutionModal({ open, onOpenChange, item, type, onResolved }: 
         await supabase.from("audit_logs").insert({
           action: "concern_resolved",
           case_id: item.case_id,
-          actor_role: "RN_CCM_DIRECTOR",
+          actor_role: "RN_CM_DIRECTOR",
           meta: {
             concern_id: item.id,
             resolution_date: resolutionDate,
@@ -90,7 +90,7 @@ export function ResolutionModal({ open, onOpenChange, item, type, onResolved }: 
         // Audit log
         await supabase.from("audit_logs").insert({
           action: "complaint_resolved",
-          actor_role: "RN_CCM_DIRECTOR",
+          actor_role: "RN_CM_DIRECTOR",
           meta: {
             complaint_id: item.id,
             resolution_date: resolutionDate,

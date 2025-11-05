@@ -205,7 +205,7 @@ const App = () => (
             />
             <Route
               path="/concerns-complaints"
-              element={<ProtectedRoute roles={["RN_CCM_DIRECTOR","COMPLIANCE","SUPER_USER","SUPER_ADMIN"]}><ConcernsComplaintsCenter /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM_DIRECTOR","COMPLIANCE","SUPER_USER","SUPER_ADMIN"]}><ConcernsComplaintsCenter /></ProtectedRoute>}
             />
             <Route
               path="/attorney/policy"
