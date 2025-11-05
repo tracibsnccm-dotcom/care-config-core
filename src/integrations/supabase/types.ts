@@ -688,6 +688,99 @@ export type Database = {
           },
         ]
       }
+      care_plan_reminders: {
+        Row: {
+          acknowledged_at: string | null
+          care_plan_id: string | null
+          case_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          dismissed_at: string | null
+          dismissed_reason: string | null
+          id: string
+          is_recurring: boolean | null
+          metadata: Json | null
+          priority: string | null
+          recurrence_end_date: string | null
+          recurrence_pattern: string | null
+          reminder_date: string
+          reminder_time: string | null
+          reminder_type: string
+          rn_id: string | null
+          sent_at: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          care_plan_id?: string | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
+          reminder_date: string
+          reminder_time?: string | null
+          reminder_type: string
+          rn_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          care_plan_id?: string | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
+          reminder_date?: string
+          reminder_time?: string | null
+          reminder_type?: string
+          rn_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_reminders_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plan_reminders_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           case_id: string
@@ -735,6 +828,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      care_workflow_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          diagnosis_specific: string[] | null
+          estimated_duration_days: number | null
+          id: string
+          is_active: boolean | null
+          is_system_template: boolean | null
+          steps: Json
+          template_name: string
+          updated_at: string | null
+          workflow_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          diagnosis_specific?: string[] | null
+          estimated_duration_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_system_template?: boolean | null
+          steps?: Json
+          template_name: string
+          updated_at?: string | null
+          workflow_type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          diagnosis_specific?: string[] | null
+          estimated_duration_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_system_template?: boolean | null
+          steps?: Json
+          template_name?: string
+          updated_at?: string | null
+          workflow_type?: string
+        }
+        Relationships: []
       }
       case_access: {
         Row: {
@@ -821,6 +959,131 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_handoffs: {
+        Row: {
+          accepted_at: string | null
+          active_diagnoses: string[] | null
+          active_treatments: string | null
+          attorney_contact: string | null
+          authorization_status: string | null
+          care_plan_summary: string | null
+          case_id: string | null
+          checklist_completed: boolean | null
+          checklist_items: Json | null
+          client_summary: string
+          completed_at: string | null
+          created_at: string | null
+          critical_alerts: string | null
+          current_medications: string | null
+          current_status: string
+          decline_reason: string | null
+          declined_at: string | null
+          effective_date: string | null
+          from_rn_id: string
+          handoff_documents: string[] | null
+          handoff_reason: string
+          handoff_reason_notes: string | null
+          id: string
+          insurance_status: string | null
+          key_contacts: string | null
+          long_term_goals: string | null
+          pending_tasks: string | null
+          requested_at: string | null
+          reviewed_at: string | null
+          safety_concerns: string | null
+          short_term_goals: string | null
+          status: string | null
+          to_rn_id: string
+          transition_notes: string | null
+          upcoming_appointments: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          active_diagnoses?: string[] | null
+          active_treatments?: string | null
+          attorney_contact?: string | null
+          authorization_status?: string | null
+          care_plan_summary?: string | null
+          case_id?: string | null
+          checklist_completed?: boolean | null
+          checklist_items?: Json | null
+          client_summary: string
+          completed_at?: string | null
+          created_at?: string | null
+          critical_alerts?: string | null
+          current_medications?: string | null
+          current_status: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          effective_date?: string | null
+          from_rn_id: string
+          handoff_documents?: string[] | null
+          handoff_reason: string
+          handoff_reason_notes?: string | null
+          id?: string
+          insurance_status?: string | null
+          key_contacts?: string | null
+          long_term_goals?: string | null
+          pending_tasks?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          safety_concerns?: string | null
+          short_term_goals?: string | null
+          status?: string | null
+          to_rn_id: string
+          transition_notes?: string | null
+          upcoming_appointments?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          active_diagnoses?: string[] | null
+          active_treatments?: string | null
+          attorney_contact?: string | null
+          authorization_status?: string | null
+          care_plan_summary?: string | null
+          case_id?: string | null
+          checklist_completed?: boolean | null
+          checklist_items?: Json | null
+          client_summary?: string
+          completed_at?: string | null
+          created_at?: string | null
+          critical_alerts?: string | null
+          current_medications?: string | null
+          current_status?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          effective_date?: string | null
+          from_rn_id?: string
+          handoff_documents?: string[] | null
+          handoff_reason?: string
+          handoff_reason_notes?: string | null
+          id?: string
+          insurance_status?: string | null
+          key_contacts?: string | null
+          long_term_goals?: string | null
+          pending_tasks?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          safety_concerns?: string | null
+          short_term_goals?: string | null
+          status?: string | null
+          to_rn_id?: string
+          transition_notes?: string | null
+          upcoming_appointments?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_handoffs_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
@@ -946,6 +1209,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      case_workflows: {
+        Row: {
+          case_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          current_step: number | null
+          id: string
+          started_at: string | null
+          status: string | null
+          steps: Json
+          template_id: string | null
+          updated_at: string | null
+          workflow_name: string
+        }
+        Insert: {
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_step?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          steps: Json
+          template_id?: string | null
+          updated_at?: string | null
+          workflow_name: string
+        }
+        Update: {
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_step?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          steps?: Json
+          template_id?: string | null
+          updated_at?: string | null
+          workflow_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_workflows_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_workflows_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "care_workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cases: {
         Row: {
@@ -1376,6 +1699,60 @@ export type Database = {
         }
         Relationships: []
       }
+      client_education_access: {
+        Row: {
+          accessed_at: string | null
+          case_id: string | null
+          client_id: string | null
+          completed: boolean | null
+          completed_at: string | null
+          feedback_comment: string | null
+          feedback_rating: number | null
+          id: string
+          material_id: string | null
+          shared_by: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          case_id?: string | null
+          client_id?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          id?: string
+          material_id?: string | null
+          shared_by?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          case_id?: string | null
+          client_id?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          id?: string
+          material_id?: string | null
+          shared_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_education_access_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_education_access_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "education_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_goals: {
         Row: {
           case_id: string
@@ -1614,6 +1991,72 @@ export type Database = {
           notes?: string | null
           start_date?: string | null
           treatment_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clinical_guidelines: {
+        Row: {
+          contraindications: string[] | null
+          created_at: string | null
+          criteria_for_approval: string | null
+          diagnosis_code: string
+          diagnosis_name: string
+          evidence_level: string | null
+          frequency_guidelines: string | null
+          guideline_source: string
+          guideline_summary: string | null
+          guideline_title: string
+          guideline_url: string | null
+          id: string
+          is_active: boolean | null
+          last_updated_date: string | null
+          metadata: Json | null
+          recommended_duration: string | null
+          red_flags: string[] | null
+          treatment_category: string
+          updated_at: string | null
+        }
+        Insert: {
+          contraindications?: string[] | null
+          created_at?: string | null
+          criteria_for_approval?: string | null
+          diagnosis_code: string
+          diagnosis_name: string
+          evidence_level?: string | null
+          frequency_guidelines?: string | null
+          guideline_source: string
+          guideline_summary?: string | null
+          guideline_title: string
+          guideline_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_updated_date?: string | null
+          metadata?: Json | null
+          recommended_duration?: string | null
+          red_flags?: string[] | null
+          treatment_category: string
+          updated_at?: string | null
+        }
+        Update: {
+          contraindications?: string[] | null
+          created_at?: string | null
+          criteria_for_approval?: string | null
+          diagnosis_code?: string
+          diagnosis_name?: string
+          evidence_level?: string | null
+          frequency_guidelines?: string | null
+          guideline_source?: string
+          guideline_summary?: string | null
+          guideline_title?: string
+          guideline_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_updated_date?: string | null
+          metadata?: Json | null
+          recommended_duration?: string | null
+          red_flags?: string[] | null
+          treatment_category?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -2188,6 +2631,72 @@ export type Database = {
           template_content?: string
           template_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      education_materials: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          diagnosis_tags: string[] | null
+          download_count: number | null
+          duration_minutes: number | null
+          external_url: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          language: string | null
+          material_type: string
+          reading_level: string | null
+          thumbnail_url: string | null
+          title: string
+          treatment_tags: string[] | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          diagnosis_tags?: string[] | null
+          download_count?: number | null
+          duration_minutes?: number | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          material_type: string
+          reading_level?: string | null
+          thumbnail_url?: string | null
+          title: string
+          treatment_tags?: string[] | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          diagnosis_tags?: string[] | null
+          download_count?: number | null
+          duration_minutes?: number | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          material_type?: string
+          reading_level?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          treatment_tags?: string[] | null
+          updated_at?: string | null
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -5321,6 +5830,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      voice_transcriptions: {
+        Row: {
+          ai_key_points: string[] | null
+          ai_summary: string | null
+          audio_file_url: string | null
+          case_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          created_by: string | null
+          duration_seconds: number | null
+          id: string
+          note_type: string | null
+          transcription_status: string | null
+          transcription_text: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_key_points?: string[] | null
+          ai_summary?: string | null
+          audio_file_url?: string | null
+          case_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          note_type?: string | null
+          transcription_status?: string | null
+          transcription_text?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_key_points?: string[] | null
+          ai_summary?: string | null
+          audio_file_url?: string | null
+          case_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          note_type?: string | null
+          transcription_status?: string | null
+          transcription_text?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_transcriptions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallet_acknowledgments: {
         Row: {
