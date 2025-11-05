@@ -1,266 +1,239 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { FileText, Calendar, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface AuditItem {
-  id: string;
-  auditType: "documentation" | "chart_review" | "compliance" | "billing";
-  title: string;
-  auditor: string;
-  scheduledDate: string;
-  status: "scheduled" | "in_progress" | "completed" | "overdue";
-  completionRate?: number;
-  findingsCount?: number;
-  severity: "low" | "medium" | "high" | "critical";
-  correctiveActionsDue?: string;
-}
+import { Plus, Calendar, FileText, Download } from "lucide-react";
+import { useClinicalAudits, ClinicalAudit } from "@/hooks/useClinicalAudits";
+import { FilterBar } from "./shared/FilterBar";
+import { LoadingState } from "./shared/LoadingState";
+import { EmptyState } from "./shared/EmptyState";
+import { AuditFormDialog } from "./ClinicalAudits/AuditFormDialog";
+import { AuditDetailView } from "./ClinicalAudits/AuditDetailView";
+import { DeleteConfirmDialog } from "./QualityImprovement/DeleteConfirmDialog";
+import { format } from "date-fns";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export function ClinicalAudits() {
-  const { toast } = useToast();
-  const [audits] = useState<AuditItem[]>([
-    {
-      id: "audit-001",
-      auditType: "documentation",
-      title: "Weekly Chart Documentation Audit",
-      auditor: "Sarah Johnson, RN",
-      scheduledDate: "2025-01-12",
-      status: "in_progress",
-      completionRate: 65,
-      findingsCount: 8,
-      severity: "medium",
-      correctiveActionsDue: "2025-01-19"
-    },
-    {
-      id: "audit-002",
-      auditType: "compliance",
-      title: "HIPAA Compliance Audit - Q4",
-      auditor: "Compliance Team",
-      scheduledDate: "2025-01-08",
-      status: "overdue",
-      findingsCount: 3,
-      severity: "high",
-      correctiveActionsDue: "2025-01-15"
-    },
-    {
-      id: "audit-003",
-      auditType: "chart_review",
-      title: "High-Risk Case Chart Review",
-      auditor: "Michael Chen, RN",
-      scheduledDate: "2025-01-15",
-      status: "scheduled",
-      severity: "low"
-    },
-    {
-      id: "audit-004",
-      auditType: "billing",
-      title: "Billing Code Accuracy Audit",
-      auditor: "Finance Department",
-      scheduledDate: "2025-01-20",
-      status: "scheduled",
-      severity: "medium"
-    },
-    {
-      id: "audit-005",
-      auditType: "documentation",
-      title: "Medication Administration Records Audit",
-      auditor: "Emily Rodriguez, RN",
-      scheduledDate: "2025-01-05",
-      status: "completed",
-      completionRate: 100,
-      findingsCount: 2,
-      severity: "low"
-    }
-  ]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [detailViewOpen, setDetailViewOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAudit, setSelectedAudit] = useState<ClinicalAudit | null>(null);
 
-  const getStatusColor = (status: AuditItem["status"]) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "in_progress":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
-      case "completed":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "overdue":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      default:
-        return "";
-    }
+  const filters = {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    type: typeFilter !== "all" ? typeFilter : undefined,
+    search: searchQuery || undefined,
   };
 
-  const getSeverityColor = (severity: AuditItem["severity"]) => {
-    switch (severity) {
-      case "low":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "medium":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
-      case "high":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      case "critical":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      default:
-        return "";
-    }
+  const {
+    audits,
+    isLoading,
+    error,
+    createAudit,
+    updateAudit,
+    isCreating,
+    isUpdating,
+  } = useClinicalAudits(filters);
+
+  const handleCreateNew = () => {
+    setSelectedAudit(null);
+    setFormDialogOpen(true);
   };
 
-  const handleViewAudit = (auditId: string) => {
-    toast({
-      title: "Audit Details",
-      description: `Opening audit report for ${audits.find(a => a.id === auditId)?.title}`,
+  const handleEdit = (audit: ClinicalAudit) => {
+    setSelectedAudit(audit);
+    setDetailViewOpen(false);
+    setFormDialogOpen(true);
+  };
+
+  const handleViewDetails = (audit: ClinicalAudit) => {
+    setSelectedAudit(audit);
+    setDetailViewOpen(true);
+  };
+
+  const handleFormSubmit = (data: Partial<ClinicalAudit>) => {
+    if (selectedAudit?.id) {
+      updateAudit(data as ClinicalAudit & { id: string });
+    } else {
+      createAudit(data);
+    }
+    setFormDialogOpen(false);
+    setSelectedAudit(null);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Clinical Audits Report", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${format(new Date(), "PPP")}`, 14, 28);
+    
+    const tableData = audits?.map((audit) => [
+      audit.audit_name,
+      audit.audit_type.replace("_", " "),
+      audit.status.replace("_", " "),
+      format(new Date(audit.scheduled_date), "MM/dd/yyyy"),
+      audit.cases_reviewed.toString(),
+      audit.compliance_rate !== null ? `${audit.compliance_rate.toFixed(1)}%` : "N/A",
+    ]) || [];
+
+    autoTable(doc, {
+      head: [["Audit Name", "Type", "Status", "Date", "Cases", "Compliance"]],
+      body: tableData,
+      startY: 35,
+      theme: "grid",
+      headStyles: { fillColor: [15, 42, 106] },
     });
+
+    doc.save(`clinical-audits-${format(new Date(), "yyyy-MM-dd")}.pdf`);
   };
 
-  const overdueCount = audits.filter(a => a.status === "overdue").length;
-  const completedCount = audits.filter(a => a.status === "completed").length;
+  if (isLoading) return <LoadingState />;
+  if (error) return <div className="text-center py-8 text-destructive">Error loading audits</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Clinical Audits</h2>
-          <p className="text-muted-foreground">Track audits and corrective actions</p>
+          <h2 className="text-2xl font-bold">Clinical Audits</h2>
+          <p className="text-muted-foreground">Schedule and track clinical quality audits</p>
         </div>
-        <Button>
-          <Calendar className="h-4 w-4 mr-2" />
-          Schedule Audit
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportPDF} disabled={!audits?.length}>
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button onClick={handleCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Audit
+          </Button>
+        </div>
       </div>
 
-      {overdueCount > 0 && (
-        <Card className="border-red-500/50 bg-red-500/5">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <CardTitle className="text-red-500">Overdue Audits</CardTitle>
-            </div>
-            <CardDescription>
-              {overdueCount} audit{overdueCount > 1 ? 's are' : ' is'} overdue and require immediate attention
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      <FilterBar
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={[
+          {
+            name: "status",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            placeholder: "Status",
+            options: [
+              { label: "Scheduled", value: "scheduled" },
+              { label: "In Progress", value: "in_progress" },
+              { label: "Completed", value: "completed" },
+              { label: "Cancelled", value: "cancelled" },
+            ],
+          },
+          {
+            name: "type",
+            value: typeFilter,
+            onChange: setTypeFilter,
+            placeholder: "Type",
+            options: [
+              { label: "Documentation", value: "documentation" },
+              { label: "Clinical Quality", value: "clinical_quality" },
+              { label: "Compliance", value: "compliance" },
+              { label: "Safety", value: "safety" },
+              { label: "Process", value: "process" },
+            ],
+          },
+        ]}
+      />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Audits</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{audits.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">{overdueCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compliance Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">94%</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4">
-        {audits
-          .sort((a, b) => {
-            const statusOrder = { overdue: 0, in_progress: 1, scheduled: 2, completed: 3 };
-            return statusOrder[a.status] - statusOrder[b.status];
-          })
-          .map((audit) => (
-            <Card key={audit.id} className={audit.status === "overdue" ? "border-red-500/50 bg-red-500/5" : ""}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{audit.title}</CardTitle>
-                    <CardDescription>{audit.auditor}</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className={getStatusColor(audit.status)}>
-                      {audit.status.replace("_", " ").toUpperCase()}
-                    </Badge>
-                    <Badge variant="outline" className={getSeverityColor(audit.severity)}>
-                      {audit.severity.toUpperCase()}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Scheduled Date</div>
-                      <div className="text-sm font-medium mt-1">{audit.scheduledDate}</div>
-                    </div>
-                    {audit.findingsCount !== undefined && (
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground">Findings</div>
-                        <div className="text-sm font-medium mt-1">{audit.findingsCount} issues</div>
-                      </div>
-                    )}
-                    {audit.correctiveActionsDue && (
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground">Actions Due</div>
-                        <div className="text-sm font-medium mt-1">{audit.correctiveActionsDue}</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Type</div>
-                      <div className="text-sm font-medium mt-1">
-                        {audit.auditType.replace("_", " ").toUpperCase()}
-                      </div>
+      {!audits || audits.length === 0 ? (
+        <EmptyState
+          title="No Clinical Audits"
+          description="Schedule your first clinical audit to track quality and compliance"
+          actionLabel="Schedule Audit"
+          onAction={handleCreateNew}
+        />
+      ) : (
+        <div className="grid gap-4">
+          {audits.map((audit) => (
+            <Card
+              key={audit.id}
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleViewDetails(audit)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold mb-2">{audit.audit_name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline">{audit.audit_type.replace("_", " ")}</Badge>
+                      <Badge
+                        variant={
+                          audit.status === "completed"
+                            ? "default"
+                            : audit.status === "in_progress"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {audit.status.replace("_", " ")}
+                      </Badge>
+                      <Badge variant="outline">{audit.priority}</Badge>
                     </div>
                   </div>
-                  {audit.completionRate !== undefined && (
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Completion</span>
-                        <span className="font-medium">{audit.completionRate}%</span>
+                  {audit.compliance_rate !== null && (
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-600">
+                        {audit.compliance_rate.toFixed(1)}%
                       </div>
-                      <Progress value={audit.completionRate} />
+                      <div className="text-xs text-muted-foreground">Compliance</div>
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleViewAudit(audit.id)}>
-                      View Report
-                    </Button>
-                    {audit.status !== "completed" && (
-                      <>
-                        <Button size="sm" variant="outline">
-                          Update Status
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          Add Findings
-                        </Button>
-                      </>
-                    )}
+                </div>
+                <div className="flex items-center justify-between text-sm flex-wrap gap-2">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      {format(new Date(audit.scheduled_date), "MM/dd/yyyy")}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      {audit.cases_reviewed} cases reviewed
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
-      </div>
+        </div>
+      )}
+
+      <AuditFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        audit={selectedAudit}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isCreating || isUpdating}
+      />
+
+      <AuditDetailView
+        open={detailViewOpen}
+        onOpenChange={setDetailViewOpen}
+        audit={selectedAudit}
+        onEdit={() => handleEdit(selectedAudit!)}
+        onDelete={() => {
+          setDetailViewOpen(false);
+          setDeleteDialogOpen(true);
+        }}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => setDeleteDialogOpen(false)}
+        isDeleting={false}
+        projectName={selectedAudit?.audit_name || ""}
+      />
     </div>
   );
 }

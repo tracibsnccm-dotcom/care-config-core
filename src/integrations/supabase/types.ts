@@ -6235,6 +6235,74 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          caseload_count: number | null
+          certifications: Json | null
+          created_at: string
+          department: string
+          email: string
+          employment_status: string
+          full_name: string
+          hire_date: string
+          id: string
+          notes: string | null
+          performance_score: number | null
+          phone: string | null
+          role: string
+          specializations: string[] | null
+          supervisor_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          caseload_count?: number | null
+          certifications?: Json | null
+          created_at?: string
+          department: string
+          email: string
+          employment_status?: string
+          full_name: string
+          hire_date: string
+          id?: string
+          notes?: string | null
+          performance_score?: number | null
+          phone?: string | null
+          role: string
+          specializations?: string[] | null
+          supervisor_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          caseload_count?: number | null
+          certifications?: Json | null
+          created_at?: string
+          department?: string
+          email?: string
+          employment_status?: string
+          full_name?: string
+          hire_date?: string
+          id?: string
+          notes?: string | null
+          performance_score?: number | null
+          phone?: string | null
+          role?: string
+          specializations?: string[] | null
+          supervisor_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategic_goals: {
         Row: {
           category: string
