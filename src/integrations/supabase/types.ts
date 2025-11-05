@@ -3048,6 +3048,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_custom_fields: {
+        Row: {
+          created_at: string
+          created_by: string
+          display_order: number | null
+          field_name: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_required: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          display_order?: number | null
+          field_name: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_required?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          display_order?: number | null
+          field_name?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_required?: boolean | null
+        }
+        Relationships: []
+      }
       rn_daily_metrics: {
         Row: {
           attorney_collaboration_count: number | null
@@ -3805,6 +3838,308 @@ export type Database = {
           },
         ]
       }
+      rn_entry_attachments: {
+        Row: {
+          entry_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          entry_id: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          entry_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_entry_attachments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_entry_custom_fields: {
+        Row: {
+          entry_id: string
+          field_id: string
+          field_value: string | null
+          id: string
+        }
+        Insert: {
+          entry_id: string
+          field_id: string
+          field_value?: string | null
+          id?: string
+        }
+        Update: {
+          entry_id?: string
+          field_id?: string
+          field_value?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_entry_custom_fields_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_entry_custom_fields_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "rn_custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_entry_drafts: {
+        Row: {
+          draft_data: Json
+          id: string
+          last_saved: string
+          rn_id: string
+        }
+        Insert: {
+          draft_data: Json
+          id?: string
+          last_saved?: string
+          rn_id: string
+        }
+        Update: {
+          draft_data?: Json
+          id?: string
+          last_saved?: string
+          rn_id?: string
+        }
+        Relationships: []
+      }
+      rn_entry_signatures: {
+        Row: {
+          entry_id: string
+          id: string
+          signature_data: string
+          signature_type: string
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          entry_id: string
+          id?: string
+          signature_data: string
+          signature_type?: string
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          entry_id?: string
+          id?: string
+          signature_data?: string
+          signature_type?: string
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_entry_signatures_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_entry_time_tracking: {
+        Row: {
+          duration_minutes: number | null
+          end_time: string | null
+          entry_id: string
+          id: string
+          notes: string | null
+          start_time: string
+          tracked_by: string
+        }
+        Insert: {
+          duration_minutes?: number | null
+          end_time?: string | null
+          entry_id: string
+          id?: string
+          notes?: string | null
+          start_time: string
+          tracked_by: string
+        }
+        Update: {
+          duration_minutes?: number | null
+          end_time?: string | null
+          entry_id?: string
+          id?: string
+          notes?: string | null
+          start_time?: string
+          tracked_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_entry_time_tracking_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_entry_versions: {
+        Row: {
+          change_description: string | null
+          changed_at: string
+          changed_by: string
+          completion_status: string | null
+          description: string | null
+          entry_id: string
+          entry_type: string | null
+          id: string
+          priority: string | null
+          scheduled_date: string | null
+          title: string | null
+          version_number: number
+        }
+        Insert: {
+          change_description?: string | null
+          changed_at?: string
+          changed_by: string
+          completion_status?: string | null
+          description?: string | null
+          entry_id: string
+          entry_type?: string | null
+          id?: string
+          priority?: string | null
+          scheduled_date?: string | null
+          title?: string | null
+          version_number: number
+        }
+        Update: {
+          change_description?: string | null
+          changed_at?: string
+          changed_by?: string
+          completion_status?: string | null
+          description?: string | null
+          entry_id?: string
+          entry_type?: string | null
+          id?: string
+          priority?: string | null
+          scheduled_date?: string | null
+          title?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rn_entry_versions_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "rn_diary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rn_goals: {
+        Row: {
+          created_at: string
+          current_value: number | null
+          goal_description: string | null
+          goal_title: string
+          goal_type: string
+          id: string
+          rn_id: string
+          start_date: string
+          status: string | null
+          target_date: string
+          target_value: number
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number | null
+          goal_description?: string | null
+          goal_title: string
+          goal_type: string
+          id?: string
+          rn_id: string
+          start_date: string
+          status?: string | null
+          target_date: string
+          target_value: number
+        }
+        Update: {
+          created_at?: string
+          current_value?: number | null
+          goal_description?: string | null
+          goal_title?: string
+          goal_type?: string
+          id?: string
+          rn_id?: string
+          start_date?: string
+          status?: string | null
+          target_date?: string
+          target_value?: number
+        }
+        Relationships: []
+      }
+      rn_learning_resources: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          resource_type: string
+          tags: string[] | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          resource_type: string
+          tags?: string[] | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          resource_type?: string
+          tags?: string[] | null
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       rn_metadata: {
         Row: {
           after_hours_availability: boolean | null
@@ -3940,6 +4275,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rn_offline_queue: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          record_data: Json
+          rn_id: string
+          synced: boolean | null
+          synced_at: string | null
+          table_name: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          record_data: Json
+          rn_id: string
+          synced?: boolean | null
+          synced_at?: string | null
+          table_name: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          record_data?: Json
+          rn_id?: string
+          synced?: boolean | null
+          synced_at?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       rn_performance_reviews: {
         Row: {
           acknowledged_at: string | null
@@ -4009,6 +4377,36 @@ export type Database = {
           supervisor_notes?: string | null
           task_completion_score?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rn_predictive_phrases: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          last_used: string | null
+          phrase: string
+          rn_id: string
+          usage_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_used?: string | null
+          phrase: string
+          rn_id: string
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_used?: string | null
+          phrase?: string
+          rn_id?: string
+          usage_count?: number | null
         }
         Relationships: []
       }
@@ -4855,6 +5253,9 @@ export type Database = {
         | "SUPER_USER"
         | "SUPER_ADMIN"
         | "STAFF"
+        | "RN_CM"
+        | "CLINICAL_STAFF_EXTERNAL"
+        | "RCMS_CLINICAL_MGMT"
       assignment_offer_status: "pending" | "accepted" | "declined" | "expired"
       disclosure_scope: "internal" | "minimal" | "full"
       payment_status: "pending" | "paid" | "failed" | "refunded"
@@ -4995,6 +5396,9 @@ export const Constants = {
         "SUPER_USER",
         "SUPER_ADMIN",
         "STAFF",
+        "RN_CM",
+        "CLINICAL_STAFF_EXTERNAL",
+        "RCMS_CLINICAL_MGMT",
       ],
       assignment_offer_status: ["pending", "accepted", "declined", "expired"],
       disclosure_scope: ["internal", "minimal", "full"],
