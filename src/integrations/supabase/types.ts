@@ -87,6 +87,64 @@ export type Database = {
           },
         ]
       }
+      appointment_notes: {
+        Row: {
+          appointment_id: string
+          case_id: string
+          clinical_notes: string
+          created_at: string
+          follow_up_instructions: string | null
+          follow_up_needed: boolean | null
+          id: string
+          provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          case_id: string
+          clinical_notes: string
+          created_at?: string
+          follow_up_instructions?: string | null
+          follow_up_needed?: boolean | null
+          id?: string
+          provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          case_id?: string
+          clinical_notes?: string
+          created_at?: string
+          follow_up_instructions?: string | null
+          follow_up_needed?: boolean | null
+          id?: string
+          provider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_notes_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_audit_log: {
         Row: {
           assigned_attorney_id: string
@@ -1093,6 +1151,10 @@ export type Database = {
         Row: {
           appointment_date: string
           appointment_time: string | null
+          cancellation_deadline: string | null
+          cancellation_policy_hours: number | null
+          cancellation_reason: string | null
+          cancelled_by: string | null
           case_id: string
           client_id: string
           created_at: string | null
@@ -1110,6 +1172,10 @@ export type Database = {
         Insert: {
           appointment_date: string
           appointment_time?: string | null
+          cancellation_deadline?: string | null
+          cancellation_policy_hours?: number | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           case_id: string
           client_id: string
           created_at?: string | null
@@ -1127,6 +1193,10 @@ export type Database = {
         Update: {
           appointment_date?: string
           appointment_time?: string | null
+          cancellation_deadline?: string | null
+          cancellation_policy_hours?: number | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           case_id?: string
           client_id?: string
           created_at?: string | null
@@ -2860,6 +2930,92 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_ratings: {
+        Row: {
+          appointment_id: string | null
+          client_id: string
+          created_at: string
+          id: string
+          provider_id: string
+          rating: number
+          review_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          provider_id: string
+          rating: number
+          review_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          provider_id?: string
+          rating?: number
+          review_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_ratings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_ratings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_rn_messages: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_rn_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
             referencedColumns: ["id"]
           },
         ]

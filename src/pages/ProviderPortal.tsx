@@ -7,6 +7,8 @@ import { ProviderNotes } from "@/components/provider/ProviderNotes";
 import { ProviderCommentBox } from "@/components/provider/ProviderCommentBox";
 import { ProviderDocumentViewer } from "@/components/provider/ProviderDocumentViewer";
 import { AppointmentManagement } from "@/components/appointments/AppointmentManagement";
+import { ProviderAnalyticsDashboard } from "@/components/provider/ProviderAnalyticsDashboard";
+import { ProviderRNMessaging } from "@/components/provider/ProviderRNMessaging";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +106,9 @@ export default function ProviderPortal() {
 
         {/* Main Grid */}
         <div className="space-y-6">
+          {/* Analytics Dashboard */}
+          <ProviderAnalyticsDashboard />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
               <ProviderAppointmentCalendar />
@@ -114,6 +119,15 @@ export default function ProviderPortal() {
               <ProviderMessages />
             </div>
           </div>
+
+          {/* Provider-RN Messaging */}
+          {selectedCase && (
+            <ProviderRNMessaging
+              caseId={selectedCase}
+              recipientId={user?.id || ""}
+              recipientName="RN Case Manager"
+            />
+          )}
 
           {/* Full Width Sections */}
           <AppointmentManagement />

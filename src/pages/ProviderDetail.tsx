@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClientAppointmentBooking } from "@/components/appointments/ClientAppointmentBooking";
 import { useCases } from "@/hooks/useSupabaseData";
 import { toast } from "sonner";
+import { ProviderRatingsDisplay } from "@/components/provider/ProviderRatingsDisplay";
 import {
   ArrowLeft,
   MapPin,
@@ -203,6 +204,12 @@ export default function ProviderDetail() {
                   })}
                 </div>
               )}
+            </Card>
+
+            {/* Ratings & Reviews */}
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Client Reviews</h2>
+              <ProviderRatingsDisplay providerId={providerId!} />
             </Card>
           </div>
 
