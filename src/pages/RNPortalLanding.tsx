@@ -15,7 +15,13 @@ import {
   ClipboardCheck,
   AlertCircle,
   TrendingDown,
-  StickyNote
+  StickyNote,
+  BookOpen,
+  Bell,
+  UserCheck,
+  Search,
+  GitBranch,
+  Mic
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -683,6 +689,115 @@ export default function RNPortalLanding() {
                   Access medical records, reports, and case documentation.
                 </p>
                 <Badge className="mt-3" variant="secondary">Secure Storage</Badge>
+              </div>
+            </div>
+          </Link>
+
+          {/* NEW Clinical Tools Section */}
+          <Link
+            to="/rn/education-library"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-purple-100 text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Education Materials</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Access client education resources, videos, and interactive materials.
+                </p>
+                <Badge className="mt-3" variant="secondary">Resource Library</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/rn/care-plan-reminders"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-orange-100 text-orange-700 group-hover:bg-orange-600 group-hover:text-white transition">
+                <Bell className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Care Plan Reminders</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Manage care plan updates, medication reconciliation, and follow-up tasks.
+                </p>
+                <Badge className="mt-3" variant="secondary">Task Management</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/rn/case-handoffs"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-indigo-100 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Case Handoffs</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Transfer cases between RN Case Managers with complete care continuity.
+                </p>
+                <Badge className="mt-3" variant="secondary">RN-to-RN</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/rn/clinical-guidelines"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-teal-100 text-teal-700 group-hover:bg-teal-600 group-hover:text-white transition">
+                <Search className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Clinical Guidelines</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Search ODG/MCG guidelines for evidence-based treatment recommendations.
+                </p>
+                <Badge className="mt-3" variant="secondary">Decision Support</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/rn/care-workflows"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
+                <GitBranch className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Care Workflows</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Build and apply standardized care coordination workflow templates.
+                </p>
+                <Badge className="mt-3" variant="secondary">Workflow Builder</Badge>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/rn/voice-documentation"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-pink-100 text-pink-700 group-hover:bg-pink-600 group-hover:text-white transition">
+                <Mic className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Voice Documentation</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Dictate notes with voice-to-text and AI-powered documentation assistance.
+                </p>
+                <Badge className="mt-3" variant="secondary">AI-Enhanced</Badge>
               </div>
             </div>
           </Link>
