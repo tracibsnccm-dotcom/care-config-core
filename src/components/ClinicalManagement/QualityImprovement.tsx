@@ -1,30 +1,48 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, CheckCircle2, Clock, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface QIProject {
-  id: string;
-  title: string;
-  category: "documentation" | "patient_safety" | "clinical_outcomes" | "efficiency";
-  status: "planning" | "implementing" | "measuring" | "completed";
-  owner: string;
-  startDate: string;
-  targetDate: string;
-  progress: number;
-  currentCycle: number;
-  totalCycles: number;
-  baseline: string;
-  goal: string;
-  currentMetric: string;
-}
+import { useQualityProjects } from "@/hooks/useQualityProjects";
+import { FilterBar } from "./shared/FilterBar";
+import { LoadingState } from "./shared/LoadingState";
+import { EmptyState } from "./shared/EmptyState";
 
 export function QualityImprovement() {
-  const { toast } = useToast();
-  const [projects] = useState<QIProject[]>([
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filters = useMemo(() => ({
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    category: categoryFilter !== "all" ? categoryFilter : undefined,
+    search: searchQuery || undefined,
+  }), [statusFilter, categoryFilter, searchQuery]);
+
+  const { projects, isLoading } = useQualityProjects(filters);
+
+  const activeProjects = useMemo(() => 
+    projects?.filter(p => p.status !== "completed") || []
+  , [projects]);
+
+  const completedProjects = useMemo(() => 
+    projects?.filter(p => p.status === "completed") || []
+  , [projects]);
+
+  const inProgressProjects = useMemo(() => 
+    projects?.filter(p => p.status === "implementing" || p.status === "measuring") || []
+  , [projects]);
+
+  const avgProgress = useMemo(() => {
+    if (!projects || projects.length === 0) return 0;
+    const total = projects.reduce((sum, p) => {
+      // Calculate progress based on improvement percentage if available
+      const progress = p.improvement_percentage || 0;
+      return sum + progress;
+    }, 0);
+    return Math.round(total / projects.length);
+  }, [projects]);
     {
       id: "qi-001",
       title: "Reduce Documentation Errors by 25%",
