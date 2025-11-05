@@ -1026,6 +1026,7 @@ export type Database = {
           id: string
           location: string | null
           notes: string | null
+          provider_id: string | null
           provider_name: string | null
           reminder_sent: boolean | null
           status: string | null
@@ -1041,6 +1042,7 @@ export type Database = {
           id?: string
           location?: string | null
           notes?: string | null
+          provider_id?: string | null
           provider_name?: string | null
           reminder_sent?: boolean | null
           status?: string | null
@@ -1056,6 +1058,7 @@ export type Database = {
           id?: string
           location?: string | null
           notes?: string | null
+          provider_id?: string | null
           provider_name?: string | null
           reminder_sent?: boolean | null
           status?: string | null
@@ -2685,6 +2688,50 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_notes: {
+        Row: {
+          appointment_id: string | null
+          case_id: string
+          created_at: string | null
+          id: string
+          is_appointment_note: boolean | null
+          note_content: string
+          note_title: string
+          provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          case_id: string
+          created_at?: string | null
+          id?: string
+          is_appointment_note?: boolean | null
+          note_content: string
+          note_title: string
+          provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          case_id?: string
+          created_at?: string | null
+          id?: string
+          is_appointment_note?: boolean | null
+          note_content?: string
+          note_title?: string
+          provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
             referencedColumns: ["id"]
           },
         ]
