@@ -1121,6 +1121,50 @@ export type Database = {
         }
         Relationships: []
       }
+      case_reassignments: {
+        Row: {
+          case_id: string
+          created_at: string
+          from_rn_id: string
+          id: string
+          notes: string | null
+          reason: string | null
+          reassigned_at: string
+          reassigned_by: string
+          to_rn_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          from_rn_id: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          reassigned_at?: string
+          reassigned_by: string
+          to_rn_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          from_rn_id?: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          reassigned_at?: string
+          reassigned_by?: string
+          to_rn_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_reassignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_summaries: {
         Row: {
           case_id: string
@@ -6178,6 +6222,8 @@ export type Database = {
         | "RCMS_CLINICAL_MGMT"
         | "RN_CM_DIRECTOR"
         | "COMPLIANCE"
+        | "RN_CM_SUPERVISOR"
+        | "RN_CM_MANAGER"
       assignment_offer_status: "pending" | "accepted" | "declined" | "expired"
       disclosure_scope: "internal" | "minimal" | "full"
       payment_status: "pending" | "paid" | "failed" | "refunded"
@@ -6323,6 +6369,8 @@ export const Constants = {
         "RCMS_CLINICAL_MGMT",
         "RN_CM_DIRECTOR",
         "COMPLIANCE",
+        "RN_CM_SUPERVISOR",
+        "RN_CM_MANAGER",
       ],
       assignment_offer_status: ["pending", "accepted", "declined", "expired"],
       disclosure_scope: ["internal", "minimal", "full"],

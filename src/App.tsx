@@ -56,6 +56,7 @@ import RNClinicalGuidelines from "./pages/rncm/RNClinicalGuidelines";
 import RNCareWorkflows from "./pages/rncm/RNCareWorkflows";
 import RNVoiceDocumentation from "./pages/rncm/RNVoiceDocumentation";
 import AttorneyBilling from "./pages/AttorneyBilling";
+import ClinicalManagementPortal from "./pages/ClinicalManagementPortal";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
@@ -243,6 +244,10 @@ const App = () => (
             <Route
               path="/rn/voice-documentation"
               element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNVoiceDocumentation /></ProtectedRoute>}
+            />
+            <Route
+              path="/clinical-management-portal"
+              element={<ProtectedRoute roles={["RN_CM_SUPERVISOR","RN_CM_MANAGER","RN_CM_DIRECTOR","SUPER_USER","SUPER_ADMIN"]}><ClinicalManagementPortal /></ProtectedRoute>}
             />
             <Route
               path="/concerns-complaints"
