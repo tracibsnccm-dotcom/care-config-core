@@ -18,8 +18,12 @@ export const ROLES = {
 } as const;
 
 export const FEATURE = {
-  VIEW_IDENTITY: "VIEW_IDENTITY",
-  VIEW_CLINICAL: "VIEW_CLINICAL",
+  VIEW_IDENTITY: "VIEW_IDENTITY",           // Full name, full DOB
+  VIEW_BASIC_CONTACT: "VIEW_BASIC_CONTACT", // Address, phone, DOB (no clinical)
+  VIEW_CLINICAL: "VIEW_CLINICAL",           // Medical records, care plans, sensitive data
+  VIEW_CLINICAL_NOTES: "VIEW_CLINICAL_NOTES", // RN clinical notes
+  VIEW_ATTORNEY_NOTES: "VIEW_ATTORNEY_NOTES", // Attorney case notes
+  UPLOAD_DOCUMENTS: "UPLOAD_DOCUMENTS",     // Can upload files to cases
   EXPORT: "EXPORT",
   ROUTE_PROVIDER: "ROUTE_PROVIDER",
 } as const;
@@ -36,6 +40,7 @@ export interface User {
   orgType: "RCMS" | "FIRM";     // who they work for
   orgId: string;                // "rcms" or firm id
   designatedCaseIds?: string[]; // optional per-user allow list
+  elevatedAccess?: boolean;     // For CLINICAL_STAFF_EXTERNAL - super admin can grant full PHI access
 }
 
 export interface CaseConsent {
@@ -67,12 +72,21 @@ export function sameFirm(user: User | undefined, theCase: RcmsCase | undefined):
 }
 
 /** ===== Core Guard =====
- * Enforces least-privilege + consent:
- * - SUPER_USER / SUPER_ADMIN can access everything (still audit separately).
- * - RCMS_STAFF is NOT a backdoor to firm cases: must be designated AND provider-sharing consent to see clinical/identity/route/export.
- * - ATTORNEY (firm): same firm + consent.shareWithAttorney (routing also requires provider consent).
- * - RN_CCM (firm): same firm + designated + consent (providers) for clinical/identity/route; never export.
- * - STAFF (firm): same firm + designated + consent (providers); no identity, no export; can view clinical/route.
+ * Enforces HIPAA Minimum Necessary + consent:
+ * 
+ * FULL PHI ACCESS (All clinical/attorney notes):
+ * - ATTORNEY: same firm + consent.shareWithAttorney
+ * - RN_CM: RCMS internal nurses, provider consent required
+ * - RCMS_CLINICAL_MGMT: RCMS clinical supervisors/managers (full access)
+ * - RN_CM_DIRECTOR: RN clinical directors (full access)
+ * - COMPLIANCE: Compliance staff (typically RCMS Director/Manager, full access)
+ * - CLINICAL_STAFF_EXTERNAL: Minimum necessary by default, BUT super admin can elevate to full
+ * 
+ * MINIMUM NECESSARY ACCESS (Basic contact only, no clinical/attorney notes):
+ * - STAFF: Firm staff - can see address/phone/DOB, upload docs, NO clinical/attorney notes
+ * - RCMS_STAFF: RCMS operations - can see address/phone/DOB, upload docs, NO clinical/attorney notes
+ * 
+ * SUPER ADMIN: Full oversight access (audited)
  */
 export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?: User): boolean {
   const signed = !!theCase?.consent?.signed;
@@ -82,52 +96,115 @@ export function canAccess(role: Role, theCase: RcmsCase, feature: Feature, user?
   // Super oversight (always audited elsewhere)
   if (role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN) return true;
 
-  // RCMS internal ops — never a backdoor to firm cases
+  // COMPLIANCE - Full PHI access (typically RCMS Director/Manager)
+  if (role === ROLES.COMPLIANCE) {
+    if (!signed) return false;
+    // Full access to all features
+    return true;
+  }
+
+  // RCMS_STAFF - Minimum Necessary (basic contact info only)
   if (role === ROLES.RCMS_STAFF) {
-    if ([FEATURE.VIEW_IDENTITY, FEATURE.VIEW_CLINICAL, FEATURE.ROUTE_PROVIDER, FEATURE.EXPORT].includes(feature)) {
-      return !!user && isDesignated(user, theCase) && signed && shareWithProviders;
+    if (!signed || !shareWithProviders) return false;
+    if (!user || !isDesignated(user, theCase)) return false;
+    
+    // Can see basic contact info and upload documents
+    if (feature === FEATURE.VIEW_BASIC_CONTACT) return true;
+    if (feature === FEATURE.UPLOAD_DOCUMENTS) return true;
+    
+    // NO access to clinical notes, attorney notes, full identity, export
+    const blockedFeatures: Feature[] = [
+      FEATURE.VIEW_CLINICAL, FEATURE.VIEW_CLINICAL_NOTES, FEATURE.VIEW_ATTORNEY_NOTES, 
+      FEATURE.VIEW_IDENTITY, FEATURE.EXPORT, FEATURE.ROUTE_PROVIDER
+    ];
+    if (blockedFeatures.includes(feature)) {
+      return false;
     }
+    
     return false;
   }
 
-  // Attorneys — firm users
+  // STAFF (firm) - Minimum Necessary (basic contact info only)
+  if (role === ROLES.STAFF) {
+    if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
+    if (!signed || !shareWithProviders) return false;
+    
+    // Can see basic contact info and upload documents
+    if (feature === FEATURE.VIEW_BASIC_CONTACT) return true;
+    if (feature === FEATURE.UPLOAD_DOCUMENTS) return true;
+    
+    // NO access to clinical notes, attorney notes, full identity, export
+    const blockedFeatures: Feature[] = [
+      FEATURE.VIEW_CLINICAL, FEATURE.VIEW_CLINICAL_NOTES, FEATURE.VIEW_ATTORNEY_NOTES,
+      FEATURE.VIEW_IDENTITY, FEATURE.EXPORT, FEATURE.ROUTE_PROVIDER
+    ];
+    if (blockedFeatures.includes(feature)) {
+      return false;
+    }
+    
+    return false;
+  }
+
+  // ATTORNEY - Full PHI access with consent
   if (role === ROLES.ATTORNEY) {
     if (!sameFirm(user, theCase)) return false;
     if (!signed || !shareWithAttorney) return false;
     if (feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
-    return true; // identity + clinical allowed when attorney sharing is true
+    // Full access to identity, clinical, attorney notes, export
+    return true;
   }
 
-  // RN CM — RCMS Internal Nurses: full clinical/care management capabilities
+  // RN_CM - RCMS Internal Nurses (full clinical capabilities)
   if (role === ROLES.RN_CM) {
     if (!signed) return false;
-    if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
-    if (feature === FEATURE.VIEW_IDENTITY) return shareWithProviders;
-    if (feature === FEATURE.EXPORT) return false;  // Still no export for RN CM
-    return false;
+    if (feature === FEATURE.EXPORT) return false; // No export
+    // Full access to clinical and identity, requires provider consent
+    const allowedFeatures: Feature[] = [
+      FEATURE.VIEW_CLINICAL, FEATURE.VIEW_CLINICAL_NOTES, FEATURE.VIEW_IDENTITY, 
+      FEATURE.ROUTE_PROVIDER, FEATURE.UPLOAD_DOCUMENTS
+    ];
+    if (allowedFeatures.includes(feature)) {
+      return shareWithProviders;
+    }
+    // No access to attorney notes
+    if (feature === FEATURE.VIEW_ATTORNEY_NOTES) return false;
+    return shareWithProviders;
   }
 
-  // RCMS Clinical Management — RCMS Clinical Supervisors/Managers/Directors: full access
-  if (role === ROLES.RCMS_CLINICAL_MGMT) {
-    return true;  // Full access for clinical management
+  // RCMS_CLINICAL_MGMT - RCMS Clinical Management (full access)
+  if (role === ROLES.RCMS_CLINICAL_MGMT || role === ROLES.RN_CM_DIRECTOR) {
+    if (!signed) return false;
+    if (feature === FEATURE.EXPORT) return false; // No export
+    // Full access to all clinical and identity features
+    return true;
   }
 
-  // CLINICAL_STAFF_EXTERNAL — External clinical staff (restricted): same as old RN_CCM
+  // CLINICAL_STAFF_EXTERNAL - Minimum Necessary by default, elevatable by super admin
   if (role === ROLES.CLINICAL_STAFF_EXTERNAL) {
     if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
-    if (!signed) return false;
-    if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return shareWithProviders;
-    if (feature === FEATURE.VIEW_IDENTITY) return shareWithProviders;
-    if (feature === FEATURE.EXPORT) return false;
-    return false;
-  }
-
-  // STAFF — firm users (minimal)
-  if (role === ROLES.STAFF) {
-    if (!sameFirm(user, theCase) || !isDesignated(user, theCase)) return false;
     if (!signed || !shareWithProviders) return false;
-    if (feature === FEATURE.VIEW_IDENTITY || feature === FEATURE.EXPORT) return false;
-    if (feature === FEATURE.VIEW_CLINICAL || feature === FEATURE.ROUTE_PROVIDER) return true;
+    
+    // Check if super admin has granted elevated access
+    if (user?.elevatedAccess) {
+      // Elevated: Full PHI access (like RN_CM)
+      if (feature === FEATURE.EXPORT) return false; // Still no export
+      if (feature === FEATURE.VIEW_ATTORNEY_NOTES) return false; // Still no attorney notes
+      return true; // Full clinical access
+    }
+    
+    // Default: Minimum Necessary access
+    if (feature === FEATURE.VIEW_BASIC_CONTACT) return true;
+    if (feature === FEATURE.UPLOAD_DOCUMENTS) return true;
+    
+    // NO access to full clinical, attorney notes, full identity
+    const blockedFeatures: Feature[] = [
+      FEATURE.VIEW_CLINICAL, FEATURE.VIEW_CLINICAL_NOTES, FEATURE.VIEW_ATTORNEY_NOTES,
+      FEATURE.VIEW_IDENTITY, FEATURE.EXPORT, FEATURE.ROUTE_PROVIDER
+    ];
+    if (blockedFeatures.includes(feature)) {
+      return false;
+    }
+    
     return false;
   }
 
