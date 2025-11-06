@@ -7529,6 +7529,38 @@ export type Database = {
         Args: { p_date?: string }
         Returns: undefined
       }
+      check_expiring_items: {
+        Args: { days_ahead?: number }
+        Returns: {
+          case_id: string
+          days_until_expiry: number
+          expires_at: string
+          item_id: string
+          item_type: string
+        }[]
+      }
+      check_overdue_tasks: {
+        Args: never
+        Returns: {
+          case_id: string
+          days_overdue: number
+          due_date: string
+          task_id: string
+          title: string
+        }[]
+      }
+      check_upcoming_reminders: {
+        Args: { days_ahead?: number }
+        Returns: {
+          case_id: string
+          days_until: number
+          priority: string
+          reminder_date: string
+          reminder_id: string
+          rn_id: string
+          title: string
+        }[]
+      }
       convert_to_attorney_case: {
         Args: { p_attorney_code: string; p_internal_case_id: string }
         Returns: Json
@@ -7576,6 +7608,7 @@ export type Database = {
         }[]
       }
       get_client_initials: { Args: { client_uuid: string }; Returns: string }
+      get_current_time: { Args: never; Returns: string }
       get_latest_policy_acceptance: {
         Args: { p_attorney_id: string }
         Returns: {
