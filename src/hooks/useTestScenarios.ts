@@ -67,6 +67,7 @@ export function useTestScenarios() {
       const { data: results, error } = await supabase
         .from('test_scenarios')
         .insert([{
+          id: crypto.randomUUID(),
           name: scenarioName,
           core_pattern: corePattern,
           client_profile: data.clientProfile || '',
