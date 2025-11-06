@@ -31,6 +31,13 @@ export {
   getTrialEndDate,
 } from "../utils/trial";
 
+// Re-export HIPAA access control utilities
+export {
+  showHIPAAAccessDenied,
+  checkHIPAAAccess,
+  withHIPAACheck,
+} from "./hipaaAccessControl";
+
 // Convenience aliases for common patterns
 import { getDisplayName, canSearchByName } from "./access";
 import type { Role, RcmsCase, User } from "./access";
