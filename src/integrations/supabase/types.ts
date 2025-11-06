@@ -319,7 +319,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_attorney_availability_user"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       attorney_metadata: {
         Row: {
@@ -430,7 +438,15 @@ export type Database = {
           total_time_minutes?: number
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_attorney_monthly_reports_attorney"
+            columns: ["attorney_id"]
+            isOneToOne: false
+            referencedRelation: "attorney_metadata"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       attorney_performance: {
         Row: {
@@ -487,6 +503,20 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "attorney_practice_areas_practice_area_id_fkey"
+            columns: ["practice_area_id"]
+            isOneToOne: false
+            referencedRelation: "practice_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attorney_practice_areas_attorney"
+            columns: ["attorney_id"]
+            isOneToOne: false
+            referencedRelation: "attorney_metadata"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_attorney_practice_areas_practice_area"
             columns: ["practice_area_id"]
             isOneToOne: false
             referencedRelation: "practice_areas"
@@ -600,7 +630,15 @@ export type Database = {
           id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_attorney_wallet_attorney"
+            columns: ["attorney_id"]
+            isOneToOne: true
+            referencedRelation: "attorney_metadata"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       audit_events: {
         Row: {
@@ -641,6 +679,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_events_actor"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
