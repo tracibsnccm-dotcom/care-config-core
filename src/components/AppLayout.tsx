@@ -79,6 +79,7 @@ const navigation = [
   // Admin & Analytics
   { name: "Journal Analytics", href: "/journal-analytics", icon: BarChart3, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Admin", href: "/admin-dashboard", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Staff Permissions", href: "/admin/staff-permissions", icon: UserCircle, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];

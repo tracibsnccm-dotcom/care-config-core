@@ -62,6 +62,7 @@ import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
 import AttorneyPortalPage from "./pages/attorney/AttorneyPortalPage";
 import StaffPortalPage from "./pages/staff/StaffPortalPage";
+import StaffPermissionsPage from "./pages/admin/StaffPermissionsPage";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,10 @@ const App = () => (
             <Route
               path="/admin-dashboard"
               element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><AdminPanel /></ProtectedRoute>}
+            />
+            <Route
+              path="/admin/staff-permissions"
+              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><StaffPermissionsPage /></ProtectedRoute>}
             />
             <Route
               path="/reports"
