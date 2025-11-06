@@ -10,6 +10,9 @@ export default function RoleLandingRedirect() {
   // Check for Clinical Management roles (Supervisor/Manager/Director) - redirect to management portal
   if (r.has("RN_CM_SUPERVISOR") || r.has("RN_CM_MANAGER") || r.has("RN_CM_DIRECTOR")) return <Navigate to="/clinical-management-portal" replace />;
   
+  // Prefer client when both Client and Attorney roles are present (testing convenience)
+  if (r.has("CLIENT") && r.has("ATTORNEY")) return <Navigate to="/client-portal" replace />;
+  
   // Check for RN and Clinical Management roles
   if (r.has("RN_CM") || r.has("RCMS_CLINICAL_MGMT") || r.has("COMPLIANCE")) return <Navigate to="/rn-portal-landing" replace />;
   

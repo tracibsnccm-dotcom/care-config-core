@@ -76,7 +76,7 @@ export default function ClientPortal() {
           .eq("case_id", caseId)
           .order("created_at", { ascending: false })
           .limit(1);
-
+  
         if (!error && data && data.length > 0) {
           const latest = data[0];
           const hasCrisis = latest.pain_scale >= 8 || 
@@ -88,9 +88,16 @@ export default function ClientPortal() {
         console.error("Error checking crisis indicators:", err);
       }
     }
-
+  
     checkCrisisIndicators();
   }, [caseId]);
+  
+  // Persist active tab across reloads
+  useEffect(() => {
+    try {
+      localStorage.setItem("clientPortal_activeTab", activeTab);
+    } catch {}
+  }, [activeTab]);
   
   return (
     <div className="min-h-screen bg-rcms-white">
