@@ -2,13 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTeamSchedule } from "@/hooks/useTeamSchedule";
-import { Calendar, Clock, MapPin, Users, Plus } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { format, isToday, isTomorrow, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { useState } from "react";
+import { ScheduleEventFormDialog } from "./ScheduleEventFormDialog";
 
 export function TeamSchedule() {
-  const { events, loading } = useTeamSchedule();
+  const { events, loading, deleteEvent } = useTeamSchedule();
   const [view, setView] = useState<'week' | 'month'>('week');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
 
   if (loading) {
     return <div className="text-muted-foreground">Loading schedule...</div>;
@@ -54,7 +58,11 @@ export function TeamSchedule() {
           <h2 className="text-2xl font-bold text-foreground">Team Schedule</h2>
           <p className="text-sm text-muted-foreground mt-1">Manage team events and appointments</p>
         </div>
-        <Button>
+        <Button onClick={() => {
+          setDialogMode('create');
+          setEditingEvent(null);
+          setDialogOpen(true);
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Add Event
         </Button>
@@ -199,12 +207,45 @@ export function TeamSchedule() {
                   <Badge variant="outline" className={getEventTypeColor(event.event_type)}>
                     {event.event_type}
                   </Badge>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setDialogMode('edit');
+                        setEditingEvent(event);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this event?')) {
+                          deleteEvent(event.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
           </div>
         </CardContent>
       </Card>
+
+      <ScheduleEventFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        event={editingEvent}
+        mode={dialogMode}
+      />
     </div>
   );
 }

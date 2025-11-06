@@ -2,12 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTeamCases } from "@/hooks/useTeamCases";
-import { Eye, CheckCircle, Clock, FileText } from "lucide-react";
+import { Eye, CheckCircle, Clock, FileText, UserPlus } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
+import { TeamAssignmentDialog } from "./TeamAssignmentDialog";
+import { useState } from "react";
 
 export function TeamCasesBoard() {
-  const { cases, loading } = useTeamCases();
+  const { cases, loading, refresh } = useTeamCases();
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
 
   if (loading) {
     return <div className="text-muted-foreground">Loading cases...</div>;
@@ -69,9 +73,22 @@ export function TeamCasesBoard() {
                             {c.status}
                           </Badge>
                         </div>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setSelectedCase(c);
+                              setAssignmentDialogOpen(true);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2 text-xs">
@@ -109,6 +126,15 @@ export function TeamCasesBoard() {
           </Card>
         ))}
       </div>
+
+      {selectedCase && (
+        <TeamAssignmentDialog
+          open={assignmentDialogOpen}
+          onOpenChange={setAssignmentDialogOpen}
+          case={selectedCase}
+          onSuccess={refresh}
+        />
+      )}
     </div>
   );
 }

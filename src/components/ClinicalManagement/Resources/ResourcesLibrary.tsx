@@ -3,12 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useManagementResources } from "@/hooks/useManagementResources";
-import { FileText, Download, Search, Star, Upload } from "lucide-react";
+import { FileText, Download, Search, Star, Upload, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ResourceFormDialog } from "./ResourceFormDialog";
 
 export function ResourcesLibrary() {
-  const { resources, loading } = useManagementResources();
+  const { resources, loading, deleteResource } = useManagementResources();
   const [searchQuery, setSearchQuery] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<any>(null);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
 
   const filteredResources = resources.filter(r =>
     r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,7 +56,11 @@ export function ResourcesLibrary() {
           <h2 className="text-2xl font-bold text-foreground">Resources Library</h2>
           <p className="text-sm text-muted-foreground mt-1">Access policies, templates, and guides</p>
         </div>
-        <Button>
+        <Button onClick={() => {
+          setDialogMode('create');
+          setEditingResource(null);
+          setDialogOpen(true);
+        }}>
           <Upload className="h-4 w-4 mr-2" />
           Upload Resource
         </Button>
@@ -102,10 +110,34 @@ export function ResourcesLibrary() {
                       {resource.category}
                     </Badge>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Download className="h-3 w-3 mr-2" />
-                    Download
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Download className="h-3 w-3 mr-2" />
+                      Download
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setDialogMode('edit');
+                        setEditingResource(resource);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this resource?')) {
+                          deleteResource(resource.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -140,6 +172,28 @@ export function ResourcesLibrary() {
                     <Download className="h-3 w-3 mr-2" />
                     Download
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setDialogMode('edit');
+                      setEditingResource(resource);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this resource?')) {
+                        deleteResource(resource.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -155,6 +209,13 @@ export function ResourcesLibrary() {
           </CardContent>
         </Card>
       )}
+
+      <ResourceFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        resource={editingResource}
+        mode={dialogMode}
+      />
     </div>
   );
 }
