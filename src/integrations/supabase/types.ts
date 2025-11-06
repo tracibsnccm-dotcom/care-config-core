@@ -92,6 +92,41 @@ export type Database = {
             referencedRelation: "providers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_appointment_document_shares_appointment"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_document_shares_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_document_shares_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_document_shares_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_document_shares_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       appointment_notes: {
@@ -157,6 +192,34 @@ export type Database = {
             referencedRelation: "providers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_appointment_notes_appointment"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "client_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_notes_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_notes_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_appointment_notes_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       assignment_audit_log: {
@@ -203,6 +266,27 @@ export type Database = {
           },
           {
             foreignKeyName: "assignment_audit_log_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_audit_log_attorney"
+            columns: ["assigned_attorney_id"]
+            isOneToOne: false
+            referencedRelation: "attorney_metadata"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_audit_log_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_audit_log_case"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "management_team_cases"
@@ -263,6 +347,27 @@ export type Database = {
           },
           {
             foreignKeyName: "assignment_offers_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_offers_attorney"
+            columns: ["attorney_id"]
+            isOneToOne: false
+            referencedRelation: "attorney_metadata"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_offers_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_offers_case"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "management_team_cases"
@@ -572,6 +677,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attorney_rn_messages_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attorney_rn_messages_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attorney_rn_messages_sender"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
