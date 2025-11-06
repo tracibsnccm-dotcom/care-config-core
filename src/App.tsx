@@ -296,10 +296,10 @@ const App = () => (
               element={<ProtectedRoute><Settings /></ProtectedRoute>}
             />
 
-            {/* Testing Dashboard - Available to admins */}
+            {/* Testing Dashboard - Available to all authenticated users */}
             <Route
               path="/testing-dashboard"
-              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><TestingDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute><TestingDashboard /></ProtectedRoute>}
             />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
