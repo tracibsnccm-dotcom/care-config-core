@@ -77,14 +77,83 @@ export function StaffDocumentsView() {
       </Card>
 
       {isRcmsStaff && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Document Processing Queue
+                <span className="text-xs bg-primary/20 px-2 py-1 rounded">RCMS Only</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No documents pending processing</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Clinical Documentation
+                <span className="text-xs bg-primary/20 px-2 py-1 rounded">RCMS Only</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">RN Assessment Templates</p>
+                      <p className="text-sm text-muted-foreground">Standardized clinical forms</p>
+                    </div>
+                    <Button size="sm" variant="outline">Access</Button>
+                  </div>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Provider Credentials</p>
+                      <p className="text-sm text-muted-foreground">Manage provider documentation</p>
+                    </div>
+                    <Button size="sm" variant="outline">Access</Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {!isRcmsStaff && (
         <Card>
           <CardHeader>
-            <CardTitle>Document Processing Queue</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Legal Document Templates
+              <span className="text-xs bg-secondary/50 px-2 py-1 rounded">Firm Staff</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No documents pending processing</p>
+            <div className="space-y-3">
+              <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Standard Legal Forms</p>
+                    <p className="text-sm text-muted-foreground">Client intake and case forms</p>
+                  </div>
+                  <Button size="sm" variant="outline">Access</Button>
+                </div>
+              </div>
+              <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Correspondence Templates</p>
+                    <p className="text-sm text-muted-foreground">Client and opposing counsel letters</p>
+                  </div>
+                  <Button size="sm" variant="outline">Access</Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

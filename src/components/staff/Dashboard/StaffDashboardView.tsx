@@ -47,11 +47,12 @@ export function StaffDashboardView() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {isRcmsStaff ? "RCMS Staff Quick Actions" : "Staff Quick Actions"}
+            {isRcmsStaff ? "RCMS Staff Quick Actions" : "Attorney Firm Quick Actions"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Common Actions for All Staff */}
             <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
               <h3 className="font-semibold mb-2">Process Documents</h3>
               <p className="text-sm text-muted-foreground">
@@ -64,18 +65,70 @@ export function StaffDashboardView() {
                 Manage appointments and case timelines
               </p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-              <h3 className="font-semibold mb-2">Client Communications</h3>
-              <p className="text-sm text-muted-foreground">
-                Handle client inquiries and updates
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-              <h3 className="font-semibold mb-2">Administrative Tasks</h3>
-              <p className="text-sm text-muted-foreground">
-                Complete daily operational tasks
-              </p>
-            </div>
+            
+            {/* RCMS Staff Specific Actions */}
+            {isRcmsStaff ? (
+              <>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-primary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Clinical Workflow Management
+                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded">RCMS</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Coordinate RN assignments and clinical workflows
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-primary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Provider Network Management
+                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded">RCMS</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Manage provider relationships and credentials
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-primary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Compliance Monitoring
+                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded">RCMS</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track compliance and quality metrics
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-primary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    System Operations
+                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded">RCMS</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure RCMS operational settings
+                  </p>
+                </div>
+              </>
+            ) : (
+              /* Attorney Firm Staff Specific Actions */
+              <>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-secondary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Client Communications
+                    <span className="text-xs bg-secondary/50 px-2 py-0.5 rounded">Firm</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Handle client inquiries and updates
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors bg-secondary/5">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Attorney Support
+                    <span className="text-xs bg-secondary/50 px-2 py-0.5 rounded">Firm</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Assist with case preparation and filing
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
