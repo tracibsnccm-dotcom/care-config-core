@@ -60,6 +60,7 @@ import ClinicalManagementPortal from "./pages/ClinicalManagementPortal";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
+import AttorneyPortalPage from "./pages/attorney/AttorneyPortalPage";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,10 @@ const App = () => (
             {/* Attorney/Staff routes */}
             <Route
               path="/attorney-portal"
+              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyPortalPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/attorney-landing"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyLanding /></ProtectedRoute>}
             />
             <Route
