@@ -110,34 +110,41 @@ export function ResourcesLibrary() {
                       {resource.category}
                     </Badge>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    asChild
+                  >
+                    <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
                       <Download className="h-3 w-3 mr-2" />
                       Download
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setDialogMode('edit');
-                        setEditingResource(resource);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this resource?')) {
-                          deleteResource(resource.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                    </a>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setDialogMode('edit');
+                      setEditingResource(resource);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this resource?')) {
+                        deleteResource(resource.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
                 </CardContent>
               </Card>
             ))}
@@ -168,9 +175,16 @@ export function ResourcesLibrary() {
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Download className="h-3 w-3 mr-2" />
-                    Download
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    asChild
+                  >
+                    <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3 w-3 mr-2" />
+                      Download
+                    </a>
                   </Button>
                   <Button 
                     variant="outline" 

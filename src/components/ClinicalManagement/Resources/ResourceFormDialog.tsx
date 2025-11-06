@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useManagementResources, ManagementResource } from "@/hooks/useManagementResources";
+import { FileUpload } from "./FileUpload";
 
 interface ResourceFormDialogProps {
   open: boolean;
@@ -24,6 +25,8 @@ export function ResourceFormDialog({ open, onOpenChange, resource, mode }: Resou
     resource_type: resource?.resource_type || 'policy',
     category: resource?.category || 'clinical',
     file_url: resource?.file_url || '',
+    file_size: resource?.file_size || 0,
+    mime_type: resource?.mime_type || '',
     access_level: resource?.access_level || 'all',
     is_featured: resource?.is_featured || false,
     version: resource?.version || '1.0',
@@ -38,10 +41,17 @@ export function ResourceFormDialog({ open, onOpenChange, resource, mode }: Resou
 
     try {
       const resourceData = {
-        ...formData,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        title: formData.title,
+        description: formData.description,
         resource_type: formData.resource_type as any,
         category: formData.category as any,
+        file_url: formData.file_url,
+        file_size: formData.file_size,
+        mime_type: formData.mime_type,
+        access_level: formData.access_level,
+        is_featured: formData.is_featured,
+        version: formData.version,
+        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       };
 
       if (mode === 'edit' && resource) {
@@ -57,6 +67,8 @@ export function ResourceFormDialog({ open, onOpenChange, resource, mode }: Resou
         resource_type: 'policy',
         category: 'clinical',
         file_url: '',
+        file_size: 0,
+        mime_type: '',
         access_level: 'all',
         is_featured: false,
         version: '1.0',
@@ -169,13 +181,29 @@ export function ResourceFormDialog({ open, onOpenChange, resource, mode }: Resou
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="file_url">File URL</Label>
+              <Label>File Upload</Label>
+              <FileUpload
+                currentFileUrl={formData.file_url}
+                onFileUploaded={(url, fileName, size, mimeType) => {
+                  setFormData({ 
+                    ...formData, 
+                    file_url: url,
+                    file_size: size,
+                    mime_type: mimeType,
+                    title: formData.title || fileName.replace(/\.[^/.]+$/, '') // Use filename as title if empty
+                  });
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Or manually enter a file URL if the file is hosted elsewhere
+              </p>
               <Input
                 id="file_url"
                 type="url"
                 value={formData.file_url}
                 onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
                 placeholder="https://..."
+                className="mt-2"
               />
             </div>
 
