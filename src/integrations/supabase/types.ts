@@ -1165,6 +1165,68 @@ export type Database = {
           },
         ]
       }
+      case_reviews: {
+        Row: {
+          action_items: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          case_id: string
+          created_at: string
+          due_date: string | null
+          findings: string | null
+          id: string
+          quality_score: number | null
+          recommendations: string | null
+          review_date: string
+          review_type: string
+          reviewer_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id: string
+          created_at?: string
+          due_date?: string | null
+          findings?: string | null
+          id?: string
+          quality_score?: number | null
+          recommendations?: string | null
+          review_date?: string
+          review_type: string
+          reviewer_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id?: string
+          created_at?: string
+          due_date?: string | null
+          findings?: string | null
+          id?: string
+          quality_score?: number | null
+          recommendations?: string | null
+          review_date?: string
+          review_type?: string
+          reviewer_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_reviews_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_summaries: {
         Row: {
           case_id: string
@@ -3039,6 +3101,77 @@ export type Database = {
           },
         ]
       }
+      financial_transactions: {
+        Row: {
+          amount: number
+          case_id: string | null
+          category: string
+          created_at: string
+          currency: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          metadata: Json | null
+          notes: string | null
+          paid_date: string | null
+          payment_method: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          case_id?: string | null
+          category: string
+          created_at?: string
+          currency?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          case_id?: string | null
+          category?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           case_id: string | null
@@ -3421,6 +3554,63 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      performance_metrics: {
+        Row: {
+          avg_response_time_hours: number | null
+          cases_handled: number | null
+          client_satisfaction_avg: number | null
+          created_at: string
+          documentation_compliance_rate: number | null
+          goals_met: number | null
+          goals_total: number | null
+          id: string
+          metric_period_end: string
+          metric_period_start: string
+          notes: string | null
+          quality_score_avg: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          avg_response_time_hours?: number | null
+          cases_handled?: number | null
+          client_satisfaction_avg?: number | null
+          created_at?: string
+          documentation_compliance_rate?: number | null
+          goals_met?: number | null
+          goals_total?: number | null
+          id?: string
+          metric_period_end: string
+          metric_period_start: string
+          notes?: string | null
+          quality_score_avg?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          avg_response_time_hours?: number | null
+          cases_handled?: number | null
+          client_satisfaction_avg?: number | null
+          created_at?: string
+          documentation_compliance_rate?: number | null
+          goals_met?: number | null
+          goals_total?: number | null
+          id?: string
+          metric_period_end?: string
+          metric_period_start?: string
+          notes?: string | null
+          quality_score_avg?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          staff_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -6408,6 +6598,57 @@ export type Database = {
           target_roles?: string[] | null
           title?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      training_records: {
+        Row: {
+          certification_number: string | null
+          completion_date: string
+          created_at: string
+          document_url: string | null
+          expiration_date: string | null
+          hours_completed: number | null
+          id: string
+          notes: string | null
+          provider: string | null
+          staff_id: string
+          status: string
+          training_title: string
+          training_type: string
+          updated_at: string
+        }
+        Insert: {
+          certification_number?: string | null
+          completion_date: string
+          created_at?: string
+          document_url?: string | null
+          expiration_date?: string | null
+          hours_completed?: number | null
+          id?: string
+          notes?: string | null
+          provider?: string | null
+          staff_id: string
+          status?: string
+          training_title: string
+          training_type: string
+          updated_at?: string
+        }
+        Update: {
+          certification_number?: string | null
+          completion_date?: string
+          created_at?: string
+          document_url?: string | null
+          expiration_date?: string | null
+          hours_completed?: number | null
+          id?: string
+          notes?: string | null
+          provider?: string | null
+          staff_id?: string
+          status?: string
+          training_title?: string
+          training_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
