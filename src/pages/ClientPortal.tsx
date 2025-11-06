@@ -50,6 +50,9 @@ export default function ClientPortal() {
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab) return tab;
       return localStorage.getItem("clientPortal_activeTab") || "checkins";
     } catch {
       return "checkins";
