@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
+  Briefcase,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -50,6 +51,9 @@ const navigation = [
   { name: "Billing & Subscriptions", href: "/attorney/billing", icon: ClipboardCheck, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Referrals", href: "/referrals", icon: Users, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN CM / Clinical Liaison", href: "/rn-clinical-liaison", icon: HeartPulse, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  
+  // Staff Navigation
+  { name: "Staff Portal", href: "/staff-portal", icon: Briefcase, roles: [ROLES.STAFF, ROLES.RCMS_STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   
   // RN Navigation (Consolidated)
   { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
