@@ -22,9 +22,9 @@ interface AddStaffDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const STAFF_ROLES: { value: AppRole; label: string }[] = [
+const STAFF_ROLES: { value: AppRole | "RCMS_STAFF"; label: string }[] = [
   { value: "STAFF", label: "Attorney Firm Staff" },
-  { value: "RCMS_STAFF", label: "RCMS Operations Staff" },
+  { value: "RCMS_STAFF" as AppRole, label: "RCMS Operations Staff" },
   { value: "SUPER_USER", label: "Super User" },
   { value: "SUPER_ADMIN", label: "Super Admin" },
 ];

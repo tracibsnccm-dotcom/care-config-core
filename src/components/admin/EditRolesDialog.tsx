@@ -29,14 +29,14 @@ interface EditRolesDialogProps {
   onSuccess: () => void;
 }
 
-const STAFF_ROLES: { value: AppRole; label: string; description: string }[] = [
+const STAFF_ROLES: { value: AppRole | "RCMS_STAFF"; label: string; description: string }[] = [
   {
     value: "STAFF",
     label: "Attorney Firm Staff",
     description: "Access to law firm operations and case management",
   },
   {
-    value: "RCMS_STAFF",
+    value: "RCMS_STAFF" as AppRole,
     label: "RCMS Operations Staff",
     description: "Access to RCMS clinical operations and coordination",
   },

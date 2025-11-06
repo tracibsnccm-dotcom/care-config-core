@@ -58,7 +58,7 @@ export function StaffUserList({ searchQuery }: StaffUserListProps) {
       const staffUsers = usersWithRoles.filter(user => 
         user.roles.some(role => 
           role === "STAFF" || 
-          role === "RCMS_STAFF" ||
+          (role as string) === "RCMS_STAFF" ||
           role === "SUPER_USER" ||
           role === "SUPER_ADMIN"
         )
@@ -141,7 +141,7 @@ export function StaffUserList({ searchQuery }: StaffUserListProps) {
                       variant={
                         role === "SUPER_ADMIN" || role === "SUPER_USER"
                           ? "destructive"
-                          : role === "RCMS_STAFF"
+                          : (role as string) === "RCMS_STAFF"
                           ? "default"
                           : "secondary"
                       }

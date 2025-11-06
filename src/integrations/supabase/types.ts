@@ -7484,6 +7484,7 @@ export type Database = {
         | "COMPLIANCE"
         | "RN_CM_SUPERVISOR"
         | "RN_CM_MANAGER"
+        | "RCMS_STAFF"
       assignment_offer_status: "pending" | "accepted" | "declined" | "expired"
       disclosure_scope: "internal" | "minimal" | "full"
       payment_status: "pending" | "paid" | "failed" | "refunded"
@@ -7631,6 +7632,7 @@ export const Constants = {
         "COMPLIANCE",
         "RN_CM_SUPERVISOR",
         "RN_CM_MANAGER",
+        "RCMS_STAFF",
       ],
       assignment_offer_status: ["pending", "accepted", "declined", "expired"],
       disclosure_scope: ["internal", "minimal", "full"],
