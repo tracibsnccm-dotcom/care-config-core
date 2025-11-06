@@ -79,6 +79,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointment_document_shares_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointment_document_shares_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
@@ -137,6 +144,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointment_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointment_notes_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
@@ -185,6 +199,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_audit_log_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -238,6 +259,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_offers_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -508,6 +536,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attorney_rn_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       attorney_sla: {
@@ -598,6 +633,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -779,6 +821,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "care_plan_reminders_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       care_plans: {
@@ -818,6 +867,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plans_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -964,6 +1020,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       case_handoffs: {
@@ -1089,6 +1152,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "case_handoffs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       case_notes: {
@@ -1163,6 +1233,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "case_reassignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       case_reviews: {
@@ -1225,6 +1302,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "case_reviews_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       case_summaries: {
@@ -1267,6 +1351,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_summaries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -1365,6 +1456,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_workflows_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -1485,6 +1583,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkins_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -1773,6 +1878,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_communications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_direct_messages: {
@@ -1848,6 +1960,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_education_access_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -2045,6 +2164,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_satisfaction_surveys_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_sensitive_disclosures: {
@@ -2108,6 +2234,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sensitive_disclosures_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -2768,6 +2901,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       e_sign_audit_logs: {
@@ -2869,6 +3009,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "e_sign_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -3099,6 +3246,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "financial_metrics_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       financial_transactions: {
@@ -3168,6 +3322,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -3306,7 +3467,68 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "intakes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      management_resources: {
+        Row: {
+          access_level: string
+          category: string
+          created_at: string
+          description: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          is_featured: boolean | null
+          mime_type: string | null
+          resource_type: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          version: string | null
+        }
+        Insert: {
+          access_level?: string
+          category: string
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_featured?: boolean | null
+          mime_type?: string | null
+          resource_type: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          access_level?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_featured?: boolean | null
+          mime_type?: string | null
+          resource_type?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Relationships: []
       }
       medication_changes: {
         Row: {
@@ -3500,6 +3722,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -3848,6 +4077,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "provider_contact_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "provider_contact_requests_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
@@ -3982,6 +4218,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_rn_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -4187,6 +4430,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "referrals_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       report_documents: {
@@ -4378,6 +4628,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "risk_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rn_ai_suggestions: {
@@ -4423,6 +4680,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_ai_suggestions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -4481,6 +4745,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rn_assessments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rn_case_assignments: {
@@ -4523,6 +4794,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -4916,6 +5194,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_diary_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
           {
@@ -5361,6 +5646,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_emergency_alerts_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -6059,6 +6351,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rn_team_handoffs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rn_team_members: {
@@ -6196,6 +6495,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rn_time_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -6371,6 +6677,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdoh_assessments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
             referencedColumns: ["id"]
           },
         ]
@@ -6601,6 +6914,78 @@ export type Database = {
         }
         Relationships: []
       }
+      team_schedule_events: {
+        Row: {
+          attendees: string[] | null
+          case_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_time: string
+          event_type: string
+          id: string
+          is_recurring: boolean | null
+          location: string | null
+          recurrence_pattern: string | null
+          reminder_minutes: number | null
+          start_time: string
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attendees?: string[] | null
+          case_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time: string
+          event_type: string
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_pattern?: string | null
+          reminder_minutes?: number | null
+          start_time: string
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attendees?: string[] | null
+          case_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string
+          event_type?: string
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_pattern?: string | null
+          reminder_minutes?: number | null
+          start_time?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_schedule_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_schedule_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_records: {
         Row: {
           certification_number: string | null
@@ -6775,6 +7160,13 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "voice_transcriptions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       wallet_acknowledgments: {
@@ -6858,11 +7250,33 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "wallet_transactions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "management_team_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      management_team_cases: {
+        Row: {
+          assigned_name: string | null
+          assigned_role: Database["public"]["Enums"]["app_role"] | null
+          assigned_to: string | null
+          client_label: string | null
+          client_number: string | null
+          completed_tasks: number | null
+          created_at: string | null
+          id: string | null
+          note_count: number | null
+          status: string | null
+          total_tasks: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_assignment_offer: { Args: { p_offer_id: string }; Returns: Json }
