@@ -30,7 +30,7 @@ import { ClientConsentManagement } from "@/components/ClientConsentManagement";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/supabaseAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -50,10 +50,25 @@ export default function ClientPortal() {
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      const normalize = (t: string) => {
+        const map: Record<string, string> = {
+          wellness: "checkins",
+          well: "checkins",
+          docs: "documents",
+          document: "documents",
+        };
+        const v = (t || "").toLowerCase();
+        return map[v] || v;
+      };
+      const allowed = new Set([
+        "checkins","journal","careplans","documents","timeline","resources","goals","actions","appointments","providers","medications","treatments","allergies","communication","messages","intake-review","consent","settings"
+      ]);
       const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      if (tab) return tab;
-      return localStorage.getItem("clientPortal_activeTab") || "checkins";
+      const tab = normalize(params.get("tab") || "");
+      if (tab && allowed.has(tab)) return tab;
+      const ls = normalize(localStorage.getItem("clientPortal_activeTab") || "");
+      if (ls && allowed.has(ls)) return ls;
+      return "checkins";
     } catch {
       return "checkins";
     }
@@ -95,12 +110,27 @@ export default function ClientPortal() {
     checkCrisisIndicators();
   }, [caseId]);
   
-  // Persist active tab across reloads
+  // Sync active tab to URL and persist in localStorage
+  const location = useLocation();
   useEffect(() => {
     try {
       localStorage.setItem("clientPortal_activeTab", activeTab);
     } catch {}
-  }, [activeTab]);
+    const params = new URLSearchParams(location.search);
+    if (params.get("tab") !== activeTab) {
+      params.set("tab", activeTab);
+      navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
+    }
+  }, [activeTab, location.pathname]);
+  
+  // React to external ?tab= changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const incoming = (params.get("tab") || "").toLowerCase();
+    if (incoming && incoming !== activeTab) {
+      setActiveTab(incoming);
+    }
+  }, [location.search]);
   
   return (
     <div className="min-h-screen bg-rcms-white">
