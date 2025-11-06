@@ -6763,6 +6763,33 @@ export type Database = {
           },
         ]
       }
+      simulated_time: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          sim_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          sim_time?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          sim_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sms_notifications: {
         Row: {
           created_at: string
@@ -7060,6 +7087,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      test_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          created_at: string | null
+          event_description: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          scenario_id: string | null
+          triggered_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string | null
+          event_description: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          scenario_id?: string | null
+          triggered_at: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string | null
+          event_description?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          scenario_id?: string | null
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_events_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "test_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_scenarios: {
+        Row: {
+          attorney_status: string
+          client_profile: string
+          core_pattern: string
+          created_at: string | null
+          id: string
+          name: string
+          timeline: Json
+        }
+        Insert: {
+          attorney_status: string
+          client_profile: string
+          core_pattern: string
+          created_at?: string | null
+          id: string
+          name: string
+          timeline: Json
+        }
+        Update: {
+          attorney_status?: string
+          client_profile?: string
+          core_pattern?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          timeline?: Json
+        }
+        Relationships: []
+      }
+      test_user_accounts: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          full_name: string
+          id: string
+          notes: string | null
+          password: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          password: string
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          password?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       training_records: {
         Row: {
