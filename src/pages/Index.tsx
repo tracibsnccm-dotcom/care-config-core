@@ -146,13 +146,6 @@ const Index = () => {
 
           {/* Get Started (with border & forced colors) */}
           <div className="rcms-card p-8 max-w-4xl mx-auto">
-            {/* Sign Up / Login Button */}
-            <div className="flex justify-end mb-4">
-              <a href="/access" className="rcms-btn" style={{background: '#10b981', padding: '0.75rem 1.5rem', fontSize: '1rem', fontWeight: '700'}}>
-                Sign Up / Login
-              </a>
-            </div>
-
             <h3 className="text-2xl md:text-3xl font-bold mb-4">
               <span className="rcms-gs-prefix">Get&nbsp;Started&nbsp;with</span>{' '}
               <span className="text-white">Reconcile</span>{' '}
@@ -179,8 +172,11 @@ const Index = () => {
             </div>
 
             {/* Testing Dashboard Link */}
-            <div className="flex justify-center mt-8 pt-6 border-t border-white/20">
-              <a href="/testing-dashboard" className="rcms-btn btn-secondary" style={{background: '#6366f1', minWidth: '16rem'}}>
+            <div className="flex justify-center gap-4 mt-8 pt-6 border-t border-white/20">
+              <a href="/access" className="rcms-btn btn-secondary" style={{background: '#10b981', minWidth: '14rem'}}>
+                Login for Testing
+              </a>
+              <a href="/testing-dashboard" className="rcms-btn btn-secondary" style={{background: '#6366f1', minWidth: '14rem'}}>
                 🧪 Testing Dashboard
               </a>
             </div>
