@@ -6601,6 +6601,39 @@ export type Database = {
         }
         Relationships: []
       }
+      role_change_audit: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: Database["public"]["Enums"]["app_role"]
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       round_robin_settings: {
         Row: {
           allow_manual_override: boolean

@@ -4,13 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Shield, UserCog, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Shield, UserCog, Plus, History } from "lucide-react";
 import { StaffUserList } from "@/components/admin/StaffUserList";
 import { AddStaffDialog } from "@/components/admin/AddStaffDialog";
+import { RoleAuditLog } from "@/components/admin/RoleAuditLog";
 
 export default function StaffPermissionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("users");
 
   return (
     <AppLayout>
@@ -86,30 +89,50 @@ export default function StaffPermissionsPage() {
           </Card>
         </div>
 
-        {/* Search and Filter */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Staff Members</CardTitle>
-            <CardDescription>
-              Manage staff roles and permissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or email..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
+        {/* Main Content with Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserCog className="h-4 w-4" />
+              Staff Members
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Audit Log
+            </TabsTrigger>
+          </TabsList>
 
-            <StaffUserList searchQuery={searchQuery} />
-          </CardContent>
-        </Card>
+          <TabsContent value="users" className="space-y-6 mt-6">
+            {/* Search and Filter */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Staff Members</CardTitle>
+                <CardDescription>
+                  Manage staff roles and permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <StaffUserList searchQuery={searchQuery} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="audit" className="space-y-6 mt-6">
+            <RoleAuditLog />
+          </TabsContent>
+        </Tabs>
 
         <AddStaffDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
       </div>
