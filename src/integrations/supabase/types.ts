@@ -7715,6 +7715,10 @@ export type Database = {
         Args: { p_attorney_code: string }
         Returns: undefined
       }
+      user_has_case_access: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
