@@ -12,7 +12,12 @@ export default function RoleLandingRedirect() {
   
   // Check for RN and Clinical Management roles
   if (r.has("RN_CM") || r.has("RCMS_CLINICAL_MGMT") || r.has("COMPLIANCE")) return <Navigate to="/rn-portal-landing" replace />;
-  if (r.has("ATTORNEY") || r.has("STAFF")) return <Navigate to="/attorney-portal" replace />;
+  
+  // Check for Staff roles - redirect to staff portal
+  if (r.has("STAFF") || r.has("RCMS_STAFF")) return <Navigate to="/staff-portal" replace />;
+  
+  // Attorney only (without staff role) goes to attorney portal
+  if (r.has("ATTORNEY")) return <Navigate to="/attorney-portal" replace />;
   // External clinical staff get same portal as RN CM
   if (r.has("CLINICAL_STAFF_EXTERNAL")) return <Navigate to="/rn-portal-landing" replace />;
   if (r.has("PROVIDER")) return <Navigate to="/provider-portal" replace />;

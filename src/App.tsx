@@ -61,6 +61,7 @@ import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
 import AttorneyPortalPage from "./pages/attorney/AttorneyPortalPage";
+import StaffPortalPage from "./pages/staff/StaffPortalPage";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,10 @@ const App = () => (
             <Route
               path="/attorney-portal"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyPortalPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/staff-portal"
+              element={<ProtectedRoute roles={["STAFF","RCMS_STAFF","SUPER_USER","SUPER_ADMIN"]}><StaffPortalPage /></ProtectedRoute>}
             />
             <Route
               path="/attorney-landing"
