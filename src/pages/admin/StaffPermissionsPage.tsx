@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Shield, UserCog, Plus, History } from "lucide-react";
+import { Search, Shield, UserCog, Plus, History, FileText } from "lucide-react";
 import { StaffUserList } from "@/components/admin/StaffUserList";
 import { AddStaffDialog } from "@/components/admin/AddStaffDialog";
 import { RoleAuditLog } from "@/components/admin/RoleAuditLog";
+import { HIPAAAccessLog } from "@/components/admin/HIPAAAccessLog";
 
 export default function StaffPermissionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,6 +101,10 @@ export default function StaffPermissionsPage() {
               <History className="h-4 w-4" />
               Audit Log
             </TabsTrigger>
+            <TabsTrigger value="hipaa" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              HIPAA Access Log
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-6 mt-6">
@@ -131,6 +136,10 @@ export default function StaffPermissionsPage() {
 
           <TabsContent value="audit" className="space-y-6 mt-6">
             <RoleAuditLog />
+          </TabsContent>
+
+          <TabsContent value="hipaa" className="space-y-6 mt-6">
+            <HIPAAAccessLog />
           </TabsContent>
         </Tabs>
 

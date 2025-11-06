@@ -3333,6 +3333,48 @@ export type Database = {
           },
         ]
       }
+      hipaa_access_attempts: {
+        Row: {
+          access_granted: boolean
+          attempted_at: string
+          case_id: string | null
+          created_at: string
+          feature_attempted: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          access_granted?: boolean
+          attempted_at?: string
+          case_id?: string | null
+          created_at?: string
+          feature_attempted: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          access_granted?: boolean
+          attempted_at?: string
+          case_id?: string | null
+          created_at?: string
+          feature_attempted?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: []
+      }
       intake_drafts: {
         Row: {
           case_id: string | null
