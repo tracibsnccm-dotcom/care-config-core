@@ -1,8 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Rate limit: 100 requests per 15 minutes per user
+const RATE_LIMIT_CONFIG = {
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 100,
 };
 
 interface ShareRequest {
@@ -48,10 +55,45 @@ Deno.serve(async (req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Get authenticated user from JWT
+  const authHeader = req.headers.get('authorization');
+  let userId: string | undefined;
+  
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError) {
+      console.error('[portal-api] Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', message: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    userId = user?.id;
+  }
+
+  if (!userId) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', message: 'Authentication required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Rate limiting
+  const clientId = getClientIdentifier(req, userId);
+  const rateLimit = checkRateLimit(clientId, RATE_LIMIT_CONFIG);
+  
+  if (rateLimit.isLimited) {
+    console.warn(`[portal-api] Rate limit exceeded for ${clientId}`);
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const url = new URL(req.url);
   const path = url.pathname.replace('/portal-api', '');
   
-  console.log(`[portal-api] ${req.method} ${path}`);
+  console.log(`[portal-api] ${req.method} ${path} - User: ${userId}`);
 
   try {
     // POST /api/portal/share - Create portal share

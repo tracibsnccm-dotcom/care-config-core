@@ -4,10 +4,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Rate limit: 50 notifications per hour per user
+const RATE_LIMIT_CONFIG = {
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 50,
 };
 
 interface NotificationRequest {
@@ -32,6 +39,43 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // Get authenticated user from JWT
+    const authHeader = req.headers.get('authorization');
+    let userId: string | undefined;
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      
+      if (authError) {
+        console.error('[send-notification] Auth error:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized', message: 'Invalid or expired token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      userId = user?.id;
+    }
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', message: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting
+    const clientId = getClientIdentifier(req, userId);
+    const rateLimit = checkRateLimit(clientId, RATE_LIMIT_CONFIG);
+    
+    if (rateLimit.isLimited) {
+      console.warn(`[send-notification] Rate limit exceeded for ${clientId}`);
+      return createRateLimitResponse(rateLimit.resetAt);
+    }
+
+    console.log(`[send-notification] Request from user: ${userId}`);
 
     const payload: NotificationRequest = await req.json();
     console.log("[send-notification] Received:", payload);

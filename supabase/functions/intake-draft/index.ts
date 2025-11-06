@@ -1,8 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Rate limit: 20 requests per hour per IP (for anonymous users)
+const RATE_LIMIT_CONFIG = {
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 20,
 };
 
 serve(async (req) => {
@@ -11,9 +18,43 @@ serve(async (req) => {
   }
 
   try {
-    // No authentication required for intake drafts
+    // Rate limiting for anonymous users
+    const clientId = getClientIdentifier(req);
+    const rateLimit = checkRateLimit(clientId, RATE_LIMIT_CONFIG);
+    
+    if (rateLimit.isLimited) {
+      console.warn(`[intake-draft] Rate limit exceeded for ${clientId}`);
+      return createRateLimitResponse(rateLimit.resetAt);
+    }
 
-    const { action, draft_id, step, data } = await req.json();
+    console.log(`[intake-draft] Request from ${clientId}`);
+
+    // Input validation
+    const body = await req.json();
+    const { action, draft_id, step, data } = body;
+
+    // Validate action parameter
+    const validActions = ['start', 'status', 'save', 'exit'];
+    if (!action || !validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid action parameter" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Validate draft_id format for actions that require it
+    if (action !== 'start' && (!draft_id || typeof draft_id !== 'string')) {
+      return new Response(
+        JSON.stringify({ error: "Invalid draft_id parameter" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
 
     const TTL_DAYS = 7;
     const expiresAt = new Date(Date.now() + TTL_DAYS * 86400000).toISOString();
