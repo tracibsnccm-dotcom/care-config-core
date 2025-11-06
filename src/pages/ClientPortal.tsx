@@ -48,7 +48,13 @@ export default function ClientPortal() {
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("checkins");
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem("clientPortal_activeTab") || "checkins";
+    } catch {
+      return "checkins";
+    }
+  });
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   
   const handleLogout = async () => {
