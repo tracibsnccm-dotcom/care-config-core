@@ -170,6 +170,13 @@ const Index = () => {
               <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
               <a href="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</a>
             </div>
+
+            {/* Testing Dashboard Link */}
+            <div className="flex justify-center mt-8 pt-6 border-t border-white/20">
+              <a href="/testing-dashboard" className="rcms-btn btn-secondary" style={{background: '#6366f1', minWidth: '16rem'}}>
+                🧪 Testing Dashboard
+              </a>
+            </div>
           </div>
         </section>
 
