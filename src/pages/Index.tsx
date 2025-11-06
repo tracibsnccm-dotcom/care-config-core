@@ -161,24 +161,24 @@ const Index = () => {
 
             {/* Large intake button (top) */}
             <div className="flex justify-center mb-8">
-              <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
+              <NavLink to="/intake" className="rcms-btn cta-intake">Client Intake</NavLink>
             </div>
 
             {/* Always-horizontal row */}
             <div className="rcms-row">
-              <a href="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
-              <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
-              <a href="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</a>
+              <NavLink to="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</NavLink>
+              <NavLink to="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</NavLink>
+              <NavLink to="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</NavLink>
             </div>
 
             {/* Testing Dashboard Link */}
             <div className="flex justify-center gap-4 mt-8 pt-6 border-t border-white/20">
-              <a href="/access" className="rcms-btn btn-secondary" style={{background: '#10b981', minWidth: '14rem'}}>
+              <NavLink to="/access" className="rcms-btn btn-secondary" style={{background: '#10b981', minWidth: '14rem'}}>
                 Login for Testing
-              </a>
-              <a href="/testing-dashboard" className="rcms-btn btn-secondary" style={{background: '#6366f1', minWidth: '14rem'}}>
+              </NavLink>
+              <NavLink to="/testing-dashboard" className="rcms-btn btn-secondary" style={{background: '#6366f1', minWidth: '14rem'}}>
                 🧪 Testing Dashboard
-              </a>
+              </NavLink>
             </div>
           </div>
         </section>
@@ -479,10 +479,10 @@ const Index = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/attorney-portal" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</a>
-            <a href="/client-portal"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</a>
-            <a href="/provider-portal" className="inline-block bg-[#4b2e83] hover:bg-[#5a36a5] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Provider Portal</a>
-            <a href="/intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
+            <NavLink to="/attorney-portal" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</NavLink>
+            <NavLink to="/client-portal"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</NavLink>
+            <NavLink to="/provider-portal" className="inline-block bg-[#4b2e83] hover:bg-[#5a36a5] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Provider Portal</NavLink>
+            <NavLink to="/intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</NavLink>
           </div>
         </div>
 
@@ -495,9 +495,9 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">Reconcile Care Management Services</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/about" className="hover:underline">About RCMS</a></li>
-              <li><a href="/mission" className="hover:underline">Our Mission</a></li>
-              <li><a href="/standards" className="hover:underline">Care Standards</a></li>
+              <li><NavLink to="/about" className="hover:underline">About RCMS</NavLink></li>
+              <li><NavLink to="/mission" className="hover:underline">Our Mission</NavLink></li>
+              <li><NavLink to="/standards" className="hover:underline">Care Standards</NavLink></li>
               <li className="text-white/70 italic mt-2">"Where Clinical Insight Meets Legal Advocacy."</li>
             </ul>
           </div>
@@ -506,10 +506,10 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">Portals &amp; Access</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/intake" className="hover:underline">Client Intake</a></li>
-              <li><a href="/client-portal" className="hover:underline">Client Portal</a></li>
-              <li><a href="/attorney-portal" className="hover:underline">Attorney Portal</a></li>
-              <li><a href="/provider-portal" className="hover:underline">Provider Portal</a></li>
+              <li><NavLink to="/intake" className="hover:underline">Client Intake</NavLink></li>
+              <li><NavLink to="/client-portal" className="hover:underline">Client Portal</NavLink></li>
+              <li><NavLink to="/attorney-portal" className="hover:underline">Attorney Portal</NavLink></li>
+              <li><NavLink to="/provider-portal" className="hover:underline">Provider Portal</NavLink></li>
               <li><span className="text-white/60">RN Portal (coming soon)</span></li>
             </ul>
           </div>
@@ -518,10 +518,10 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">Legal &amp; Compliance</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/baa" className="hover:underline">Business Associate Agreement</a></li>
-              <li><a href="/security" className="hover:underline">Security &amp; Data Retention</a></li>
-              <li><a href="/privacy" className="hover:underline">Privacy Policy</a></li>
-              <li><a href="/terms" className="hover:underline">Terms of Service</a></li>
+              <li><NavLink to="/baa" className="hover:underline">Business Associate Agreement</NavLink></li>
+              <li><NavLink to="/security" className="hover:underline">Security &amp; Data Retention</NavLink></li>
+              <li><NavLink to="/privacy" className="hover:underline">Privacy Policy</NavLink></li>
+              <li><NavLink to="/terms" className="hover:underline">Terms of Service</NavLink></li>
             </ul>
           </div>
 
@@ -529,10 +529,10 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">System &amp; Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/accessibility" className="hover:underline">Accessibility (WCAG 2.1 AA)</a></li>
-              <li><a href="/roadmap" className="hover:underline">Roadmap</a></li>
-              <li><a href="/status" className="hover:underline">System Status</a></li>
-              <li><a href="/contact" className="hover:underline">Contact Us</a> &nbsp;•&nbsp; <a href="/faq" className="hover:underline">FAQ</a></li>
+              <li><NavLink to="/accessibility" className="hover:underline">Accessibility (WCAG 2.1 AA)</NavLink></li>
+              <li><NavLink to="/roadmap" className="hover:underline">Roadmap</NavLink></li>
+              <li><NavLink to="/status" className="hover:underline">System Status</NavLink></li>
+              <li><NavLink to="/contact" className="hover:underline">Contact Us</NavLink> &nbsp;•&nbsp; <NavLink to="/faq" className="hover:underline">FAQ</NavLink></li>
             </ul>
           </div>
         </div>
