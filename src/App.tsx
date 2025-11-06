@@ -63,6 +63,7 @@ import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
 import AttorneyPortalPage from "./pages/attorney/AttorneyPortalPage";
 import StaffPortalPage from "./pages/staff/StaffPortalPage";
 import StaffPermissionsPage from "./pages/admin/StaffPermissionsPage";
+import TestingDashboard from "./pages/TestingDashboard";
 
 const queryClient = new QueryClient();
 
@@ -293,6 +294,12 @@ const App = () => (
             <Route
               path="/settings"
               element={<ProtectedRoute><Settings /></ProtectedRoute>}
+            />
+
+            {/* Testing Dashboard - Available to admins */}
+            <Route
+              path="/testing-dashboard"
+              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><TestingDashboard /></ProtectedRoute>}
             />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
