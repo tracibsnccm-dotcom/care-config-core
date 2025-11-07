@@ -121,10 +121,9 @@ export function ProtectedRoute({
     const requiredUpper = roles.map((r) => r.toUpperCase());
     const ok = userRolesUpper.some((r) => requiredUpper.includes(r));
     if (!ok) {
-      // In development/preview, allow navigation for testing different roles
-      // without modifying backend role assignments.
-      if (import.meta.env.DEV) {
-        console.warn("ProtectedRoute: bypassing role check in DEV for testing");
+      const allowBypass = import.meta.env.DEV && new URLSearchParams(window.location.search).has("dev");
+      if (allowBypass) {
+        console.warn("ProtectedRoute: bypassing role check (dev=1)");
       } else {
         return <Navigate to="/access" replace />;
       }

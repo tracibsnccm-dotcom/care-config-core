@@ -121,13 +121,16 @@ export default function ClientPortal() {
       params.set("tab", activeTab);
       navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
     }
-  }, [activeTab, location.pathname]);
+  }, [activeTab, location.pathname, location.search]);
   
   // React to external ?tab= changes
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const incoming = (params.get("tab") || "").toLowerCase();
-    if (incoming && incoming !== activeTab) {
+    const raw = (params.get("tab") || "").toLowerCase();
+    const map: Record<string, string> = { wellness: "checkins", well: "checkins", docs: "documents", document: "documents" };
+    const incoming = map[raw] || raw;
+    const allowed = new Set(["checkins","journal","careplans","documents","timeline","resources","goals","actions","appointments","providers","medications","treatments","allergies","communication","messages","intake-review","consent","settings"]);
+    if (incoming && allowed.has(incoming) && incoming !== activeTab) {
       setActiveTab(incoming);
     }
   }, [location.search]);
