@@ -30,7 +30,7 @@ import { ClientConsentManagement } from "@/components/ClientConsentManagement";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/supabaseAuth";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,31 +48,7 @@ export default function ClientPortal() {
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(() => {
-    try {
-      const normalize = (t: string) => {
-        const map: Record<string, string> = {
-          wellness: "checkins",
-          well: "checkins",
-          docs: "documents",
-          document: "documents",
-        };
-        const v = (t || "").toLowerCase();
-        return map[v] || v;
-      };
-      const allowed = new Set([
-        "checkins","journal","careplans","documents","timeline","resources","goals","actions","appointments","providers","medications","treatments","allergies","communication","messages","intake-review","consent","settings"
-      ]);
-      const params = new URLSearchParams(window.location.search);
-      const tab = normalize(params.get("tab") || "");
-      if (tab && allowed.has(tab)) return tab;
-      const ls = normalize(localStorage.getItem("clientPortal_activeTab") || "");
-      if (ls && allowed.has(ls)) return ls;
-      return "checkins";
-    } catch {
-      return "checkins";
-    }
-  });
+  const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   
   const handleLogout = async () => {
@@ -94,7 +70,7 @@ export default function ClientPortal() {
           .eq("case_id", caseId)
           .order("created_at", { ascending: false })
           .limit(1);
-  
+
         if (!error && data && data.length > 0) {
           const latest = data[0];
           const hasCrisis = latest.pain_scale >= 8 || 
@@ -106,34 +82,9 @@ export default function ClientPortal() {
         console.error("Error checking crisis indicators:", err);
       }
     }
-  
+
     checkCrisisIndicators();
   }, [caseId]);
-  
-  // Sync active tab to URL and persist in localStorage
-  const location = useLocation();
-  useEffect(() => {
-    try {
-      localStorage.setItem("clientPortal_activeTab", activeTab);
-    } catch {}
-    const params = new URLSearchParams(location.search);
-    if (params.get("tab") !== activeTab) {
-      params.set("tab", activeTab);
-      navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-    }
-  }, [activeTab, location.pathname, location.search]);
-  
-  // React to external ?tab= changes
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const raw = (params.get("tab") || "").toLowerCase();
-    const map: Record<string, string> = { wellness: "checkins", well: "checkins", docs: "documents", document: "documents" };
-    const incoming = map[raw] || raw;
-    const allowed = new Set(["checkins","journal","careplans","documents","timeline","resources","goals","actions","appointments","providers","medications","treatments","allergies","communication","messages","intake-review","consent","settings"]);
-    if (incoming && allowed.has(incoming) && incoming !== activeTab) {
-      setActiveTab(incoming);
-    }
-  }, [location.search]);
   
   return (
     <div className="min-h-screen bg-rcms-white">

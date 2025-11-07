@@ -56,20 +56,11 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!caseId) {
-      // No case available yet; skip fetching and stop loading state
-      setLoading(false);
-      return;
-    }
     fetchScores();
   }, [caseId]);
 
   const fetchScores = async () => {
     try {
-      if (!caseId) {
-        setLoading(false);
-        return;
-      }
       setLoading(true);
 
       // Fetch baseline from cases table

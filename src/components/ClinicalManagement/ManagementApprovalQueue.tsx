@@ -10,15 +10,13 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Calendar,
-  DollarSign,
-  Users
+  Calendar
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ApprovalItem {
   id: string;
-  type: "case_reassignment" | "pto_request" | "overtime_approval" | "schedule_change" | "resource_request" | "training_request" | "equipment_request" | "hiring_approval" | "policy_change" | "budget_approval";
+  type: "case_reassignment" | "pto_request" | "overtime_approval" | "schedule_change" | "resource_request";
   title: string;
   requestedBy: string;
   requestedAt: string;
@@ -88,51 +86,6 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
           priority: "medium",
           details: "Request for advanced wound care training course for 3 team members. Est. cost: $1,200."
         },
-        {
-          id: "6",
-          type: "training_request",
-          title: "Advanced Wound Care Certification",
-          requestedBy: "Lisa Martinez, RN",
-          requestedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-          priority: "medium",
-          details: "3-day certification course - $1,200 cost. Will enhance team capabilities for complex cases."
-        },
-        {
-          id: "7",
-          type: "equipment_request",
-          title: "New Portable Oxygen Concentrators (3 units)",
-          requestedBy: "Equipment Coordinator",
-          requestedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          priority: "high",
-          details: "Critical equipment needed for new high-acuity cases - $4,500 total investment."
-        },
-        {
-          id: "8",
-          type: "hiring_approval",
-          title: "New RN Position - Home Health Team",
-          requestedBy: "HR Department",
-          requestedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          priority: "high",
-          details: "Approval needed to post and fill vacant RN position due to increased caseload."
-        },
-        {
-          id: "9",
-          type: "budget_approval",
-          title: "Q1 Department Budget Adjustment",
-          requestedBy: "Finance Department",
-          requestedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          priority: "medium",
-          details: "Requesting 8% budget increase for staffing and equipment upgrades."
-        },
-        {
-          id: "10",
-          type: "policy_change",
-          title: "Updated Documentation Policy",
-          requestedBy: "Compliance Officer",
-          requestedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-          priority: "medium",
-          details: "Revised policy for electronic health record documentation standards to meet new regulations."
-        },
       ];
 
       // Sort by priority and requested date
@@ -195,11 +148,6 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
       overtime_approval: Clock,
       schedule_change: Calendar,
       resource_request: FileText,
-      training_request: FileText,
-      equipment_request: Users,
-      hiring_approval: Users,
-      budget_approval: DollarSign,
-      policy_change: FileText,
     };
     const Icon = icons[type] || AlertCircle;
     return <Icon className="h-4 w-4" />;
@@ -209,56 +157,8 @@ export function ManagementApprovalQueue({ roleLevel }: ManagementApprovalQueuePr
     return <div className="p-8 text-center text-muted-foreground">Loading approvals...</div>;
   }
 
-  // Calculate transfer rate analytics
-  const totalCases = 45; // This would come from database
-  const transferredCases = 18; // This would come from database  
-  const transferRate = Math.round((transferredCases / totalCases) * 100);
-  const isHighTransferRate = transferRate > 33;
-  const caseReassignmentCount = approvals.filter(a => a.type === "case_reassignment").length;
-
   return (
     <div className="space-y-4">
-      {/* Transfer Rate Analytics */}
-      {caseReassignmentCount > 0 && (
-        <Card className={isHighTransferRate ? "border-red-500/50 bg-red-500/5" : ""}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserCheck className="h-5 w-5 text-muted-foreground" />
-                  <h4 className="font-semibold">Case Transfer Analytics</h4>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Total Cases</div>
-                    <div className="text-2xl font-bold">{totalCases}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Transferred</div>
-                    <div className="text-2xl font-bold">{transferredCases}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Transfer Rate</div>
-                    <div className={`text-2xl font-bold ${isHighTransferRate ? "text-red-600" : "text-green-600"}`}>
-                      {transferRate}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {isHighTransferRate && (
-                <div className="flex items-start gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-lg">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <div className="font-semibold">High Transfer Rate</div>
-                    <div className="text-xs">Management review required to determine cause</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Approval Queue</h3>

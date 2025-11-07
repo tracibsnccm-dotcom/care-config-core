@@ -121,12 +121,10 @@ export function ProtectedRoute({
     const requiredUpper = roles.map((r) => r.toUpperCase());
     const ok = userRolesUpper.some((r) => requiredUpper.includes(r));
     if (!ok) {
-      // Only allow bypass in local development, not published preview/staging
-      const allowBypass = import.meta.env.MODE === 'development' && 
-                         window.location.hostname === 'localhost' &&
-                         new URLSearchParams(window.location.search).has("dev");
-      if (allowBypass) {
-        console.warn("ProtectedRoute: bypassing role check (dev=1 - localhost only)");
+      // In development/preview, allow navigation for testing different roles
+      // without modifying backend role assignments.
+      if (import.meta.env.DEV) {
+        console.warn("ProtectedRoute: bypassing role check in DEV for testing");
       } else {
         return <Navigate to="/access" replace />;
       }

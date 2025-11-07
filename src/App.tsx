@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -60,10 +60,6 @@ import ClinicalManagementPortal from "./pages/ClinicalManagementPortal";
 import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
-import AttorneyPortalPage from "./pages/attorney/AttorneyPortalPage";
-import StaffPortalPage from "./pages/staff/StaffPortalPage";
-import StaffPermissionsPage from "./pages/admin/StaffPermissionsPage";
-import TestingDashboard from "./pages/TestingDashboard";
 
 const queryClient = new QueryClient();
 
@@ -78,8 +74,7 @@ const App = () => (
           <MobileQuickBar />
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Navigate to="/access" replace />} />
-            <Route path="/home" element={<Index />} />
+            <Route path="/" element={<Index />} />
             <Route path="/access" element={<Access />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/intake" element={<IntakeWizard />} />
@@ -90,14 +85,6 @@ const App = () => (
             {/* Attorney/Staff routes */}
             <Route
               path="/attorney-portal"
-              element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyPortalPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/staff-portal"
-              element={<ProtectedRoute roles={["STAFF","RCMS_STAFF","SUPER_USER","SUPER_ADMIN"]}><StaffPortalPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/attorney-landing"
               element={<ProtectedRoute roles={["ATTORNEY","STAFF","SUPER_USER","SUPER_ADMIN"]}><AttorneyLanding /></ProtectedRoute>}
             />
             <Route
@@ -135,10 +122,6 @@ const App = () => (
             <Route
               path="/admin-dashboard"
               element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><AdminPanel /></ProtectedRoute>}
-            />
-            <Route
-              path="/admin/staff-permissions"
-              element={<ProtectedRoute roles={["SUPER_USER","SUPER_ADMIN"]}><StaffPermissionsPage /></ProtectedRoute>}
             />
             <Route
               path="/reports"
@@ -295,12 +278,6 @@ const App = () => (
             <Route
               path="/settings"
               element={<ProtectedRoute><Settings /></ProtectedRoute>}
-            />
-
-            {/* Testing Dashboard - Available to all authenticated users */}
-            <Route
-              path="/testing-dashboard"
-              element={<ProtectedRoute><TestingDashboard /></ProtectedRoute>}
             />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

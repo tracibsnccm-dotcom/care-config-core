@@ -1,25 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Rate limit: 20 requests per hour per IP (for anonymous users)
-const RATE_LIMIT_CONFIG = {
-  windowMs: 60 * 60 * 1000,
-  maxRequests: 20,
-};
-
-// Input validation schema
-const intakeDraftSchema = z.object({
-  action: z.enum(['start', 'status', 'save', 'exit']),
-  draft_id: z.string().uuid().optional(),
-  step: z.string().optional(),
-  data: z.any().optional()
-});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,47 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    // Rate limiting for anonymous users
-    const clientId = getClientIdentifier(req);
-    const rateLimit = checkRateLimit(clientId, RATE_LIMIT_CONFIG);
-    
-    if (rateLimit.isLimited) {
-      console.warn(`[intake-draft] Rate limit exceeded for ${clientId}`);
-      return createRateLimitResponse(rateLimit.resetAt);
-    }
+    // No authentication required for intake drafts
 
-    console.log(`[intake-draft] Request from ${clientId}`);
-
-    // Input validation with zod
-    const body = await req.json();
-    
-    const validation = intakeDraftSchema.safeParse(body);
-    if (!validation.success) {
-      console.error(`[intake-draft] Validation error:`, validation.error);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid request parameters", 
-          details: validation.error.errors 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-
-    const { action, draft_id, step, data } = validation.data;
-
-    // Additional validation for draft_id when required
-    if (action !== 'start' && !draft_id) {
-      return new Response(
-        JSON.stringify({ error: "draft_id is required for this action" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
+    const { action, draft_id, step, data } = await req.json();
 
     const TTL_DAYS = 7;
     const expiresAt = new Date(Date.now() + TTL_DAYS * 86400000).toISOString();

@@ -19,7 +19,6 @@ import {
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
-  Briefcase,
 } from "lucide-react";
 import { Role, ROLES } from "@/config/rcms";
 import { useApp } from "@/context/AppContext";
@@ -52,9 +51,6 @@ const navigation = [
   { name: "Referrals", href: "/referrals", icon: Users, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN CM / Clinical Liaison", href: "/rn-clinical-liaison", icon: HeartPulse, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   
-  // Staff Navigation
-  { name: "Staff Portal", href: "/staff-portal", icon: Briefcase, roles: [ROLES.STAFF, ROLES.RCMS_STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  
   // RN Navigation (Consolidated)
   { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Clinical Management", href: "/clinical-management-portal", icon: Users, roles: [ROLES.RN_CM_DIRECTOR, ROLES.RN_CM_SUPERVISOR, ROLES.RN_CM_MANAGER, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
@@ -79,7 +75,6 @@ const navigation = [
   // Admin & Analytics
   { name: "Journal Analytics", href: "/journal-analytics", icon: BarChart3, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Admin", href: "/admin-dashboard", icon: Shield, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  { name: "Staff Permissions", href: "/admin/staff-permissions", icon: UserCircle, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Analytics", href: "/analytics", icon: Activity, roles: [ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Settings", href: "/settings", icon: Settings, roles: "all" },
 ];

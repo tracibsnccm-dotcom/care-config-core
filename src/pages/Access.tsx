@@ -1,26 +1,10 @@
 import { useState } from "react";
 import { supabase, useAuth } from "../auth/supabaseAuth";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
-import { z } from "zod";
-import { toast } from "sonner";
-
-// Authentication validation schema
-const authSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address")
-    .max(255, "Email address is too long"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(72, "Password is too long")
-});
 
 export default function Access() {
   const { session, user } = useAuth();
-  const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -38,46 +22,27 @@ export default function Access() {
     setErr(null);
     
     try {
-      // Validate input with zod schema
-      const validationResult = authSchema.safeParse({ email, password: pw });
-      
-      if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        setErr(firstError.message);
-        toast.error(firstError.message);
-        setLoading(false);
-        return;
-      }
-
-      const validatedData = validationResult.data;
-
       if (mode === "signup") {
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
-          email: validatedData.email,
-          password: validatedData.password,
+          email,
+          password: pw,
           options: {
             emailRedirectTo: redirectUrl,
           },
         });
         if (error) throw error;
         setMsg("Account created! You can now log in.");
-        toast.success("Account created successfully!");
-        navigate("/go", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email: validatedData.email,
-          password: validatedData.password,
+          email,
+          password: pw,
         });
         if (error) throw error;
         setMsg("Logged in successfully.");
-        toast.success("Logged in successfully!");
-        navigate("/go", { replace: true });
       }
     } catch (ex: any) {
-      const errorMessage = ex.message || String(ex);
-      setErr(errorMessage);
-      toast.error(errorMessage);
+      setErr(ex.message || String(ex));
     } finally {
       setLoading(false);
     }
