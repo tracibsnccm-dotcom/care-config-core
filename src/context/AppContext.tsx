@@ -52,7 +52,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user, roles } = useAuth();
+  const { user, roles, primaryRole } = useAuth();
   
   // Fetch data from Supabase
   const { cases: supabaseCases, loading: casesLoading } = useCases();
@@ -60,7 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { auditLogs, loading: auditLoading } = useAuditLogs();
   
   // Derive role from actual auth roles - use first role or default to ATTORNEY
-  const role = (roles && roles.length > 0 ? roles[0].toUpperCase() : ROLES.ATTORNEY) as Role;
+  const role = (primaryRole ? primaryRole.toUpperCase() : ROLES.ATTORNEY) as Role;
   const setRole = () => {
     // Role cannot be changed - it comes from database
     console.warn("Role is read-only and determined by database user_roles table");

@@ -23,8 +23,38 @@ type AuthCtx = {
   signOut: () => Promise<void>;
   // Helper properties for easier access
   roles: string[];
+  primaryRole: string | null;
   hasRole: (role: string) => boolean;
 };
+
+function normalizeRole(r: string) {
+  const u = r.toUpperCase();
+  return u === "RN_CCM" ? "RN_CM" : u;
+}
+
+function getPrimaryRole(roles: string[]): string | null {
+  if (!roles || roles.length === 0) return null;
+  const normalized = roles.map(normalizeRole);
+  const priority = [
+    "SUPER_ADMIN",
+    "SUPER_USER",
+    "RN_CM_SUPERVISOR",
+    "RN_CM_MANAGER",
+    "RN_CM_DIRECTOR",
+    "RN_CM",
+    "RCMS_CLINICAL_MGMT",
+    "COMPLIANCE",
+    "ATTORNEY",
+    "STAFF",
+    "CLINICAL_STAFF_EXTERNAL",
+    "PROVIDER",
+    "CLIENT",
+  ];
+  for (const p of priority) {
+    if (normalized.includes(p)) return p;
+  }
+  return normalized[0] || null;
+}
 
 const AuthContext = createContext<AuthCtx | null>(null);
 
@@ -74,12 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const roles = user?.roles || [];
-  const hasRole = (role: string) => roles.includes(role);
+  const roles = (user?.roles || []).map((r) => r.toUpperCase());
+  const hasRole = (role: string) => roles.includes(role.toUpperCase());
+  const primaryRole = getPrimaryRole(roles);
 
   const value = useMemo(
-    () => ({ session, user, loading, signOut, roles, hasRole }),
-    [session, user, loading, roles]
+    () => ({ session, user, loading, signOut, roles, primaryRole, hasRole }),
+    [session, user, loading, roles, primaryRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
