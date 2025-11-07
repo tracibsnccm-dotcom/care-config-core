@@ -12,8 +12,10 @@ export default function Access() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // If already signed in, send to role redirect helper
-  if (session && user) return <Navigate to="/go" replace />;
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setMsg("Signed out successfully. You can now create a new account.");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +48,35 @@ export default function Access() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // If already signed in, show sign-out option
+  if (session && user) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md">
+          <h1 className="text-3xl font-extrabold" style={{color: RCMS.brandNavy}}>
+            Already Logged In
+          </h1>
+          <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <p className="text-sm text-foreground mb-4">
+              You are currently logged in as <span className="font-semibold">{user.email}</span>
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              To create a new test account, please sign out first.
+            </p>
+            <button
+              onClick={handleSignOut}
+              className={`${btn.base} ${btn.lg} text-white w-full`}
+              style={{ backgroundColor: RCMS.attorneyOrange }}
+            >
+              Sign Out
+            </button>
+            {msg && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">{msg}</p>}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
