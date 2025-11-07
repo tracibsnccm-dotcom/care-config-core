@@ -7813,6 +7813,10 @@ export type Database = {
           task_completion_rate: number
         }[]
       }
+      get_rn_performance_snapshot: {
+        Args: { p_days?: number; p_rn_user_id: string }
+        Returns: Json
+      }
       get_short_case_id: { Args: { case_uuid: string }; Returns: string }
       get_tier_recommendation: {
         Args: { p_attorney_id: string }

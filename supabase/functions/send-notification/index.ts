@@ -1,10 +1,8 @@
-// supabase/functions/send-notification/index.ts
-// Handles all email/notification sending for RCMS C.A.R.E.
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +14,18 @@ const RATE_LIMIT_CONFIG = {
   windowMs: 60 * 60 * 1000,
   maxRequests: 50,
 };
+
+// Input validation schema
+const notificationRequestSchema = z.object({
+  type: z.enum(["nudge", "schedule-reminders", "intake-expired", "dossier-commissioned"]),
+  caseId: z.string().uuid(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  days: z.array(z.number()).optional(),
+  attorneyId: z.string().uuid().optional(),
+  attorneyEmail: z.string().email().optional(),
+  clientLabel: z.string().optional()
+});
 
 interface NotificationRequest {
   type: "nudge" | "schedule-reminders" | "intake-expired" | "dossier-commissioned";
@@ -77,7 +87,25 @@ serve(async (req: Request) => {
 
     console.log(`[send-notification] Request from user: ${userId}`);
 
-    const payload: NotificationRequest = await req.json();
+    // Input validation with zod
+    const body = await req.json();
+    
+    const validation = notificationRequestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error(`[send-notification] Validation error:`, validation.error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid request parameters", 
+          details: validation.error.errors 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    const payload: NotificationRequest = validation.data;
     console.log("[send-notification] Received:", payload);
 
     const { type, caseId, email, phone, days, attorneyId, attorneyEmail, clientLabel } = payload;

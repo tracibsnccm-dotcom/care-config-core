@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getClientIdentifier, createRateLimitResponse } from '../_shared/rate-limiter.ts';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,14 @@ const RATE_LIMIT_CONFIG = {
   windowMs: 60 * 60 * 1000,
   maxRequests: 20,
 };
+
+// Input validation schema
+const intakeDraftSchema = z.object({
+  action: z.enum(['start', 'status', 'save', 'exit']),
+  draft_id: z.string().uuid().optional(),
+  step: z.string().optional(),
+  data: z.any().optional()
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,15 +38,17 @@ serve(async (req) => {
 
     console.log(`[intake-draft] Request from ${clientId}`);
 
-    // Input validation
+    // Input validation with zod
     const body = await req.json();
-    const { action, draft_id, step, data } = body;
-
-    // Validate action parameter
-    const validActions = ['start', 'status', 'save', 'exit'];
-    if (!action || !validActions.includes(action)) {
+    
+    const validation = intakeDraftSchema.safeParse(body);
+    if (!validation.success) {
+      console.error(`[intake-draft] Validation error:`, validation.error);
       return new Response(
-        JSON.stringify({ error: "Invalid action parameter" }),
+        JSON.stringify({ 
+          error: "Invalid request parameters", 
+          details: validation.error.errors 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -45,10 +56,12 @@ serve(async (req) => {
       );
     }
 
-    // Validate draft_id format for actions that require it
-    if (action !== 'start' && (!draft_id || typeof draft_id !== 'string')) {
+    const { action, draft_id, step, data } = validation.data;
+
+    // Additional validation for draft_id when required
+    if (action !== 'start' && !draft_id) {
       return new Response(
-        JSON.stringify({ error: "Invalid draft_id parameter" }),
+        JSON.stringify({ error: "draft_id is required for this action" }),
         { 
           status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
