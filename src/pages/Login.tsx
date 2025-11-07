@@ -7,6 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { LogIn } from "lucide-react";
+import { z } from "zod";
+
+// Authentication validation schema
+const authSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .max(255, "Email address is too long"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password is too long")
+});
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,23 +32,41 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Validate input with zod schema
+      const validationResult = authSchema.safeParse({ email, password });
+      
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message);
+      const validatedData = validationResult.data;
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        toast.success("Login successful!");
+        navigate("/go", { replace: true });
+      }
+
       setLoading(false);
-      return;
+    } catch (ex: any) {
+      const errorMessage = ex.message || String(ex);
+      toast.error(errorMessage);
+      setLoading(false);
     }
-
-    if (data.user) {
-      toast.success("Login successful!");
-      navigate("/go", { replace: true });
-    }
-
-    setLoading(false);
   };
 
   return (
