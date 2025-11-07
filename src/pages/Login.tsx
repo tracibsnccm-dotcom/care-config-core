@@ -31,7 +31,7 @@ export default function Login() {
 
     if (data.user) {
       toast.success("Login successful!");
-      navigate("/testing-dashboard");
+      navigate("/go", { replace: true });
     }
 
     setLoading(false);
