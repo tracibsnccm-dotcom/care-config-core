@@ -59,8 +59,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { providers: supabaseProviders, loading: providersLoading } = useProviders();
   const { auditLogs, loading: auditLoading } = useAuditLogs();
   
-  // App-level state (still use localStorage for these)
-  const [role, setRole] = useState<Role>(store.get("currentRole", ROLES.ATTORNEY));
+  // Derive role from actual auth roles - use first role or default to ATTORNEY
+  const role = (roles && roles.length > 0 ? roles[0].toUpperCase() : ROLES.ATTORNEY) as Role;
+  const setRole = () => {
+    // Role cannot be changed - it comes from database
+    console.warn("Role is read-only and determined by database user_roles table");
+  };
   const [currentTier, setCurrentTier] = useState<TierName>(store.get("currentTier", "Solo"));
   const [trialStartDate, setTrialStartDate] = useState<string | null>(store.get("trialStartDate", null));
   const [trialEndDate, setTrialEndDate] = useState<string | null>(store.get("trialEndDate", null));
@@ -120,20 +124,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     meta: log.meta,
   }));
 
-  // Set initial role from Supabase roles (only on first load)
-  useEffect(() => {
-    if (roles && roles.length > 0) {
-      const storedRole = store.get("currentRole", null);
-      // Only set role if not already set by user
-      if (!storedRole) {
-        const primaryRole = roles[0] as Role;
-        setRole(primaryRole);
-      }
-    }
-  }, [roles]);
-
-  // Persist app-level state
-  useEffect(() => store.set("currentRole", role), [role]);
+  // Persist app-level state (excluding role which is now derived from auth)
   useEffect(() => store.set("currentTier", currentTier), [currentTier]);
   useEffect(() => store.set("trialStartDate", trialStartDate), [trialStartDate]);
   useEffect(() => store.set("trialEndDate", trialEndDate), [trialEndDate]);

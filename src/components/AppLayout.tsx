@@ -190,25 +190,17 @@ export function AppLayout({ children }: AppLayoutProps) {
         </nav>
 
         <div className={cn("p-4 border-t border-sidebar-border space-y-3", isCollapsed && "px-2")}>
-          {/* Role Switcher */}
-          {!isCollapsed && (
-            <div>
-              <label className="text-xs font-medium text-sidebar-foreground/60 mb-2 block">
-                Current Role
-              </label>
-              <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-                <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
-                  <UserCircle className="w-4 h-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(ROLES).map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Role Display */}
+          {!isCollapsed && user && (
+            <div className="px-3 py-2 bg-sidebar-accent/50 rounded-lg">
+              <p className="text-xs font-medium text-sidebar-foreground/60 mb-1">Your Role{user.roles.length > 1 ? 's' : ''}</p>
+              <div className="flex flex-col gap-1">
+                {user.roles.map((r, idx) => (
+                  <p key={idx} className="text-sm font-semibold text-sidebar-foreground">
+                    {r.replace(/_/g, " ")}
+                  </p>
+                ))}
+              </div>
             </div>
           )}
 
