@@ -2,7 +2,8 @@ import { useAuth } from "../auth/supabaseAuth";
 import { Navigate } from "react-router-dom";
 
 export default function RoleLandingRedirect() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/access" replace />;
 
   const r = new Set((user.roles || []).map(x => x.toUpperCase()));
