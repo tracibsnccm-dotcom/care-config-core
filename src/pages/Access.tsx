@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase, useAuth } from "../auth/supabaseAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ const authSchema = z.object({
 
 export default function Access() {
   const { session, user } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -62,6 +63,7 @@ export default function Access() {
         if (error) throw error;
         setMsg("Account created! You can now log in.");
         toast.success("Account created successfully!");
+        navigate("/go", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: validatedData.email,
@@ -70,6 +72,7 @@ export default function Access() {
         if (error) throw error;
         setMsg("Logged in successfully.");
         toast.success("Logged in successfully!");
+        navigate("/go", { replace: true });
       }
     } catch (ex: any) {
       const errorMessage = ex.message || String(ex);
