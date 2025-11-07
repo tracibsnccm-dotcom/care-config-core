@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { supabase, useAuth } from "../auth/supabaseAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
 
 export default function Access() {
   const { session, user } = useAuth();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const switchMode = params.has("switch");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -12,8 +15,8 @@ export default function Access() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // If already signed in, redirect to role-based landing
-  if (session && user) return <Navigate to="/go" replace />;
+  // If already signed in, redirect to role-based landing unless explicitly switching accounts
+  if (session && user && !switchMode) return <Navigate to="/go" replace />;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
