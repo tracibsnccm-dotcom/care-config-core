@@ -31,9 +31,9 @@ export function useTestScenarios() {
       if (error) throw error;
 
       setScenarios(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching scenarios:', error);
-      toast.error('Failed to load scenarios');
+      toast.error(`Failed to load scenarios: ${error?.message || String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -56,9 +56,9 @@ export function useTestScenarios() {
 
       setActiveScenario(scenario);
       toast.success(`Loaded scenario: ${scenario.name}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading scenario:', error);
-      toast.error('Failed to load scenario');
+      toast.error(`Failed to load scenario: ${error?.message || String(error)}`);
     }
   };
 
@@ -81,9 +81,9 @@ export function useTestScenarios() {
       toast.success('Scenario saved successfully');
       await fetchScenarios();
       return results?.[0] || null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving scenario:', error);
-      toast.error('Failed to save scenario');
+      toast.error(`Failed to save scenario: ${error?.message || String(error)}`);
       return null;
     }
   };
