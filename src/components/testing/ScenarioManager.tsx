@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTestScenarios } from "@/hooks/useTestScenarios";
 import { useState } from "react";
 import { FileText, Play, Trash2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -22,17 +23,22 @@ export function ScenarioManager() {
   const [newScenarioDescription, setNewScenarioDescription] = useState("");
 
   const handleCreateScenario = async () => {
-    if (!newScenarioName) return;
+    if (!newScenarioName.trim()) {
+      toast.error("Scenario name is required");
+      return;
+    }
 
-    await saveScenario(newScenarioName, newScenarioDescription, {
+    const result = await saveScenario(newScenarioName, newScenarioDescription, {
       clientProfile: "Test client",
       attorneyStatus: "Active",
       timeline: {},
     });
 
-    setNewScenarioName("");
-    setNewScenarioDescription("");
-    setIsCreating(false);
+    if (result) {
+      setNewScenarioName("");
+      setNewScenarioDescription("");
+      setIsCreating(false);
+    }
   };
 
   if (loading) {
