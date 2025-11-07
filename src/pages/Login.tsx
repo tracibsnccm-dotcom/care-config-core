@@ -31,7 +31,7 @@ export default function Login() {
 
     if (data.user) {
       toast.success("Login successful!");
-      navigate("/test-scenario-manager");
+      navigate("/testing-dashboard");
     }
 
     setLoading(false);
