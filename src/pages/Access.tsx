@@ -29,7 +29,7 @@ export default function Access() {
   const [err, setErr] = useState<string | null>(null);
 
   // If already signed in, send to role redirect helper
-  if (session && user) return <Navigate to="/go" replace />;
+  if (session && user) return <Navigate to="/client-portal" replace />;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +63,7 @@ export default function Access() {
         if (error) throw error;
         setMsg("Account created! You can now log in.");
         toast.success("Account created successfully!");
-        navigate("/go", { replace: true });
+        navigate("/client-portal", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: validatedData.email,
@@ -72,7 +72,7 @@ export default function Access() {
         if (error) throw error;
         setMsg("Logged in successfully.");
         toast.success("Logged in successfully!");
-        navigate("/go", { replace: true });
+        navigate("/client-portal", { replace: true });
       }
     } catch (ex: any) {
       const errorMessage = ex.message || String(ex);
