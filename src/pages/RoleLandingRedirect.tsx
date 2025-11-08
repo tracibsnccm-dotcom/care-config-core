@@ -20,19 +20,19 @@ export default function RoleLandingRedirect() {
     return <Navigate to="/rn-portal-landing" replace />;
   }
   
-  // Priority 3: Attorney and Staff roles
+  // Priority 3: Provider role
+  if (r.has("PROVIDER")) {
+    return <Navigate to="/provider-portal" replace />;
+  }
+  
+  // Priority 4: Attorney and Staff roles
   if (r.has("ATTORNEY") || r.has("STAFF")) {
     return <Navigate to="/attorney-portal" replace />;
   }
   
-  // Priority 4: External clinical staff get same portal as RN CM
+  // Priority 5: External clinical staff get same portal as RN CM
   if (r.has("CLINICAL_STAFF_EXTERNAL")) {
     return <Navigate to="/rn-portal-landing" replace />;
-  }
-  
-  // Priority 5: Provider role
-  if (r.has("PROVIDER")) {
-    return <Navigate to="/provider-portal" replace />;
   }
   
   // Default: Client portal
