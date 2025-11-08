@@ -240,6 +240,22 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3">
               <NotificationBell />
               <ThemeToggle />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate('/logout')}
+                      className="text-secondary-foreground hover:bg-secondary-foreground/10"
+                      aria-label="Sign Out"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Sign Out</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </header>
