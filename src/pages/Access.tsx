@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { supabase, useAuth } from "../auth/supabaseAuth";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
 
 export default function Access() {
   const { session, user } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const switchMode = params.has("switch");
@@ -42,7 +43,8 @@ export default function Access() {
           password: pw,
         });
         if (error) throw error;
-        setMsg("Logged in successfully.");
+        navigate("/go", { replace: true });
+        return;
       }
     } catch (ex: any) {
       setErr(ex.message || String(ex));
