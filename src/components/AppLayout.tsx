@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -81,6 +81,7 @@ const navigation = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role, setRole, currentTier, setCurrentTier } = useApp();
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -210,6 +211,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  onClick={() => navigate('/logout')}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
                     "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
