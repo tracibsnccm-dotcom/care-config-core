@@ -7,6 +7,11 @@ import { AppState } from "./lib/models";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
+    // TODO: Replace in-memory AppState with real API calls.
+  // - On intake submit: POST /clients
+  // - On follow-up: POST /clients/:id/followups
+  // - Load initial data: GET /clients/:id
+
 
   const handleIntakeSaved = (newState: AppState) => {
     setState(newState);
