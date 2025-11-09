@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { Client, Flag, Task, AppState } from "../../lib/models";
 import { onFollowUpSubmit } from "../../lib/workflows";
 import { applyEffects } from "../../lib/executor";
+import ClientAcknowledgement, {
+  ClientAcknowledgementValue,
+} from "../ClientAcknowledgement";
 
 interface FollowUpFormProps {
   client: Client;
