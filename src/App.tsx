@@ -37,7 +37,6 @@ import NotFound from "./pages/NotFound";
 import { ClientPortalRoute } from "./modules/rcms-client-portal-tab";
 import RNCMCompliance from "./pages/rncm/RNCMCompliance";
 import RNQualityDashboard from "./pages/rncm/RNQualityDashboard";
-
 import RNSupervisorDashboard from "./pages/rncm/RNSupervisorDashboard";
 import RNSupervisorPerformance from "./pages/rncm/RNSupervisorPerformance";
 import RNDiary from "./pages/rncm/RNDiary";
@@ -61,6 +60,9 @@ import { ProtectedRoute } from "./auth/supabaseAuth";
 import { MobileQuickBar } from "./components/MobileQuickBar";
 import { AssignmentAlertBanner } from "./components/AssignmentAlertBanner";
 
+// Added TestSetup page import
+import TestSetup from "./pages/TestSetup";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -76,6 +78,8 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/access" element={<Access />} />
+            {/* NEW: Temporary test setup page */}
+            <Route path="/test-setup" element={<TestSetup />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/intake" element={<IntakeWizard />} />
             
@@ -219,7 +223,7 @@ const App = () => (
             />
             <Route
               path="/rn/time-tracking"
-              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINICAL_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
+              element={<ProtectedRoute roles={["RN_CM","RCMS_CLINical_MGMT","STAFF","SUPER_USER","SUPER_ADMIN"]}><RNTimeTracking /></ProtectedRoute>}
             />
             <Route
               path="/rn/education-library"
@@ -286,7 +290,7 @@ const App = () => (
         </BrowserRouter>
       </AppProvider>
     </TooltipProvider>
-  </QueryClientProvider>
+  );
 );
 
 export default App;
