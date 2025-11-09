@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import ClientIntakeForm from "./components/forms/ClientIntakeForm";
 import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
+import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import { AppState } from "./lib/models";
+
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
@@ -93,6 +95,9 @@ const App: React.FC = () => {
                 onSaved={handleFollowUpSaved}
               />
             </section>
+                        {/* Supervisor / QMP Quick Audit View */}
+            <SupervisorAuditPanel state={state} />
+
           </>
         )}
       </div>
