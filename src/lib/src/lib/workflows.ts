@@ -1,12 +1,69 @@
 // src/lib/workflows.ts
 
-import { Client, Flag, Task, Effect } from "./models";
+import { Client, Flag, Task, Effect, RiskLevel, FourPs, SDOH } from "./models";
+
+/**
+ * Intake workflow:
+ * - Auto-flags high/critical SDOH domains
+ * - Auto-flags if any 4Ps are very low (<=2)
+ */
+export function onIntakeSubmit(client: Client): Effect[] {
+  const effects: Effect[] = [];
+
+  const sdoh = client.sdoh;
+  const fourPs = client.fourPs;
+
+  if (sdoh) {
+    (["housing", "food", "transport", "finances", "support"] as const).forEach(
+      (domain) => {
+        const level = sdoh[domain];
+        if (isHigh(level)) {
+          effects.push({
+            type: "createFlag",
+            payload: {
+              type: "SDOH",
+              label: `High ${domain} risk reported at intake`,
+              severity: "High",
+              requiresRnComment: true,
+            },
+          });
+        }
+      }
+    );
+  }
+
+  if (fourPs) {
+    const lowDomains: string[] = [];
+    (["physical", "psychological", "professional", "personal"] as const).forEach(
+      (key) => {
+        const val = fourPs[key];
+        if (val !== undefined && val <= 2) {
+          lowDomains.push(key);
+        }
+      }
+    );
+
+    if (lowDomains.length > 0) {
+      effects.push({
+        type: "createFlag",
+        payload: {
+          type: "SupportNeeds",
+          label: `Low 4Ps domains at intake: ${lowDomains.join(", ")}`,
+          severity: "Moderate",
+          requiresRnComment: true,
+        },
+      });
+    }
+  }
+
+  return effects;
+}
 
 /**
  * Follow-up workflow:
- * - Requires RN CM to confirm high/critical flags were reviewed
- * - Allows client to Accept or Decline Care Management
- * - Schedules the next 30-day follow-up task
+ * - Requires RN CM to confirm review of all open High/Critical flags
+ * - Records client's current CM decision
+ * - Schedules next 30-day follow-up
  */
 export function onFollowUpSubmit(
   client: Client,
@@ -19,7 +76,6 @@ export function onFollowUpSubmit(
 ): Effect[] {
   const effects: Effect[] = [];
 
-  // Enforce: must review all open high/critical flags
   const hasHighCriticalOpen = flags.some(
     (f) =>
       f.status === "Open" &&
@@ -37,7 +93,6 @@ export function onFollowUpSubmit(
     return effects;
   }
 
-  // Update client CM decision
   if (options.clientDecision === "Accept") {
     effects.push({
       type: "updateClient",
@@ -57,7 +112,6 @@ export function onFollowUpSubmit(
     });
   }
 
-  // Update follow-up dates + schedule next 30 days
   const now = new Date();
   const next = new Date();
   next.setDate(now.getDate() + 30);
@@ -81,4 +135,10 @@ export function onFollowUpSubmit(
   });
 
   return effects;
+}
+
+// Helpers
+
+function isHigh(level?: RiskLevel): boolean {
+  return level === "High" || level === "Critical";
 }
