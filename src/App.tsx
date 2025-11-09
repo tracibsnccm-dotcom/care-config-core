@@ -3,15 +3,16 @@
 import React, { useState } from "react";
 import ClientIntakeForm from "./components/forms/ClientIntakeForm";
 import FollowUpForm from "./components/forms/FollowUpForm";
+import FlagsPanel from "./components/FlagsPanel";
 import { AppState } from "./lib/models";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
-    // TODO: Replace in-memory AppState with real API calls.
+
+  // TODO: Replace in-memory AppState with real API calls.
   // - On intake submit: POST /clients
   // - On follow-up: POST /clients/:id/followups
   // - Load initial data: GET /clients/:id
-
 
   const handleIntakeSaved = (newState: AppState) => {
     setState(newState);
@@ -41,9 +42,10 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Once intake is done → show summary + Follow-Up Form */}
+        {/* Once intake is done → show snapshot + flags + follow-up */}
         {state && (
           <>
+            {/* Client Snapshot */}
             <section className="bg-white border rounded-xl p-4 shadow-sm mb-4">
               <h2 className="text-sm font-semibold mb-2">
                 Current Client Snapshot
@@ -53,6 +55,7 @@ const App: React.FC = () => {
                   <span className="font-semibold">Name:</span>{" "}
                   {state.client.name}
                 </div>
+
                 {state.client.viabilityScore !== undefined && (
                   <div>
                     <span className="font-semibold">Viability Score:</span>{" "}
@@ -62,6 +65,7 @@ const App: React.FC = () => {
                     </span>
                   </div>
                 )}
+
                 {state.client.voiceView && (
                   <>
                     <div>
@@ -77,6 +81,10 @@ const App: React.FC = () => {
               </div>
             </section>
 
+            {/* Flags Panel */}
+            <FlagsPanel flags={state.flags} />
+
+            {/* Follow-Up Form */}
             <section className="bg-white border rounded-xl p-4 shadow-sm">
               <FollowUpForm
                 client={state.client}
