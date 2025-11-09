@@ -1,14 +1,15 @@
 // src/components/forms/ClientIntakeForm.tsx
 
-import React, { useState } from "react";
 import {
   Client,
-  VoiceView,
   FourPs,
   SDOH,
   RiskLevel,
   AppState,
 } from "../../lib/models";
+import { onIntakeSubmit } from "../../lib/workflows";
+import { applyEffects } from "../../lib/executor";
+
 
 interface ClientIntakeFormProps {
   onSaved: (state: AppState) => void;
@@ -97,14 +98,19 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
         createdAt: new Date().toISOString(),
       };
 
+      // Start with empty flags/tasks
       const initialState: AppState = {
         client,
         flags: [],
         tasks: [],
       };
 
-      onSaved(initialState);
-    } catch (err: any) {
+      // Run intake workflow to auto-create flags based on SDOH + 4Ps
+      const effects = onIntakeSubmit(client);
+      const finalState = applyEffects(initialState, effects);
+
+      onSaved(finalState);
+
       console.error(err);
       setError("Unable to save intake. Please review required fields.");
     } finally {
