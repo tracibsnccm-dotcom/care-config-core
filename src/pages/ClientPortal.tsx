@@ -29,7 +29,6 @@ import { ClientIntakeReview } from "@/components/ClientIntakeReview";
 import { ClientConsentManagement } from "@/components/ClientConsentManagement";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/auth/supabaseAuth";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -39,10 +38,10 @@ import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Cloc
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function ClientPortal() {
   const { cases: userCases, loading: casesLoading } = useCases();
-  const { signOut } = useAuth();
   const navigate = useNavigate();
   const caseId = userCases?.[0]?.id as string | undefined;
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
@@ -51,11 +50,6 @@ export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/access");
-  };
-
   // Check for crisis indicators
   useEffect(() => {
     if (!caseId) return;
@@ -115,15 +109,13 @@ export default function ClientPortal() {
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Button>
-                <Button
+                {/* Use shared LogoutButton for consistency */}
+                <LogoutButton
                   variant="outline"
                   size="sm"
-                  onClick={handleLogout}
                   className="bg-white/10 text-white hover:bg-white hover:text-rcms-navy transition-all duration-300"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
+                  iconOnly={false}
+                />
               </div>
               
               {/* Primary Contact Buttons */}
@@ -529,7 +521,7 @@ export default function ClientPortal() {
               </TabsContent>
 
               <TabsContent value="journal" className="mt-0">
-                <div className="flex items-center justify-between border-b-2 border-rcms-gold pb-4 mb-6">
+                <div className="border-b-2 border-rcms-gold pb-4 mb-6">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                     <BookText className="w-6 h-6 text-rcms-teal" />
                     Personal Journal

@@ -7,7 +7,6 @@ import {
   Stethoscope,
   FileText,
   Settings,
-  LogOut,
   Activity,
   UserCircle,
   ClipboardEdit,
@@ -36,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
+import LogoutButton from "@/components/LogoutButton";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -53,7 +53,7 @@ const navigation = [
   
   // RN Navigation (Consolidated)
   { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  { name: "Clinical Management", href: "/clinical-management-portal", icon: Users, roles: [ROLES.RN_CM_DIRECTOR, ROLES.RN_CM_SUPERVISOR, ROLES.RN_CM_MANAGER, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Clinical Management", href: "/clinical-management-portal", icon: Users, roles: [ROLES.RN_CM_DIRECTOR, ROLES.RN_CM_SUPERVISOR, ROLES.RN_CM_MANAGER, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_[]] },
   { name: "RN Diary", href: "/rn-diary", icon: ClipboardEdit, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Caseload", href: "/rn/caseload", icon: Users, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Time Tracking", href: "/rn/time-tracking", icon: Activity, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
@@ -190,8 +190,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </TooltipProvider>
         </nav>
 
-        <div className={cn("p-4 border-t border-sidebar-border space-y-3", isCollapsed && "px-2")}>
-          {/* Role Display */}
+        <div className={cn("p-4 border-t border-sidebar-border space-y-3", isCollapsed && "px-2")}>  {/* Role Display */}
           {!isCollapsed && (
             <div className="px-3 py-2 bg-sidebar-accent/50 rounded-lg">
               <p className="text-xs font-medium text-sidebar-foreground/60 mb-1">Your Role</p>
@@ -207,25 +206,18 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => navigate('/logout')}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
-                    "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                    "transition-all w-full",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <LogOut className="w-5 h-5" />
-                  {!isCollapsed && "Sign Out"}
-                </button>
-              </TooltipTrigger>
-              {isCollapsed && <TooltipContent side="right">Sign Out</TooltipContent>}
-            </Tooltip>
-          </TooltipProvider>
+          {/* Use the reusable logout button; icon-only when collapsed */}
+          <LogoutButton
+            iconOnly={isCollapsed}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
+              "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              "transition-all w-full",
+              isCollapsed && "justify-center"
+            )}
+            variant="ghost"
+            size="default"
+          />
         </div>
       </aside>
 
@@ -240,22 +232,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3">
               <NotificationBell />
               <ThemeToggle />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => navigate('/logout')}
-                      className="text-secondary-foreground hover:bg-secondary-foreground/10"
-                      aria-label="Sign Out"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Sign Out</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Header uses icon-only logout */}
+              <LogoutButton
+                iconOnly
+                className="text-secondary-foreground hover:bg-secondary-foreground/10"
+                variant="ghost"
+              />
             </div>
           </div>
         </header>
