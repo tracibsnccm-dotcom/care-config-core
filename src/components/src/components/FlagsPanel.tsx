@@ -9,9 +9,8 @@ interface FlagsPanelProps {
 
 /**
  * Reconcile C.A.R.E.™ Flags Panel
- *
- * Surfaces active risk, support, and quality flags to guide RN CM vigilance.
- * This is where Vigilance + Viability + Verification become visible.
+ * Shows active risk, support, and quality flags.
+ * Each flag now includes its V-Framework category (Vigilance, Viability, Verification).
  */
 const FlagsPanel: React.FC<FlagsPanelProps> = ({ flags }) => {
   const openFlags = flags.filter((f) => f.status === "Open");
@@ -35,33 +34,53 @@ const FlagsPanel: React.FC<FlagsPanelProps> = ({ flags }) => {
         Active Flags &amp; Alerts
       </div>
       <div className="text-[10px] text-slate-500 mb-2">
-        These are system and clinician prompts aligned with your V-framework:
-        SDOH risk, viability concerns, support needs, and follow-up priorities.
+        Flags reflect your V-Framework for clinical reasoning:
+        Vigilance = risks, Viability = stability / resources, Verification = audit / follow-up.
       </div>
+
       <ul className="space-y-1">
-        {openFlags.map((flag) => (
-          <li
-            key={flag.id}
-            className={
-              "text-xs px-2 py-1 rounded border flex items-start gap-2 " +
-              flagSeverityClass(flag.severity)
-            }
-          >
-            <span className="mt-[2px]">•</span>
-            <div>
-              <div className="font-semibold">
-                {flag.label}
+        {openFlags.map((flag) => {
+          const category = mapFlagToV(flag);
+          return (
+            <li
+              key={flag.id}
+              className={
+                "text-xs px-2 py-1 rounded border flex items-start gap-2 " +
+                flagSeverityClass(flag.severity)
+              }
+            >
+              <span className="mt-[2px]">•</span>
+              <div>
+                <div className="font-semibold">
+                  {category.emoji} {category.label}: {flag.label}
+                </div>
+                <div className="text-[10px] text-slate-600">
+                  Type: {flag.type} | Severity: {flag.severity}
+                </div>
               </div>
-              <div className="text-[10px] text-slate-600">
-                Type: {flag.type} &nbsp;|&nbsp; Severity: {flag.severity}
-              </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 };
+
+// --- Helper Functions ---
+
+function mapFlagToV(flag: Flag): { label: string; emoji: string } {
+  const t = flag.type?.toLowerCase?.() || "";
+  if (t.includes("sdoh") || t.includes("risk")) {
+    return { label: "Vigilance Flag", emoji: "⚙️" };
+  }
+  if (t.includes("support") || t.includes("viability")) {
+    return { label: "Viability Flag", emoji: "🌿" };
+  }
+  if (t.includes("task") || t.includes("audit") || t.includes("follow")) {
+    return { label: "Verification Flag", emoji: "🧾" };
+  }
+  return { label: "General Flag", emoji: "📌" };
+}
 
 function flagSeverityClass(severity: Flag["severity"]): string {
   switch (severity) {
