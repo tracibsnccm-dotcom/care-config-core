@@ -1,71 +1,96 @@
 // src/lib/models.ts
-// Reconcile C.A.R.E. Core Data Models
 
+/**
+ * Core shared types for Reconcile C.A.R.E. platform
+ * These are intentionally a bit flexible (optional fields) so we don't break UI
+ * while iterating. As we stabilize, we can tighten them.
+ */
+
+/** Client Voice/View: client's own words & perspective */
+export interface VoiceView {
+  voice: string; // what happened / what is happening (client words)
+  view: string; // how they see themselves & what they want
+}
+
+/** Simple placeholder for 4Ps & SDOH structured data */
+export interface FourPsData {
+  // You can refine later (e.g., per-domain scores & rationales)
+  totalScore?: number;
+  details?: Record<string, any>;
+}
+
+export interface SDOHData {
+  // Flexible structure to hold your SDOH answers/flags
+  domains?: Record<string, any>;
+}
+
+/** Core Client model */
 export interface Client {
   id: string;
   name: string;
-  dateOfBirth?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
+
+  // Viability index derived from 4Ps, SDOH, etc.
+  viabilityScore?: number;
+  viabilityStatus?: string;
+
+  // Care Management participation
   cmDeclined?: boolean;
-  cmDeclineLastDate?: string;
-  lastFollowupDate?: string;
-  nextFollowupDue?: string;
-  createdAt?: string;
-  updatedAt?: string;
+
+  // Client-centered narrative
+  voiceView?: VoiceView;
+
+  // Structured contributors
+  fourPs?: FourPsData;
+  sdoh?: SDOHData;
+
+  // Follow-up
+  lastFollowupDate?: string; // ISO date
+  nextFollowupDue?: string; // ISO date
 }
+
+/** Flags: risk, required follow-up, guideline variance, etc. */
+export type FlagSeverity = "Low" | "Moderate" | "High" | "Critical";
+export type FlagStatus = "Open" | "Closed";
 
 export interface Flag {
   id: string;
-  clientId: string;
-  type: string;
+  type?: string; // e.g. "SDOH", "Pain", "GuidelineVariance"
   label: string;
-  severity: "Low" | "Moderate" | "High" | "Critical";
-  status: "Open" | "Closed";
-  createdAt: string;
-  resolvedAt?: string;
-  note?: string;
+  severity: FlagSeverity;
+  status: FlagStatus;
+  createdAt?: string; // ISO timestamp
+  resolvedAt?: string | null;
 }
+
+/** Tasks: follow-ups, outreach, documentation, etc. */
+export type TaskStatus = "Open" | "Completed" | "Cancelled";
 
 export interface Task {
   task_id: string;
-  client_id: string;
-  type: "FollowUp30Day" | "SupervisorReview" | string;
+  type: string; // e.g. "FollowUp", "Education", "AuditReview"
   title: string;
-  assigned_to: string;
-  due_date: string; // ISO date
-  status: "Open" | "Completed" | "Cancelled";
-  created_at: string; // ISO datetime
+  due_date?: string; // ISO date
+  status: TaskStatus;
+  created_at?: string; // ISO timestamp
+  assigned_to?: string; // RN id / role
 }
 
-export interface Effect {
-  type: string;
-  payload?: any;
-}
+/** Injury template IDs (aligned with Medical Necessity Driver) */
+export type InjuryTemplateId =
+  | "MVA"
+  | "SprainStrainMSD"
+  | "SlipTripFall"
+  | "StruckByCaughtIn"
+  | "LacerationPuncture"
+  | "Overexertion"
+  | "CrushInjury"
+  | "DogBite"
+  | "ProductLiability"
+  | "MedMal"
+  | "WrongfulDeath"
+  | "Generic";
 
-export interface AppState {
-  client: Client;
-  flags: Flag[];
-  tasks: Task[];
-}
-// Extend your existing models with:
-
-export interface InjuryInstance {
-  id: string; // unique per injury entry
-  templateId: InjuryTemplateId;
-  title: string; // e.g. "Crush injury - Right hand"
-  primary: boolean;
-  bodyRegion?: string;
-  laterality?: "Right" | "Left" | "Bilateral" | "Unspecified";
-  icd10Codes: string[];
-  mechanismSummary?: string;
-  keyFindings?: string; // objective + functional summary
-  redFlags?: string[];
-  odgProfile?: ODGProfileSnapshot; // optional, see below
-  keyForNecessity?: boolean; // RN marks as important
-}
-
+/** ODG/MCG snapshot used for advocacy (not auto-denial) */
 export interface ODGProfileSnapshot {
   guidelineName?: string;
   baseLodWeeksMin?: number;
@@ -73,13 +98,38 @@ export interface ODGProfileSnapshot {
   comorbidityAdjustmentsWeeks?: number;
   surgeryAddedWeeks?: number;
   rehabAddedWeeks?: number;
-  notes?: string; // human-readable explanation
+  notes?: string; // explanation in human language
 }
 
-// In AppState:
+/** A specific injury attached to a case */
+export interface InjuryInstance {
+  id: string; // unique per injury
+  templateId: InjuryTemplateId;
+  title: string; // e.g. "Crush injury – Right hand"
+  primary: boolean;
+
+  bodyRegion?: string; // free text or enum later
+  laterality?: "Right" | "Left" | "Bilateral" | "Unspecified";
+
+  // Coded representation (ICD-10 set)
+  icd10Codes: string[];
+
+  // Forensic clinical summary
+  mechanismSummary?: string;
+  keyFindings?: string; // objective + functional
+  redFlags?: string[];
+
+  // ODG / MCG perspective (advocacy use only)
+  odgProfile?: ODGProfileSnapshot;
+
+  // Marked by RN as especially important for necessity narrative
+  keyForNecessity?: boolean;
+}
+
+/** Global app state (for this prototype) */
 export interface AppState {
   client: Client;
   flags: Flag[];
   tasks: Task[];
-  injuries?: InjuryInstance[]; // 👈 new field
+  injuries?: InjuryInstance[]; // populated by Medical Necessity Driver UI
 }
