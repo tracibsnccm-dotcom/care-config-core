@@ -6,6 +6,7 @@ import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import InjurySelector from "./components/injuries/InjurySelector";
+import MedicalNarrativePreview from "./components/reports/MedicalNarrativePreview";
 import { AppState, InjuryInstance } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 
@@ -13,9 +14,6 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
 
   // TODO: Replace in-memory AppState with real API calls.
-  // - On intake submit: POST /clients
-  // - On follow-up: POST /clients/:id/followups
-  // - Load initial data: GET /clients/:id
 
   const handleIntakeSaved = (newState: AppState) => {
     setState({
@@ -26,7 +24,6 @@ const App: React.FC = () => {
 
   const handleFollowUpSaved = (newState: AppState) => {
     setState((prev) => {
-      // Preserve injuries unless newState explicitly provides them
       const merged: AppState = {
         ...(prev || newState),
         ...newState,
@@ -74,7 +71,7 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Once intake is done → show snapshot + injury builder + flags + follow-up + audit */}
+        {/* Once intake is done → show snapshot + injury builder + flags + follow-up + audit + narrative */}
         {state && (
           <>
             {/* Client Snapshot */}
@@ -135,7 +132,10 @@ const App: React.FC = () => {
             {/* Supervisor / QMP Quick Audit View */}
             <SupervisorAuditPanel state={state} />
 
-            {/* Dev/Demo: Download export-ready case summary */}
+            {/* Medical Necessity Narrative Preview */}
+            <MedicalNarrativePreview state={state} />
+
+            {/* Export JSON (dev/attorney integration aid) */}
             <div className="mt-2 flex justify-end">
               <button
                 type="button"
@@ -153,3 +153,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
