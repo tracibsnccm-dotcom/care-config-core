@@ -10,7 +10,7 @@ import { AppState, Flag, Task } from "./models";
  * - EHR / platform integrations (e.g., Epic, case management tools)
  */
 export function buildCaseSummaryForExport(state: AppState) {
-  const { client, flags, tasks } = state;
+  const { client, flags, tasks, injuries } = state;
 
   const openFlags = flags.filter((f) => f.status === "Open");
   const closedFlags = flags.filter((f) => f.status === "Closed");
@@ -32,6 +32,10 @@ export function buildCaseSummaryForExport(state: AppState) {
       lastFollowupDate: client.lastFollowupDate,
       nextFollowupDue: client.nextFollowupDue,
     },
+
+    // 👇 All captured injuries / templates for Medical Necessity Driver
+    injuries: injuries || [],
+
     flags: {
       open: sanitizeFlags(openFlags),
       closed: sanitizeFlags(closedFlags),
