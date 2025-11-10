@@ -5,7 +5,8 @@ import ClientIntakeForm from "./components/forms/ClientIntakeForm";
 import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
-import { AppState } from "./lib/models";
+import InjurySelector from "./components/injuries/InjurySelector";
+import { AppState, InjuryInstance } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 
 const App: React.FC = () => {
@@ -17,11 +18,26 @@ const App: React.FC = () => {
   // - Load initial data: GET /clients/:id
 
   const handleIntakeSaved = (newState: AppState) => {
-    setState(newState);
+    setState({
+      ...newState,
+      injuries: newState.injuries || [],
+    });
   };
 
   const handleFollowUpSaved = (newState: AppState) => {
-    setState(newState);
+    setState((prev) => {
+      // Preserve injuries unless newState explicitly provides them
+      const merged: AppState = {
+        ...(prev || newState),
+        ...newState,
+        injuries: newState.injuries || prev?.injuries || [],
+      };
+      return merged;
+    });
+  };
+
+  const handleInjuriesChange = (injuries: InjuryInstance[]) => {
+    setState((prev) => (prev ? { ...prev, injuries } : prev));
   };
 
   const handleDownloadSummary = () => {
@@ -58,7 +74,7 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Once intake is done → show snapshot + flags + follow-up + audit */}
+        {/* Once intake is done → show snapshot + injury builder + flags + follow-up + audit */}
         {state && (
           <>
             {/* Client Snapshot */}
@@ -88,14 +104,20 @@ const App: React.FC = () => {
                       <span className="font-semibold">Voice:</span>{" "}
                       {state.client.voiceView.voice}
                     </div>
-                      <div>
-                        <span className="font-semibold">View:</span>{" "}
-                        {state.client.voiceView.view}
-                      </div>
+                    <div>
+                      <span className="font-semibold">View:</span>{" "}
+                      {state.client.voiceView.view}
+                    </div>
                   </>
                 )}
               </div>
             </section>
+
+            {/* Injury Selector: drives Medical Necessity Driver */}
+            <InjurySelector
+              injuries={state.injuries || []}
+              onChange={handleInjuriesChange}
+            />
 
             {/* Flags Panel */}
             <FlagsPanel flags={state.flags} />
