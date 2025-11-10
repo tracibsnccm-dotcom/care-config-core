@@ -2,7 +2,11 @@
 
 import React, { useState, useMemo } from "react";
 import { InjuryInstance, InjuryTemplateId } from "../../lib/models";
-import { INJURY_TEMPLATES, InjuryTemplate, ICD10Option } from "../../lib/injuryTemplates";
+import {
+  INJURY_TEMPLATES,
+  InjuryTemplate,
+  ICD10Option,
+} from "../../lib/injuryTemplates";
 
 interface InjurySelectorProps {
   injuries: InjuryInstance[];
@@ -14,9 +18,8 @@ interface InjurySelectorProps {
  *
  * - Lets RN CM add Primary + Additional injuries to a case.
  * - Uses curated templates & ICD-10 suggestions.
- * - Feeds directly into Medical Necessity Driver & exports.
- *
- * This is intentionally simple and in-memory for now.
+ * - Captures injury date and auto-calculates weeksSinceInjury.
+ * - Feeds Medical Necessity Narrative + Supervisor Audit (variance prompts).
  */
 const InjurySelector: React.FC<InjurySelectorProps> = ({
   injuries,
@@ -30,6 +33,7 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
   const [laterality, setLaterality] = useState<
     "Right" | "Left" | "Bilateral" | "Unspecified" | ""
   >("");
+  const [injuryDate, setInjuryDate] = useState("");
   const [selectedIcdCodes, setSelectedIcdCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,19 +66,51 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
     setError(null);
 
     if (!selectedTemplateId || !activeTemplate) {
-      setError("Select an injury type/template.");
+      setError("Select an injury template/type.");
       return;
     }
 
-    const isFirst = injuries.length === 0;
-    const isPrimary = isFirst || !injuries.some((i) => i.primary);
-
-    // Require at least a short title
+    // Require at least a human-readable label
     const finalTitle =
       title.trim() ||
       `${activeTemplate.name}${
         bodyRegion ? ` – ${bodyRegion}` : ""
       }`;
+
+    // Auto-calc weeksSinceInjury if date provided
+    let weeksSinceInjury: number | undefined = undefined;
+    let normalizedInjuryDate: string | undefined = undefined;
+
+    if (injuryDate) {
+      const parsed = new Date(injuryDate + "T00:00:00");
+      if (!isNaN(parsed.getTime())) {
+        normalizedInjuryDate = injuryDate;
+        const now = new Date();
+        const diffMs = now.getTime() - parsed.getTime();
+        if (diffMs > 0) {
+          const diffWeeks = diffMs / (7 * 24 * 60 * 60 * 1000);
+          weeksSinceInjury = Math.floor(diffWeeks);
+        } else {
+          weeksSinceInjury = 0;
+        }
+      }
+    }
+
+    const isFirst = injuries.length === 0;
+    const existingPrimary = injuries.some((i) => i.primary);
+    const isPrimary = isFirst || !existingPrimary;
+
+    const icd10List =
+      selectedIcdCodes.length > 0
+        ? selectedIcdCodes
+        : activeTemplate.icd10Suggestions.slice(0, 1).map((o) => o.code);
+
+    if (icd10List.length === 0) {
+      setError(
+        "Select at least one ICD-10 code or choose a template with suggestions."
+      );
+      return;
+    }
 
     const newInjury: InjuryInstance = {
       id: generateId(),
@@ -83,9 +119,9 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
       primary: isPrimary,
       bodyRegion: bodyRegion || undefined,
       laterality: (laterality as any) || undefined,
-      icd10Codes: selectedIcdCodes.length
-        ? selectedIcdCodes
-        : activeTemplate.icd10Suggestions.slice(0, 1).map((o) => o.code),
+      icd10Codes: icd10List,
+      injuryDate: normalizedInjuryDate,
+      weeksSinceInjury,
       mechanismSummary: undefined,
       keyFindings: undefined,
       redFlags: [],
@@ -93,19 +129,25 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
       keyForNecessity: false,
     };
 
-    onChange([...injuries, newInjury]);
+    const next = [...injuries, newInjury];
 
-    // Reset form
+    // Ensure exactly one primary if any exist
+    if (!existingPrimary && !isPrimary && next.length > 0) {
+      next[0].primary = true;
+    }
+
+    onChange(next);
+
+    // Reset fields (keep template & search to speed multi-entry if desired)
     setTitle("");
     setBodyRegion("");
     setLaterality("");
+    setInjuryDate("");
     setSelectedIcdCodes([]);
-    // Keep template selected to allow multiple related additions if desired
   };
 
   const handleRemove = (id: string) => {
     const next = injuries.filter((i) => i.id !== id);
-    // Ensure at least one remaining primary if any injuries left
     if (next.length > 0 && !next.some((i) => i.primary)) {
       next[0].primary = true;
     }
@@ -124,14 +166,14 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
     <section className="bg-white border rounded-xl p-4 shadow-sm mb-4">
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h2 className="text-sm font-semibold">
-          Injury Profile & Medical Necessity Setup
+          Injury Profile &amp; Medical Necessity Setup
         </h2>
         <span className="text-[10px] text-slate-500">
-          Drives templates, ICD-10 mapping, and narrative reports.
+          Drives ICD-10 mapping, guideline prompts, and narrative.
         </span>
       </div>
 
-      {/* Existing injuries list */}
+      {/* Current injuries list */}
       {injuries.length > 0 && (
         <div className="mb-3">
           <div className="text-[10px] font-semibold text-slate-600 mb-1">
@@ -153,13 +195,20 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
                     {inj.title}
                   </div>
                   <div className="text-slate-500">
-                    Template: {inj.templateId}{" "}
-                    {inj.bodyRegion && `· ${inj.bodyRegion}`}{" "}
-                    {inj.laterality && `· ${inj.laterality}`}
+                    Template: {inj.templateId}
+                    {inj.bodyRegion && ` · ${inj.bodyRegion}`}
+                    {inj.laterality && ` · ${inj.laterality}`}
                   </div>
-                  {inj.icd10Codes?.length > 0 && (
+                  {inj.icd10Codes && inj.icd10Codes.length > 0 && (
                     <div className="text-slate-500">
                       ICD-10: {inj.icd10Codes.join(", ")}
+                    </div>
+                  )}
+                  {(inj.injuryDate || inj.weeksSinceInjury !== undefined) && (
+                    <div className="text-slate-500">
+                      {inj.injuryDate && `Injury Date: ${inj.injuryDate}`}
+                      {inj.weeksSinceInjury !== undefined &&
+                        ` · Approx. ${inj.weeksSinceInjury} weeks since injury`}
                     </div>
                   )}
                 </div>
@@ -187,12 +236,13 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
         </div>
       )}
 
+      {/* Add new injury */}
       <div className="border-t pt-3 mt-2">
         <div className="text-[10px] font-semibold text-slate-700 mb-1">
           Add Injury (Primary or Additional)
         </div>
 
-        {/* Search & template list */}
+        {/* Search & template selection */}
         <div className="flex flex-col gap-2 mb-2">
           <input
             type="text"
@@ -205,7 +255,9 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
             className="w-full border rounded px-2 py-1 text-[10px]"
             value={selectedTemplateId}
             onChange={(e) =>
-              setSelectedTemplateId(e.target.value as InjuryTemplateId | "")
+              setSelectedTemplateId(
+                (e.target.value || "") as InjuryTemplateId | ""
+              )
             }
           >
             <option value="">Select injury template...</option>
@@ -222,7 +274,7 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
           )}
         </div>
 
-        {/* Basic fields */}
+        {/* Basic description + region */}
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div>
             <label className="block text-[9px] text-slate-600 mb-0.5">
@@ -245,7 +297,7 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
               value={bodyRegion}
               onChange={(e) => setBodyRegion(e.target.value)}
               className="w-full border rounded px-2 py-1 text-[10px]"
-              placeholder="e.g., Right hand, cervical spine"
+              placeholder="e.g., Cervical spine, Right hand"
             />
           </div>
         </div>
@@ -260,7 +312,8 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
             value={laterality}
             onChange={(e) =>
               setLaterality(
-                e.target.value as
+                (e.target.value ||
+                  "") as
                   | "Right"
                   | "Left"
                   | "Bilateral"
@@ -275,6 +328,24 @@ const InjurySelector: React.FC<InjurySelectorProps> = ({
             <option value="Bilateral">Bilateral</option>
             <option value="Unspecified">Unspecified</option>
           </select>
+        </div>
+
+        {/* Injury date */}
+        <div className="mb-2">
+          <label className="block text-[9px] text-slate-600 mb-0.5">
+            Injury date (recommended)
+          </label>
+          <input
+            type="date"
+            value={injuryDate}
+            onChange={(e) => setInjuryDate(e.target.value)}
+            className="w-full border rounded px-2 py-1 text-[10px]"
+          />
+          <p className="text-[8px] text-slate-500 mt-0.5">
+            Used to auto-calculate weeks since injury for guideline prompts.
+            This supports advocacy & documentation only; it is never used to
+            auto-deny care.
+          </p>
         </div>
 
         {/* ICD-10 Suggestions */}
