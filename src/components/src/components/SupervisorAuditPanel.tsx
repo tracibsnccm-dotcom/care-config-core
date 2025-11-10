@@ -11,8 +11,8 @@ interface SupervisorAuditPanelProps {
  * Reconcile C.A.R.E.™ Quick Audit View
  *
  * For Supervisors / QMP:
- * - Fast snapshot of risk, follow-up, and documentation behavior.
- * - Supports URAC-style quality monitoring and internal standards.
+ * - Snapshot of risk, follow-up, and documentation behavior.
+ * - Highlights Priority Review candidates (no favoritism, clear rules).
  */
 const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
   state,
@@ -42,10 +42,56 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
     client.nextFollowupDue !== undefined &&
     client.nextFollowupDue < today;
 
+  // --- Priority Review Logic ---
+
+  const isHighRiskCase = highOrCritical.length > 0;
+  const hasRiskAndDeclined =
+    client.cmDeclined && (sdohFlags.length > 0 || supportFlags.length > 0);
+  const hasOverdueWork = followupOverdue || overdueTasks.length > 0;
+
+  // Deterministic pseudo-random: ensures some "clean" cases are still chosen
+  const randomBucket = pseudoRandomFromId(client.id);
+  const isRandomPick = !isHighRiskCase && !hasRiskAndDeclined && !hasOverdueWork && randomBucket < 0.15; // ~15%
+
+  const isPriorityReview =
+    isHighRiskCase || hasRiskAndDeclined || hasOverdueWork || isRandomPick;
+
   return (
     <section className="bg-slate-900 text-slate-50 rounded-xl p-4 mt-4">
       <div className="text-xs font-semibold uppercase tracking-wide mb-2">
         Quick Audit View (Supervisor / QMP)
+      </div>
+
+      {/* Priority Review Banner */}
+      <div
+        className={
+          "mb-3 px-3 py-2 rounded text-[10px] " +
+          (isPriorityReview
+            ? "bg-red-700/30 border border-red-400 text-red-100"
+            : "bg-emerald-800/30 border border-emerald-500 text-emerald-100")
+        }
+      >
+        {isPriorityReview ? (
+          <>
+            <div className="font-semibold">
+              Priority Review Candidate
+            </div>
+            <div>
+              This case is selected for focused supervisor/QMP review based on
+              risk, timeliness, client decisions, or random audit sampling.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-semibold">
+              Standard Review
+            </div>
+            <div>
+              No urgent audit triggers. Case remains eligible for routine
+              random sampling.
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-[10px]">
@@ -67,7 +113,7 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
             </span>
           </div>
           <div className="text-slate-400 mt-1">
-            Check alignment with 4Ps, SDOH, and V-framework.
+            Check alignment with 4Ps, SDOH, Voice/View, and V-framework.
           </div>
         </div>
 
@@ -86,7 +132,7 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
           <div>SDOH-related: {sdohFlags.length}</div>
           <div>Support/Viability: {supportFlags.length}</div>
           <div className="text-slate-400 mt-1">
-            Expect RN CM notes addressing High/Critical items.
+            Expect RN CM notes for High/Critical & structured interventions.
           </div>
         </div>
 
@@ -105,7 +151,7 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
           </div>
           {followupOverdue && (
             <div className="text-red-300 mt-1">
-              ⚠ Follow-up past due. Review required.
+              ⚠ Follow-up past due. Supervisor review strongly recommended.
             </div>
           )}
         </div>
@@ -117,15 +163,16 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
           </div>
           <ul className="list-disc pl-4 space-y-1">
             <li>
-              Confirm High/Critical flags have clear RN CM rationale.
+              Confirm High/Critical flags have RN CM rationale & actions.
             </li>
             <li>
-              Verify follow-up cadence matches policy (e.g., 30-day for
-              active cases).
+              Verify follow-up cadence meets policy (e.g., 30-day minimum).
             </li>
             <li>
-              Ensure client decisions (Accept/Decline CM) are documented
-              & revisited appropriately.
+              Ensure client decisions on CM are documented & revisited.
+            </li>
+            <li>
+              For Priority Review: capture findings in QMP log.
             </li>
           </ul>
         </div>
@@ -134,4 +181,16 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
   );
 };
 
+// Deterministic pseudo-random function based on client ID.
+// This makes "random" audit selection stable and unbiased.
+function pseudoRandomFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  // Convert hash to 0–1
+  return Math.abs(hash % 1000) / 1000;
+}
+
 export default SupervisorAuditPanel;
+
