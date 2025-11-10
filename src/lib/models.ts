@@ -2,8 +2,7 @@
 
 /**
  * Core domain models for Reconcile C.A.R.E.
- * Keep this file as the single source of truth for types
- * used across forms, flags, injuries, exports, etc.
+ * Single source of truth for types across forms, flags, injuries, exports, etc.
  */
 
 /* ---------- Client & Core ---------- */
@@ -63,7 +62,6 @@ export interface Task {
 
 /**
  * IDs for supported injury templates.
- * Expand as new templates are added.
  */
 export type InjuryTemplateId =
   | "GENERIC"
@@ -80,13 +78,13 @@ export type InjuryTemplateId =
 
 /**
  * Simple guideline-style profile for ODG/MCG-like logic.
- * These numbers are illustrative only and can be tuned later.
+ * Values are illustrative and configurable; they support advocacy, not denial.
  */
 export interface ODGProfile {
   templateId: InjuryTemplateId;
   baseLodWeeksMin?: number;
   baseLodWeeksMax?: number;
-  comorbidityAdjustmentsWeeks?: number; // added time if DM/HTN/etc.
+  comorbidityAdjustmentsWeeks?: number;
   surgeryAddedWeeks?: number;
   rehabAddedWeeks?: number;
 }
@@ -105,10 +103,14 @@ export interface InjuryInstance {
 
   icd10Codes?: string[];
 
-  // Optional richer clinical detail; useful later for narratives.
+  // Optional richer clinical detail
   mechanismSummary?: string;
   keyFindings?: string;
   redFlags?: string[];
+
+  // When known: timing context for guideline comparison
+  injuryDate?: string; // ISO date of incident
+  weeksSinceInjury?: number; // may be precomputed upstream (for now optional)
 
   // Optional guideline profile if/when computed
   odgProfile?: ODGProfile;
