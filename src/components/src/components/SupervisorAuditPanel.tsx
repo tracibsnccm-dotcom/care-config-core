@@ -1,7 +1,8 @@
 // src/components/SupervisorAuditPanel.tsx
 
 import React from "react";
-import { AppState, Flag, Task } from "../lib/models";
+import { AppState } from "../lib/models";
+import { buildCaseSummaryForExport } from "../lib/exportHelpers";
 
 interface SupervisorAuditPanelProps {
   state: AppState;
@@ -37,7 +38,6 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
     (t) => t.due_date && t.due_date < today
   );
 
-  const hasFollowupPlanned = !!client.nextFollowupDue;
   const followupOverdue =
     client.nextFollowupDue !== undefined &&
     client.nextFollowupDue < today;
@@ -46,15 +46,24 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
 
   const isHighRiskCase = highOrCritical.length > 0;
   const hasRiskAndDeclined =
-    client.cmDeclined && (sdohFlags.length > 0 || supportFlags.length > 0);
+    !!client.cmDeclined && (sdohFlags.length > 0 || supportFlags.length > 0);
   const hasOverdueWork = followupOverdue || overdueTasks.length > 0;
 
   // Deterministic pseudo-random: ensures some "clean" cases are still chosen
-  const randomBucket = pseudoRandomFromId(client.id);
-  const isRandomPick = !isHighRiskCase && !hasRiskAndDeclined && !hasOverdueWork && randomBucket < 0.15; // ~15%
+  const randomBucket = pseudoRandomFromId(client.id || "");
+  const isRandomPick =
+    !isHighRiskCase &&
+    !hasRiskAndDeclined &&
+    !hasOverdueWork &&
+    randomBucket < 0.15; // ~15%
 
   const isPriorityReview =
     isHighRiskCase || hasRiskAndDeclined || hasOverdueWork || isRandomPick;
+
+  // Build an export-ready snapshot (for devs / integrations).
+  // In production, this would feed PDF generation, API calls, etc.
+  const exportSummary = buildCaseSummaryForExport(state);
+  // console.log("[RCMS_EXPORT_PREVIEW]", exportSummary);
 
   return (
     <section className="bg-slate-900 text-slate-50 rounded-xl p-4 mt-4">
@@ -87,8 +96,8 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
               Standard Review
             </div>
             <div>
-              No urgent audit triggers. Case remains eligible for routine
-              random sampling.
+              No urgent audit triggers. Case remains eligible for routine random
+              sampling.
             </div>
           </>
         )}
@@ -184,13 +193,14 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
 // Deterministic pseudo-random function based on client ID.
 // This makes "random" audit selection stable and unbiased.
 function pseudoRandomFromId(id: string): number {
+  if (!id) return 0.5;
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash * 31 + id.charCodeAt(i)) | 0;
   }
-  // Convert hash to 0–1
-  return Math.abs(hash % 1000) / 1000;
+  return Math.abs(hash % 1000) / 1000; // 0–1
 }
 
 export default SupervisorAuditPanel;
+
 
