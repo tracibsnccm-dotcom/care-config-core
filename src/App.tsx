@@ -6,7 +6,7 @@ import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import { AppState } from "./lib/models";
-
+import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
@@ -22,6 +22,20 @@ const App: React.FC = () => {
 
   const handleFollowUpSaved = (newState: AppState) => {
     setState(newState);
+  };
+
+  const handleDownloadSummary = () => {
+    if (!state) return;
+    const summary = buildCaseSummaryForExport(state);
+    const blob = new Blob([JSON.stringify(summary, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rcms-case-summary-${state.client.id || "client"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -44,7 +58,7 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* Once intake is done → show snapshot + flags + follow-up */}
+        {/* Once intake is done → show snapshot + flags + follow-up + audit */}
         {state && (
           <>
             {/* Client Snapshot */}
@@ -74,10 +88,10 @@ const App: React.FC = () => {
                       <span className="font-semibold">Voice:</span>{" "}
                       {state.client.voiceView.voice}
                     </div>
-                    <div>
-                      <span className="font-semibold">View:</span>{" "}
-                      {state.client.voiceView.view}
-                    </div>
+                      <div>
+                        <span className="font-semibold">View:</span>{" "}
+                        {state.client.voiceView.view}
+                      </div>
                   </>
                 )}
               </div>
@@ -95,9 +109,20 @@ const App: React.FC = () => {
                 onSaved={handleFollowUpSaved}
               />
             </section>
-                        {/* Supervisor / QMP Quick Audit View */}
+
+            {/* Supervisor / QMP Quick Audit View */}
             <SupervisorAuditPanel state={state} />
 
+            {/* Dev/Demo: Download export-ready case summary */}
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={handleDownloadSummary}
+                className="px-3 py-1 border rounded text-[10px] text-slate-700 bg-white hover:bg-slate-100"
+              >
+                Download Case Summary (JSON)
+              </button>
+            </div>
           </>
         )}
       </div>
