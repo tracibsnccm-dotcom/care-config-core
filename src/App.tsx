@@ -5,36 +5,18 @@ import ClientIntakeForm from "./components/forms/ClientIntakeForm";
 import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
-import InjurySelector from "./components/injuries/InjurySelector";
-import MedicalNarrativePreview from "./components/reports/MedicalNarrativePreview";
-import { AppState, InjuryInstance } from "./lib/models";
+import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
 
-  // TODO: Replace in-memory AppState with real API calls.
-
-  const handleIntakeSaved = (newState: AppState) => {
-    setState({
-      ...newState,
-      injuries: newState.injuries || [],
-    });
+  const handleIntakeSaved = (next: AppState) => {
+    setState(next);
   };
 
-  const handleFollowUpSaved = (newState: AppState) => {
-    setState((prev) => {
-      const merged: AppState = {
-        ...(prev || newState),
-        ...newState,
-        injuries: newState.injuries || prev?.injuries || [],
-      };
-      return merged;
-    });
-  };
-
-  const handleInjuriesChange = (injuries: InjuryInstance[]) => {
-    setState((prev) => (prev ? { ...prev, injuries } : prev));
+  const handleFollowUpSaved = (next: AppState) => {
+    setState(next);
   };
 
   const handleDownloadSummary = () => {
@@ -46,16 +28,16 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `rcms-case-summary-${state.client.id || "client"}.json`;
+    a.download = `rcms-case-summary-${state.client?.id || "client"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-3xl mx-auto py-8 px-4">
+      <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
         {/* Header */}
-        <header className="mb-8">
+        <header className="mb-2">
           <h1 className="text-2xl font-semibold">
             Reconcile C.A.R.E.™ Care Management Console
           </h1>
@@ -64,25 +46,25 @@ const App: React.FC = () => {
           </p>
         </header>
 
-        {/* If no intake saved yet → show Intake Form */}
+        {/* If no intake yet -> show initial client intake */}
         {!state && (
           <section className="bg-white border rounded-xl p-4 shadow-sm">
             <ClientIntakeForm onSaved={handleIntakeSaved} />
           </section>
         )}
 
-        {/* Once intake is done → show snapshot + injury builder + flags + follow-up + audit + narrative */}
+        {/* When we have state -> show snapshot, flags, follow-ups, audit */}
         {state && (
           <>
-            {/* Client Snapshot */}
-            <section className="bg-white border rounded-xl p-4 shadow-sm mb-4">
-              <h2 className="text-sm font-semibold mb-2">
+            {/* Snapshot */}
+            <section className="bg-white border rounded-xl p-4 shadow-sm space-y-1">
+              <h2 className="text-sm font-semibold mb-1">
                 Current Client Snapshot
               </h2>
-              <div className="text-xs space-y-1">
+              <div className="text-xs">
                 <div>
                   <span className="font-semibold">Name:</span>{" "}
-                  {state.client.name}
+                  {state.client.name || "N/A"}
                 </div>
 
                 {state.client.viabilityScore !== undefined && (
@@ -90,7 +72,9 @@ const App: React.FC = () => {
                     <span className="font-semibold">Viability Score:</span>{" "}
                     {state.client.viabilityScore}{" "}
                     <span className="text-slate-500">
-                      ({state.client.viabilityStatus || "N/A"})
+                      {state.client.viabilityStatus
+                        ? `(${state.client.viabilityStatus})`
+                        : ""}
                     </span>
                   </div>
                 )}
@@ -110,16 +94,10 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Injury Selector: drives Medical Necessity Driver */}
-            <InjurySelector
-              injuries={state.injuries || []}
-              onChange={handleInjuriesChange}
-            />
-
-            {/* Flags Panel */}
+            {/* Flags Panel (must-review items: pain, meds, SDOH, MH, etc.) */}
             <FlagsPanel flags={state.flags} />
 
-            {/* Follow-Up Form */}
+            {/* Follow-Up Form: 30/90-day RN CM workflow + acknowledgements */}
             <section className="bg-white border rounded-xl p-4 shadow-sm">
               <FollowUpForm
                 client={state.client}
@@ -129,18 +107,15 @@ const App: React.FC = () => {
               />
             </section>
 
-            {/* Supervisor / QMP Quick Audit View */}
+            {/* Supervisor / QMP Quick Audit View (10-V framework, quality checks) */}
             <SupervisorAuditPanel state={state} />
 
-            {/* Medical Necessity Narrative Preview */}
-            <MedicalNarrativePreview state={state} />
-
-            {/* Export JSON (dev/attorney integration aid) */}
-            <div className="mt-2 flex justify-end">
+            {/* Export for attorney / provider / audit */}
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={handleDownloadSummary}
-                className="px-3 py-1 border rounded text-[10px] text-slate-700 bg-white hover:bg-slate-100"
+                className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
               >
                 Download Case Summary (JSON)
               </button>
