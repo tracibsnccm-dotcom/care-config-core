@@ -10,6 +10,7 @@ import InjurySelector from "./components/injuries/InjurySelector";
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 import { buildMedicalNarrative } from "./lib/medicalNecessityNarrative";
+import { openNarrativePrintWindow } from "./lib/pdf";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
@@ -43,6 +44,11 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handlePrintNarrativePdf = () => {
+    if (!state) return;
+    openNarrativePrintWindow(state);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
@@ -68,9 +74,7 @@ const App: React.FC = () => {
           <>
             {/* Snapshot */}
             <section className="bg-white border rounded-xl p-4 shadow-sm space-y-1">
-              <h2 className="text-sm font-semibold mb-1">
-                Current Client Snapshot
-              </h2>
+              <h2 className="text-sm font-semibold mb-1">Current Client Snapshot</h2>
               <div className="text-xs">
                 <div>
                   <span className="font-semibold">Name:</span>{" "}
@@ -147,6 +151,13 @@ const App: React.FC = () => {
               >
                 Download Medical Narrative (TXT)
               </button>
+              <button
+                type="button"
+                onClick={handlePrintNarrativePdf}
+                className="mt-2 ml-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
+              >
+                Print / Save Narrative (PDF)
+              </button>
             </div>
           </>
         )}
@@ -156,3 +167,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
