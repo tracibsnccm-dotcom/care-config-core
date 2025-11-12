@@ -1,129 +1,80 @@
 // src/lib/models.ts
 
-/**
- * Core domain models for Reconcile C.A.R.E.
- * Single source of truth for types across forms, flags, injuries, exports, etc.
- */
-
-/* ---------- Client & Core ---------- */
-
+// Core client model
 export interface VoiceView {
-  voice: string; // client's words: what happened / how they feel
-  view: string; // client's goals / expectations
+  voice: string; // client’s own words
+  view: string;  // how they see themselves / desired course
 }
 
 export interface Client {
   id: string;
   name: string;
 
-  // Viability / 4Ps / SDOH mapping
-  viabilityScore?: number;
-  viabilityStatus?: string;
+  // Care management participation
   cmDeclined?: boolean;
 
-  voiceView?: VoiceView;
-  fourPs?: any; // placeholder for structured 4Ps object
-  sdoh?: any; // placeholder for structured SDOH object
+  // Viability / 4Ps / V-Vs
+  viabilityScore?: number | null;
+  viabilityStatus?: string | null; // e.g. "High Viability", "Borderline", etc.
 
-  lastFollowupDate?: string; // ISO date
-  nextFollowupDue?: string; // ISO date
+  voiceView?: VoiceView | null;
+
+  // Optional structured fields for future expansion
+  fourPs?: any;
+  sdoh?: any;
+
+  // Follow-up tracking
+  lastFollowupDate?: string | null;
+  nextFollowupDue?: string | null;
 }
 
-/* ---------- Flags ---------- */
-
-export type FlagSeverity = "Low" | "Medium" | "High" | "Critical";
+// Flags: safety, SDOH, required items, etc.
+export type FlagSeverity = "Low" | "Moderate" | "High" | "Critical";
 export type FlagStatus = "Open" | "Closed";
 
 export interface Flag {
   id: string;
-  type?: string; // e.g. "SDOH", "Pain", "MentalHealth"
+  type?: string; // e.g. "Pain", "Meds", "SDOH"
   label: string;
+  description?: string;
   severity: FlagSeverity;
   status: FlagStatus;
-  createdAt?: string; // ISO
-  resolvedAt?: string | null; // ISO
+  createdAt?: string;
+  resolvedAt?: string | null;
 }
 
-/* ---------- Tasks ---------- */
-
+// Tasks: follow-ups, audits, outreach, etc.
 export type TaskStatus = "Open" | "Completed" | "Cancelled";
 
 export interface Task {
   task_id: string;
-  type: string; // e.g. "followup", "education", etc.
+  type: string; // e.g. "FollowUp", "Audit", "Education"
   title: string;
-  due_date?: string; // ISO
+  due_date?: string | null;
   status: TaskStatus;
-  created_at?: string; // ISO
-  assigned_to?: string;
+  created_at?: string;
+  assigned_to?: string | null;
 }
 
-/* ---------- Injury / Medical Necessity ---------- */
-
-/**
- * IDs for supported injury templates.
- */
-export type InjuryTemplateId =
-  | "GENERIC"
-  | "MVA"
-  | "SPRAIN_STRAIN"
-  | "SLIP_TRIP_FALL"
-  | "STRUCK_CAUGHT"
-  | "LAC_PUNCTURE"
-  | "OVEREXERTION"
-  | "CRUSH"
-  | "DOG_BITE"
-  | "PRODUCT_LIABILITY"
-  | "MALPRACTICE";
-
-/**
- * Simple guideline-style profile for ODG/MCG-like logic.
- * Values are illustrative and configurable; they support advocacy, not denial.
- */
-export interface ODGProfile {
-  templateId: InjuryTemplateId;
-  baseLodWeeksMin?: number;
-  baseLodWeeksMax?: number;
-  comorbidityAdjustmentsWeeks?: number;
-  surgeryAddedWeeks?: number;
-  rehabAddedWeeks?: number;
+// ICD-10 & Injury selection for Medical Necessity Review Driver
+export interface ICD10Code {
+  code: string;
+  label: string;
+  category: string; // e.g. "MVA", "Sprain/Strain", etc.
 }
 
-/**
- * One injury instance attached to a client case.
- */
-export interface InjuryInstance {
-  id: string;
-  templateId: InjuryTemplateId;
-  title: string; // human-readable label
-  primary: boolean;
-
-  bodyRegion?: string; // e.g. "Lumbar spine", "Right hand"
-  laterality?: "Right" | "Left" | "Bilateral" | "Unspecified";
-
-  icd10Codes?: string[];
-
-  // Optional richer clinical detail
-  mechanismSummary?: string;
-  keyFindings?: string;
-  redFlags?: string[];
-
-  // When known: timing context for guideline comparison
-  injuryDate?: string; // ISO date of incident
-  weeksSinceInjury?: number; // may be precomputed upstream (for now optional)
-
-  // Optional guideline profile if/when computed
-  odgProfile?: ODGProfile;
-
-  // Whether RN flagged this as key for necessity narrative
-  keyForNecessity?: boolean;
+export interface InjurySelection {
+  id: string;           // internal id
+  templateId: string;   // which injury template (e.g. "mva", "sprain_strain")
+  label: string;        // human readable (e.g. "Whiplash", "Lumbar Strain")
+  icd10Code?: string;   // selected ICD-10 code
+  primary: boolean;     // true = primary injury
 }
 
-/* ---------- App State ---------- */
-
+// App-wide state (in-memory for now)
 export interface AppState {
   client: Client;
   flags: Flag[];
   tasks: Task[];
-  injuries?: InjuryInstance[];
+  injuries?: InjurySelection[];
 }
