@@ -1,178 +1,85 @@
 // src/lib/medicalNecessityNarrative.ts
-import { AppState, InjurySelection, Flag, Task } from "./models";
+import { AppState } from "./models";
+import { estimateAllRecoveryWindows } from "./odg";
 
-/**
- * Builds a plain-text medical necessity narrative suitable for
- * demand packages, provider summaries, or supervisor review.
- *
- * - Uses client Voice/View + Viability
- * - Lists primary/secondary injuries with ICD-10
- * - Highlights open High/Critical flags
- * - Summarizes follow-up cadence from tasks
- * - Includes compliance statement about ODG/MCG usage
- */
+function line(s = ""): string {
+  return s.replace(/\r?\n/g, "\n");
+}
+
+function fmtWindow(d: { min: number; max: number }) {
+  return d.min === d.max ? `${d.min} days` : `${d.min}–${d.max} days`;
+}
+
 export function buildMedicalNarrative(state: AppState): string {
-  const { client, injuries = [], flags = [], tasks = [] } = state;
+  const c = (state as any).client || {};
+  const injuries = (state as any).injuries || [];
+  const windows = estimateAllRecoveryWindows(state);
 
-  const primaryInjury = injuries.find((i) => i.primary);
-  const secondaryInjuries = injuries.filter((i) => !i.primary);
-
-  const openHighCritical = flags
-    .filter((f) => f.status === "Open" && (f.severity === "High" || f.severity === "Critical"))
-    .sort(sortByCreatedAt);
-
-  const openOther = flags
-    .filter(
-      (f) =>
-        f.status === "Open" && !(f.severity === "High" || f.severity === "Critical")
-    )
-    .sort(sortByCreatedAt);
-
-  const followUps = tasks
-    .filter((t) => (t.type || "").toLowerCase().includes("follow"))
-    .sort(sortByDueDate);
-
-  const lines: string[] = [];
-
-  lines.push("RECONCILE C.A.R.E. — Medical Necessity Narrative");
-  lines.push("=================================================");
-  lines.push("");
-  lines.push(`Client: ${client.name || "N/A"}   (ID: ${client.id || "N/A"})`);
-  lines.push(
-    `Viability: ${valueOrNA(client.viabilityStatus)}${scoreSuffix(client.viabilityScore)}`
+  const header = line(
+    `RECONCILE C.A.R.E. — Medical Narrative\n` +
+      `Client: ${c.name || "N/A"}   ID: ${c.id || ""}\n` +
+      `Viability: ${c.viabilityScore ?? "N/A"} ${c.viabilityStatus ? `(${c.viabilityStatus})` : ""}\n`
   );
-  lines.push(
-    `Last Follow-Up: ${client.lastFollowupDate ? fmtDate(client.lastFollowupDate) : "N/A"}`
-  );
-  lines.push(
-    `Next Due: ${client.nextFollowupDue ? fmtDate(client.nextFollowupDue) : "Not scheduled"}`
-  );
-  lines.push("");
 
-  // Voice / View
-  if (client.voiceView?.voice || client.voiceView?.view) {
-    lines.push("Client Voice / View");
-    lines.push("-------------------");
-    if (client.voiceView?.voice) lines.push(`Voice (client words): ${client.voiceView.voice}`);
-    if (client.voiceView?.view) lines.push(`View (goals/trajectory): ${client.voiceView.view}`);
-    lines.push("");
-  }
+  const voiceView =
+    c.voiceView && (c.voiceView.voice || c.voiceView.view)
+      ? line(
+          `\nVOICE/VIEW\n` +
+            `Voice (client words): ${c.voiceView.voice || ""}\n` +
+            `View (client perspective): ${c.voiceView.view || ""}\n`
+        )
+      : "";
 
-  // Injuries
-  lines.push("Injury Profile (Primary + Related)");
-  lines.push("-----------------------------------");
-  if (primaryInjury) {
-    lines.push(`PRIMARY: ${injLine(primaryInjury)}`);
-  } else {
-    lines.push("PRIMARY: Not selected");
-  }
-  if (secondaryInjuries.length > 0) {
-    secondaryInjuries.forEach((inj, idx) =>
-      lines.push(`Related ${idx + 1}: ${injLine(inj)}`)
-    );
-  } else {
-    lines.push("Related: None listed");
-  }
-  lines.push("");
+  const injuryBlock = injuries.length
+    ? `\nINJURIES & ICD-10\n${injuries
+        .map((inj: any, idx: number) => {
+          const codes = Array.isArray(inj.icd10) ? inj.icd10.join(", ") : inj.icd10 || "";
+          return (
+            `• Injury ${idx + 1}: ${inj.label || inj.form || "Unspecified"}\n` +
+            (inj.side ? `  Side: ${inj.side}\n` : "") +
+            (codes ? `  ICD-10: ${codes}\n` : "") +
+            (inj.notes ? `  Notes: ${inj.notes}\n` : "")
+          );
+        })
+        .join("")}`
+    : `\nINJURIES & ICD-10\n• No injuries recorded\n`;
 
-  // High/Critical flags
-  lines.push("Open High / Critical Risk Items (Must Address)");
-  lines.push("-----------------------------------------------");
-  if (openHighCritical.length === 0) {
-    lines.push("None open.");
-  } else {
-    openHighCritical.forEach((f) => lines.push(flagLine(f)));
-  }
-  lines.push("");
+  const recoveryBlock =
+    windows.length > 0
+      ? `\nEXPECTED RECOVERY WINDOW (ODG/MCG-style)\n` +
+        windows
+          .map((w, i) => {
+            const mods =
+              w.modifiers.length > 0
+                ? w.modifiers
+                    .map((m) => `    - ${m.name}: ${m.effectDays >= 0 ? "+" : ""}${m.effectDays}d — ${m.rationale}`)
+                    .join("\n")
+                : "    (No risk/comorbidity adjustments)";
+            const assumptions =
+              w.assumptions.length > 0 ? `  Assumptions: ${w.assumptions.join("; ")}` : "";
+            return (
+              `• Injury ${i + 1}: ${w.description}\n` +
+              `  Baseline: ${fmtWindow(w.baselineDays)}\n` +
+              `  Adjusted: ${fmtWindow(w.totalDays)}\n` +
+              `  Adjustments:\n${mods}\n` +
+              (assumptions ? `${assumptions}\n` : "")
+            );
+          })
+          .join("\n")
+      : `\nEXPECTED RECOVERY WINDOW (ODG/MCG-style)\n• Not enough data to estimate\n`;
 
-  // Other open flags
-  lines.push("Other Open Care Items");
-  lines.push("---------------------");
-  if (openOther.length === 0) {
-    lines.push("No additional open items.");
-  } else {
-    openOther.forEach((f) => lines.push(flagLine(f)));
-  }
-  lines.push("");
+  const fourPsBlock = c.fourPs
+    ? `\n4Ps SNAPSHOT (Selected)\n` + `• ${JSON.stringify(c.fourPs)}\n`
+    : "";
 
-  // Follow-up cadence
-  lines.push("Follow-Up Cadence & Timeliness");
-  lines.push("------------------------------");
-  if (followUps.length === 0) {
-    lines.push("No follow-up tasks recorded.");
-  } else {
-    followUps.forEach((t) => lines.push(taskLine(t)));
-  }
-  lines.push("");
+  const sdohBlock = c.sdoh ? `\nSDOH SNAPSHOT (Selected)\n` + `• ${JSON.stringify(c.sdoh)}\n` : "";
 
-  // Compliance & methodology statement
-  lines.push("Clinical Methodology & Compliance Statement");
-  lines.push("-------------------------------------------");
-  lines.push(
-    "Reconcile C.A.R.E. utilizes standardized injury templates, ICD-10 coding, and evidence-based references (e.g., ODG/MCG) to guide care coordination."
-  );
-  lines.push(
-    "These references are used to inform expected recovery timelines and appropriate interventions; they are NOT used to deny services based on race, gender, socioeconomic status, or other protected characteristics."
-  );
-  lines.push(
-    "The RN Case Manager documents clinical findings, functional impact, and treatment response to demonstrate medical necessity and support legal strategy."
-  );
-  lines.push("");
+  const closing = `\nCLINICAL RATIONALE\n` +
+    `Plan aligns with evidence-based timelines; adjustments reflect comorbidities and real-world barriers (e.g., SDOH). ` +
+    `Where surgery occurs, added time is appended *after* the event to prevent pre-emptive inflation. ` +
+    `This narrative is regenerated as the case evolves and should be read in conjunction with progress notes and provider reports.\n`;
 
-  lines.push("Plan & Rationale (RN CM)");
-  lines.push("-------------------------");
-  lines.push(
-    "• Summary: (RN to enter structured rationale tying symptoms, objective findings, function, and guideline-supported care.)"
-  );
-  lines.push("• Safety: (Address pain, MH, meds, SDOH confirmations and education.)");
-  lines.push("• Coordination: (Referrals, imaging, specialist consults, therapy progress.)");
-  lines.push("• Next Steps: (Specific actions + timeframe; barriers and mitigation.)");
-  lines.push("");
-
-  return lines.join("\n");
-}
-
-// helpers
-
-function valueOrNA(v?: string | null): string {
-  return v ? v : "N/A";
-}
-
-function scoreSuffix(score?: number | null): string {
-  if (score === null || score === undefined) return "";
-  return ` (Score: ${score})`;
-}
-
-function injLine(i: InjurySelection): string {
-  return `${i.label}${i.icd10Code ? ` — ICD-10: ${i.icd10Code}` : ""}`;
-}
-
-function flagLine(f: Flag): string {
-  const when = f.createdAt ? ` @ ${fmtDate(f.createdAt)}` : "";
-  const type = f.type ? ` [${f.type}]` : "";
-  return `• ${f.severity}${type}: ${f.label}${when}`;
-}
-
-function taskLine(t: Task): string {
-  const due = t.due_date ? fmtDate(t.due_date) : "N/A";
-  return `• ${t.title} — Type: ${t.type} — Due: ${due} — Status: ${t.status}`;
-}
-
-function fmtDate(isoLike: string): string {
-  // tolerant formatting; assumes YYYY-MM-DD or ISO
-  const d = new Date(isoLike);
-  if (isNaN(d.getTime())) return isoLike;
-  return d.toISOString().slice(0, 10);
-}
-
-function sortByCreatedAt(a: Flag, b: Flag): number {
-  const ax = a.createdAt || "";
-  const bx = b.createdAt || "";
-  return ax.localeCompare(bx);
-}
-
-function sortByDueDate(a: Task, b: Task): number {
-  const ax = a.due_date || "";
-  const bx = b.due_date || "";
-  return ax.localeCompare(bx);
+  return [header, voiceView, injuryBlock, recoveryBlock, fourPsBlock, sdohBlock, closing]
+    .filter(Boolean)
+    .join("");
 }
