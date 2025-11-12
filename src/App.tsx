@@ -1,24 +1,21 @@
 // src/App.tsx
-import InjurySelector from "./components/injuries/InjurySelector";
-
 import React, { useState } from "react";
+
 import ClientIntakeForm from "./components/forms/ClientIntakeForm";
 import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
+import InjurySelector from "./components/injuries/InjurySelector";
+
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
+import { buildMedicalNarrative } from "./lib/medicalNecessityNarrative";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
 
-  const handleIntakeSaved = (next: AppState) => {
-    setState(next);
-  };
-
-  const handleFollowUpSaved = (next: AppState) => {
-    setState(next);
-  };
+  const handleIntakeSaved = (next: AppState) => setState(next);
+  const handleFollowUpSaved = (next: AppState) => setState(next);
 
   const handleDownloadSummary = () => {
     if (!state) return;
@@ -30,6 +27,18 @@ const App: React.FC = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `rcms-case-summary-${state.client?.id || "client"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadNarrative = () => {
+    if (!state) return;
+    const narrative = buildMedicalNarrative(state);
+    const blob = new Blob([narrative], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rcms-medical-narrative-${state.client?.id || "client"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -54,19 +63,9 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* When we have state -> show snapshot, flags, follow-ups, audit */}
+        {/* When we have state -> show snapshot, injuries, flags, follow-ups, audit */}
         {state && (
-          <>            {/* Injury & ICD-10 Mapping (Medical Necessity Driver) */}
-            <InjurySelector
-              selected={state.injuries || []}
-              onChange={(injuries) =>
-                setState({
-                  ...state,
-                  injuries,
-                })
-              }
-            />
-
+          <>
             {/* Snapshot */}
             <section className="bg-white border rounded-xl p-4 shadow-sm space-y-1">
               <h2 className="text-sm font-semibold mb-1">
@@ -105,10 +104,21 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Flags Panel (must-review items: pain, meds, SDOH, MH, etc.) */}
+            {/* Injury & ICD-10 Mapping (Medical Necessity Driver) */}
+            <InjurySelector
+              selected={state.injuries || []}
+              onChange={(injuries) =>
+                setState({
+                  ...state,
+                  injuries,
+                })
+              }
+            />
+
+            {/* Flags Panel */}
             <FlagsPanel flags={state.flags} />
 
-            {/* Follow-Up Form: 30/90-day RN CM workflow + acknowledgements */}
+            {/* Follow-Up Form */}
             <section className="bg-white border rounded-xl p-4 shadow-sm">
               <FollowUpForm
                 client={state.client}
@@ -118,10 +128,10 @@ const App: React.FC = () => {
               />
             </section>
 
-            {/* Supervisor / QMP Quick Audit View (10-V framework, quality checks) */}
+            {/* Supervisor / QMP Quick Audit View */}
             <SupervisorAuditPanel state={state} />
 
-            {/* Export for attorney / provider / audit */}
+            {/* Exports */}
             <div className="flex justify-end">
               <button
                 type="button"
@@ -129,6 +139,13 @@ const App: React.FC = () => {
                 className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
               >
                 Download Case Summary (JSON)
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadNarrative}
+                className="mt-2 ml-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
+              >
+                Download Medical Narrative (TXT)
               </button>
             </div>
           </>
@@ -139,4 +156,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
