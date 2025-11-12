@@ -1,4 +1,5 @@
 // src/App.tsx
+import InjurySelector from "./components/injuries/InjurySelector";
 
 import React, { useState } from "react";
 import ClientIntakeForm from "./components/forms/ClientIntakeForm";
@@ -55,7 +56,17 @@ const App: React.FC = () => {
 
         {/* When we have state -> show snapshot, flags, follow-ups, audit */}
         {state && (
-          <>
+          <>            {/* Injury & ICD-10 Mapping (Medical Necessity Driver) */}
+            <InjurySelector
+              selected={state.injuries || []}
+              onChange={(injuries) =>
+                setState({
+                  ...state,
+                  injuries,
+                })
+              }
+            />
+
             {/* Snapshot */}
             <section className="bg-white border rounded-xl p-4 shadow-sm space-y-1">
               <h2 className="text-sm font-semibold mb-1">
