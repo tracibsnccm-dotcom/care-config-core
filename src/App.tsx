@@ -7,6 +7,7 @@ import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import InjurySelector from "./components/injuries/InjurySelector";
 import ODGDifferencePanel from "./components/odg/ODGDifferencePanel";
+import DecryptTool from "./components/admin/DecryptTool";
 
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
@@ -15,6 +16,7 @@ import { openNarrativePrintWindow } from "./lib/pdf";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntakeSaved = (next: AppState) => setState(next);
   const handleFollowUpSaved = (next: AppState) => setState(next);
@@ -123,7 +125,10 @@ const App: React.FC = () => {
             />
 
             {/* ODG-linked live difference calculator (with encrypted CSV export) */}
-            <ODGDifferencePanel injuries={state.injuries || []} clientId={state.client?.id} />
+            <ODGDifferencePanel
+              injuries={state.injuries || []}
+              clientId={state.client?.id}
+            />
 
             {/* Flags Panel */}
             <FlagsPanel flags={state.flags} />
@@ -165,6 +170,23 @@ const App: React.FC = () => {
                 Print / Save Narrative (PDF)
               </button>
             </div>
+
+            {/* Admin toggle */}
+            <section className="bg-white border rounded-xl p-4 shadow-sm">
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={showAdmin}
+                  onChange={(e) => setShowAdmin(e.target.checked)}
+                />
+                Show Admin Tools (Decrypt Encrypted Export)
+              </label>
+              {showAdmin && (
+                <div className="mt-3">
+                  <DecryptTool />
+                </div>
+              )}
+            </section>
           </>
         )}
       </div>
