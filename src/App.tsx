@@ -1,22 +1,19 @@
 // src/App.tsx
+
 import React, { useState } from "react";
 
-import ClientIntakeForm from "./components/forms/ClientIntakeForm";
-import FollowUpForm from "./components/forms/FollowUpForm";
+import ClientIntakeForm from "./components/ClientIntakeForm";
+import FollowUpForm from "./components/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import InjurySelector from "./components/injuries/InjurySelector";
-import ODGDifferencePanel from "./components/odg/ODGDifferencePanel";
-import DecryptTool from "./components/admin/DecryptTool";
 
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 import { buildMedicalNarrative } from "./lib/medicalNecessityNarrative";
-import { openNarrativePrintWindow } from "./lib/pdf";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
-  const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntakeSaved = (next: AppState) => setState(next);
   const handleFollowUpSaved = (next: AppState) => setState(next);
@@ -38,18 +35,15 @@ const App: React.FC = () => {
   const handleDownloadNarrative = () => {
     if (!state) return;
     const narrative = buildMedicalNarrative(state);
-    const blob = new Blob([narrative], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([narrative], {
+      type: "text/plain;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `rcms-medical-narrative-${state.client?.id || "client"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handlePrintNarrativePdf = () => {
-    if (!state) return;
-    openNarrativePrintWindow(state);
   };
 
   return (
@@ -72,7 +66,7 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* When we have state -> show snapshot, injuries, ODG delta, flags, follow-ups, audit */}
+        {/* When we have state -> show snapshot, injuries, flags, follow-ups, audit */}
         {state && (
           <>
             {/* Snapshot */}
@@ -124,12 +118,6 @@ const App: React.FC = () => {
               }
             />
 
-            {/* ODG-linked live difference calculator (with encrypted CSV export) */}
-            <ODGDifferencePanel
-              injuries={state.injuries || []}
-              clientId={state.client?.id}
-            />
-
             {/* Flags Panel */}
             <FlagsPanel flags={state.flags} />
 
@@ -147,7 +135,7 @@ const App: React.FC = () => {
             <SupervisorAuditPanel state={state} />
 
             {/* Exports */}
-            <div className="flex flex-wrap gap-2 justify-end">
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={handleDownloadSummary}
@@ -158,35 +146,11 @@ const App: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDownloadNarrative}
-                className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
+                className="mt-2 ml-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
               >
                 Download Medical Narrative (TXT)
               </button>
-              <button
-                type="button"
-                onClick={handlePrintNarrativePdf}
-                className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
-              >
-                Print / Save Narrative (PDF)
-              </button>
             </div>
-
-            {/* Admin toggle */}
-            <section className="bg-white border rounded-xl p-4 shadow-sm">
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={showAdmin}
-                  onChange={(e) => setShowAdmin(e.target.checked)}
-                />
-                Show Admin Tools (Decrypt Encrypted Export)
-              </label>
-              {showAdmin && (
-                <div className="mt-3">
-                  <DecryptTool />
-                </div>
-              )}
-            </section>
           </>
         )}
       </div>
@@ -195,3 +159,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
