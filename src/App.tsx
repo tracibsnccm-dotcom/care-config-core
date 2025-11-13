@@ -6,7 +6,7 @@ import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import InjurySelector from "./components/injuries/InjurySelector";
-import RecoveryWindowsPanel from "./components/injuries/RecoveryWindowsPanel";
+import ODGDifferencePanel from "./components/odg/ODGDifferencePanel";
 
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
@@ -70,7 +70,7 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* When we have state -> show snapshot, injuries, windows, flags, follow-ups, audit */}
+        {/* When we have state -> show snapshot, injuries, ODG delta, flags, follow-ups, audit */}
         {state && (
           <>
             {/* Snapshot */}
@@ -111,7 +111,7 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Injury & ICD-10 Mapping */}
+            {/* Injury & ICD-10 Mapping (Medical Necessity Driver) */}
             <InjurySelector
               selected={state.injuries || []}
               onChange={(injuries) =>
@@ -122,8 +122,8 @@ const App: React.FC = () => {
               }
             />
 
-            {/* NEW: Recovery Windows visible to RN */}
-            <RecoveryWindowsPanel state={state} />
+            {/* ODG-linked live difference calculator (with encrypted CSV export) */}
+            <ODGDifferencePanel injuries={state.injuries || []} clientId={state.client?.id} />
 
             {/* Flags Panel */}
             <FlagsPanel flags={state.flags} />
