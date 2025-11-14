@@ -1,9 +1,8 @@
 // src/App.tsx
-
 import React, { useState } from "react";
 
-import ClientIntakeForm from "./components/ClientIntakeForm";
-import FollowUpForm from "./components/FollowUpForm";
+import ClientIntakeForm from "./components/ClientIntakeForm";          // 👈 NOTE: no /forms here
+import FollowUpForm from "./components/forms/FollowUpForm";
 import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import InjurySelector from "./components/injuries/InjurySelector";
@@ -11,6 +10,7 @@ import InjurySelector from "./components/injuries/InjurySelector";
 import { AppState } from "./lib/models";
 import { buildCaseSummaryForExport } from "./lib/exportHelpers";
 import { buildMedicalNarrative } from "./lib/medicalNecessityNarrative";
+import { openNarrativePrintWindow } from "./lib/pdf";
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
@@ -44,6 +44,11 @@ const App: React.FC = () => {
     a.download = `rcms-medical-narrative-${state.client?.id || "client"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handlePrintNarrativePdf = () => {
+    if (!state) return;
+    openNarrativePrintWindow(state);
   };
 
   return (
@@ -135,7 +140,7 @@ const App: React.FC = () => {
             <SupervisorAuditPanel state={state} />
 
             {/* Exports */}
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2">
               <button
                 type="button"
                 onClick={handleDownloadSummary}
@@ -146,9 +151,16 @@ const App: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDownloadNarrative}
-                className="mt-2 ml-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
+                className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
               >
                 Download Medical Narrative (TXT)
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintNarrativePdf}
+                className="mt-2 px-3 py-1.5 text-[10px] border rounded-md text-slate-700 hover:bg-slate-100"
+              >
+                Print / Save Narrative (PDF)
               </button>
             </div>
           </>
@@ -159,4 +171,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
