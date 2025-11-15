@@ -1,60 +1,118 @@
-import { Case } from "@/config/rcms";
-import { fmtDate } from "./store";
+// src/lib/export.ts
+import { AppState, Flag, Task } from "./models";
 
-export function exportCSV(theCase: Case): void {
-  const rows = [
-    ["RCMS ID", theCase.client.rcmsId],
-    ["Attorney Ref", theCase.client.attyRef],
-    ["DOB Masked", theCase.client.dobMasked],
-    ["Incident", theCase.intake.incidentType],
-    ["Incident Date", theCase.intake.incidentDate],
-    ["Initial Tx", theCase.intake.initialTreatment],
-    ["Injuries", theCase.intake.injuries.join("; ")],
-    ["Severity", String(theCase.intake.severitySelfScore)],
-    ["Consent", theCase.consent.signed ? "Signed" : "Not signed"],
-    ["Restricted", theCase.consent.restrictedAccess ? "Yes" : "No"],
-    ["Status", theCase.status],
-  ];
-  
-  const csv = rows
-    .map((r) =>
-      r.map((v) => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")
-    )
-    .join("\n");
-  
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `rcms_case_${theCase.id}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+/** Safely wrap CSV fields (quotes, commas, newlines). */
+function csvEscape(v: any): string {
+  const s = v === undefined || v === null ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
 }
 
-export function exportPDFStub(theCase: Case): void {
-  const w = window.open("", "_blank");
-  if (!w) return;
-  
-  w.document.write(`<html><head><title>RCMS PDF Stub</title><style>
-    body { font-family: system-ui, sans-serif; padding: 24px; }
-    h1 { font-size: 20px; margin-bottom: 8px; }
-    table { width: 100%; border-collapse: collapse; }
-    td { border-bottom: 1px solid #ddd; padding: 8px; vertical-align: top; }
-    @media print { @page { margin: 12mm; } }
-  </style></head><body>
-    <h1>RCMS Case Export (Stub)</h1>
-    <table>
-      <tr><td><b>RCMS ID</b></td><td>${theCase.client.rcmsId}</td></tr>
-      <tr><td><b>Attorney Ref</b></td><td>${theCase.client.attyRef}</td></tr>
-      <tr><td><b>DOB Masked</b></td><td>${theCase.client.dobMasked}</td></tr>
-      <tr><td><b>Incident</b></td><td>${theCase.intake.incidentType} on ${fmtDate(theCase.intake.incidentDate)}</td></tr>
-      <tr><td><b>Initial Tx</b></td><td>${theCase.intake.initialTreatment}</td></tr>
-      <tr><td><b>Injuries</b></td><td>${theCase.intake.injuries.join(", ")}</td></tr>
-      <tr><td><b>Severity</b></td><td>${theCase.intake.severitySelfScore}</td></tr>
-      <tr><td><b>Consent</b></td><td>${theCase.consent.signed ? "Signed" : "Not signed"}${theCase.consent.restrictedAccess ? " (Restricted)" : ""}</td></tr>
-      <tr><td><b>Status</b></td><td>${theCase.status}</td></tr>
-    </table>
-    <p style="margin-top:12px;color:#666">PDF is a demo stub. In production, generate on server with access checks & watermark.</p>
-    <script>window.print()</script>
-  </body></html>`);
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function pseudoRandomFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return Math.abs(hash % 1000) / 1000;
+}
+
+function summarizeFlags(flags: Flag[]) {
+  const open = flags.filter((f) => f.status === "Open");
+  const bySeverity = {
+    Critical: open.filter((f) => f.severity === "Critical").length,
+    High: open.filter((f) => f.severity === "High").length,
+    Moderate: open.filter((f) => f.severity === "Moderate").length,
+    Low: open.filter((f) => f.severity === "Low").length,
+  };
+  const sdoh = open.filter((f) => (f.type || "").toLowerCase().includes("sdoh")).length;
+  const support = open.filter((f) => (f.type || "").toLowerCase().includes("support")).length;
+  return { openCount: open.length, bySeverity, sdoh, support, openFlags: open };
+}
+
+function summarizeTasks(tasks: Task[]) {
+  const open = tasks.filter((t) => t.status === "Open");
+  const today = todayISO();
+  const overdue = open.filter((t) => t.due_date && t.due_date < today).length;
+  return { openCount: open.length, overdue };
+}
+
+/** Compute Priority Review (same logic as panel) */
+function isPriorityReview(state: AppState): boolean {
+  const { client, flags, tasks } = state;
+  const flagSummary = summarizeFlags(flags);
+  const highOrCritical = flagSummary.bySeverity.High + flagSummary.bySeverity.Critical > 0;
+  const hasRiskAndDeclined = Boolean(client.cmDeclined && (flagSummary.sdoh > 0 || flagSummary.support > 0));
+  const followupOverdue = Boolean(client.nextFollowupDue && client.nextFollowupDue < todayISO());
+  const taskSummary = summarizeTasks(tasks);
+  const hasOverdueWork = followupOverdue || taskSummary.overdue > 0;
+  const randomPick = !highOrCritical && !hasRiskAndDeclined && !hasOverdueWork && pseudoRandomFromId(client.id) < 0.15;
+  return highOrCritical || hasRiskAndDeclined || hasOverdueWork || randomPick;
+}
+
+/** Build a single CSV row for the current case. */
+export function buildAuditRow(state: AppState) {
+  const { client, flags, tasks } = state;
+  const flagSummary = summarizeFlags(flags);
+  const taskSummary = summarizeTasks(tasks);
+
+  return [
+    todayISO(),
+    client.id,
+    client.name || "",
+    client.viabilityScore ?? "",
+    client.viabilityStatus || "",
+    client.lastFollowupDate || "",
+    client.nextFollowupDue || "",
+    flagSummary.openCount,
+    flagSummary.bySeverity.Critical,
+    flagSummary.bySeverity.High,
+    flagSummary.bySeverity.Moderate,
+    flagSummary.bySeverity.Low,
+    flagSummary.sdoh,
+    flagSummary.support,
+    taskSummary.openCount,
+    taskSummary.overdue,
+    client.cmDeclined ? "Yes" : "No",
+    isPriorityReview(state) ? "Yes" : "No",
+  ];
+}
+
+/** Trigger a CSV download for the current case’s audit summary. */
+export function exportCurrentAuditCSV(state: AppState) {
+  const header = [
+    "ExportDate",
+    "ClientID",
+    "ClientName",
+    "ViabilityScore",
+    "ViabilityStatus",
+    "LastFollowUp",
+    "NextFollowUpDue",
+    "OpenFlags_Total",
+    "OpenFlags_Critical",
+    "OpenFlags_High",
+    "OpenFlags_Moderate",
+    "OpenFlags_Low",
+    "OpenFlags_SDOH",
+    "OpenFlags_Support",
+    "OpenTasks_Total",
+    "OpenTasks_Overdue",
+    "ClientDeclinedCM",
+    "PriorityReview",
+  ];
+
+  const row = buildAuditRow(state);
+  const csv = [header, row].map((r) => r.map(csvEscape).join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const filename = `rcms_audit_${todayISO()}_${(state.client.name || "client").replace(/\s+/g, "_")}.csv`;
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
 }
