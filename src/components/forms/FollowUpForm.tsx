@@ -215,4 +215,3 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
 };
 
 export default FollowUpForm;
-

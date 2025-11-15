@@ -1,166 +1,87 @@
-// ============================================================
-// RCMS C.A.R.E. — Supabase Auth + Role Guard
-// ============================================================
+// src/auth/supabaseAuth.tsx
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { Navigate } from "react-router-dom";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  createClient,
+  type Session,
+  type User,
+} from "@supabase/supabase-js";
 
-// Export supabase for use in components
-export { supabase };
+// 👇 Make sure these env vars are set in your Vite env (.env.local, etc.)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-type RCMSUser = {
-  id: string;
-  email?: string | null;
-  roles: string[];
-};
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-type AuthCtx = {
+type AuthContextValue = {
+  user: User | null;
   session: Session | null;
-  user: RCMSUser | null;
   loading: boolean;
+  signInWithEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  // Helper properties for easier access
-  roles: string[];
-  primaryRole: string | null;
-  hasRole: (role: string) => boolean;
 };
 
-function normalizeRole(r: string) {
-  const u = r.toUpperCase();
-  return u === "RN_CCM" ? "RN_CM" : u;
-}
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function getPrimaryRole(roles: string[]): string | null {
-  if (!roles || roles.length === 0) return null;
-  const normalized = roles.map(normalizeRole);
-  const priority = [
-    "SUPER_ADMIN",
-    "SUPER_USER",
-    "RN_CM_SUPERVISOR",
-    "RN_CM_MANAGER",
-    "RN_CM_DIRECTOR",
-    "RN_CM",
-    "RCMS_CLINICAL_MGMT",
-    "COMPLIANCE",
-    "ATTORNEY",
-    "STAFF",
-    "CLINICAL_STAFF_EXTERNAL",
-    "PROVIDER",
-    "CLIENT",
-  ];
-  for (const p of priority) {
-    if (normalized.includes(p)) return p;
-  }
-  return normalized[0] || null;
-}
-
-const AuthContext = createContext<AuthCtx | null>(null);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<RCMSUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function init() {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(data.session ?? null);
-
-      if (data.session?.user) {
-        const u = data.session.user;
-        const roles = await fetchRoles(u.id);
-        setUser({ id: u.id, email: u.email, roles });
-      } else {
-        setUser(null);
-      }
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session ?? null);
+      setUser(session?.user ?? null);
       setLoading(false);
-    }
+    };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        setTimeout(async () => {
-          const roles = await fetchRoles(newSession.user.id);
-          setUser({ id: newSession.user.id, email: newSession.user.email, roles });
-        }, 0);
-      } else {
-        setUser(null);
-      }
+    void init();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session ?? null);
+      setUser(session?.user ?? null);
     });
 
-    init();
     return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
+
+  const signInWithEmail = async (email: string) => {
+    // You can adapt this to magic link, password, etc.
+    await supabase.auth.signInWithOtp({ email });
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  const roles = (user?.roles || []).map((r) => r.toUpperCase());
-  const hasRole = (role: string) => roles.includes(role.toUpperCase());
-  const primaryRole = getPrimaryRole(roles);
-
-  const value = useMemo(
-    () => ({ session, user, loading, signOut, roles, primaryRole, hasRole }),
-    [session, user, loading, roles, primaryRole]
-  );
+  const value: AuthContextValue = {
+    user,
+    session,
+    loading,
+    signInWithEmail,
+    signOut,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return ctx;
-}
-
-async function fetchRoles(userId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-
-  if (error) {
-    console.warn("role fetch error", error);
-    return [];
-  }
-  return (data || []).map((r) => r.role);
-}
-
-export function ProtectedRoute({
-  roles,
-  children,
-}: {
-  roles?: string[];
-  children: React.ReactNode;
-}) {
-  const { session, user, loading } = useAuth();
-
-  if (loading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-  if (!session || !user) return <Navigate to="/access" replace />;
-
-  if (roles && roles.length > 0) {
-    const userRolesUpper = (user.roles || []).map((r) => r.toUpperCase());
-    const requiredUpper = roles.map((r) => r.toUpperCase());
-    const ok = userRolesUpper.some((r) => requiredUpper.includes(r));
-    if (!ok) {
-      // In development/preview, allow navigation for testing different roles
-      // without modifying backend role assignments.
-      if (import.meta.env.DEV) {
-        console.warn("ProtectedRoute: bypassing role check in DEV for testing");
-      } else {
-        return <Navigate to="/access" replace />;
-      }
-    }
-  }
-
-  return <>{children}</>;
 }
