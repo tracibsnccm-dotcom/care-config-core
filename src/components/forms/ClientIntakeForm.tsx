@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { AppState, Client, Flag, Task } from "../../lib/models";
 import { evaluateTenVs, FourPsSnapshot } from "../../lib/vEngine";
 import { evaluateIntakeWorkloadForNewCase } from "../../lib/workloadEnforcement";
+import { createWorkloadOverrideFromIntake } from "../../lib/overrides";
 
 /**
  * Reconcile C.A.R.E.™
@@ -206,7 +207,9 @@ const buildInitialTasksFromFourPs = (
 
   // If there are any open High or Critical flags, create a general RN follow-up task
   const hasHighOrCritical = (flags || []).some(
-    (f) => f.status === "Open" && (f.severity === "High" || f.severity === "Critical")
+    (f) =>
+      f.status === "Open" &&
+      (f.severity === "High" || f.severity === "Critical")
   );
   if (hasHighOrCritical) {
     tasks.push({
@@ -352,13 +355,30 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
       );
 
       if (!workloadDecision.allowAssignment) {
-        // Block intake completion for RN. Supervisor/Director flows will be
-        // implemented in your multi-user backend & consoles.
+        // Block intake completion for RN.
+        // Also create a workload override request object for future
+        // Supervisor / Director consoles.
+        const estimatedUtilizationPercent =
+          workloadDecision.status === "Red"
+            ? 100
+            : 0;
+
+        const overrideRequest = createWorkloadOverrideFromIntake({
+          caseId: clientId,
+          clientName: name.trim(),
+          rnId: "rn-1", // TODO: replace with real RN id once auth/roles wired
+          currentSeverityLevel: tenVsEval.suggestedSeverity,
+          currentWorkloadPercent: estimatedUtilizationPercent,
+          rnWorkloadStatus: "Red",
+        });
+
         console.log("[INTAKE_WORKLOAD_BLOCKED]", {
           clientId,
           severity: tenVsEval.suggestedSeverity,
-          decision: workloadDecision,
+          workloadDecision,
+          overrideRequest,
         });
+
         setError(workloadDecision.messageForRn);
         setSaving(false);
         return;
@@ -368,7 +388,7 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
         console.log("[INTAKE_WORKLOAD_AMBER]", {
           clientId,
           severity: tenVsEval.suggestedSeverity,
-          decision: workloadDecision,
+          workloadDecision,
         });
       }
 
@@ -590,3 +610,4 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
 };
 
 export default ClientIntakeForm;
+
