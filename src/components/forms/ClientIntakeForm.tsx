@@ -1,494 +1,550 @@
 // src/components/forms/ClientIntakeForm.tsx
 
-// NOTE: In the original version this file tried to import a real workflow:
-//   import { onIntakeSubmit } from "../../lib/workflows";
-// For now, we keep everything ON THIS PAGE and use a safe stub so the app
-// can build and you can test layout/flow without touching any live systems.
+import React, { useState } from "react";
+import { AppState, Client, Flag, Task } from "../../lib/models";
+import { evaluateTenVs, FourPsSnapshot } from "../../lib/vEngine";
 
-// TEMP STUB: remove this once you have a real ../../lib/workflows implementation
-async function onIntakeSubmit(payload: any) {
-  console.log("onIntakeSubmit stub called with:", payload);
-  // Mimic a small async wait
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return { ok: true };
+interface ClientIntakeFormProps {
+  onSaved: (state: AppState) => void;
 }
 
-import React, { useState } from "react";
+/**
+ * Reconcile C.A.R.E.™
+ * Initial Intake Form — 10-Vs + Auto-Flags/Tasks
+ *
+ * This form:
+ * - Captures core client identity + Voice/View.
+ * - Captures key 4Ps-related risk inputs (pain, mental health, SDOH, work).
+ * - Builds a FourPsSnapshot for the 10-Vs engine.
+ * - Runs the 10-Vs Clinical Logic Engine on intake.
+ * - Computes an initial Viability Score + Viability Status from severity.
+ * - Auto-creates initial Flags and Tasks from 4Ps + risk profile.
+ * - Returns an AppState { client, flags, tasks } back to the main app.
+ */
 
-type FourPsScore = 1 | 2 | 3 | 4 | 5;
+// Simple id helpers for flags/tasks (in-memory for now)
+let flagCounter = 0;
+let taskCounter = 0;
 
-type FourPsForm = {
-  physical: FourPsScore | null;
-  psychological: FourPsScore | null;
-  psychosocial: FourPsScore | null;
-  professional: FourPsScore | null;
+const nextFlagId = () => `flag-intake-${Date.now()}-${flagCounter++}`;
+const nextTaskId = () => `task-intake-${Date.now()}-${taskCounter++}`;
+
+// Map 4Ps snapshot to initial clinical flags
+const buildInitialFlagsFromFourPs = (fourPs: FourPsSnapshot): Flag[] => {
+  const flags: Flag[] = [];
+
+  // Pain
+  if (fourPs.physical.painScore !== undefined && fourPs.physical.painScore >= 7) {
+    flags.push({
+      id: nextFlagId(),
+      label: `High pain score: ${fourPs.physical.painScore}/10`,
+      severity: "High",
+      status: "Open",
+      type: "Physical Pain",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // Uncontrolled chronic condition
+  if (fourPs.physical.uncontrolledChronicCondition) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Uncontrolled chronic condition reported",
+      severity: "High",
+      status: "Open",
+      type: "Chronic Condition",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // Depression / anxiety
+  if (fourPs.psychological.positiveDepressionAnxiety) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Depression / anxiety concern",
+      severity: "High",
+      status: "Open",
+      type: "Psychological",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // High stress
+  if (fourPs.psychological.highStress) {
+    flags.push({
+      id: nextFlagId(),
+      label: "High stress reported",
+      severity: "Moderate",
+      status: "Open",
+      type: "Psychological",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // SDOH barrier
+  if (fourPs.psychosocial.hasSdohBarrier) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Social Determinant of Health barrier reported",
+      severity: "High",
+      status: "Open",
+      type: "SDOH",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // Limited support
+  if (fourPs.psychosocial.limitedSupport) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Limited / unreliable social support",
+      severity: "Moderate",
+      status: "Open",
+      type: "Support",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // Unable to work
+  if (fourPs.professional.unableToWork) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Unable to work due to condition / injury",
+      severity: "High",
+      status: "Open",
+      type: "Professional / Work",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  // Accommodations needed
+  if (fourPs.professional.accommodationsNeeded) {
+    flags.push({
+      id: nextFlagId(),
+      label: "Workplace accommodations needed or requested",
+      severity: "Moderate",
+      status: "Open",
+      type: "Professional / Accommodations",
+      created_at: new Date().toISOString(),
+    } as Flag);
+  }
+
+  return flags;
 };
 
-type GoalsForm = {
-  shortTerm: string;
-  mediumTerm: string;
-  longTerm: string;
+// Map 4Ps snapshot + flags into initial RN CM tasks
+const buildInitialTasksFromFourPs = (fourPs: FourPsSnapshot, flags: Flag[]): Task[] => {
+  const tasks: Task[] = [];
+  const today = new Date();
+  const dueInDays = (days: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // Pain-related task
+  if (fourPs.physical.painScore !== undefined && fourPs.physical.painScore >= 7) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Review high pain score with client and provider",
+      status: "Open",
+      due_date: dueInDays(3),
+    } as Task);
+  }
+
+  // Uncontrolled chronic condition task
+  if (fourPs.physical.uncontrolledChronicCondition) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Coordinate follow-up plan for uncontrolled chronic condition",
+      status: "Open",
+      due_date: dueInDays(5),
+    } as Task);
+  }
+
+  // Psychological / depression/anxiety
+  if (fourPs.psychological.positiveDepressionAnxiety) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Screen / refer for depression & anxiety support",
+      status: "Open",
+      due_date: dueInDays(5),
+    } as Task);
+  }
+
+  // SDOH barrier
+  if (fourPs.psychosocial.hasSdohBarrier) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Address SDOH barrier(s) reported at intake",
+      status: "Open",
+      due_date: dueInDays(7),
+    } as Task);
+  }
+
+  // Unable to work
+  if (fourPs.professional.unableToWork) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Clarify work status and discuss restrictions / RTW planning",
+      status: "Open",
+      due_date: dueInDays(7),
+    } as Task);
+  }
+
+  // Accommodations needed
+  if (fourPs.professional.accommodationsNeeded) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "Review workplace accommodation needs / documentation",
+      status: "Open",
+      due_date: dueInDays(10),
+    } as Task);
+  }
+
+  // If there are any open High or Critical flags, create a general RN follow-up task
+  const hasHighOrCritical = (flags || []).some(
+    (f) => f.status === "Open" && (f.severity === "High" || f.severity === "Critical")
+  );
+  if (hasHighOrCritical) {
+    tasks.push({
+      id: nextTaskId(),
+      label: "RN CM Priority Review: High-risk issues identified at intake",
+      status: "Open",
+      due_date: dueInDays(2),
+    } as Task);
+  }
+
+  return tasks;
 };
 
-type SdohForm = {
-  housingIssue: boolean;
-  foodIssue: boolean;
-  transportIssue: boolean;
-  financesIssue: boolean;
-  safetyConcern: boolean;
-};
-
-type ClientIntakeFormState = {
-  fourPs: FourPsForm;
-  goals: GoalsForm;
-  sdoh: SdohForm;
-};
-
-const initialState: ClientIntakeFormState = {
-  fourPs: {
-    physical: null,
-    psychological: null,
-    psychosocial: null,
-    professional: null,
-  },
-  goals: {
-    shortTerm: "",
-    mediumTerm: "",
-    longTerm: "",
-  },
-  sdoh: {
-    housingIssue: false,
-    foodIssue: false,
-    transportIssue: false,
-    financesIssue: false,
-    safetyConcern: false,
-  },
-};
-
-const scoreOptions: FourPsScore[] = [1, 2, 3, 4, 5];
-
-const scoreLabel = (value: FourPsScore) => {
-  // You can tweak these labels later to exactly match your 4Ps language.
-  switch (value) {
+// Helper: compute a simple Viability Score from severity
+const computeViabilityFromSeverity = (severityLevel: 1 | 2 | 3 | 4): number => {
+  // Conservative mapping:
+  // L1 (Simple)            → 10
+  // L2 (Moderate)          → 8
+  // L3 (Complex)           → 6
+  // L4 (Severely Complex)  → 4
+  switch (severityLevel) {
     case 1:
-      return "Very hard right now";
+      return 10;
     case 2:
-      return "Hard";
+      return 8;
     case 3:
-      return "In the middle";
+      return 6;
     case 4:
-      return "Doing fairly well";
-    case 5:
-      return "Doing well / stable";
+    default:
+      return 4;
   }
 };
 
-interface ClientIntakeFormProps {
-  // Optional: a callback that runs after the stub "saves"
-  onSaved?: () => void;
-}
+const computeViabilityStatus = (score: number): string => {
+  if (score >= 8) return "Stable / Lower-Intensity Needs";
+  if (score >= 5) return "Moderate / Watchful Needs";
+  return "High / Intensive Care Management Needs";
+};
+
+const nextFollowupDateISO = (daysAhead: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return d.toISOString().slice(0, 10);
+};
 
 const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
-  const [form, setForm] = useState<ClientIntakeFormState>(initialState);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  // Basic identity
+  const [name, setName] = useState("");
+  const [voice, setVoice] = useState("");
+  const [view, setView] = useState("");
 
-  const updateFourP = (field: keyof FourPsForm, value: FourPsScore) => {
-    setForm((prev) => ({
-      ...prev,
-      fourPs: {
-        ...prev.fourPs,
-        [field]: value,
-      },
-    }));
-  };
+  // 4Ps-related inputs
+  const [painScore, setPainScore] = useState<number | undefined>(undefined);
+  const [uncontrolledChronic, setUncontrolledChronic] = useState(false);
+  const [depAnx, setDepAnx] = useState(false);
+  const [highStress, setHighStress] = useState(false);
+  const [sdohBarrier, setSdohBarrier] = useState(false);
+  const [limitedSupport, setLimitedSupport] = useState(false);
+  const [unableToWork, setUnableToWork] = useState(false);
+  const [accommodationsNeeded, setAccommodationsNeeded] = useState(false);
 
-  const updateGoal = (field: keyof GoalsForm, value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      goals: {
-        ...prev.goals,
-        [field]: value,
-      },
-    }));
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const updateSdoh = (field: keyof SdohForm, value: boolean) => {
-    setForm((prev) => ({
-      ...prev,
-      sdoh: {
-        ...prev.sdoh,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitMessage(null);
-    setSubmitError(null);
+    setError(null);
 
-    // Basic validation: require all 4Ps scores
-    const { fourPs } = form;
-    if (
-      fourPs.physical === null ||
-      fourPs.psychological === null ||
-      fourPs.psychosocial === null ||
-      fourPs.professional === null
-    ) {
-      setSubmitError(
-        "Please answer all four 4Ps questions before continuing."
-      );
+    if (!name.trim()) {
+      setError("Client name is required.");
       return;
     }
 
-    setSubmitting(true);
+    setSaving(true);
     try {
-      // When we wire this to real workflows, we’ll send form as the payload.
-      const result = await onIntakeSubmit(form);
-      if (result && (result as any).ok) {
-        setSubmitMessage(
-          "Your answers have been saved. Your RN Care Manager will use this information to tailor your plan."
-        );
-        if (onSaved) {
-          onSaved();
-        }
-      } else {
-        setSubmitError(
-          "We could not save your answers right now. Please try again."
-        );
-      }
-    } catch (err) {
-      console.error("Error in onIntakeSubmit stub:", err);
-      setSubmitError(
-        "Something went wrong while saving your answers. Please try again."
+      const clientId = `client-${Date.now()}`;
+
+      // Build FourPsSnapshot based on intake responses
+      const fourPs: FourPsSnapshot = {
+        physical: {
+          painScore: painScore,
+          uncontrolledChronicCondition: uncontrolledChronic,
+        },
+        psychological: {
+          positiveDepressionAnxiety: depAnx,
+          highStress: highStress,
+        },
+        psychosocial: {
+          hasSdohBarrier: sdohBarrier,
+          limitedSupport: limitedSupport,
+        },
+        professional: {
+          unableToWork: unableToWork,
+          accommodationsNeeded: accommodationsNeeded,
+        },
+        anyHighRiskOrUncontrolled:
+          (painScore !== undefined && painScore >= 7) ||
+          uncontrolledChronic ||
+          depAnx ||
+          sdohBarrier ||
+          unableToWork,
+      };
+
+      // Build initial flags & tasks from 4Ps snapshot
+      const flags: Flag[] = buildInitialFlagsFromFourPs(fourPs);
+      const tasks: Task[] = buildInitialTasksFromFourPs(fourPs, flags);
+
+      // Temporary client for engine (Voice/View matter for V1)
+      const clientForEval: Client = {
+        id: clientId,
+        name: name.trim(),
+        voiceView:
+          voice.trim() || view.trim()
+            ? {
+                voice: voice.trim(),
+                view: view.trim(),
+              }
+            : undefined,
+        cmDeclined: false,
+      };
+
+      const tenVsEval = evaluateTenVs({
+        appState: { client: clientForEval, flags, tasks },
+        client: clientForEval,
+        flags,
+        tasks,
+        fourPs,
+      });
+
+      const viabilityScore = computeViabilityFromSeverity(
+        tenVsEval.suggestedSeverity
+      );
+      const viabilityStatus = computeViabilityStatus(viabilityScore);
+
+      // Final client object used by the app
+      const client: Client = {
+        id: clientId,
+        name: name.trim(),
+        voiceView:
+          voice.trim() || view.trim()
+            ? {
+                voice: voice.trim(),
+                view: view.trim(),
+              }
+            : undefined,
+        viabilityScore,
+        viabilityStatus,
+        cmDeclined: false,
+        lastFollowupDate: undefined,
+        nextFollowupDue: nextFollowupDateISO(30),
+      };
+
+      const appState: AppState = {
+        client,
+        flags,
+        tasks,
+      };
+
+      // Log for dev/QMP / audit trail building
+      console.log("[INTAKE_TEN_VS_EVAL]", {
+        clientId: client.id,
+        viabilityScore,
+        viabilityStatus,
+        suggestedSeverity: tenVsEval.suggestedSeverity,
+        vitalityScore: tenVsEval.vitalityScore,
+        ragStatus: tenVsEval.ragStatus,
+        triggeredVs: tenVsEval.triggeredVs,
+        requiredActions: tenVsEval.requiredActions,
+        flagsCount: flags.length,
+        tasksCount: tasks.length,
+      });
+
+      onSaved(appState);
+    } catch (err: any) {
+      setError(
+        err?.message ||
+          "Unable to complete intake. Please review all required items."
       );
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-6 rounded-xl border bg-white p-4 shadow-sm text-sm"
-    >
-      {/* Intro */}
-      <section className="space-y-1">
-        <h2 className="text-base font-semibold">
-          4Ps of Wellness &amp; Recovery Snapshot
-        </h2>
-        <p className="text-xs text-gray-600">
-          These questions help your RN Care Manager understand how you&apos;re
-          doing in four key areas. There are no right or wrong answers – this
-          is about your real everyday experience.
-        </p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <h2 className="font-semibold text-lg">Initial Intake — 10-Vs Oriented</h2>
+      <p className="text-xs text-slate-600">
+        Capture the client’s identity, Voice/View, and key 4Ps factors. The
+        system will calculate an initial Viability Score, create risk flags, and
+        generate starting RN CM tasks.
+      </p>
+
+      {/* Client Identity */}
+      <section>
+        <label className="block text-sm font-semibold mb-1">
+          Client Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          className="w-full border rounded p-2 text-sm"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Example: Jane Doe"
+        />
       </section>
 
-      {/* 4Ps grid */}
-      <section className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Physical */}
-          <div className="rounded-lg border bg-gray-50/80 p-3 space-y-2">
-            <h3 className="text-xs font-semibold">Physical</h3>
-            <p className="text-[11px] text-gray-600">
-              Thinking about your body, pain, and energy – how are you doing
-              most days?
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {scoreOptions.map((value) => (
-                <label
-                  key={value}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer ${
-                    form.fourPs.physical === value
-                      ? "border-blue-600 bg-blue-50 text-blue-900"
-                      : "border-gray-200 bg-white text-gray-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="physical"
-                    value={value}
-                    checked={form.fourPs.physical === value}
-                    onChange={() => updateFourP("physical", value)}
-                    className="hidden"
-                  />
-                  <span className="font-semibold">{value}</span>
-                  <span className="text-[10px]">{scoreLabel(value)}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+      {/* Voice / View */}
+      <section>
+        <div className="font-semibold text-sm mb-1">Voice / View</div>
+        <p className="text-xs text-slate-600 mb-2">
+          Voice = the client’s own words about what happened and what is
+          happening now. View = how they see themselves and how they want the
+          treatment or plan to progress.
+        </p>
+        <label className="block text-xs font-semibold mb-1">Voice</label>
+        <textarea
+          className="w-full border rounded p-2 text-xs mb-2"
+          rows={2}
+          value={voice}
+          onChange={(e) => setVoice(e.target.value)}
+          placeholder='Example: "Since the accident, I can’t sleep and the pain makes it hard to do simple things."'
+        />
+        <label className="block text-xs font-semibold mb-1">View</label>
+        <textarea
+          className="w-full border rounded p-2 text-xs"
+          rows={2}
+          value={view}
+          onChange={(e) => setView(e.target.value)}
+          placeholder='Example: "I want to be able to go back to work without fear of re-injury and manage my pain better."'
+        />
+      </section>
 
-          {/* Psychological */}
-          <div className="rounded-lg border bg-gray-50/80 p-3 space-y-2">
-            <h3 className="text-xs font-semibold">Psychological</h3>
-            <p className="text-[11px] text-gray-600">
-              Thinking about your mood, anxiety, and mental health – how are
-              you doing most days?
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {scoreOptions.map((value) => (
-                <label
-                  key={value}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer ${
-                    form.fourPs.psychological === value
-                      ? "border-blue-600 bg-blue-50 text-blue-900"
-                      : "border-gray-200 bg-white text-gray-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="psychological"
-                    value={value}
-                    checked={form.fourPs.psychological === value}
-                    onChange={() => updateFourP("psychological", value)}
-                    className="hidden"
-                  />
-                  <span className="font-semibold">{value}</span>
-                  <span className="text-[10px]">{scoreLabel(value)}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Psychosocial */}
-          <div className="rounded-lg border bg-gray-50/80 p-3 space-y-2">
-            <h3 className="text-xs font-semibold">Psychosocial</h3>
-            <p className="text-[11px] text-gray-600">
-              Thinking about your relationships, support system, and day-to-day
-              responsibilities at home – how are you doing most days?
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {scoreOptions.map((value) => (
-                <label
-                  key={value}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer ${
-                    form.fourPs.psychosocial === value
-                      ? "border-blue-600 bg-blue-50 text-blue-900"
-                      : "border-gray-200 bg-white text-gray-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="psychosocial"
-                    value={value}
-                    checked={form.fourPs.psychosocial === value}
-                    onChange={() => updateFourP("psychosocial", value)}
-                    className="hidden"
-                  />
-                  <span className="font-semibold">{value}</span>
-                  <span className="text-[10px]">{scoreLabel(value)}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Professional */}
-          <div className="rounded-lg border bg-gray-50/80 p-3 space-y-2">
-            <h3 className="text-xs font-semibold">Professional / Work / School</h3>
-            <p className="text-[11px] text-gray-600">
-              Thinking about work, school, or your main role in the day – how
-              manageable does it feel with your current symptoms?
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {scoreOptions.map((value) => (
-                <label
-                  key={value}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer ${
-                    form.fourPs.professional === value
-                      ? "border-blue-600 bg-blue-50 text-blue-900"
-                      : "border-gray-200 bg-white text-gray-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="professional"
-                    value={value}
-                    checked={form.fourPs.professional === value}
-                    onChange={() => updateFourP("professional", value)}
-                    className="hidden"
-                  />
-                  <span className="font-semibold">{value}</span>
-                  <span className="text-[10px]">{scoreLabel(value)}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+      {/* Physical (4Ps) */}
+      <section>
+        <div className="font-semibold text-sm mb-1">Physical (4Ps)</div>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-xs">
+            Pain Score (0–10, client-reported)
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={10}
+            className="w-20 border rounded p-1 text-xs"
+            value={painScore ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPainScore(v === "" ? undefined : Number(v));
+            }}
+          />
         </div>
-
-        <p className="text-[11px] text-gray-500">
-          In your RN dashboard later, these scores will appear as a quick
-          snapshot so your RN Care Manager can see where you&apos;re struggling
-          and where you&apos;re more stable.
-        </p>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={uncontrolledChronic}
+            onChange={(e) => setUncontrolledChronic(e.target.checked)}
+          />
+          Uncontrolled chronic condition (e.g., high A1C, BP, unstable
+          condition).
+        </label>
       </section>
 
-      {/* SDOH snapshot – light touch, no deep trauma content here */}
-      <section className="space-y-2">
-        <h2 className="text-xs font-semibold">
-          Quick Check: Things That Can Affect Your Recovery
-        </h2>
-        <p className="text-[11px] text-gray-600">
-          These brief questions help us understand if your environment is
-          making it harder to follow your plan. You can skip any that do not
-          apply.
-        </p>
+      {/* Psychological (4Ps) */}
+      <section>
+        <div className="font-semibold text-sm mb-1">Psychological (4Ps)</div>
+        <label className="flex items-center gap-2 text-xs mb-1">
+          <input
+            type="checkbox"
+            checked={depAnx}
+            onChange={(e) => setDepAnx(e.target.checked)}
+          />
+          Positive screen or strong concern for depression and/or anxiety.
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={highStress}
+            onChange={(e) => setHighStress(e.target.checked)}
+          />
+          Client reports high stress related to condition, finances, or life
+          events.
+        </label>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={form.sdoh.housingIssue}
-              onChange={(e) =>
-                updateSdoh("housingIssue", e.target.checked)
-              }
-              className="mt-[2px]"
-            />
-            <span>
-              I have concerns about my housing or where I&apos;m staying right
-              now.
-            </span>
-          </label>
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={form.sdoh.foodIssue}
-              onChange={(e) => updateSdoh("foodIssue", e.target.checked)}
-              className="mt-[2px]"
-            />
-            <span>I sometimes struggle to get enough food.</span>
-          </label>
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={form.sdoh.transportIssue}
-              onChange={(e) =>
-                updateSdoh("transportIssue", e.target.checked)
-              }
-              className="mt-[2px]"
-            />
-            <span>Getting to appointments or therapy is hard because of transportation.</span>
-          </label>
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={form.sdoh.financesIssue}
-              onChange={(e) =>
-                updateSdoh("financesIssue", e.target.checked)
-              }
-              className="mt-[2px]"
-            />
-            <span>
-              Money or bills are making it harder for me to focus on recovery.
-            </span>
-          </label>
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={form.sdoh.safetyConcern}
-              onChange={(e) =>
-                updateSdoh("safetyConcern", e.target.checked)
-              }
-              className="mt-[2px]"
-            />
-            <span>
-              I have concerns about my safety or the safety of others where I
-              live.
-            </span>
-          </label>
+      {/* Psychosocial (4Ps) */}
+      <section>
+        <div className="font-semibold text-sm mb-1">Psychosocial (4Ps)</div>
+        <label className="flex items-center gap-2 text-xs mb-1">
+          <input
+            type="checkbox"
+            checked={sdohBarrier}
+            onChange={(e) => setSdohBarrier(e.target.checked)}
+          />
+          At least one Social Determinant of Health barrier (transport, food,
+          housing, safety, etc.).
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={limitedSupport}
+            onChange={(e) => setLimitedSupport(e.target.checked)}
+          />
+          Limited or unreliable social support.
+        </label>
+      </section>
+
+      {/* Professional (4Ps) */}
+      <section>
+        <div className="font-semibold text-sm mb-1">Professional (4Ps)</div>
+        <label className="flex items-center gap-2 text-xs mb-1">
+          <input
+            type="checkbox"
+            checked={unableToWork}
+            onChange={(e) => setUnableToWork(e.target.checked)}
+          />
+          Currently unable to work or major role disruption due to condition or
+          injury.
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={accommodationsNeeded}
+            onChange={(e) => setAccommodationsNeeded(e.target.checked)}
+          />
+          Workplace accommodations needed or requested.
+        </label>
+      </section>
+
+      {error && (
+        <div className="text-red-600 text-xs">
+          {error}
         </div>
+      )}
 
-        <p className="text-[11px] text-gray-500">
-          Your RN Care Manager will not list these details in general
-          attorney-facing summaries. They&apos;re used to make sure your plan
-          is realistic and safe, and they stay in nursing-only notes.
-        </p>
-      </section>
-
-      {/* Goals */}
-      <section className="space-y-2">
-        <h2 className="text-xs font-semibold">Your Goals</h2>
-        <p className="text-[11px] text-gray-600">
-          In your own words, what would you like to be able to do again? It&apos;s
-          okay if this changes later – this just gives us a starting point.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
-          <div className="space-y-1">
-            <label className="font-semibold text-gray-700">
-              Next 30 days
-            </label>
-            <textarea
-              rows={3}
-              value={form.goals.shortTerm}
-              onChange={(e) =>
-                updateGoal("shortTerm", e.target.value)
-              }
-              className="w-full border rounded-lg px-2 py-1 text-[11px]"
-              placeholder="Example: Make it to all my PT visits and sleep more than 5 hours most nights."
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="font-semibold text-gray-700">
-              Next 60–90 days
-            </label>
-            <textarea
-              rows={3}
-              value={form.goals.mediumTerm}
-              onChange={(e) =>
-                updateGoal("mediumTerm", e.target.value)
-              }
-              className="w-full border rounded-lg px-2 py-1 text-[11px]"
-              placeholder="Example: Walk 15–20 minutes without stopping."
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="font-semibold text-gray-700">
-              Longer-term (&gt; 90 days)
-            </label>
-            <textarea
-              rows={3}
-              value={form.goals.longTerm}
-              onChange={(e) =>
-                updateGoal("longTerm", e.target.value)
-              }
-              className="w-full border rounded-lg px-2 py-1 text-[11px]"
-              placeholder="Example: Return to work, drive, or manage my usual routine."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Submit + messages */}
-      <section className="space-y-2">
-        {submitError && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-800">
-            {submitError}
-          </div>
-        )}
-        {submitMessage && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
-            {submitMessage}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-        >
-          {submitting ? "Saving your answers…" : "Save and continue"}
-        </button>
-
-        <p className="text-[10px] text-gray-500 mt-1">
-          This is a prototype intake screen. In the full build, your answers
-          will be securely stored and visible only to your RN Care Manager and,
-          where appropriate, summarized for your attorney in a way that protects
-          your privacy.
-        </p>
-      </section>
+      <button
+        type="submit"
+        disabled={saving}
+        className="px-4 py-2 border rounded text-sm"
+      >
+        {saving ? "Saving..." : "Start Case with 10-Vs Profile"}
+      </button>
     </form>
   );
 };
