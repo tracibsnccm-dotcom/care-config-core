@@ -3,14 +3,11 @@
 import React, { useState } from "react";
 import { AppState, Client, Flag, Task } from "../../lib/models";
 import { evaluateTenVs, FourPsSnapshot } from "../../lib/vEngine";
-
-interface ClientIntakeFormProps {
-  onSaved: (state: AppState) => void;
-}
+import { evaluateIntakeWorkloadForNewCase } from "../../lib/workloadEnforcement";
 
 /**
  * Reconcile C.A.R.E.™
- * Initial Intake Form — 10-Vs + Auto-Flags/Tasks
+ * Initial Intake Form — 10-Vs + Auto-Flags/Tasks + Workload Enforcement
  *
  * This form:
  * - Captures core client identity + Voice/View.
@@ -19,7 +16,9 @@ interface ClientIntakeFormProps {
  * - Runs the 10-Vs Clinical Logic Engine on intake.
  * - Computes an initial Viability Score + Viability Status from severity.
  * - Auto-creates initial Flags and Tasks from 4Ps + risk profile.
- * - Returns an AppState { client, flags, tasks } back to the main app.
+ * - Evaluates RN workload (Option A policy) against Director-defined limits.
+ * - Blocks assignment when workload would exceed limit (Red),
+ *   requiring Supervisor + Director involvement in future consoles.
  */
 
 // Simple id helpers for flags/tasks (in-memory for now)
@@ -133,7 +132,10 @@ const buildInitialFlagsFromFourPs = (fourPs: FourPsSnapshot): Flag[] => {
 };
 
 // Map 4Ps snapshot + flags into initial RN CM tasks
-const buildInitialTasksFromFourPs = (fourPs: FourPsSnapshot, flags: Flag[]): Task[] => {
+const buildInitialTasksFromFourPs = (
+  fourPs: FourPsSnapshot,
+  flags: Flag[]
+): Task[] => {
   const tasks: Task[] = [];
   const today = new Date();
   const dueInDays = (days: number) => {
@@ -250,6 +252,10 @@ const nextFollowupDateISO = (daysAhead: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
+interface ClientIntakeFormProps {
+  onSaved: (state: AppState) => void;
+}
+
 const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
   // Basic identity
   const [name, setName] = useState("");
@@ -334,6 +340,38 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
         fourPs,
       });
 
+      // 🔒 Workload enforcement (Option A — strict clinical ops)
+      //
+      // In this single-case sandbox, we assume current RN workload points = 0.
+      // In production, this should come from a true RN workload summary that
+      // accounts for all active cases.
+      const currentRnWorkloadPoints = 0; // TODO: replace with real RN workload from backend
+      const workloadDecision = evaluateIntakeWorkloadForNewCase(
+        currentRnWorkloadPoints,
+        tenVsEval.suggestedSeverity
+      );
+
+      if (!workloadDecision.allowAssignment) {
+        // Block intake completion for RN. Supervisor/Director flows will be
+        // implemented in your multi-user backend & consoles.
+        console.log("[INTAKE_WORKLOAD_BLOCKED]", {
+          clientId,
+          severity: tenVsEval.suggestedSeverity,
+          decision: workloadDecision,
+        });
+        setError(workloadDecision.messageForRn);
+        setSaving(false);
+        return;
+      }
+
+      if (workloadDecision.status === "Amber") {
+        console.log("[INTAKE_WORKLOAD_AMBER]", {
+          clientId,
+          severity: tenVsEval.suggestedSeverity,
+          decision: workloadDecision,
+        });
+      }
+
       const viabilityScore = computeViabilityFromSeverity(
         tenVsEval.suggestedSeverity
       );
@@ -373,6 +411,7 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
         ragStatus: tenVsEval.ragStatus,
         triggeredVs: tenVsEval.triggeredVs,
         requiredActions: tenVsEval.requiredActions,
+        workloadDecision,
         flagsCount: flags.length,
         tasksCount: tasks.length,
       });
@@ -393,8 +432,9 @@ const ClientIntakeForm: React.FC<ClientIntakeFormProps> = ({ onSaved }) => {
       <h2 className="font-semibold text-lg">Initial Intake — 10-Vs Oriented</h2>
       <p className="text-xs text-slate-600">
         Capture the client’s identity, Voice/View, and key 4Ps factors. The
-        system will calculate an initial Viability Score, create risk flags, and
-        generate starting RN CM tasks.
+        system will calculate an initial Viability Score, create risk flags,
+        generate starting RN CM tasks, and check RN workload against
+        Director-defined limits.
       </p>
 
       {/* Client Identity */}
