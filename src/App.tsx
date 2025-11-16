@@ -7,6 +7,11 @@ import FlagsPanel from "./components/FlagsPanel";
 import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
 import { AppState, Flag } from "./lib/models";
 import { evaluateTenVs, FourPsSnapshot } from "./lib/vEngine";
+import {
+  computeRnWorkload,
+  defaultWorkloadSettings,
+  RnCaseSeverityInput,
+} from "./lib/workload";
 
 /**
  * Helper: basic 4Ps snapshot for engine when only flags/tasks are available.
@@ -75,6 +80,18 @@ const ragBadgeClass = (rag: string): string => {
   }
 };
 
+const workloadBadgeClass = (status: "Green" | "Amber" | "Red"): string => {
+  switch (status) {
+    case "Red":
+      return "bg-red-100 text-red-700 border-red-300";
+    case "Amber":
+      return "bg-amber-100 text-amber-700 border-amber-300";
+    case "Green":
+    default:
+      return "bg-green-100 text-green-700 border-green-300";
+  }
+};
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState | null>(null);
 
@@ -91,8 +108,12 @@ const App: React.FC = () => {
     setState(newState);
   };
 
-  // Pre-compute 10-Vs evaluation for RN Snapshot when we have a client
+  // Pre-compute 10-Vs evaluation + RN workload when we have a client
   let tenVsEval: ReturnType<typeof evaluateTenVs> | null = null;
+  let rnWorkloadSummary = null as
+    | ReturnType<typeof computeRnWorkload>
+    | null;
+
   if (state) {
     const fourPs = buildFourPsFromStateForAudit(state.flags as any);
     tenVsEval = evaluateTenVs({
@@ -102,6 +123,25 @@ const App: React.FC = () => {
       tasks: state.tasks,
       fourPs,
     });
+
+    if (tenVsEval) {
+      // For now, assume a single RN ("rn-1") owns this case.
+      // Later, this rnId will come from authenticated user / assignment.
+      const rnId = "rn-1";
+
+      const caseInput: RnCaseSeverityInput[] = [
+        {
+          rnId,
+          severityLevel: tenVsEval.suggestedSeverity,
+        },
+      ];
+
+      rnWorkloadSummary = computeRnWorkload(
+        caseInput,
+        rnId,
+        defaultWorkloadSettings
+      );
+    }
   }
 
   return (
@@ -172,6 +212,34 @@ const App: React.FC = () => {
                   </span>
                 </div>
 
+                {/* RN Workload Snapshot for this case (using Director settings) */}
+                {rnWorkloadSummary && (
+                  <div className="mt-2">
+                    <div className="font-semibold text-xs mb-1">
+                      RN Workload (Director-Defined Limits)
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${workloadBadgeClass(
+                          rnWorkloadSummary.status
+                        )}`}
+                      >
+                        <span className="font-semibold">Current Case Points:</span>
+                        <span>
+                          {rnWorkloadSummary.totalPoints} /{" "}
+                          {rnWorkloadSummary.maxPoints}
+                        </span>
+                        <span className="text-[11px]">
+                          ({rnWorkloadSummary.utilizationPercent}% of limit)
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Max points per RN CM is set at the Director level.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {state.client.voiceView && (
                   <div className="mt-2 space-y-1">
                     <div>
@@ -210,3 +278,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
