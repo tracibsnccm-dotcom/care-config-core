@@ -7,6 +7,8 @@ import { applyEffects } from "../../lib/executor";
 import ClientAcknowledgement, {
   ClientAcknowledgementValue,
 } from "../ClientAcknowledgement";
+import { evaluateTenVs, FourPsSnapshot } from "../../lib/vEngine";
+
 
 interface FollowUpFormProps {
   client: Client;
@@ -82,7 +84,7 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
       }
     }
 
-    setSaving(true);
+        setSaving(true);
     try {
       const effects = onFollowUpSubmit(client, flags, tasks, {
         reviewedAllHighCritical: reviewed || highCriticalFlags.length === 0,
@@ -91,6 +93,55 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
 
       const initialState: AppState = { client, flags, tasks };
       const newState = applyEffects(initialState, effects);
+
+      // 👉 Temporary 4Ps snapshot (we'll wire real form data later)
+      const fourPs: FourPsSnapshot = {
+        physical: {
+          painScore: undefined, // TODO: hook to actual pain score field
+          uncontrolledChronicCondition: false, // TODO: map from chronic condition fields
+        },
+        psychological: {
+          positiveDepressionAnxiety: false, // TODO: map from PHQ/GAD or similar
+          highStress: false, // TODO: map from stress question
+        },
+        psychosocial: {
+          // If any open SDOH-type flag, treat as SDOH barrier
+          hasSdohBarrier: newState.flags.some(
+            (f) =>
+              f.status === "Open" &&
+              (f.type || "").toLowerCase().includes("sdoh")
+          ),
+          limitedSupport: false, // TODO: map from social support field
+        },
+        professional: {
+          unableToWork: false, // TODO: map from work status
+          accommodationsNeeded: false, // TODO: map from "needs accommodations" field
+        },
+        anyHighRiskOrUncontrolled: newState.flags.some(
+          (f) =>
+            f.status === "Open" &&
+            (f.severity === "High" || f.severity === "Critical")
+        ),
+      };
+
+      const tenVsEval = evaluateTenVs({
+        appState: newState,
+        client: newState.client,
+        flags: newState.flags,
+        tasks: newState.tasks,
+        fourPs,
+        // vitalityInputs can be added later; using defaults for now
+      });
+
+      // 👉 For now, just log to the console so we can see the brain working
+      console.log("[TEN_VS_EVAL]", {
+        clientId: newState.client.id,
+        triggeredVs: tenVsEval.triggeredVs,
+        requiredActions: tenVsEval.requiredActions,
+        suggestedSeverity: tenVsEval.suggestedSeverity,
+        vitalityScore: tenVsEval.vitalityScore,
+        ragStatus: tenVsEval.ragStatus,
+      });
 
       // Optional: attach RN CM note into audit/log
       if (note.trim()) {
@@ -106,6 +157,7 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
 
       onSaved(newState);
     } catch (err: any) {
+
       setError(
         err?.message ||
           "Unable to save follow-up. Please review all required items."
