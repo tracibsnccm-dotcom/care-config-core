@@ -2,203 +2,292 @@
 
 import React from "react";
 import { AppState, Flag, Task } from "../lib/models";
+import { evaluateTenVs, FourPsSnapshot } from "../lib/vEngine";
 import { exportCurrentAuditCSV } from "../lib/export";
+
+/**
+ * SupervisorAuditPanel
+ *
+ * Quick Audit View for Supervisors / QMP:
+ * - Shows Viability Score + Status
+ * - Severity Level (L1–L4) from 10-Vs engine
+ * - Vitality Score (1–10) + RAG status
+ * - Summary of open flags and tasks (including SDOH/support)
+ * - Priority Review badge (high-risk, overdue, or random audit)
+ * - Download Audit CSV for external/QMP review
+ */
+
+// Helpers mirrored from export logic so the signals stay consistent
+const todayISO = (): string => new Date().toISOString().slice(0, 10);
+
+function summarizeFlags(flags: Flag) {
+  const open = (flags || []).filter((f) => f.status === "Open");
+  const bySeverity = {
+    Critical: open.filter((f) => f.severity === "Critical").length,
+    High: open.filter((f) => f.severity === "High").length,
+    Moderate: open.filter((f) => f.severity === "Moderate").length,
+    Low: open.filter((f) => f.severity === "Low").length,
+  };
+  const sdoh = open.filter((f) => (f.type || "").toLowerCase().includes("sdoh")).length;
+  const support = open.filter((f) => (f.type || "").toLowerCase().includes("support")).length;
+  return { openCount: open.length, bySeverity, sdoh, support, openFlags: open };
+}
+
+function summarizeTasks(tasks: Task[]) {
+  const open = (tasks || []).filter((t) => t.status === "Open");
+  const today = todayISO();
+  const overdue = open.filter((t) => t.due_date && t.due_date < today).length;
+  return { openCount: open.length, overdue };
+}
+
+// Basic 4Ps snapshot from flags only (for supervisor view)
+// NOTE: Intake/Follow-Up will pass richer 4Ps later; this keeps the
+// supervisor panel in sync in the meantime.
+const buildFourPsFromStateForAudit = (flags: Flag[]): FourPsSnapshot => {
+  const openHighCrit = (flags || []).some(
+    (f) => f.status === "Open" && (f.severity === "High" || f.severity === "Critical")
+  );
+  const sdohBarrier = (flags || []).some(
+    (f) =>
+      f.status === "Open" &&
+      (f.type || "").toLowerCase().includes("sdoh")
+  );
+  return {
+    physical: {
+      painScore: undefined,
+      uncontrolledChronicCondition: false,
+    },
+    psychological: {
+      positiveDepressionAnxiety: false,
+      highStress: false,
+    },
+    psychosocial: {
+      hasSdohBarrier: sdohBarrier,
+      limitedSupport: false,
+    },
+    professional: {
+      unableToWork: false,
+      accommodationsNeeded: false,
+    },
+    anyHighRiskOrUncontrolled: openHighCrit || sdohBarrier,
+  };
+};
+
+function isPriorityReview(state: AppState): boolean {
+  const { client, flags, tasks } = state;
+  const flagSummary = summarizeFlags(flags as any);
+  const taskSummary = summarizeTasks(tasks);
+
+  const highOrCritical =
+    flagSummary.bySeverity.High + flagSummary.bySeverity.Critical > 0;
+
+  const hasRiskAndDeclined = Boolean(
+    client.cmDeclined && (flagSummary.sdoh > 0 || flagSummary.support > 0)
+  );
+
+  const followupOverdue = Boolean(
+    client.nextFollowupDue && client.nextFollowupDue < todayISO()
+  );
+
+  const hasOverdueWork = followupOverdue || taskSummary.overdue > 0;
+
+  // Simple deterministic "random pick" for routine QC when risk is low
+  let hash = 0;
+  for (let i = 0; i < client.id.length; i++) {
+    hash = (hash * 31 + client.id.charCodeAt(i)) | 0;
+  }
+  const randomPick =
+    !highOrCritical &&
+    !hasRiskAndDeclined &&
+    !hasOverdueWork &&
+    Math.abs(hash % 1000) / 1000 < 0.15;
+
+  return highOrCritical || hasRiskAndDeclined || hasOverdueWork || randomPick;
+}
+
+const severityLabel = (level: 1 | 2 | 3 | 4): string => {
+  switch (level) {
+    case 1:
+      return "Level 1 – Simple";
+    case 2:
+      return "Level 2 – Moderate";
+    case 3:
+      return "Level 3 – Complex";
+    case 4:
+    default:
+      return "Level 4 – Severely Complex";
+  }
+};
+
+const vitalityBadgeClass = (score: number): string => {
+  if (score <= 3.9) return "bg-red-100 text-red-700 border-red-300";
+  if (score <= 7.9) return "bg-amber-100 text-amber-700 border-amber-300";
+  return "bg-green-100 text-green-700 border-green-300";
+};
+
+const ragBadgeClass = (rag: string): string => {
+  switch (rag) {
+    case "Red":
+      return "bg-red-100 text-red-700 border-red-300";
+    case "Amber":
+      return "bg-amber-100 text-amber-700 border-amber-300";
+    case "Green":
+    default:
+      return "bg-green-100 text-green-700 border-green-300";
+  }
+};
 
 interface SupervisorAuditPanelProps {
   state: AppState;
 }
 
-/**
- * Reconcile C.A.R.E.™ Quick Audit View
- *
- * For Supervisors / QMP:
- * - Snapshot of risk, follow-up, and documentation behavior.
- * - Highlights Priority Review candidates (no favoritism, clear rules).
- */
-const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
-  state,
-}) => {
+const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({ state }) => {
   const { client, flags, tasks } = state;
+  const flagSummary = summarizeFlags(flags as any);
+  const taskSummary = summarizeTasks(tasks);
+  const priorityReview = isPriorityReview(state);
 
-  const openFlags = flags.filter((f) => f.status === "Open");
-  const highOrCritical = openFlags.filter(
-    (f) => f.severity === "High" || f.severity === "Critical"
-  );
-
-  const sdohFlags = openFlags.filter((f) =>
-    (f.type || "").toLowerCase().includes("sdoh")
-  );
-  const supportFlags = openFlags.filter((f) =>
-    (f.type || "").toLowerCase().includes("support")
-  );
-
-  const today = new Date().toISOString().slice(0, 10);
-  const openTasks = tasks.filter((t) => t.status === "Open");
-  const overdueTasks = openTasks.filter(
-    (t) => t.due_date && t.due_date < today
-  );
-
-  const followupOverdue =
-    client.nextFollowupDue !== undefined &&
-    client.nextFollowupDue < today;
-
-  // --- Priority Review Logic ---
-
-  const isHighRiskCase = highOrCritical.length > 0;
-  const hasRiskAndDeclined =
-    client.cmDeclined && (sdohFlags.length > 0 || supportFlags.length > 0);
-  const hasOverdueWork = followupOverdue || overdueTasks.length > 0;
-
-  // Deterministic pseudo-random: ensures some "clean" cases are still chosen
-  const randomBucket = pseudoRandomFromId(client.id);
-  const isRandomPick =
-    !isHighRiskCase && !hasRiskAndDeclined && !hasOverdueWork && randomBucket < 0.15; // ~15%
-
-  const isPriorityReview =
-    isHighRiskCase || hasRiskAndDeclined || hasOverdueWork || isRandomPick;
+  const fourPs = buildFourPsFromStateForAudit(flags as any);
+  const tenVsEval = evaluateTenVs({
+    appState: state,
+    client,
+    flags,
+    tasks,
+    fourPs,
+  });
 
   return (
-    <section className="bg-slate-900 text-slate-50 rounded-xl p-4 mt-4">
-      {/* Header + Export Button */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-semibold uppercase tracking-wide">
-          Quick Audit View (Supervisor / QMP)
+    <section className="mt-4 bg-white border rounded-xl p-4 shadow-sm">
+      <div className="text-xs font-semibold uppercase tracking-wide mb-2">
+        Quick Audit View (Supervisor / QMP)
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div className="text-xs">
+          <div>
+            <span className="font-semibold">Client:</span> {client.name}
+          </div>
+          {client.viabilityScore !== undefined && (
+            <div>
+              <span className="font-semibold">Viability:</span>{" "}
+              {client.viabilityScore}{" "}
+              <span className="text-slate-500">
+                ({client.viabilityStatus || "N/A"})
+              </span>
+            </div>
+          )}
+          <div>
+            <span className="font-semibold">Severity Level:</span>{" "}
+            {severityLabel(tenVsEval.suggestedSeverity)}
+          </div>
         </div>
+
+        <div className="flex flex-col items-end gap-1 text-xs">
+          <div
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${vitalityBadgeClass(
+              tenVsEval.vitalityScore
+            )}`}
+          >
+            <span className="font-semibold">Vitality:</span>
+            <span>{tenVsEval.vitalityScore.toFixed(1)}</span>
+          </div>
+          <div
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${ragBadgeClass(
+              tenVsEval.ragStatus
+            )}`}
+          >
+            <span className="font-semibold">RAG:</span>
+            <span>{tenVsEval.ragStatus}</span>
+          </div>
+          {priorityReview && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full border bg-purple-100 text-purple-700 border-purple-300 text-[11px]">
+              Priority Review
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Flags & Tasks Snapshot */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
+        <div className="border rounded p-2 bg-slate-50">
+          <div className="font-semibold mb-1">Open Flags</div>
+          <div>Total: {flagSummary.openCount}</div>
+          <div className="text-[11px] mt-1">
+            Critical: {flagSummary.bySeverity.Critical} &nbsp;|&nbsp; High:{" "}
+            {flagSummary.bySeverity.High}
+            <br />
+            Moderate: {flagSummary.bySeverity.Moderate} &nbsp;|&nbsp; Low:{" "}
+            {flagSummary.bySeverity.Low}
+            <br />
+            SDOH-related: {flagSummary.sdoh} &nbsp;|&nbsp; Support-related:{" "}
+            {flagSummary.support}
+          </div>
+        </div>
+        <div className="border rounded p-2 bg-slate-50">
+          <div className="font-semibold mb-1">Tasks & Timelines</div>
+          <div>Total Open Tasks: {taskSummary.openCount}</div>
+          <div>Overdue Tasks: {taskSummary.overdue}</div>
+          <div className="text-[11px] mt-1">
+            Last Follow-Up: {client.lastFollowupDate || "N/A"}
+            <br />
+            Next Follow-Up Due: {client.nextFollowupDue || "N/A"}
+          </div>
+        </div>
+      </div>
+
+      {/* Triggered Vs Overview */}
+      <div className="border rounded p-2 bg-slate-50 text-xs mb-3">
+        <div className="font-semibold mb-1">Triggered V-Domains (10-Vs)</div>
+        {tenVsEval.triggeredVs.length === 0 ? (
+          <div className="text-[11px] text-slate-500">
+            No active V-domain triggers based on current data.
+          </div>
+        ) : (
+          <ul className="list-disc pl-5 text-[11px]">
+            {tenVsEval.triggeredVs.map((v) => (
+              <li key={v.vCode}>
+                <span className="font-semibold">{v.label}:</span>{" "}
+                {v.reasonSummary}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Required Actions Overview */}
+      <div className="border rounded p-2 bg-amber-50 text-xs mb-3">
+        <div className="font-semibold mb-1">
+          Required V-Domain Actions (for RN CM)
+        </div>
+        {tenVsEval.requiredActions.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            No outstanding required actions from the 10-Vs engine at this time.
+          </div>
+        ) : (
+          <ul className="list-disc pl-5 text-[11px]">
+            {tenVsEval.requiredActions.map((a) => (
+              <li key={a.vCode}>
+                <span className="font-semibold">{a.label}:</span>{" "}
+                {a.reasonSummary}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Export Button */}
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => exportCurrentAuditCSV(state)}
-          className="text-[10px] px-2 py-1 border rounded bg-white/10 hover:bg-white/20"
-          title="Download a one-line CSV summary for this case"
+          className="px-3 py-1 border rounded text-xs hover:bg-slate-50"
         >
           Download Audit CSV
         </button>
       </div>
-
-      {/* Priority Review Banner */}
-      <div
-        className={
-          "mb-3 px-3 py-2 rounded text-[10px] " +
-          (isPriorityReview
-            ? "bg-red-700/30 border border-red-400 text-red-100"
-            : "bg-emerald-800/30 border border-emerald-500 text-emerald-100")
-        }
-      >
-        {isPriorityReview ? (
-          <>
-            <div className="font-semibold">Priority Review Candidate</div>
-            <div>
-              This case is selected for focused supervisor/QMP review based on
-              risk, timeliness, client decisions, or random audit sampling.
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="font-semibold">Standard Review</div>
-            <div>
-              No urgent audit triggers. Case remains eligible for routine
-              random sampling.
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 text-[10px]">
-        {/* Viability Snapshot */}
-        <div>
-          <div className="font-semibold text-slate-200 mb-1">
-            Viability &amp; Engagement
-          </div>
-          <div>
-            Viability Score:{" "}
-            <span className="font-semibold">
-              {client.viabilityScore ?? "N/A"}
-            </span>
-          </div>
-          <div>
-            Status:{" "}
-            <span className="font-semibold">
-              {client.viabilityStatus || "Not set"}
-            </span>
-          </div>
-          <div className="text-slate-400 mt-1">
-            Check alignment with 4Ps, SDOH, Voice/View, and V-framework.
-          </div>
-        </div>
-
-        {/* Flag Summary */}
-        <div>
-          <div className="font-semibold text-slate-200 mb-1">
-            Active Flags Summary
-          </div>
-          <div>Total Open Flags: {openFlags.length}</div>
-          <div>
-            High/Critical:{" "}
-            <span className={highOrCritical.length ? "text-red-300" : ""}>
-              {highOrCritical.length}
-            </span>
-          </div>
-          <div>SDOH-related: {sdohFlags.length}</div>
-          <div>Support/Viability: {supportFlags.length}</div>
-          <div className="text-slate-400 mt-1">
-            Expect RN CM notes for High/Critical & structured interventions.
-          </div>
-        </div>
-
-        {/* Follow-Up / Timeliness */}
-        <div>
-          <div className="font-semibold text-slate-200 mb-1">
-            Follow-Up Timeliness
-          </div>
-          <div>Last Follow-Up: {client.lastFollowupDate || "N/A"}</div>
-          <div>Next Due: {client.nextFollowupDue || "Not scheduled"}</div>
-          <div>
-            Overdue Tasks:{" "}
-            <span className={overdueTasks.length ? "text-red-300" : ""}>
-              {overdueTasks.length}
-            </span>
-          </div>
-          {followupOverdue && (
-            <div className="text-red-300 mt-1">
-              ⚠ Follow-up past due. Supervisor review strongly recommended.
-            </div>
-          )}
-        </div>
-
-        {/* Quality Prompts */}
-        <div>
-          <div className="font-semibold text-slate-200 mb-1">
-            Quality Prompts
-          </div>
-          <ul className="list-disc pl-4 space-y-1">
-            <li>
-              Confirm High/Critical flags have RN CM rationale &amp; actions.
-            </li>
-            <li>
-              Verify follow-up cadence meets policy (e.g., 30-day minimum).
-            </li>
-            <li>
-              Ensure client decisions on CM are documented &amp; revisited.
-            </li>
-            <li>
-              For Priority Review: capture findings in QMP log.
-            </li>
-          </ul>
-        </div>
-      </div>
     </section>
   );
 };
-
-// Deterministic pseudo-random function based on client ID.
-// This makes "random" audit selection stable and unbiased.
-function pseudoRandomFromId(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  // Convert hash to 0–1
-  return Math.abs(hash % 1000) / 1000;
-}
 
 export default SupervisorAuditPanel;
 
