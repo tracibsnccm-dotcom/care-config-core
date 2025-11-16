@@ -9,7 +9,6 @@ import ClientAcknowledgement, {
 } from "../ClientAcknowledgement";
 import { evaluateTenVs, FourPsSnapshot } from "../../lib/vEngine";
 
-
 interface FollowUpFormProps {
   client: Client;
   flags: Flag[];
@@ -25,7 +24,42 @@ interface FollowUpFormProps {
  * - Client can change decision: Accept or Decline Care Management.
  * - Next 30-day follow-up task is auto-created by workflow.
  * - Client Acknowledgment & Consent is required or refusal documented.
+ * - 10-Vs Clinical Engine enforces per-V documentation (hard-stop).
  */
+
+// Build a conservative 4Ps snapshot from current client + flags.
+// TODO: later we will map real 4Ps and psychosocial fields into this.
+const buildFourPsFromState = (client: Client, flags: Flag[]): FourPsSnapshot => {
+  return {
+    physical: {
+      painScore: undefined, // TODO: hook to actual pain score when available
+      uncontrolledChronicCondition: false, // TODO: map from chronic condition fields
+    },
+    psychological: {
+      positiveDepressionAnxiety: false, // TODO: map from PHQ/GAD or similar
+      highStress: false, // TODO: map from stress question
+    },
+    psychosocial: {
+      // If any open SDOH-type flag, treat as SDOH barrier
+      hasSdohBarrier: flags.some(
+        (f) =>
+          f.status === "Open" &&
+          (f.type || "").toLowerCase().includes("sdoh")
+      ),
+      limitedSupport: false, // TODO: map from social support field
+    },
+    professional: {
+      unableToWork: false, // TODO: map from work status
+      accommodationsNeeded: false, // TODO: map from "needs accommodations" field
+    },
+    anyHighRiskOrUncontrolled: flags.some(
+      (f) =>
+        f.status === "Open" &&
+        (f.severity === "High" || f.severity === "Critical")
+    ),
+  };
+};
+
 const FollowUpForm: React.FC<FollowUpFormProps> = ({
   client,
   flags,
@@ -49,6 +83,20 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
     clientName: "",
     clientRefused: false,
   });
+
+  // Per-V documentation notes (Option A – separate note per V)
+  const [vNotes, setVNotes] = useState<Record<string, string>>({});
+
+  // Preview 10-Vs evaluation so RN can see required actions before saving
+  const previewFourPs = buildFourPsFromState(client, flags);
+  const previewTenVs = evaluateTenVs({
+    appState: { client, flags, tasks },
+    client,
+    flags,
+    tasks,
+    fourPs: previewFourPs,
+  });
+  const requiredActions = previewTenVs.requiredActions;
 
   const highCriticalFlags = flags.filter(
     (f) =>
@@ -84,7 +132,7 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
       }
     }
 
-        setSaving(true);
+    setSaving(true);
     try {
       const effects = onFollowUpSubmit(client, flags, tasks, {
         reviewedAllHighCritical: reviewed || highCriticalFlags.length === 0,
@@ -94,35 +142,8 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
       const initialState: AppState = { client, flags, tasks };
       const newState = applyEffects(initialState, effects);
 
-      // 👉 Temporary 4Ps snapshot (we'll wire real form data later)
-      const fourPs: FourPsSnapshot = {
-        physical: {
-          painScore: undefined, // TODO: hook to actual pain score field
-          uncontrolledChronicCondition: false, // TODO: map from chronic condition fields
-        },
-        psychological: {
-          positiveDepressionAnxiety: false, // TODO: map from PHQ/GAD or similar
-          highStress: false, // TODO: map from stress question
-        },
-        psychosocial: {
-          // If any open SDOH-type flag, treat as SDOH barrier
-          hasSdohBarrier: newState.flags.some(
-            (f) =>
-              f.status === "Open" &&
-              (f.type || "").toLowerCase().includes("sdoh")
-          ),
-          limitedSupport: false, // TODO: map from social support field
-        },
-        professional: {
-          unableToWork: false, // TODO: map from work status
-          accommodationsNeeded: false, // TODO: map from "needs accommodations" field
-        },
-        anyHighRiskOrUncontrolled: newState.flags.some(
-          (f) =>
-            f.status === "Open" &&
-            (f.severity === "High" || f.severity === "Critical")
-        ),
-      };
+      // Build 4Ps snapshot from the updated state
+      const fourPs = buildFourPsFromState(newState.client, newState.flags);
 
       const tenVsEval = evaluateTenVs({
         appState: newState,
@@ -133,7 +154,18 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
         // vitalityInputs can be added later; using defaults for now
       });
 
-      // 👉 For now, just log to the console so we can see the brain working
+      // HARD-STOP: Require RN CM documentation for each triggered V
+      for (const action of tenVsEval.requiredActions) {
+        const noteForV = (vNotes[action.vCode] || "").trim();
+        if (!noteForV) {
+          setError(
+            `Please document an action and rationale for "${action.label}". Reason(s): ${action.reasonSummary}`
+          );
+          return;
+        }
+      }
+
+      // Log to console for now (helps with dev & audit)
       console.log("[TEN_VS_EVAL]", {
         clientId: newState.client.id,
         triggeredVs: tenVsEval.triggeredVs,
@@ -157,11 +189,12 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
 
       onSaved(newState);
     } catch (err: any) {
-
-      setError(
-        err?.message ||
-          "Unable to save follow-up. Please review all required items."
-      );
+      if (!error) {
+        setError(
+          err?.message ||
+            "Unable to save follow-up. Please review all required items."
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -227,6 +260,44 @@ const FollowUpForm: React.FC<FollowUpFormProps> = ({
           Client DECLINES Care Management at this time.
         </label>
       </section>
+
+      {/* 10-Vs Required Clinical Actions (Hard-Stop) */}
+      {requiredActions.length > 0 && (
+        <section className="border rounded p-3 bg-amber-50">
+          <div className="font-semibold text-sm mb-1">
+            Required 10-Vs Clinical Actions
+          </div>
+          <p className="text-xs text-gray-700 mb-2">
+            Because of this client’s 4Ps, SDOH, and risk profile, the following
+            V-domains must each have a documented plan and rationale. You must
+            complete every section before saving.
+          </p>
+          <div className="space-y-3">
+            {requiredActions.map((action) => (
+              <div key={action.vCode}>
+                <div className="text-xs font-semibold">
+                  {action.label}
+                </div>
+                <div className="text-[11px] text-gray-600 mb-1">
+                  Triggered because: {action.reasonSummary}
+                </div>
+                <textarea
+                  className="w-full border rounded p-2 text-xs"
+                  rows={2}
+                  value={vNotes[action.vCode] || ""}
+                  onChange={(e) =>
+                    setVNotes((prev) => ({
+                      ...prev,
+                      [action.vCode]: e.target.value,
+                    }))
+                  }
+                  placeholder="Document your specific plan, referrals, advocacy actions, and follow-up for this V-domain."
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* RN CM Note */}
       <section>
