@@ -1,163 +1,43 @@
 // src/components/SupervisorAuditPanel.tsx
 
 import React from "react";
-import { AppState, Flag, Task } from "../lib/models";
-import { evaluateTenVs, FourPsSnapshot } from "../lib/vEngine";
+import { AppState } from "../lib/models";
+import { calculate10VsSummary } from "../lib/vEngine";
 import {
-  computeRnWorkload,
-  defaultWorkloadSettings,
-} from "../lib/workload";
+  assessCaseSeverity,
+  recommendCaseClosure,
+} from "../lib/caseClosure";
 import { exportCurrentAuditCSV } from "../lib/export";
+
+/**
+ * Reconcile C.A.R.E.™
+ * Supervisor / QMP Quick Audit Panel
+ *
+ * Read-only view that:
+ *  - Summarizes 10-Vs (viability, vitality, vigilance/RAG).
+ *  - Shows auto-assessed case severity (Levels 1–4).
+ *  - Shows RN CM case-closure recommendation and blocking items.
+ *  - Allows CSV export for QMP / legal audits.
+ *
+ * No status changes are made here yet. This is a safe, display-only layer
+ * to support review and QMP documentation.
+ */
 
 interface SupervisorAuditPanelProps {
   state: AppState;
 }
 
-/**
- * Build a basic 4Ps snapshot from flags only, for cases where
- * we don't have the raw intake questionnaire in this view.
- * This keeps Supervisor/QMP logic aligned with RN snapshot logic.
- */
-const buildFourPsFromFlags = (flags: Flag[]): FourPsSnapshot => {
-  const open = (flags || []).filter((f) => f.status === "Open");
-  const hasHighCrit = open.some(
-    (f) => f.severity === "High" || f.severity === "Critical"
-  );
-  const hasSdoh = open.some(
-    (f) => (f.type || "").toLowerCase().includes("sdoh")
-  );
-  const hasPsych = open.some(
-    (f) => (f.type || "").toLowerCase().includes("psych")
-  );
-  const hasWork = open.some(
-    (f) => (f.type || "").toLowerCase().includes("work")
-  );
-  const hasSupport = open.some(
-    (f) => (f.type || "").toLowerCase().includes("support")
-  );
-
-  return {
-    physical: {
-      painScore: undefined,
-      uncontrolledChronicCondition: false,
-    },
-    psychological: {
-      positiveDepressionAnxiety: hasPsych,
-      highStress: false,
-    },
-    psychosocial: {
-      hasSdohBarrier: hasSdoh,
-      limitedSupport: hasSupport,
-    },
-    professional: {
-      unableToWork: hasWork,
-      accommodationsNeeded: false,
-    },
-    anyHighRiskOrUncontrolled: hasHighCrit || hasSdoh || hasPsych || hasWork,
-  };
-};
-
-const severityLabel = (level: 1 | 2 | 3 | 4): string => {
-  switch (level) {
-    case 1:
-      return "Level 1 – Simple";
-    case 2:
-      return "Level 2 – Moderate";
-    case 3:
-      return "Level 3 – Complex";
-    case 4:
+const badgeClass = (tone: "green" | "amber" | "red" | "slate") => {
+  switch (tone) {
+    case "green":
+      return "inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold";
+    case "amber":
+      return "inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold";
+    case "red":
+      return "inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-semibold";
     default:
-      return "Level 4 – Severely Complex";
+      return "inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-semibold";
   }
-};
-
-const vitalityBadgeClass = (score: number): string => {
-  if (score <= 3.9) return "bg-red-100 text-red-700 border-red-300";
-  if (score <= 7.9) return "bg-amber-100 text-amber-700 border-amber-300";
-  return "bg-green-100 text-green-700 border-green-300";
-};
-
-const ragBadgeClass = (rag: string): string => {
-  switch (rag) {
-    case "Red":
-      return "bg-red-100 text-red-700 border-red-300";
-    case "Amber":
-      return "bg-amber-100 text-amber-700 border-amber-300";
-    case "Green":
-    default:
-      return "bg-green-100 text-green-700 border-green-300";
-  }
-};
-
-const workloadBadgeClass = (status: "Green" | "Amber" | "Red"): string => {
-  switch (status) {
-    case "Red":
-      return "bg-red-100 text-red-700 border-red-300";
-    case "Amber":
-      return "bg-amber-100 text-amber-700 border-amber-300";
-    case "Green":
-    default:
-      return "bg-green-100 text-green-700 border-green-300";
-  }
-};
-
-const summarizeFlags = (flags: Flag[]) => {
-  const open = flags.filter((f) => f.status === "Open");
-  const bySeverity = {
-    Critical: open.filter((f) => f.severity === "Critical").length,
-    High: open.filter((f) => f.severity === "High").length,
-    Moderate: open.filter((f) => f.severity === "Moderate").length,
-    Low: open.filter((f) => f.severity === "Low").length,
-  };
-  const sdoh = open.filter((f) =>
-    (f.type || "").toLowerCase().includes("sdoh")
-  ).length;
-  const support = open.filter((f) =>
-    (f.type || "").toLowerCase().includes("support")
-  ).length;
-
-  return {
-    openCount: open.length,
-    bySeverity,
-    sdoh,
-    support,
-    openFlags: open,
-  };
-};
-
-const summarizeTasks = (tasks: Task[]) => {
-  const open = tasks.filter((t) => t.status === "Open");
-  const today = new Date().toISOString().slice(0, 10);
-  const overdue = open.filter(
-    (t) => t.due_date && t.due_date < today
-  ).length;
-
-  return {
-    openCount: open.length,
-    overdue,
-  };
-};
-
-const isPriorityReview = (state: AppState): boolean => {
-  const { client, flags, tasks } = state;
-  const flagSummary = summarizeFlags(flags);
-  const taskSummary = summarizeTasks(tasks);
-
-  const highOrCritical =
-    flagSummary.bySeverity.High + flagSummary.bySeverity.Critical > 0;
-
-  const hasRiskAndDeclined = Boolean(
-    client.cmDeclined && (flagSummary.sdoh > 0 || flagSummary.support > 0)
-  );
-
-  const today = new Date().toISOString().slice(0, 10);
-  const followupOverdue = Boolean(
-    client.nextFollowupDue && client.nextFollowupDue < today
-  );
-
-  const hasOverdueWork = followupOverdue || taskSummary.overdue > 0;
-
-  return highOrCritical || hasRiskAndDeclined || hasOverdueWork;
 };
 
 const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
@@ -165,32 +45,37 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
 }) => {
   const { client, flags, tasks } = state;
 
-  const fourPs = buildFourPsFromFlags(flags);
-  const tenVsEval = evaluateTenVs({
-    appState: state,
-    client,
-    flags,
-    tasks,
-    fourPs,
-  });
+  const vsSummary = calculate10VsSummary(state);
+  const severity = assessCaseSeverity(state);
+  const closure = recommendCaseClosure(state);
 
-  // For now, assume a placeholder RN id.
-  // In production, this will be the actual RN assigned to the case.
-  const rnId = "rn-1";
-  const rnWorkloadSummary = computeRnWorkload(
-    [
-      {
-        rnId,
-        severityLevel: tenVsEval.suggestedSeverity,
-      },
-    ],
-    rnId,
-    defaultWorkloadSettings
-  );
+  const vitality = vsSummary.vitalityScore ?? null;
+  const rag = vsSummary.ragStatus || null;
+  const vigilanceRisk = vsSummary.vigilanceRiskCategory || null;
+  const viabilityScore = vsSummary.viabilityScore ?? client.viabilityScore;
 
-  const flagSummary = summarizeFlags(flags);
-  const taskSummary = summarizeTasks(tasks);
-  const priorityReview = isPriorityReview(state);
+  const vitalityTone =
+    vitality === null
+      ? "slate"
+      : vitality < 4
+      ? ("red" as const)
+      : vitality < 8
+      ? ("amber" as const)
+      : ("green" as const);
+
+  const ragTone =
+    rag === "Red"
+      ? ("red" as const)
+      : rag === "Amber"
+      ? ("amber" as const)
+      : rag === "Green"
+      ? ("green" as const)
+      : ("slate" as const);
+
+  const closureTone =
+    closure.canClose && closure.suggestedType
+      ? ("green" as const)
+      : ("amber" as const);
 
   const handleExport = () => {
     exportCurrentAuditCSV(state);
@@ -198,153 +83,250 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
 
   return (
     <section className="bg-white border rounded-xl p-4 shadow-sm mt-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-semibold uppercase tracking-wide">
-          Quick Audit View (Supervisor / QMP)
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide mb-1">
+            Quick Audit View (Supervisor / QMP)
+          </div>
+          <div className="text-[11px] text-slate-500">
+            Snapshot for RN CM quality review, 10-Vs alignment, and case
+            closure readiness. This panel is read-only at this stage.
+          </div>
         </div>
+
         <button
           type="button"
           onClick={handleExport}
-          className="text-[11px] border rounded px-2 py-1"
+          className="px-3 py-1 border rounded text-[11px] hover:bg-slate-50"
         >
           Download Audit CSV
         </button>
       </div>
 
-      {/* Priority Review Banner */}
-      {priorityReview && (
-        <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-[11px] text-red-800">
-          <span className="font-semibold">Priority Review Required.</span>{" "}
-          At least one of the following is true: high/critical clinical risk,
-          unresolved SDOH/support barriers with client declining CM, or overdue
-          follow-up/tasks.
-        </div>
-      )}
-
-      {/* 10-Vs Snapshot */}
-      <div className="grid gap-3 md:grid-cols-2 mb-3">
-        <div className="border rounded p-2">
-          <div className="text-[11px] font-semibold mb-1">
-            Viability / Severity / Vitality
+      {/* Top row: client + severity + 10-Vs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {/* Client / Case ID */}
+        <div className="border rounded-lg p-3 text-xs">
+          <div className="font-semibold mb-1">Client / Case</div>
+          <div className="space-y-0.5">
+            <div>
+              <span className="font-semibold">Name:</span>{" "}
+              {client.name || "Unknown"}
+            </div>
+            <div className="text-slate-600">
+              <span className="font-semibold">Client ID:</span>{" "}
+              {client.id || "n/a"}
+            </div>
+            {client.attorneyName && (
+              <div className="text-slate-600">
+                <span className="font-semibold">Attorney:</span>{" "}
+                {client.attorneyName}
+              </div>
+            )}
+            {client.caseType && (
+              <div className="text-slate-600">
+                <span className="font-semibold">Case Type:</span>{" "}
+                {client.caseType}
+              </div>
+            )}
           </div>
-          <div className="text-[11px] space-y-1">
-            {client.viabilityScore !== undefined && (
-              <div>
-                <span className="font-semibold">Viability:</span>{" "}
-                {client.viabilityScore}{" "}
+        </div>
+
+        {/* 10-Vs / RAG Summary */}
+        <div className="border rounded-lg p-3 text-xs">
+          <div className="font-semibold mb-1">10-Vs Clinical Summary</div>
+          <div className="space-y-1">
+            <div>
+              <span className="font-semibold">Viability Score:</span>{" "}
+              {viabilityScore !== undefined && viabilityScore !== null
+                ? viabilityScore
+                : "n/a"}
+              {client.viabilityStatus && (
                 <span className="text-slate-500">
-                  ({client.viabilityStatus || "N/A"})
+                  {" "}
+                  ({client.viabilityStatus})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Vitality:</span>
+              <span className={badgeClass(vitalityTone)}>
+                {vitality === null ? "n/a" : vitality.toFixed(1)}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">RAG Status:</span>
+              <span className={badgeClass(ragTone)}>
+                {rag || "Not Calculated"}
+              </span>
+            </div>
+
+            {vigilanceRisk && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Vigilance Risk:</span>
+                <span
+                  className={badgeClass(
+                    vigilanceRisk === "High"
+                      ? "red"
+                      : vigilanceRisk === "Moderate"
+                      ? "amber"
+                      : "green"
+                  )}
+                >
+                  {vigilanceRisk}
                 </span>
               </div>
             )}
-            <div>
-              <span className="font-semibold">Severity Level:</span>{" "}
-              {severityLabel(tenVsEval.suggestedSeverity)}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${vitalityBadgeClass(
-                  tenVsEval.vitalityScore
-                )}`}
-              >
-                <span className="font-semibold">Vitality:</span>
-                <span>{tenVsEval.vitalityScore.toFixed(1)}</span>
-              </span>
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${ragBadgeClass(
-                  tenVsEval.ragStatus
-                )}`}
-              >
-                <span className="font-semibold">RAG:</span>
-                <span>{tenVsEval.ragStatus}</span>
-              </span>
-            </div>
+
+            {vsSummary?.notes && vsSummary.notes.length > 0 && (
+              <ul className="list-disc pl-4 text-[11px] text-slate-600 mt-1">
+                {vsSummary.notes.map((n: string, idx: number) => (
+                  <li key={idx}>{n}</li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
-        {/* RN Workload View for Supervisors / Directors */}
-        <div className="border rounded p-2">
-          <div className="text-[11px] font-semibold mb-1">
-            RN CM Workload (Director-Defined Limits)
-          </div>
-          <div className="text-[11px] space-y-1">
-            <div>
-              <span className="font-semibold">Case Complexity Points:</span>{" "}
-              {rnWorkloadSummary.totalPoints} / {rnWorkloadSummary.maxPoints}{" "}
-              <span className="text-slate-500">
-                ({rnWorkloadSummary.utilizationPercent}% of limit)
-              </span>
+        {/* Case Severity */}
+        <div className="border rounded-lg p-3 text-xs">
+          <div className="font-semibold mb-1">Case Severity (Auto)</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className={badgeClass("amber")}>{severity.label}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${workloadBadgeClass(
-                  rnWorkloadSummary.status
-                )}`}
-              >
-                <span className="font-semibold">Status:</span>
-                <span>{rnWorkloadSummary.status}</span>
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-500 mt-1">
-              Max RN complexity points are defined at the Director level and
-              should be aligned with QMP staffing standards.
-            </div>
+            <ul className="list-disc pl-4 text-[11px] text-slate-600 mt-1">
+              {severity.rationale.map((r, idx) => (
+                <li key={idx}>{r}</li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
 
-      {/* Flags & Tasks Summary */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="border rounded p-2">
-          <div className="text-[11px] font-semibold mb-1">
-            Open Clinical / SDOH Flags
-          </div>
-          <div className="text-[11px] space-y-1">
-            <div>
-              <span className="font-semibold">Total Open:</span>{" "}
-              {flagSummary.openCount}
-            </div>
-            <div>
-              <span className="font-semibold">By Severity:</span>{" "}
-              Critical {flagSummary.bySeverity.Critical} · High{" "}
-              {flagSummary.bySeverity.High} · Moderate{" "}
-              {flagSummary.bySeverity.Moderate} · Low{" "}
-              {flagSummary.bySeverity.Low}
-            </div>
-            <div>
-              <span className="font-semibold">SDOH Flags:</span>{" "}
-              {flagSummary.sdoh}
-            </div>
-            <div>
-              <span className="font-semibold">Support Flags:</span>{" "}
-              {flagSummary.support}
-            </div>
-          </div>
+      {/* Case Closure Recommendation */}
+      <div className="border rounded-lg p-3 text-xs mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-semibold">Case Closure Readiness (RN CM)</div>
+          <span className={badgeClass(closureTone)}>
+            {closure.canClose && closure.suggestedType
+              ? "Clinically Ready (RN CM Perspective)"
+              : "Keep Case Open"}
+          </span>
         </div>
 
-        <div className="border rounded p-2">
-          <div className="text-[11px] font-semibold mb-1">
-            RN CM Tasks & Follow-Up
-          </div>
-          <div className="text-[11px] space-y-1">
+        <div className="space-y-1 text-slate-700">
+          {closure.suggestedType && (
             <div>
-              <span className="font-semibold">Open Tasks:</span>{" "}
-              {taskSummary.openCount}
+              <span className="font-semibold">Suggested Closure Type:</span>{" "}
+              {closure.suggestedType ===
+              "RN_CM_TASKS_COMPLETE_PENDING_SETTLEMENT"
+                ? "RN CM Tasks Complete – Pending Settlement"
+                : closure.suggestedType === "FINALIZED_SETTLEMENT"
+                ? "Finalized Settlement"
+                : closure.suggestedType === "ADMINISTRATIVE_CLOSURE"
+                ? "Administrative Closure"
+                : closure.suggestedType}
             </div>
-            <div>
-              <span className="font-semibold">Overdue Tasks:</span>{" "}
-              {taskSummary.overdue}
+          )}
+
+          {closure.reasons && closure.reasons.length > 0 && (
+            <div className="mt-1">
+              <div className="font-semibold text-[11px]">
+                Rationale / Guidance:
+              </div>
+              <ul className="list-disc pl-4 text-[11px] text-slate-600 mt-0.5">
+                {closure.reasons.map((r, idx) => (
+                  <li key={idx}>{r}</li>
+                ))}
+              </ul>
             </div>
-            <div>
-              <span className="font-semibold">Next 30-Day Follow-Up Due:</span>{" "}
-              {client.nextFollowupDue || "Not set"}
-            </div>
-            <div>
-              <span className="font-semibold">Client Declined CM:</span>{" "}
-              {client.cmDeclined ? "Yes" : "No"}
-            </div>
-          </div>
+          )}
         </div>
+
+        {/* Blocking Items */}
+        {(closure.blockingFlags.length > 0 ||
+          closure.blockingTasks.length > 0) && (
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {closure.blockingFlags.length > 0 && (
+              <div>
+                <div className="font-semibold text-[11px] mb-1">
+                  Blocking Flags (Must Be Addressed)
+                </div>
+                <ul className="list-disc pl-4 text-[11px] text-slate-600">
+                  {closure.blockingFlags.map((f) => (
+                    <li key={f.id}>
+                      <span className="font-semibold">{f.label}</span>{" "}
+                      {f.severity && (
+                        <span className="text-slate-500">
+                          ({f.severity} · {f.status})
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {closure.blockingTasks.length > 0 && (
+              <div>
+                <div className="font-semibold text-[11px] mb-1">
+                  Blocking Tasks (Open / Overdue)
+                </div>
+                <ul className="list-disc pl-4 text-[11px] text-slate-600">
+                  {closure.blockingTasks.map((t) => (
+                    <li key={t.id}>
+                      <span className="font-semibold">{t.title}</span>{" "}
+                      {t.due_date && (
+                        <span className="text-slate-500">
+                          (Due: {t.due_date})
+                        </span>
+                      )}
+                      {t.assigned_to && (
+                        <span className="text-slate-500">
+                          {" "}
+                          · Assigned to: {t.assigned_to}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className="text-[10px] text-slate-500 mt-3">
+          Supervisor Guidance: This recommendation is generated from the 10-Vs
+          engine, open flags, and tasks. Supervisors must still apply clinical
+          judgment, review documentation, and follow organizational policy
+          before approving closure or escalation.
+        </p>
+      </div>
+
+      {/* RN CM & QMP Notes placeholder (read-only phase) */}
+      <div className="border rounded-lg p-3 text-xs">
+        <div className="font-semibold mb-1">
+          QMP / Supervisor Review Considerations
+        </div>
+        <ul className="list-disc pl-4 text-[11px] text-slate-600 space-y-0.5">
+          <li>
+            Confirm that RN CM documentation aligns with the 10-Vs triggers
+            (Voice/View, Viability, Vision, Veracity, Versatility, Vitality,
+            Vigilance, Verification, Value, Validation).
+          </li>
+          <li>
+            Ensure any guideline variances, payer denials, or SDOH barriers are
+            clearly documented and, when applicable, categorized for V8
+            (Verification) learning.
+          </li>
+          <li>
+            Use this panel during random audits, focused reviews, and case
+            conferences to support URAC/CMSA/CCMC standard alignment.
+          </li>
+        </ul>
       </div>
     </section>
   );
