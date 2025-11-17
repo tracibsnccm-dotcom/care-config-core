@@ -8,6 +8,7 @@ import {
   recommendCaseClosure,
 } from "../lib/caseClosure";
 import { exportCurrentAuditCSV } from "../lib/export";
+import { evaluateLegalLockdown } from "../lib/legalLockdown";
 
 /**
  * Reconcile C.A.R.E.™
@@ -17,6 +18,7 @@ import { exportCurrentAuditCSV } from "../lib/export";
  *  - Summarizes 10-Vs (viability, vitality, vigilance/RAG).
  *  - Shows auto-assessed case severity (Levels 1–4).
  *  - Shows RN CM case-closure recommendation and blocking items.
+ *  - Shows Legal & Compliance Lock-Down readiness before external reports.
  *  - Allows CSV export for QMP / legal audits.
  *
  * No status changes are made here yet. This is a safe, display-only layer
@@ -27,7 +29,7 @@ interface SupervisorAuditPanelProps {
   state: AppState;
 }
 
-const badgeClass = (tone: "green" | "amber" | "red" | "slate") => {
+const badgeClass = (tone: "green" | "amber" | "red" | "slate" | "blue") => {
   switch (tone) {
     case "green":
       return "inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold";
@@ -35,6 +37,8 @@ const badgeClass = (tone: "green" | "amber" | "red" | "slate") => {
       return "inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold";
     case "red":
       return "inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-semibold";
+    case "blue":
+      return "inline-flex items-center px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-semibold";
     default:
       return "inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-semibold";
   }
@@ -48,6 +52,7 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
   const vsSummary = calculate10VsSummary(state);
   const severity = assessCaseSeverity(state);
   const closure = recommendCaseClosure(state);
+  const lockdown = evaluateLegalLockdown(state);
 
   const vitality = vsSummary.vitalityScore ?? null;
   const rag = vsSummary.ragStatus || null;
@@ -77,6 +82,13 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
       ? ("green" as const)
       : ("amber" as const);
 
+  const lockdownTone =
+    lockdown.riskLevel === "HIGH"
+      ? ("red" as const)
+      : lockdown.riskLevel === "MODERATE"
+      ? ("amber" as const)
+      : ("green" as const);
+
   const handleExport = () => {
     exportCurrentAuditCSV(state);
   };
@@ -89,8 +101,9 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
             Quick Audit View (Supervisor / QMP)
           </div>
           <div className="text-[11px] text-slate-500">
-            Snapshot for RN CM quality review, 10-Vs alignment, and case
-            closure readiness. This panel is read-only at this stage.
+            Snapshot for RN CM quality review, 10-Vs alignment, case closure
+            readiness, and legal/URAC defensibility. This panel is read-only
+            at this stage.
           </div>
         </div>
 
@@ -306,7 +319,62 @@ const SupervisorAuditPanel: React.FC<SupervisorAuditPanelProps> = ({
         </p>
       </div>
 
-      {/* RN CM & QMP Notes placeholder (read-only phase) */}
+      {/* Legal & Compliance Lock-Down Check */}
+      <div className="border rounded-lg p-3 text-xs mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-semibold">
+            Legal & Compliance Lock-Down (External Reports)
+          </div>
+          <span className={badgeClass(lockdownTone)}>
+            {lockdown.canRelease
+              ? "Reports Eligible for Release"
+              : "Lock-Down Active (Do Not Release)"}
+          </span>
+        </div>
+
+        <div className="text-[11px] text-slate-700 mb-2">
+          This section summarizes whether it is safe to generate and release
+          external reports (attorney/provider/payer) based on clinical
+          stability, safety flags, overdue tasks, and 10-Vs indicators.
+        </div>
+
+        {lockdown.issues && lockdown.issues.length > 0 ? (
+          <ul className="space-y-1">
+            {lockdown.issues.map((issue, idx) => (
+              <li
+                key={idx}
+                className="flex items-start gap-2 text-[11px] text-slate-700"
+              >
+                <span
+                  className={badgeClass(
+                    issue.severity === "BLOCK"
+                      ? "red"
+                      : issue.severity === "WARN"
+                      ? "amber"
+                      : "blue"
+                  )}
+                >
+                  {issue.severity}
+                </span>
+                <span>{issue.message}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-[11px] text-emerald-700">
+            No legal/compliance concerns detected by the lock-down engine.
+          </div>
+        )}
+
+        <p className="text-[10px] text-slate-500 mt-3">
+          QMP / Supervisor Guidance: Use this as a structured checklist before
+          approving external report release. If BLOCK-level issues are present,
+          either delay release until resolved or document an explicit exception
+          according to organizational policy.
+        </p>
+      </div>
+
+      {/* RN CM & QMP Notes guidance */}
       <div className="border rounded-lg p-3 text-xs">
         <div className="font-semibold mb-1">
           QMP / Supervisor Review Considerations
