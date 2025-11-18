@@ -1,320 +1,386 @@
 // src/rn/RNConsole.tsx
 
-import React from "react";
+import React, { useMemo } from "react";
+import { useMockDB } from "../lib/mockDB";
+import { AppState } from "../lib/models";
 
-/**
- * Reconcile C.A.R.E.™
- * RN Care Management Portal – Dashboard
- *
- * NOTE (IMPORTANT):
- *  - This version still uses MOCK data only.
- *  - It is SAFE: does not touch AppState, workflows, or the 10-Vs engine.
- *  - It is now designed to show ONLY ACTIVE (non-closed) assigned clients.
- *  - Later, your dev team can wire this to real RN + case data, using the same
- *    "active only" rule: exclude fully closed cases from the main RN dashboard.
- */
+const RN_ID = "RN-01"; // 👈 current RN; later this will come from auth / login
 
-type RagStatus = "Red" | "Amber" | "Green";
-type CaseStatus = "Active" | "PendingSettlement" | "Closed";
+const formatDate = (iso?: string | null) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString();
+};
 
-interface MockCase {
-  id: string;
-  clientName: string;
-  rag: RagStatus;
-  vitality: number;
-  severity: string;
-  nextFollowUp: string;
-  hasHighRiskFlags: boolean;
-  notes: string;
-  status: CaseStatus;
-}
-
-const mockCases: MockCase[] = [
-  {
-    id: "RC-2025-001",
-    clientName: "Sample Client A",
-    rag: "Red",
-    vitality: 3.2,
-    severity: "Level 4 – Severely Complex",
-    nextFollowUp: "2025-11-18",
-    hasHighRiskFlags: true,
-    notes: "High pain + SDOH barriers · CM accepted.",
-    status: "Active",
-  },
-  {
-    id: "RC-2025-002",
-    clientName: "Sample Client B",
-    rag: "Amber",
-    vitality: 6.1,
-    severity: "Level 3 – Complex",
-    nextFollowUp: "2025-11-20",
-    hasHighRiskFlags: false,
-    notes: "Return-to-work planning in progress.",
-    status: "Active",
-  },
-  {
-    id: "RC-2025-003",
-    clientName: "Sample Client C",
-    rag: "Green",
-    vitality: 8.4,
-    severity: "Level 2 – Moderate",
-    nextFollowUp: "2025-11-25",
-    hasHighRiskFlags: false,
-    notes: "Goals largely met; nearing closure recommendation.",
-    status: "PendingSettlement",
-  },
-  {
-    id: "RC-2025-004",
-    clientName: "Closed Example D",
-    rag: "Green",
-    vitality: 9.1,
-    severity: "Level 1 – Simple",
-    nextFollowUp: "2025-10-01",
-    hasHighRiskFlags: false,
-    notes: "Completed; closure type: Finalized Settlement.",
-    status: "Closed",
-  },
-];
-
-// Helper: filter ACTIVE assigned clients (non-closed)
-function getActiveCases(cases: MockCase[]): MockCase[] {
-  return cases.filter((c) => c.status === "Active");
-}
-
-function countByRag(cases: MockCase[], status: RagStatus): number {
-  return cases.filter((c) => c.rag === status).length;
-}
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const RNConsole: React.FC = () => {
-  // Apply your rule: only ACTIVE assigned clients
-  const activeCases = getActiveCases(mockCases);
+  const { cases } = useMockDB();
+  const today = todayISO();
 
-  const totalActiveCases = activeCases.length;
-  const redCount = countByRag(activeCases, "Red");
-  const amberCount = countByRag(activeCases, "Amber");
-  const greenCount = countByRag(activeCases, "Green");
+  // 🔎 Filter: only ACTIVE cases assigned to this RN
+  const myCases: AppState[] = useMemo(() => {
+    return cases.filter((c) => {
+      const client: any = c.client || {};
+      const status = client.caseStatus ?? "Active"; // default to Active if missing
+      const assignedRnId = client.assignedRnId ?? RN_ID;
+      return status === "Active" && assignedRnId === RN_ID;
+    });
+  }, [cases]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const dueToday = activeCases.filter((c) => c.nextFollowUp <= today).length;
-  const highRisk = activeCases.filter((c) => c.hasHighRiskFlags).length;
+  // 🟥 Urgent / High-Risk strip
+  const urgentItems = useMemo(() => {
+    const items: {
+      label: string;
+      clientName: string;
+      severity: string;
+      type?: string;
+    }[] = [];
 
-  // For now, we hard-code a “max points” and a mock current workload
-  const maxWorkloadPoints = 15;
-  const currentWorkloadPoints = 11; // pretend this RN is near capacity
-  const workloadPercent = Math.min(
-    100,
-    Math.round((currentWorkloadPoints / maxWorkloadPoints) * 100)
-  );
+    myCases.forEach((c) => {
+      const client: any = c.client || {};
+      const clientName = client.name || client.id || "Unknown client";
+
+      // High/Critical flags
+      (c.flags || []).forEach((f: any) => {
+        if (
+          f.status === "Open" &&
+          (f.severity === "High" || f.severity === "Critical")
+        ) {
+          items.push({
+            label: f.label || "Flag",
+            clientName,
+            severity: f.severity || "High",
+            type: f.type,
+          });
+        }
+      });
+
+      // Overdue follow-ups
+      const nextDue = client.nextFollowupDue as string | undefined;
+      if (nextDue && nextDue < today) {
+        items.push({
+          label: "Overdue RN follow-up",
+          clientName,
+          severity: "High",
+          type: "FollowUp",
+        });
+      }
+    });
+
+    return items;
+  }, [myCases, today]);
+
+  // 📞 Calls / follow-ups due today or soon
+  const dueSoon = useMemo(() => {
+    const items: {
+      clientName: string;
+      nextFollowupDue?: string;
+    }[] = [];
+
+    myCases.forEach((c) => {
+      const client: any = c.client || {};
+      const clientName = client.name || client.id || "Unknown client";
+      const nextDue = client.nextFollowupDue as string | undefined;
+      if (!nextDue) return;
+
+      // Show items due today or in the next 7 days
+      if (nextDue >= today && nextDue <= addDaysISO(today, 7)) {
+        items.push({
+          clientName,
+          nextFollowupDue: nextDue,
+        });
+      }
+    });
+
+    return items;
+  }, [myCases, today]);
+
+  // 📊 RN Stats across caseload
+  const stats = useMemo(() => {
+    const total = myCases.length;
+    let complex = 0;
+    let severelyComplex = 0;
+    let highRiskFlags = 0;
+    let criticalFlags = 0;
+    let redRag = 0;
+    let amberRag = 0;
+    let greenRag = 0;
+
+    myCases.forEach((c) => {
+      const client: any = c.client || {};
+      const sev = client.severityLevel ?? 1;
+      const rag = client.ragStatus || "";
+
+      if (sev >= 3 && sev < 4) complex += 1;
+      if (sev >= 4) severelyComplex += 1;
+
+      (c.flags || []).forEach((f: any) => {
+        if (f.status === "Open") {
+          if (f.severity === "High") highRiskFlags += 1;
+          if (f.severity === "Critical") criticalFlags += 1;
+        }
+      });
+
+      if (rag === "Red") redRag += 1;
+      else if (rag === "Amber") amberRag += 1;
+      else if (rag === "Green") greenRag += 1;
+    });
+
+    return {
+      total,
+      complex,
+      severelyComplex,
+      highRiskFlags,
+      criticalFlags,
+      redRag,
+      amberRag,
+      greenRag,
+    };
+  }, [myCases]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto py-8 px-4">
-        {/* Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold">
-            Reconcile C.A.R.E.™ – RN Care Management Portal
-          </h1>
-          <p className="text-xs text-slate-600 mt-1">
-            Your centralized view of active cases, follow-ups, high-risk flags,
-            and plan momentum. This dashboard currently uses mock data only, but
-            is structured to show only ACTIVE (non-closed) assigned clients.
+    <div className="space-y-4">
+      {/* RN Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold">
+            RN Care Manager Dashboard
+          </h2>
+          <p className="text-[11px] text-slate-600">
+            Active cases assigned to <span className="font-semibold">{RN_ID}</span> only.
+            This will later be tied to the logged-in RN’s profile.
           </p>
-        </header>
+        </div>
+        <div className="text-right text-[11px] text-slate-500">
+          <div>Today: {formatDate(today)}</div>
+          <div>View: Active assigned caseload</div>
+        </div>
+      </div>
 
-        {/* Top summary tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Active Cases Needing Attention Today
-            </div>
-            <div className="mt-2 text-3xl font-bold">{dueToday}</div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              Follow-ups due today or overdue among ACTIVE assigned clients.
-            </p>
+      {/* Urgent strip */}
+      <section className="border rounded-xl bg-red-50/70 border-red-200 px-3 py-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-[11px] font-semibold text-red-800 uppercase tracking-wide">
+            Urgent / High-Risk Items
           </div>
-
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Active Cases with High-Risk / Critical Flags
-            </div>
-            <div className="mt-2 text-3xl font-bold">{highRisk}</div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              ACTIVE clients with pain, safety, mental health or SDOH risks
-              needing priority review.
-            </p>
-          </div>
-
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Total Active Assigned Cases (Mock)
-            </div>
-            <div className="mt-2 text-3xl font-bold">{totalActiveCases}</div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              This is a sample count. In production, this will reflect the RN’s
-              real ACTIVE caseload, excluding fully closed cases.
-            </p>
+          <div className="text-[10px] text-red-700">
+            {urgentItems.length === 0
+              ? "No high-risk items open"
+              : `${urgentItems.length} item(s) need attention`}
           </div>
         </div>
-
-        {/* RAG + workload row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* RAG distribution */}
-          <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="font-semibold mb-2">
-              RAG Distribution – Active Cases (Mock)
-            </div>
-            <p className="text-[11px] text-slate-600 mb-2">
-              At-a-glance risk view across your ACTIVE caseload only.
-            </p>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-                <span>Red: {redCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-amber-400" />
-                <span>Amber: {amberCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
-                <span>Green: {greenCount}</span>
-              </div>
-            </div>
-            <p className="mt-2 text-[11px] text-slate-500">
-              RAG is derived from vitality, vigilance, and severity. Here we use
-              mock values for layout only. When wired to the 10-Vs engine, only
-              ACTIVE cases will be counted.
-            </p>
+        {urgentItems.length === 0 ? (
+          <div className="text-[11px] text-red-700">
+            All High/Critical flags and overdue follow-ups are currently clear.
           </div>
-
-          {/* Workload bar */}
-          <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="font-semibold mb-2">
-              My Workload (Complexity Points)
-            </div>
-            <p className="text-[11px] text-slate-600 mb-2">
-              This reflects a mock view of the Director-controlled workload
-              engine. In production, these values will come from your 10-Vs
-              severity scores and the Director’s RN limits, based only on ACTIVE
-              caseload.
-            </p>
-
-            <div className="flex items-center justify-between text-[11px] mb-1">
-              <span>
-                Current:{" "}
-                <span className="font-semibold">
-                  {currentWorkloadPoints} pts
-                </span>
-              </span>
-              <span>
-                Max:{" "}
-                <span className="font-semibold">
-                  {maxWorkloadPoints} pts
-                </span>
-              </span>
-            </div>
-
-            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {urgentItems.map((u, idx) => (
               <div
-                className={`h-3 ${
-                  workloadPercent < 70
-                    ? "bg-emerald-500"
-                    : workloadPercent < 100
-                    ? "bg-amber-400"
-                    : "bg-red-500"
-                }`}
-                style={{ width: `${workloadPercent}%` }}
-              />
-            </div>
+                key={idx}
+                className="px-2 py-1 rounded-full bg-red-600 text-white text-[10px] flex items-center gap-1"
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="font-semibold">{u.clientName}:</span>
+                <span>{u.label}</span>
+                <span className="opacity-80">
+                  ({u.severity}
+                  {u.type ? ` · ${u.type}` : ""})
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-            <p className="mt-2 text-[11px] text-slate-500">
-              When wired to live data, this will help the Director avoid
-              overloading any single RN while still prioritizing high-risk
-              ACTIVE clients.
-            </p>
+      {/* Calls / follow-ups due */}
+      <section className="border rounded-xl bg-white px-3 py-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            Calls & RN Follow-Ups Due
+          </div>
+          <div className="text-[10px] text-slate-500">
+            {dueSoon.length === 0
+              ? "No follow-ups due in the next 7 days"
+              : `${dueSoon.length} client(s) due within 7 days`}
+          </div>
+        </div>
+        {dueSoon.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            You can use this time for deeper chart review, QMP tasks, or outreach
+            to clients with open SDOH or adherence concerns.
+          </div>
+        ) : (
+          <ul className="text-[11px] text-slate-700 space-y-1">
+            {dueSoon.map((d, idx) => (
+              <li key={idx} className="flex justify-between">
+                <span>{d.clientName}</span>
+                <span className="text-slate-500">
+                  Next follow-up: {formatDate(d.nextFollowupDue)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Stats cards */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="border rounded-xl bg-white px-3 py-2">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+            Active Cases
+          </div>
+          <div className="text-xl font-semibold">{stats.total}</div>
+          <div className="text-[11px] text-slate-500">
+            {stats.complex + stats.severelyComplex} complex / severely complex
           </div>
         </div>
 
-        {/* Active case list */}
-        <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-semibold">My Active Cases (Sample)</div>
-            <div className="text-[11px] text-slate-500">
-              This table shows only ACTIVE assigned clients. Later, each row
-              will link into the RN case view (snapshot, flags, follow-up).
-            </div>
+        <div className="border rounded-xl bg-white px-3 py-2">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+            High-Risk Flags
           </div>
+          <div className="text-xl font-semibold">
+            {stats.highRiskFlags + stats.criticalFlags}
+          </div>
+          <div className="text-[11px] text-slate-500">
+            {stats.criticalFlags} critical, {stats.highRiskFlags} high
+          </div>
+        </div>
 
+        <div className="border rounded-xl bg-white px-3 py-2">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+            RAG Status Mix
+          </div>
+          <div className="text-sm font-semibold">
+            {stats.redRag} Red · {stats.amberRag} Amber · {stats.greenRag} Green
+          </div>
+          <div className="text-[11px] text-slate-500">
+            Vitality & Vigilance snapshot across your panel.
+          </div>
+        </div>
+
+        <div className="border rounded-xl bg-white px-3 py-2">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+            Snapshot
+          </div>
+          <div className="text-[11px] text-slate-600">
+            This card can later show your workload points, quality score, or
+            QMP metrics once we wire the workload and audit engines here.
+          </div>
+        </div>
+      </section>
+
+      {/* Case list table */}
+      <section className="border rounded-xl bg-white px-3 py-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            Active Case List (Assigned to {RN_ID})
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Click-through routing to detailed case view will be wired next.
+          </div>
+        </div>
+
+        {myCases.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            No active cases are currently assigned to you. Once intake creates
+            new cases with {RN_ID} as the assigned RN, they will appear here.
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-[11px] border-t border-slate-100">
+            <table className="min-w-full text-[11px]">
               <thead>
-                <tr className="bg-slate-50 text-slate-600">
-                  <th className="text-left px-3 py-2 font-semibold">Client</th>
-                  <th className="text-left px-3 py-2 font-semibold">
-                    Case ID
-                  </th>
-                  <th className="text-left px-3 py-2 font-semibold">RAG</th>
-                  <th className="text-left px-3 py-2 font-semibold">
-                    Vitality
-                  </th>
-                  <th className="text-left px-3 py-2 font-semibold">
-                    Severity
-                  </th>
-                  <th className="text-left px-3 py-2 font-semibold">
-                    Next Follow-Up
-                  </th>
-                  <th className="text-left px-3 py-2 font-semibold">
-                    Alerts / Notes
-                  </th>
+                <tr className="text-left text-slate-500 border-b">
+                  <th className="py-1 pr-2">Client</th>
+                  <th className="py-1 pr-2">Severity</th>
+                  <th className="py-1 pr-2">RAG</th>
+                  <th className="py-1 pr-2">Open Flags</th>
+                  <th className="py-1 pr-2">Next Follow-Up</th>
                 </tr>
               </thead>
               <tbody>
-                {activeCases.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="border-t border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="px-3 py-2">{c.clientName}</td>
-                    <td className="px-3 py-2 text-slate-600">{c.id}</td>
-                    <td className="px-3 py-2">
-                      {c.rag === "Red" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold">
-                          Red
+                {myCases.map((c, idx) => {
+                  const client: any = c.client || {};
+                  const sev = client.severityLevel ?? 1;
+                  const rag = client.ragStatus || "—";
+                  const name = client.name || client.id || "Unknown client";
+
+                  const openFlags = (c.flags || []).filter(
+                    (f: any) => f.status === "Open"
+                  );
+                  const openCount = openFlags.length;
+                  const highCritCount = openFlags.filter(
+                    (f: any) =>
+                      f.severity === "High" || f.severity === "Critical"
+                  ).length;
+
+                  return (
+                    <tr
+                      key={client.id || idx}
+                      className="border-b last:border-0 hover:bg-slate-50 cursor-default"
+                    >
+                      <td className="py-1 pr-2">
+                        <div className="font-semibold text-slate-800">
+                          {name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Case ID: {client.id || "—"}
+                        </div>
+                      </td>
+                      <td className="py-1 pr-2">
+                        <div className="text-[11px]">
+                          Level {sev ?? "—"}
+                        </div>
+                      </td>
+                      <td className="py-1 pr-2">
+                        <span
+                          className={[
+                            "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                            rag === "Red"
+                              ? "bg-red-100 text-red-700"
+                              : rag === "Amber"
+                              ? "bg-amber-100 text-amber-700"
+                              : rag === "Green"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-600",
+                          ].join(" ")}
+                        >
+                          {rag || "—"}
                         </span>
-                      )}
-                      {c.rag === "Amber" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
-                          Amber
-                        </span>
-                      )}
-                      {c.rag === "Green" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                          Green
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">{c.vitality.toFixed(1)}</td>
-                    <td className="px-3 py-2">{c.severity}</td>
-                    <td className="px-3 py-2">{c.nextFollowUp}</td>
-                    <td className="px-3 py-2 text-slate-600 max-w-xs">
-                      {c.notes}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-1 pr-2">
+                        <div>{openCount} open</div>
+                        {highCritCount > 0 && (
+                          <div className="text-[10px] text-red-600">
+                            {highCritCount} High/Critical
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1 pr-2">
+                        {formatDate(client.nextFollowupDue)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-
-          <p className="mt-3 text-[10px] text-slate-500">
-            Future Enhancements: filter by RAG, search by client name, quick
-            jump into case view, and live indicators tied directly to the 10-Vs
-            engine, Vitality, Vigilance, RN workload limits, and legal
-            lock-down status—always limited to ACTIVE (non-closed) cases.
-          </p>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
 };
 
+// Simple helper to add days to an ISO date string
+function addDaysISO(iso: string, days: number): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export default RNConsole;
+
