@@ -1,281 +1,48 @@
 // src/App.tsx
 
-import React, { useState } from "react";
-import ClientIntakeForm from "./components/forms/ClientIntakeForm";
-import FollowUpForm from "./components/forms/FollowUpForm";
-import FlagsPanel from "./components/FlagsPanel";
-import SupervisorAuditPanel from "./components/SupervisorAuditPanel";
-import { AppState, Flag } from "./lib/models";
-import { evaluateTenVs, FourPsSnapshot } from "./lib/vEngine";
-import {
-  computeRnWorkload,
-  defaultWorkloadSettings,
-  RnCaseSeverityInput,
-} from "./lib/workload";
+import * as React from "react";
+import { RNCaseTimeline } from "./components/RNCaseTimeline";
+import { AttorneyCommLog } from "./components/AttorneyCommLog";
 
-/**
- * Helper: basic 4Ps snapshot for engine when only flags/tasks are available.
- * For now, we infer high-level risk from open flags, similar to the
- * SupervisorAuditPanel, so the RN and Supervisor views stay aligned.
- */
-const buildFourPsFromStateForAudit = (flags: Flag[]): FourPsSnapshot => {
-  const open = (flags || []).filter((f) => f.status === "Open");
-  const hasHighCrit = open.some(
-    (f) => f.severity === "High" || f.severity === "Critical"
-  );
-  const hasSdoh = open.some(
-    (f) => (f.type || "").toLowerCase().includes("sdoh")
-  );
-
-  return {
-    physical: {
-      painScore: undefined,
-      uncontrolledChronicCondition: false,
-    },
-    psychological: {
-      positiveDepressionAnxiety: false,
-      highStress: false,
-    },
-    psychosocial: {
-      hasSdohBarrier: hasSdoh,
-      limitedSupport: false,
-    },
-    professional: {
-      unableToWork: false,
-      accommodationsNeeded: false,
-    },
-    anyHighRiskOrUncontrolled: hasHighCrit || hasSdoh,
-  };
-};
-
-const severityLabel = (level: 1 | 2 | 3 | 4): string => {
-  switch (level) {
-    case 1:
-      return "Level 1 – Simple";
-    case 2:
-      return "Level 2 – Moderate";
-    case 3:
-      return "Level 3 – Complex";
-    case 4:
-    default:
-      return "Level 4 – Severely Complex";
-  }
-};
-
-const vitalityBadgeClass = (score: number): string => {
-  if (score <= 3.9) return "bg-red-100 text-red-700 border-red-300";
-  if (score <= 7.9) return "bg-amber-100 text-amber-700 border-amber-300";
-  return "bg-green-100 text-green-700 border-green-300";
-};
-
-const ragBadgeClass = (rag: string): string => {
-  switch (rag) {
-    case "Red":
-      return "bg-red-100 text-red-700 border-red-300";
-    case "Amber":
-      return "bg-amber-100 text-amber-700 border-amber-300";
-    case "Green":
-    default:
-      return "bg-green-100 text-green-700 border-green-300";
-  }
-};
-
-const workloadBadgeClass = (status: "Green" | "Amber" | "Red"): string => {
-  switch (status) {
-    case "Red":
-      return "bg-red-100 text-red-700 border-red-300";
-    case "Amber":
-      return "bg-amber-100 text-amber-700 border-amber-300";
-    case "Green":
-    default:
-      return "bg-green-100 text-green-700 border-green-300";
-  }
-};
-
-const App: React.FC = () => {
-  const [state, setState] = useState<AppState | null>(null);
-
-  // TODO: Replace in-memory AppState with real API calls.
-  // - On intake submit: POST /clients
-  // - On follow-up: POST /clients/:id/followups
-  // - Load initial data: GET /clients/:id
-
-  const handleIntakeSaved = (newState: AppState) => {
-    setState(newState);
-  };
-
-  const handleFollowUpSaved = (newState: AppState) => {
-    setState(newState);
-  };
-
-  // Pre-compute 10-Vs evaluation + RN workload when we have a client
-  let tenVsEval: ReturnType<typeof evaluateTenVs> | null = null;
-  let rnWorkloadSummary = null as
-    | ReturnType<typeof computeRnWorkload>
-    | null;
-
-  if (state) {
-    const fourPs = buildFourPsFromStateForAudit(state.flags as any);
-    tenVsEval = evaluateTenVs({
-      appState: state,
-      client: state.client,
-      flags: state.flags,
-      tasks: state.tasks,
-      fourPs,
-    });
-
-    if (tenVsEval) {
-      // For now, assume a single RN ("rn-1") owns this case.
-      // Later, this rnId will come from authenticated user / assignment.
-      const rnId = "rn-1";
-
-      const caseInput: RnCaseSeverityInput[] = [
-        {
-          rnId,
-          severityLevel: tenVsEval.suggestedSeverity,
-        },
-      ];
-
-      rnWorkloadSummary = computeRnWorkload(
-        caseInput,
-        rnId,
-        defaultWorkloadSettings
-      );
-    }
-  }
+function App() {
+  // For now we hard-code caseId to match mockTimeline.ts (case-001)
+  const caseId = "case-001";
+  const isCaseLegalLocked = true;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-2xl font-semibold">
-            Reconcile C.A.R.E.™ Care Management Console
-          </h1>
-          <p className="text-xs text-slate-600 mt-1">
-            Integrating Clinical Precision with Compassionate Advocacy.
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Simple top bar for now – we can swap this back to your full AppShell later */}
+      <header className="border-b px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Reconcile C.A.R.E.</h1>
+          <p className="text-xs text-muted-foreground">
+            Mock-first Case Timeline & Communications Log
           </p>
-        </header>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          RN + Attorney view • Case ID: <span className="font-mono">{caseId}</span>
+        </div>
+      </header>
 
-        {/* If no intake saved yet → show Intake Form */}
-        {!state && (
-          <section className="bg-white border rounded-xl p-4 shadow-sm">
-            <ClientIntakeForm onSaved={handleIntakeSaved} />
-          </section>
-        )}
+      <main className="p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* RN Case Timeline */}
+          <RNCaseTimeline
+            caseId={caseId}
+            isCaseLegalLocked={isCaseLegalLocked}
+          />
 
-        {/* Once intake is done → show snapshot + flags + follow-up + supervisor view */}
-        {state && tenVsEval && (
-          <>
-            {/* Client Snapshot (RN CM View) */}
-            <section className="bg-white border rounded-xl p-4 shadow-sm mb-4">
-              <h2 className="text-sm font-semibold mb-2">
-                Current Client Snapshot
-              </h2>
-              <div className="text-xs space-y-1">
-                <div>
-                  <span className="font-semibold">Name:</span>{" "}
-                  {state.client.name}
-                </div>
-
-                {state.client.viabilityScore !== undefined && (
-                  <div>
-                    <span className="font-semibold">Viability:</span>{" "}
-                    {state.client.viabilityScore}{" "}
-                    <span className="text-slate-500">
-                      ({state.client.viabilityStatus || "N/A"})
-                    </span>
-                  </div>
-                )}
-
-                <div>
-                  <span className="font-semibold">Severity Level:</span>{" "}
-                  {severityLabel(tenVsEval.suggestedSeverity)}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${vitalityBadgeClass(
-                      tenVsEval.vitalityScore
-                    )}`}
-                  >
-                    <span className="font-semibold">Vitality:</span>
-                    <span>{tenVsEval.vitalityScore.toFixed(1)}</span>
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${ragBadgeClass(
-                      tenVsEval.ragStatus
-                    )}`}
-                  >
-                    <span className="font-semibold">RAG:</span>
-                    <span>{tenVsEval.ragStatus}</span>
-                  </span>
-                </div>
-
-                {/* RN Workload Snapshot for this case (using Director settings) */}
-                {rnWorkloadSummary && (
-                  <div className="mt-2">
-                    <div className="font-semibold text-xs mb-1">
-                      RN Workload (Director-Defined Limits)
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${workloadBadgeClass(
-                          rnWorkloadSummary.status
-                        )}`}
-                      >
-                        <span className="font-semibold">Current Case Points:</span>
-                        <span>
-                          {rnWorkloadSummary.totalPoints} /{" "}
-                          {rnWorkloadSummary.maxPoints}
-                        </span>
-                        <span className="text-[11px]">
-                          ({rnWorkloadSummary.utilizationPercent}% of limit)
-                        </span>
-                      </span>
-                      <span className="text-[11px] text-slate-500">
-                        Max points per RN CM is set at the Director level.
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {state.client.voiceView && (
-                  <div className="mt-2 space-y-1">
-                    <div>
-                      <span className="font-semibold">Voice:</span>{" "}
-                      {state.client.voiceView.voice}
-                    </div>
-                    <div>
-                      <span className="font-semibold">View:</span>{" "}
-                      {state.client.voiceView.view}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Flags Panel (RN CM Risk View) */}
-            <FlagsPanel flags={state.flags} />
-
-            {/* Follow-Up Form (RN CM Workflow) */}
-            <section className="bg-white border rounded-xl p-4 shadow-sm mt-4">
-              <FollowUpForm
-                client={state.client}
-                flags={state.flags}
-                tasks={state.tasks}
-                onSaved={handleFollowUpSaved}
-              />
-            </section>
-
-            {/* Supervisor / QMP Quick Audit View */}
-            <SupervisorAuditPanel state={state} />
-          </>
-        )}
-      </div>
+          {/* Attorney Communications Log */}
+          <AttorneyCommLog
+            caseId={caseId}
+            isCaseLegalLocked={isCaseLegalLocked}
+          />
+        </div>
+      </main>
     </div>
   );
-};
+}
 
 export default App;
+
 
