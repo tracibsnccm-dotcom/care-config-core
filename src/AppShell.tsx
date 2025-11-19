@@ -58,6 +58,12 @@ const ShellInner: React.FC = () => {
     setView("rnCase");
   };
 
+  const handleOpenAttorneyCase = (caseIndex: number) => {
+    if (caseIndex < 0) return;
+    setActiveIndex(caseIndex);
+    setView("attorneyCase");
+  };
+
   const renderContent = () => {
     switch (view) {
       case "rn":
@@ -90,7 +96,7 @@ const ShellInner: React.FC = () => {
               negotiation-ready signals (risk level, Vitality, red flags,
               documentation status).
             </p>
-            <AttorneyConsole />
+            <AttorneyConsole onOpenCase={handleOpenAttorneyCase} />
           </>
         );
       case "attorneyCase":
@@ -188,6 +194,7 @@ const AppShell: React.FC = () => {
 };
 
 export default AppShell;
+
 
 
 

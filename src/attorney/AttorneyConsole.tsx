@@ -1,530 +1,228 @@
 // src/attorney/AttorneyConsole.tsx
 
-import React, { useState } from "react";
+import React, { useMemo } from "react";
+import { useMockDB } from "../lib/mockDB";
+import { AppState } from "../lib/models";
 
-/**
- * Reconcile C.A.R.E.™
- * Attorney Case Dashboard – MOCK ONLY
- *
- * IMPORTANT:
- * - This dashboard is currently backed by MOCK data only.
- * - It does NOT use AppState, 10-Vs engine, or live workflows yet.
- * - It is SAFE: purely a visual prototype for how attorneys will see value.
- * - Main view shows ACTIVE + PENDING SETTLEMENT cases.
- * - Closed cases appear only as summarized counts (not in the main work list).
- *
- * Later, your dev team can:
- * - Replace `mockCases` with real API results (e.g., GET /attorney/cases).
- * - Wire RAG, Vitality, and “Value Summary” to your engines and reports.
- * - Hook row-click → full AttorneyCaseView with proper routing.
- */
-
-type RagStatus = "Red" | "Amber" | "Green";
-type CaseLifecycleStatus =
-  | "Active"
-  | "PendingSettlement"
-  | "Closed_Finalized"
-  | "Closed_Admin";
-
-interface AttorneyCaseSummary {
-  id: string;
-  clientName: string;
-  caseStatus: CaseLifecycleStatus;
-  rag: RagStatus;
-  severityLevel: string;
-  vitalityScore: number;
-  valueTier: "High" | "Moderate" | "Emerging";
-  nextKeyEvent: string; // mediation, IME, deposition, etc.
-  lastRnUpdate: string;
-  rnLead: string;
-  painPointSummary: string;
-  sdohRiskSummary: string;
-  projectedLodWeeks: number; // from ODG/MCG in future
-  notesForAttorney: string;
+interface AttorneyConsoleProps {
+  onOpenCase?: (index: number) => void;
 }
 
-const mockCases: AttorneyCaseSummary[] = [
-  {
-    id: "RC-2025-001",
-    clientName: "Sample Client A",
-    caseStatus: "Active",
-    rag: "Red",
-    severityLevel: "Level 4 – Severely Complex",
-    vitalityScore: 3.2,
-    valueTier: "High",
-    nextKeyEvent: "Mediation – 2025-12-05",
-    lastRnUpdate: "2025-11-12",
-    rnLead: "RN CM – Johnson",
-    painPointSummary: "Uncontrolled lumbar pain, difficulty ambulating, sleep disruption.",
-    sdohRiskSummary:
-      "Transportation barrier to PT, financial strain, risk for housing instability.",
-    projectedLodWeeks: 40,
-    notesForAttorney:
-      "Recommend reinforcing need for structured pain management and transportation support in negotiations.",
-  },
-  {
-    id: "RC-2025-002",
-    clientName: "Sample Client B",
-    caseStatus: "Active",
-    rag: "Amber",
-    severityLevel: "Level 3 – Complex",
-    vitalityScore: 6.0,
-    valueTier: "Moderate",
-    nextKeyEvent: "IME – 2025-11-28",
-    lastRnUpdate: "2025-11-10",
-    rnLead: "RN CM – Patel",
-    painPointSummary: "Moderate shoulder pain with improved ROM.",
-    sdohRiskSummary: "Mild financial stress, stable housing, strong family support.",
-    projectedLodWeeks: 22,
-    notesForAttorney:
-      "Client progressing but still has functional limits impacting full-duty work.",
-  },
-  {
-    id: "RC-2025-003",
-    clientName: "Sample Client C",
-    caseStatus: "PendingSettlement",
-    rag: "Green",
-    severityLevel: "Level 2 – Moderate",
-    vitalityScore: 8.4,
-    valueTier: "Emerging",
-    nextKeyEvent: "Settlement Conference – 2025-11-30",
-    lastRnUpdate: "2025-11-08",
-    rnLead: "RN CM – Lewis",
-    painPointSummary: "Mild residual pain, largely functional with restrictions.",
-    sdohRiskSummary: "No significant SDOH barriers at this time.",
-    projectedLodWeeks: 12,
-    notesForAttorney:
-      "Case clinically stable and nearing closure; recommend summary of improvement and current restrictions.",
-  },
-  {
-    id: "RC-2025-004",
-    clientName: "Closed Example D",
-    caseStatus: "Closed_Finalized",
-    rag: "Green",
-    severityLevel: "Level 1 – Simple",
-    vitalityScore: 9.3,
-    valueTier: "Emerging",
-    nextKeyEvent: "—",
-    lastRnUpdate: "2025-09-15",
-    rnLead: "RN CM – Johnson",
-    painPointSummary: "Pain resolved, full functional recovery.",
-    sdohRiskSummary: "No significant SDOH barriers documented.",
-    projectedLodWeeks: 6,
-    notesForAttorney: "Settlement completed; case closed.",
-  },
-  {
-    id: "RC-2025-005",
-    clientName: "Closed Example E",
-    caseStatus: "Closed_Admin",
-    rag: "Amber",
-    severityLevel: "Level 2 – Moderate",
-    vitalityScore: 5.2,
-    valueTier: "Moderate",
-    nextKeyEvent: "—",
-    lastRnUpdate: "2025-08-30",
-    rnLead: "RN CM – Patel",
-    painPointSummary: "Incomplete clinical follow-up; client lost to follow-up.",
-    sdohRiskSummary: "Financial stress, difficulty with consistent contact.",
-    projectedLodWeeks: 18,
-    notesForAttorney:
-      "Administrative closure; document attempts and lost-to-follow-up status.",
-  },
-];
+const formatDate = (iso?: string | null) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString();
+};
 
-// Helpers
-function isWorkListStatus(status: CaseLifecycleStatus): boolean {
-  // Work list = Active + Pending Settlement only
-  return status === "Active" || status === "PendingSettlement";
-}
+const AttorneyConsole: React.FC<AttorneyConsoleProps> = ({ onOpenCase }) => {
+  const { cases } = useMockDB();
 
-function filterWorkList(cases: AttorneyCaseSummary[]): AttorneyCaseSummary[] {
-  return cases.filter((c) => isWorkListStatus(c.caseStatus));
-}
+  // Only show cases that are not closed / archived
+  const activeCases: AppState[] = useMemo(() => {
+    return cases.filter((c) => {
+      const client: any = c.client || {};
+      const status = (client.caseStatus || "Active").toLowerCase();
+      return !["closed", "archived"].includes(status);
+    });
+  }, [cases]);
 
-function countByRag(cases: AttorneyCaseSummary[], status: RagStatus): number {
-  return cases.filter((c) => c.rag === status).length;
-}
+  const stats = useMemo(() => {
+    let total = activeCases.length;
+    let red = 0;
+    let amber = 0;
+    let green = 0;
+    let highRisk = 0;
+    let critical = 0;
 
-function countByLifecycleStatus(
-  cases: AttorneyCaseSummary[],
-  status: CaseLifecycleStatus
-): number {
-  return cases.filter((c) => c.caseStatus === status).length;
-}
+    activeCases.forEach((c) => {
+      const client: any = c.client || {};
+      const rag = client.ragStatus || "";
 
-const AttorneyConsole: React.FC = () => {
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(
-    mockCases[0]?.id ?? null
-  );
+      if (rag === "Red") red += 1;
+      else if (rag === "Amber") amber += 1;
+      else if (rag === "Green") green += 1;
 
-  const workList = filterWorkList(mockCases);
-  const selectedCase =
-    workList.find((c) => c.id === selectedCaseId) ?? workList[0] ?? null;
+      (c.flags || []).forEach((f: any) => {
+        if (f.status === "Open") {
+          if (f.severity === "High") highRisk += 1;
+          if (f.severity === "Critical") critical += 1;
+        }
+      });
+    });
 
-  const totalWorkList = workList.length;
-  const redCount = countByRag(workList, "Red");
-  const amberCount = countByRag(workList, "Amber");
-  const greenCount = countByRag(workList, "Green");
-
-  const closedFinal = countByLifecycleStatus(mockCases, "Closed_Finalized");
-  const closedAdmin = countByLifecycleStatus(mockCases, "Closed_Admin");
-
-  const highValueCases = workList.filter((c) => c.valueTier === "High").length;
-  const moderateValueCases = workList.filter(
-    (c) => c.valueTier === "Moderate"
-  ).length;
-  const emergingValueCases = workList.filter(
-    (c) => c.valueTier === "Emerging"
-  ).length;
-
-  const today = new Date().toISOString().slice(0, 10);
-  const nearEvents = workList.filter((c) => {
-    // crude check: any event date containing 2025-11 is treated as “near”
-    return c.nextKeyEvent.includes("2025-11");
-  }).length;
+    return { total, red, amber, green, highRisk, critical };
+  }, [activeCases]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto py-8 px-4">
-        {/* Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold">
-            Reconcile C.A.R.E.™ – Attorney Case Dashboard
-          </h1>
-          <p className="text-xs text-slate-600 mt-1 max-w-3xl">
-            Clinical clarity you can negotiate with. This dashboard provides a
-            high-level view of your Active and Pending Settlement cases. All
-            data shown is sample/mock only and will be replaced with live case
-            data in production.
+    <div className="space-y-4 text-[11px]">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">
+            Attorney Case Worklist
+          </h2>
+          <p className="text-[11px] text-slate-600">
+            Live view of active and pending cases flowing through Reconcile
+            C.A.R.E.™. This is where counsel sees which cases are negotiation-ready,
+            which need more development, and where SDOH/4Ps make the story
+            stronger.
           </p>
-        </header>
-
-        {/* Top summary tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Active & Pending Settlement Cases
-            </div>
-            <div className="mt-2 text-3xl font-bold">{totalWorkList}</div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              Cases currently in play for you. Closed cases remain accessible in
-              your archive but are not shown in this work list.
-            </p>
-            <p className="mt-2 text-[10px] text-slate-500">
-              Closed (Finalized): {closedFinal} · Closed (Admin): {closedAdmin}
-            </p>
-          </div>
-
-          <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Settlement Posture – Value Mix
-            </div>
-            <div className="mt-2 text-base font-semibold">
-              High: {highValueCases} · Moderate: {moderateValueCases} · Emerging:{" "}
-              {emergingValueCases}
-            </div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              Indicates where Reconcile C.A.R.E. expects the greatest clinical
-              leverage and negotiation impact based on complexity, risk, and
-              functional limitations.
-            </p>
-          </div>
-
-          <div className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
-              Key Events Coming Up (Mock)
-            </div>
-            <div className="mt-2 text-3xl font-bold">{nearEvents}</div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              Number of Active or Pending Settlement cases with significant
-              events in the near term (e.g., IME, mediation, settlement
-              conference).
-            </p>
-            <p className="mt-2 text-[10px] text-slate-500">
-              Today: {today}
-            </p>
-          </div>
         </div>
-
-        {/* Middle row: RAG & Value context */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* RAG distribution */}
-          <section className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="font-semibold text-sm mb-2">
-              RAG Distribution – Active & Pending Settlement (Mock)
-            </div>
-            <p className="text-[11px] text-slate-600 mb-2 max-w-md">
-              RAG blends clinical risk, stability, and plan momentum into a
-              simple color code so you can see where your attention (or
-              settlement strategy) is most needed.
-            </p>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-                <span>Red: {redCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-amber-400" />
-                <span>Amber: {amberCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
-                <span>Green: {greenCount}</span>
-              </div>
-            </div>
-            <p className="mt-2 text-[10px] text-slate-500">
-              In production, these values will be driven directly by the
-              Reconcile C.A.R.E. 10-Vs engine, Vitality score, and vigilance
-              flags.
-            </p>
-          </section>
-
-          {/* Narrative value explanation */}
-          <section className="bg-white border rounded-xl p-4 shadow-sm text-xs">
-            <div className="font-semibold text-sm mb-2">
-              How Reconcile C.A.R.E. Supports Your Negotiations
-            </div>
-            <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-700">
-              <li>
-                Converts complex pain, SDOH, and clinical data into clear case
-                narratives.
-              </li>
-              <li>
-                Identifies where guideline-supported care has been delayed,
-                denied, or partially implemented.
-              </li>
-              <li>
-                Documents functional impact and realistic timelines (e.g., ODG /
-                MCG-informed length of disability) without over- or
-                under-stating severity.
-              </li>
-              <li>
-                Creates a defensible, nurse-led record of advocacy, adherence
-                efforts, and barriers.
-              </li>
-            </ul>
-            <p className="mt-2 text-[10px] text-slate-500">
-              This dashboard is a mock layout; all language and structure are
-              designed to be attorney-facing and settlement-focused while
-              remaining clinically responsible.
-            </p>
-          </section>
-        </div>
-
-        {/* Bottom row: Worklist + Case Preview */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Worklist table (3/5 width on large screens) */}
-          <section className="bg-white border rounded-xl p-4 shadow-sm text-xs lg:col-span-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold text-sm">My Cases in Play</div>
-              <div className="text-[10px] text-slate-500">
-                Showing Active + Pending Settlement only. Click a row to preview
-                case details.
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-[11px] border-t border-slate-100">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-600">
-                    <th className="text-left px-3 py-2 font-semibold">
-                      Client
-                    </th>
-                    <th className="text-left px-3 py-2 font-semibold">
-                      Case ID
-                    </th>
-                    <th className="text-left px-3 py-2 font-semibold">Status</th>
-                    <th className="text-left px-3 py-2 font-semibold">RAG</th>
-                    <th className="text-left px-3 py-2 font-semibold">
-                      Severity
-                    </th>
-                    <th className="text-left px-3 py-2 font-semibold">
-                      Vitality
-                    </th>
-                    <th className="text-left px-3 py-2 font-semibold">
-                      Next Key Event
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {workList.map((c) => {
-                    const isSelected = c.id === selectedCase?.id;
-                    return (
-                      <tr
-                        key={c.id}
-                        className={`border-t border-slate-100 cursor-pointer ${
-                          isSelected ? "bg-sky-50" : "hover:bg-slate-50"
-                        }`}
-                        onClick={() => setSelectedCaseId(c.id)}
-                      >
-                        <td className="px-3 py-2">{c.clientName}</td>
-                        <td className="px-3 py-2 text-slate-600">{c.id}</td>
-                        <td className="px-3 py-2 text-slate-700">
-                          {c.caseStatus === "Active"
-                            ? "Active"
-                            : "Pending Settlement"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {c.rag === "Red" && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold">
-                              Red
-                            </span>
-                          )}
-                          {c.rag === "Amber" && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
-                              Amber
-                            </span>
-                          )}
-                          {c.rag === "Green" && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                              Green
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-slate-700">
-                          {c.severityLevel}
-                        </td>
-                        <td className="px-3 py-2">{c.vitalityScore.toFixed(1)}</td>
-                        <td className="px-3 py-2 text-slate-700 max-w-[10rem]">
-                          {c.nextKeyEvent}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Case preview (2/5 width on large screens) */}
-          <section className="bg-white border rounded-xl p-4 shadow-sm text-xs lg:col-span-2">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold text-sm">
-                Case Preview – Attorney View
-              </div>
-              {selectedCase && (
-                <span className="text-[10px] text-slate-500">
-                  Case ID:{" "}
-                  <span className="font-mono font-semibold">
-                    {selectedCase.id}
-                  </span>
-                </span>
-              )}
-            </div>
-
-            {!selectedCase ? (
-              <p className="text-[11px] text-slate-600">
-                Select a case from the table to see a preview of the clinical
-                and functional story.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                <div>
-                  <div className="text-[10px] font-semibold text-slate-500">
-                    Client & RN Lead
-                  </div>
-                  <div className="text-[11px] text-slate-800">
-                    {selectedCase.clientName} · {selectedCase.rnLead}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="font-semibold">Status:</span>
-                  <span className="text-slate-800">
-                    {selectedCase.caseStatus === "Active"
-                      ? "Active"
-                      : "Pending Settlement"}
-                  </span>
-                  <span className="mx-2 text-slate-400">|</span>
-                  <span className="font-semibold">Value Tier:</span>
-                  <span className="text-slate-800">
-                    {selectedCase.valueTier} Impact
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="font-semibold">RAG:</span>
-                  {selectedCase.rag === "Red" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold">
-                      Red
-                    </span>
-                  )}
-                  {selectedCase.rag === "Amber" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
-                      Amber
-                    </span>
-                  )}
-                  {selectedCase.rag === "Green" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                      Green
-                    </span>
-                  )}
-                  <span className="mx-2 text-slate-400">|</span>
-                  <span className="font-semibold">Vitality:</span>
-                  <span className="text-slate-800">
-                    {selectedCase.vitalityScore.toFixed(1)} / 10
-                  </span>
-                </div>
-
-                <div>
-                  <div className="text-[10px] font-semibold text-slate-500">
-                    Pain & Functional Story
-                  </div>
-                  <p className="text-[11px] text-slate-800">
-                    {selectedCase.painPointSummary}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="text-[10px] font-semibold text-slate-500">
-                    Social & Practical Barriers (SDOH)
-                  </div>
-                  <p className="text-[11px] text-slate-800">
-                    {selectedCase.sdohRiskSummary}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="text-[10px] font-semibold text-slate-500">
-                    Projected Length of Disability (Clinical Estimate)
-                  </div>
-                  <p className="text-[11px] text-slate-800">
-                    Approximately{" "}
-                    <span className="font-semibold">
-                      {selectedCase.projectedLodWeeks} weeks
-                    </span>{" "}
-                    based on clinical course and guideline-informed expectations.
-                    (In live use, this will be supported by ODG/MCG references.)
-                  </p>
-                </div>
-
-                <div>
-                  <div className="text-[10px] font-semibold text-slate-500">
-                    RN Case Note for Attorney
-                  </div>
-                  <p className="text-[11px] text-slate-800">
-                    {selectedCase.notesForAttorney}
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Last RN Update: {selectedCase.lastRnUpdate} · Next Key Event:{" "}
-                    {selectedCase.nextKeyEvent}
-                  </p>
-                </div>
-
-                <p className="text-[10px] text-slate-500 mt-2">
-                  In production, this preview panel can expand into a full
-                  Attorney Case View, including downloadable clinical summaries
-                  and negotiation-ready reports, all pulled directly from the
-                  Reconcile C.A.R.E. 10-Vs and care management engine.
-                </p>
-              </div>
-            )}
-          </section>
+        <div className="text-right text-[11px] text-slate-500">
+          <div>Active / Pending Cases: {stats.total}</div>
+          <div>
+            RAG Mix: {stats.red} Red · {stats.amber} Amber · {stats.green} Green
+          </div>
+          <div>
+            High-Risk Flags: {stats.highRisk} High / {stats.critical} Critical
+          </div>
         </div>
       </div>
+
+      {/* Worklist table */}
+      <section className="border rounded-xl bg-white px-3 py-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            Active / Pending Case List
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Click a row to open the Attorney Case View.
+          </div>
+        </div>
+
+        {activeCases.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            There are currently no active or pending cases in the mock data.
+            Once real cases are flowing from intake and RN case management,
+            they will appear here with full negotiation context.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-slate-500 border-b">
+                  <th className="py-1 pr-2">Client</th>
+                  <th className="py-1 pr-2">Severity</th>
+                  <th className="py-1 pr-2">RAG</th>
+                  <th className="py-1 pr-2">Viability / Vitality</th>
+                  <th className="py-1 pr-2">Open Flags</th>
+                  <th className="py-1 pr-2">Negotiation Signal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeCases.map((c, idx) => {
+                  const client: any = c.client || {};
+                  const name = client.name || client.id || "Unknown client";
+                  const sev = client.severityLevel ?? 1;
+                  const rag = client.ragStatus || "—";
+                  const viab = client.viabilityScore ?? "—";
+                  const viabStatus = client.viabilityStatus || "";
+                  const vital = client.vitalityScore ?? "—";
+
+                  const openFlags = (c.flags || []).filter(
+                    (f: any) => f.status === "Open"
+                  );
+                  const openCount = openFlags.length;
+                  const highCritCount = openFlags.filter(
+                    (f: any) =>
+                      f.severity === "High" || f.severity === "Critical"
+                  ).length;
+
+                  // Very simple mock "negotiation readiness" signal
+                  const isHot =
+                    (rag === "Red" || rag === "Amber") && highCritCount > 0;
+                  const isStable =
+                    rag === "Green" && openCount === 0 && sev <= 2;
+
+                  const signalLabel = isHot
+                    ? "High leverage – story developing"
+                    : isStable
+                    ? "Stable – monitor / ready when settlement moves"
+                    : "Active – continue clinical build-out";
+
+                  // Map to global index in MockDB so we can set active case
+                  const { cases: allCases } = useMockDB();
+                  const globalIndex = allCases.indexOf(c);
+
+                  return (
+                    <tr
+                      key={client.id || idx}
+                      className="border-b last:border-0 hover:bg-slate-50 cursor-pointer"
+                      onClick={() =>
+                        onOpenCase && globalIndex >= 0
+                          ? onOpenCase(globalIndex)
+                          : undefined
+                      }
+                    >
+                      <td className="py-1 pr-2">
+                        <div className="font-semibold text-slate-800">
+                          {name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Case ID: {client.id || "—"} · Status:{" "}
+                          {client.caseStatus || "Active"}
+                        </div>
+                      </td>
+                      <td className="py-1 pr-2">
+                        Level {sev}
+                      </td>
+                      <td className="py-1 pr-2">
+                        <span
+                          className={[
+                            "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                            rag === "Red"
+                              ? "bg-red-100 text-red-700"
+                              : rag === "Amber"
+                              ? "bg-amber-100 text-amber-700"
+                              : rag === "Green"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-600",
+                          ].join(" ")}
+                        >
+                          {rag}
+                        </span>
+                      </td>
+                      <td className="py-1 pr-2">
+                        <div>
+                          Viability: {viab}{" "}
+                          {viabStatus && (
+                            <span className="text-[10px] text-slate-500">
+                              ({viabStatus})
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Vitality: {vital}
+                        </div>
+                      </td>
+                      <td className="py-1 pr-2">
+                        <div>{openCount} open</div>
+                        {highCritCount > 0 && (
+                          <div className="text-[10px] text-red-600">
+                            {highCritCount} High/Critical
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1 pr-2">
+                        <div className="text-[10px] text-slate-700">
+                          {signalLabel}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          This will later be driven by your real ODG/MCG,
+                          return-to-work, and functional progress data.
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 };
 
 export default AttorneyConsole;
-
