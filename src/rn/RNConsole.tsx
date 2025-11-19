@@ -6,6 +6,10 @@ import { AppState } from "../lib/models";
 
 const RN_ID = "RN-01"; // 👈 current RN; later this will come from auth / login
 
+interface RNConsoleProps {
+  onOpenCase?: (index: number) => void;
+}
+
 const formatDate = (iso?: string | null) => {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -15,7 +19,7 @@ const formatDate = (iso?: string | null) => {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const RNConsole: React.FC = () => {
+const RNConsole: React.FC<RNConsoleProps> = ({ onOpenCase }) => {
   const { cases } = useMockDB();
   const today = todayISO();
 
@@ -280,7 +284,7 @@ const RNConsole: React.FC = () => {
             Active Case List (Assigned to {RN_ID})
           </div>
           <div className="text-[10px] text-slate-500">
-            Click-through routing to detailed case view will be wired next.
+            Click a row to open the detailed RN case view.
           </div>
         </div>
 
@@ -317,10 +321,18 @@ const RNConsole: React.FC = () => {
                       f.severity === "High" || f.severity === "Critical"
                   ).length;
 
+                  // Find index of this case in the global cases array for navigation
+                  const globalIndex = cases.indexOf(c);
+
                   return (
                     <tr
                       key={client.id || idx}
-                      className="border-b last:border-0 hover:bg-slate-50 cursor-default"
+                      className="border-b last:border-0 hover:bg-slate-50 cursor-pointer"
+                      onClick={() =>
+                        onOpenCase && globalIndex >= 0
+                          ? onOpenCase(globalIndex)
+                          : undefined
+                      }
                     >
                       <td className="py-1 pr-2">
                         <div className="font-semibold text-slate-800">

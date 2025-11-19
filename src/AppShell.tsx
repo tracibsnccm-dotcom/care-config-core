@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-// Core role views (already created in your project)
+// Core role views
 import RNConsole from "./rn/RNConsole";
 import RNCaseView from "./rn/RNCaseView";
 import AttorneyConsole from "./attorney/AttorneyConsole";
@@ -13,6 +13,9 @@ import DirectorDashboard from "./director/DirectorDashboard";
 // Single-case RN console (intake + follow-up + Supervisor audit panel)
 import App from "./App";
 
+// Shared mock DB (3–5 archetype cases)
+import { MockDBProvider, useMockDB } from "./lib/mockDB";
+
 type RoleView =
   | "rn"
   | "rnCase"
@@ -22,8 +25,9 @@ type RoleView =
   | "director"
   | "caseDemo";
 
-const AppShell: React.FC = () => {
+const ShellInner: React.FC = () => {
   const [view, setView] = useState<RoleView>("rn");
+  const { setActiveIndex } = useMockDB();
 
   const navButton = (id: RoleView, label: string, sub?: string) => {
     const isActive = view === id;
@@ -48,6 +52,12 @@ const AppShell: React.FC = () => {
     );
   };
 
+  const handleOpenRNCase = (caseIndex: number) => {
+    if (caseIndex < 0) return;
+    setActiveIndex(caseIndex);
+    setView("rnCase");
+  };
+
   const renderContent = () => {
     switch (view) {
       case "rn":
@@ -58,7 +68,7 @@ const AppShell: React.FC = () => {
               Lovable RN portal: active cases only, with workload, flags, and
               10-Vs / Vitality context.
             </p>
-            <RNConsole />
+            <RNConsole onOpenCase={handleOpenRNCase} />
           </>
         );
       case "rnCase":
@@ -66,8 +76,8 @@ const AppShell: React.FC = () => {
           <>
             <p className="text-[11px] text-slate-600 mb-3">
               RN case detail mock view, aligned with 10-Vs, 4Ps, SDOH, and
-              flag/task history. In production this will open when an RN clicks
-              a case from their dashboard.
+              flag/task history. Opened when an RN selects a case on the
+              dashboard.
             </p>
             <RNCaseView />
           </>
@@ -150,7 +160,11 @@ const AppShell: React.FC = () => {
             {navButton("rnCase", "RN Case View", "Single Case Detail")}
             {navButton("caseDemo", "RN Case Engine", "10-Vs & Audit")}
             {navButton("attorney", "Attorney Dashboard", "Case Worklist")}
-            {navButton("attorneyCase", "Attorney Case View", "Negotiation View")}
+            {navButton(
+              "attorneyCase",
+              "Attorney Case View",
+              "Negotiation View"
+            )}
             {navButton("client", "Client Portal", "Client Experience")}
             {navButton("director", "Director Console", "Overrides & Limits")}
           </div>
@@ -165,7 +179,16 @@ const AppShell: React.FC = () => {
   );
 };
 
+const AppShell: React.FC = () => {
+  return (
+    <MockDBProvider>
+      <ShellInner />
+    </MockDBProvider>
+  );
+};
+
 export default AppShell;
+
 
 
 
