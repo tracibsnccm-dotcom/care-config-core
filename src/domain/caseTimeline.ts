@@ -1,38 +1,23 @@
 // src/domain/caseTimeline.ts
 
-// Who generated the event or communication
-export type CaseActorRole =
-  | "RN"
-  | "ATTORNEY"
-  | "CLIENT"
-  | "SUPERVISOR"
-  | "DIRECTOR"
-  | "SYSTEM";
+// --- 10-Vs model -------------------------------------------------------------
 
-// What kind of event happened on the case timeline
-export type CaseEventType =
-  | "INTAKE_STARTED"
-  | "INTAKE_COMPLETED"
-  | "FOLLOWUP_COMPLETED"
-  | "TEN_VS_UPDATE"
-  | "FOUR_PS_UPDATE"
-  | "SDOH_FLAG_ADDED"
-  | "APPT_SCHEDULED"
-  | "APPT_COMPLETED"
-  | "RN_NOTE"
-  | "ATTORNEY_NOTE"
-  | "CASE_ESCALATED"
-  | "CASE_CLOSURE_STARTED"
-  | "CASE_CLOSED"
-  | "LEGAL_LOCK_APPLIED"
-  | "LEGAL_LOCK_RELEASED"
-  | "OVERRIDE_APPLIED"
-  | "OVERRIDE_CLEARED"
-  | "WORKLOAD_REALLOCATED"
-  | "CLIENT_CONTACT_ATTEMPT"
-  | "CLIENT_CONTACT_SUCCESS";
+// Simple 0–3 scale for each V (0 = stable, 3 = severe/critical)
+export interface TenVsSnapshot {
+  v1PainSignal: number;       // Pain / symptom intensity
+  v2FunctionalLoss: number;   // ADLs / function impact
+  v3VitalityReserve: number;  // Energy / resilience
+  v4VigilanceRisk: number;    // Safety / risk / red flags
+  v5VarianceFromBaseline: number;
+  v6VelocityOfChange: number;
+  v7VolumeOfUtilization: number;
+  v8ValueAlignment: number;
+  v9ValidationStrength: number;
+  v10ViabilityTrajectory: number;
+}
 
-// High-level group of the event
+// --- Timeline event & comm models ------------------------------------------
+
 export type CaseEventCategory =
   | "CLINICAL"
   | "LEGAL"
@@ -41,104 +26,82 @@ export type CaseEventCategory =
   | "COMMUNICATION"
   | "OTHER";
 
-// Snapshot of clinical risk at that moment
-export interface TenVsSnapshot {
-  painScore?: number;
-  functionScore?: number;
-  medicationRisk?: "LOW" | "MODERATE" | "HIGH";
-  mentalHealthRisk?: "LOW" | "MODERATE" | "HIGH";
-  abuseRisk?: "LOW" | "MODERATE" | "HIGH";
-  sdohRisk?: "LOW" | "MODERATE" | "HIGH";
-  // You can extend this to all 10-Vs later
-}
-
-// One row on the RN case timeline
 export interface CaseTimelineEvent {
   id: string;
   caseId: string;
-  createdAt: string; // ISO timestamp (e.g. "2025-11-01T09:15:00Z")
-
-  actorRole: CaseActorRole;
-  actorName?: string;
-
-  eventType: CaseEventType;
   category: CaseEventCategory;
 
-  summary: string;      // short one-line summary
-  details?: string;     // longer text, optional
+  summary: string;
+  details?: string;
 
-  // Which internal engine created it (if any)
-  sourceEngine?:
-    | "INTAKE"
-    | "FOLLOWUP"
-    | "TEN_VS_ENGINE"
-    | "CASE_CLOSURE_ENGINE"
-    | "WORKLOAD_ENGINE"
-    | "LEGAL_LOCK_ENGINE"
-    | "MANUAL_NOTE";
+  actorRole: "RN" | "ATTORNEY" | "CLIENT" | "SYSTEM";
+  actorName?: string;
 
-  // Optional risk snapshot and 4Ps info
-  tenVsSnapshot?: TenVsSnapshot;
+  createdAt: string; // ISO timestamp
+
+  isCritical?: boolean;
+  isLegalLocked?: boolean;
+
+  requiresAudit?: boolean;
+  auditStatus?: "PENDING" | "CLEARED" | "FLAGGED";
+
   fourPsSummary?: string;
 
-  // Governance / flags
-  isCritical?: boolean;        // e.g. SI, safety, high risk
-  isLegalLocked?: boolean;     // part of Legal Lock-Down
-  visibleToAttorney?: boolean;
-  visibleToClient?: boolean;
+  /**
+   * Optional snapshot of the 10-Vs at this moment (e.g., after major RN review).
+   * The 10-Vs engine will use the latest snapshot if present.
+   */
+  tenVsSnapshot?: TenVsSnapshot;
 
-  // Supervisor Audit Panel hook-ins
-  requiresAudit?: boolean;
-  auditStatus?: "PENDING" | "REVIEWED" | "FLAGGED";
+  /**
+   * Optional delta / adjustment this event makes to the running 10-Vs picture.
+   * Example: PT no-show could bump Velocity/Vigilance up by +1.
+   */
+  tenVsDelta?: Partial<TenVsSnapshot>;
 
-  // Tagging (e.g. "SI", "opioid risk", "non-compliance")
   tags?: string[];
 }
 
-// How we classify communication channel
 export type CommunicationChannel =
   | "PHONE"
   | "EMAIL"
   | "PORTAL_MESSAGE"
-  | "VIDEO_VISIT"
   | "TEXT"
-  | "IN_PERSON"
-  | "OTHER";
+  | "VIDEO_VISIT"
+  | "IN_PERSON";
 
-// Direction of the communication
-export type CommunicationDirection = "INBOUND" | "OUTBOUND" | "INTERNAL";
+export type CommunicationDirection =
+  | "INBOUND"
+  | "OUTBOUND"
+  | "INTERNAL";
 
-// Confidentiality level
 export type CommunicationConfidentiality =
   | "STANDARD"
   | "SENSITIVE"
   | "PRIVILEGED";
 
-// One entry in the Attorney Communications Log
 export interface CaseCommunicationEntry {
   id: string;
   caseId: string;
-
-  createdAt: string;       // ISO timestamp
-  createdByRole: CaseActorRole;
-  createdByName?: string;
 
   channel: CommunicationChannel;
   direction: CommunicationDirection;
 
   subject: string;
-  bodyPreview: string;
-  body?: string;
-
-  participants: string[];  // e.g. ["Attorney Smith", "RN Johnson", "Client Doe"]
-  relatedEventIds?: string[];
-
-  // Follow-up task info
-  followUpDueAt?: string;
-  followUpOwnerName?: string;
-  followUpStatus?: "OPEN" | "COMPLETED" | "CANCELLED";
+  bodyPreview?: string;
+  participants: string[];
 
   confidentiality: CommunicationConfidentiality;
-  isLegalHold?: boolean;   // used by Legal Lock-Down
+
+  createdAt: string;
+  createdByRole: "RN" | "ATTORNEY" | "CLIENT" | "SYSTEM";
+  createdByName?: string;
+
+  isLegalHold?: boolean;
+
+  followUpStatus: "OPEN" | "CLOSED";
+  followUpOwnerName?: string;
+  followUpDueAt?: string;
+
   attachmentsCount?: number;
 }
