@@ -1,400 +1,476 @@
 // src/director/DirectorDashboard.tsx
 
-import React from "react";
+import * as React from "react";
+import { useMockDB } from "../lib/mockDB";
+import { useCaseEvents } from "../lib/caseEventsContext";
+import type { CaseTimelineEvent } from "../domain/caseTimeline";
 import {
-  OverrideRequest,
-  OverrideStatus,
-  OverrideType,
-} from "../lib/overrides";
+  computeTenVsFromEvents,
+  describeBand,
+} from "../domain/tenVsEngine";
 
-/**
- * Reconcile C.A.R.E.™
- * Director Dashboard (Step 1 — Prototype)
- *
- * Purpose:
- * - Give the Director a single view of pending overrides.
- * - Show the type, origin, case, and reason at a glance.
- * - Provide Approve / Deny / More Info buttons (console-log only for now).
- *
- * This component is intentionally self-contained and not yet wired
- * into your main routing. You can render it from App.tsx, AppShell,
- * or a dedicated Director route later.
- */
-
-export interface DirectorDashboardProps {
-  /**
-   * All override requests visible to the Director.
-   * If not provided, the dashboard will render with mock data.
-   */
-  overrides?: OverrideRequest[];
+interface DirectorCaseSummary {
+  index: number;
+  caseId: string;
+  clientName: string;
+  rnName: string;
+  providerInvolved: boolean;
+  legalLocked: boolean;
+  safetyEvents: number;
+  highFlags: number;
+  ragLabel: "Green" | "Amber" | "Red";
+  vitalityLabel: string;
+  trajectoryLabel: string;
+  events: CaseTimelineEvent[];
 }
 
-const typeLabel = (t: OverrideType): string => {
-  switch (t) {
-    case "SEVERITY_CHANGE_REQUEST":
-      return "RN → Sup: Severity Change";
-    case "WORKLOAD_LIMIT_OVERRIDE":
-      return "RN → Sup: Workload Override";
-    case "V_TRIGGER_EXCEPTION":
-      return "RN → Sup: V-Trigger Exception";
-    case "HIGH_RISK_SDOH_UNRESOLVED":
-      return "RN → Sup: High-Risk SDOH";
-    case "LATE_ASSESSMENT_DOCUMENTATION":
-      return "RN → Sup: Late Documentation";
-    case "FOLLOWUP_OVERDUE":
-      return "RN → Sup: Follow-Up Overdue";
-    case "TASK_OVERDUE":
-      return "RN → Sup: Task Overdue";
-    case "CASE_CLOSURE_REQUEST":
-      return "RN → Sup: Case Closure";
-    case "CASE_REOPEN_REQUEST":
-      return "RN → Sup: Case Re-Open";
-    case "VARIANCE_USE_REQUEST":
-      return "RN → Sup: Variance (V8) Request";
-    case "ADMIN_CLOSURE_REASON_OVERRIDE":
-      return "RN → Sup: Admin Closure Override";
-    case "CRISIS_ESCALATION":
-      return "RN → Sup: Crisis Escalation";
+const DirectorDashboard: React.FC = () => {
+  const { cases = [], activeIndex, setActiveIndex } = useMockDB() as any;
+  const { events } = useCaseEvents();
 
-    case "SEVERITY_CHANGE_APPROVAL":
-      return "Sup → Dir: Severity Approval";
-    case "WORKLOAD_OVERRIDE_APPROVAL":
-      return "Sup → Dir: Workload Override";
-    case "VARIANCE_APPROVAL":
-      return "Sup → Dir: Variance (V8) Approval";
-    case "LEGAL_LOCKDOWN_APPROVAL":
-      return "Sup → Dir: Legal Lock-Down";
-    case "COVERAGE_HANDOFF_APPROVAL":
-      return "Sup → Dir: Coverage / Handoff";
-    case "EXTENDED_FOLLOWUP_APPROVAL":
-      return "Sup → Dir: Extended Follow-Up";
-    case "OVERRIDE_RAG_BLOCK":
-      return "Sup → Dir: Override RAG Block";
-    default:
-      return t;
-  }
-};
+  const caseArray: any[] = Array.isArray(cases) ? cases : [];
 
-const statusBadgeClass = (status: OverrideStatus): string => {
-  switch (status) {
-    case "Pending":
-      return "bg-amber-100 text-amber-800";
-    case "Approved":
-      return "bg-emerald-100 text-emerald-800";
-    case "Denied":
-      return "bg-red-100 text-red-800";
-    case "MoreInfoRequested":
-      return "bg-blue-100 text-blue-800";
-    default:
-      return "bg-slate-100 text-slate-800";
-  }
-};
+  const directorCases: DirectorCaseSummary[] = React.useMemo(() => {
+    return caseArray.map((c, idx) => {
+      const caseId: string =
+        c.id || c.caseId || c.client?.id || `case-${idx + 1}`;
+      const clientName: string =
+        c.client?.name ||
+        c.client?.displayName ||
+        c.clientName ||
+        `Client ${idx + 1}`;
+      const rnName: string =
+        c.rnName || c.assignedRN || "RN not assigned";
 
-const truncate = (s: string, max: number): string =>
-  s.length <= max ? s : s.slice(0, max - 1) + "…";
+      const caseEvents: CaseTimelineEvent[] = events.filter(
+        (e) => e.caseId === caseId
+      );
 
-/**
- * If no overrides prop is provided, show a small mock list so you
- * can visually inspect the dashboard without needing backend wiring yet.
- */
-const buildMockOverrides = (): OverrideRequest[] => {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "mock-ovr-1",
-      caseId: "case-1001",
-      clientName: "Jane Doe",
-      rnId: "rn-01",
-      supervisorId: "sup-01",
-      origin: "RN_TO_SUPERVISOR",
-      type: "WORKLOAD_LIMIT_OVERRIDE",
-      category: "Workload",
-      reasonCategory: "High Complexity Caseload",
-      narrative:
-        "RN workload would exceed Director-defined max points if this L3 case is added. Requesting review to keep continuity with existing attorney relationship.",
-      status: "Pending",
-      createdAt: now,
-      updatedAt: now,
-      currentSeverityLevel: 3,
-      requestedSeverityLevel: 3,
-      currentRagStatus: "Amber",
-      currentVitalityScore: 6.2,
-      currentWorkloadPercent: 98,
-      rnWorkloadStatus: "Red",
-      relatedVs: ["V2-Viability", "V6-Vitality", "V10-Validation"],
-      metadata: {
-        source: "IntakeWorkloadEnforcement",
-      },
-      decisionLog: [
-        {
-          actorRole: "RN",
-          actorId: "rn-01",
-          action: "REQUESTED",
-          reason:
-            "Client is legally and clinically complex, but RN already has rapport; requesting exception.",
-          at: now,
-        },
-      ],
-    },
-    {
-      id: "mock-ovr-2",
-      caseId: "case-1042",
-      clientName: "John Smith",
-      rnId: "rn-02",
-      supervisorId: "sup-01",
-      directorId: "dir-01",
-      origin: "SUPERVISOR_TO_DIRECTOR",
-      type: "SEVERITY_CHANGE_APPROVAL",
-      category: "Severity",
-      reasonCategory: "New Comorbidity",
-      narrative:
-        "Supervisor supports RN request to move from Level 2 → Level 3 severity due to new uncontrolled diabetes and SDOH barriers.",
-      status: "Pending",
-      createdAt: now,
-      updatedAt: now,
-      currentSeverityLevel: 2,
-      requestedSeverityLevel: 3,
-      currentRagStatus: "Red",
-      currentVitalityScore: 4.1,
-      currentWorkloadPercent: 72,
-      rnWorkloadStatus: "Amber",
-      relatedVs: ["V2-Viability", "V3-Vision", "V7-Vigilance"],
-      metadata: {
-        source: "SupervisorSeverityReview",
-      },
-      decisionLog: [
-        {
-          actorRole: "RN",
-          actorId: "rn-02",
-          action: "REQUESTED",
-          reason:
-            "Client recently hospitalized twice with worsening A1C; SDOH barriers now present.",
-          at: now,
-        },
-        {
-          actorRole: "SUPERVISOR",
-          actorId: "sup-01",
-          action: "REQUESTED",
-          reason:
-            "Agree with RN; requesting Director approval for higher level and additional RN hours.",
-          at: now,
-        },
-      ],
-    },
-  ];
-};
+      const tenVs = computeTenVsFromEvents(caseEvents);
 
-const DirectorDashboard: React.FC<DirectorDashboardProps> = ({
-  overrides,
-}) => {
-  const list = overrides && overrides.length > 0 ? overrides : buildMockOverrides();
+      const riskScore =
+        tenVs.v1PainSignal +
+        tenVs.v2FunctionalLoss +
+        tenVs.v4VigilanceRisk +
+        tenVs.v6VelocityOfChange +
+        (3 - tenVs.v3VitalityReserve) +
+        (3 - tenVs.v10ViabilityTrajectory);
 
-  const handleAction = (
-    ov: OverrideRequest,
-    action: "APPROVE" | "DENY" | "MORE_INFO"
-  ) => {
-    console.log("[DIRECTOR_OVERRIDE_ACTION]", {
-      overrideId: ov.id,
-      caseId: ov.caseId,
-      clientName: ov.clientName,
-      type: ov.type,
-      action,
+      let ragLabel: "Green" | "Amber" | "Red" = "Green";
+      if (riskScore >= 9) {
+        ragLabel = "Red";
+      } else if (riskScore >= 5) {
+        ragLabel = "Amber";
+      }
+
+      const vitalityLabel = describeBand(tenVs.v3VitalityReserve).label;
+      const trajectoryLabel = describeBand(
+        tenVs.v10ViabilityTrajectory
+      ).label;
+
+      const safetyEvents = caseEvents.filter(
+        (e) => e.abuseRisk || e.suicideRisk || e.tags?.includes("safety-critical")
+      ).length;
+
+      const flags = Array.isArray(c.flags) ? c.flags : [];
+      const highFlags = flags.filter(
+        (f: any) =>
+          f.severity === "High" || f.severity === "Critical"
+      ).length;
+
+      const legalLocked = Boolean(
+        c.legalLock || c.legalLocked || c.isLegalLocked
+      );
+
+      const providerInvolved = caseEvents.some(
+        (e) => e.actorRole === "PROVIDER"
+      );
+
+      return {
+        index: idx,
+        caseId,
+        clientName,
+        rnName,
+        providerInvolved,
+        legalLocked,
+        safetyEvents,
+        highFlags,
+        ragLabel,
+        vitalityLabel,
+        trajectoryLabel,
+        events: caseEvents,
+      };
     });
+  }, [caseArray, events]);
 
-    // In a future step, this will call your backend API:
-    // - PATCH /overrides/:id { status, directorReason }
+  const totalCases = directorCases.length;
+  const casesWithSafety = directorCases.filter(
+    (c) => c.safetyEvents > 0
+  ).length;
+  const redCases = directorCases.filter(
+    (c) => c.ragLabel === "Red"
+  ).length;
+  const amberCases = directorCases.filter(
+    (c) => c.ragLabel === "Amber"
+  ).length;
+  const legalLockedCases = directorCases.filter(
+    (c) => c.legalLocked
+  ).length;
+
+  const rnWorkloadMap = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of directorCases) {
+      const key = c.rnName || "RN not assigned";
+      map[key] = (map[key] ?? 0) + 1;
+    }
+    return map;
+  }, [directorCases]);
+
+  const safetyEventsQueue: CaseTimelineEvent[] = React.useMemo(() => {
+    const allEvents: CaseTimelineEvent[] = [];
+    for (const c of directorCases) {
+      for (const e of c.events) {
+        if (e.abuseRisk || e.suicideRisk || e.tags?.includes("safety-critical")) {
+          allEvents.push(e);
+        }
+      }
+    }
+    return allEvents.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [directorCases]);
+
+  const formatShortDateTime = (iso?: string) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  };
+
+  const ragPill = (label: "Green" | "Amber" | "Red") => {
+    let cls =
+      "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border ";
+    if (label === "Red") {
+      cls +=
+        "bg-red-50 text-red-800 border-red-200";
+    } else if (label === "Amber") {
+      cls +=
+        "bg-amber-50 text-amber-800 border-amber-200";
+    } else {
+      cls +=
+        "bg-emerald-50 text-emerald-800 border-emerald-200";
+    }
+    return (
+      <span className={cls}>
+        {label}
+      </span>
+    );
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
+    <div className="space-y-4 text-[11px]">
       {/* Header */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">
-          Director Oversight Console (Prototype)
-        </h1>
-        <p className="text-xs text-slate-600 mt-1">
-          Central view of pending overrides, workload exceptions, severity
-          changes, and legal lock-down approvals. Actions are currently logged
-          to the console only.
-        </p>
-      </header>
-
-      {/* High-level configuration summary (static for now) */}
-      <section className="bg-white border rounded-xl p-4 shadow-sm mb-6">
-        <h2 className="text-sm font-semibold mb-2">Global Director Controls</h2>
-        <ul className="text-xs text-slate-700 space-y-1">
-          <li>
-            <span className="font-semibold">RN Max Workload:</span> 15
-            complexity points (example; configured by Director).
-          </li>
-          <li>
-            <span className="font-semibold">Severity Levels:</span> 1–4 (Simple
-            → Severely Complex), used by 10-Vs engine and workload model.
-          </li>
-          <li>
-            <span className="font-semibold">Vitality Bands (RAG):</span>{" "}
-            Red&nbsp;1.0–3.9, Amber&nbsp;4.0–7.9, Green&nbsp;8.0–10.0.
-          </li>
-          <li>
-            <span className="font-semibold">Override Sources:</span> RN →
-            Supervisor, Supervisor → Director (severity, workload, variance,
-            legal lock-down, RAG overrides).
-          </li>
-        </ul>
+      <section className="border rounded-xl bg-white p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>
+            <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+              Director Oversight Panel
+            </div>
+            <p className="text-[10px] text-slate-600 max-w-xl">
+              This panel gives the Director a balanced clinical and legal view
+              across all cases: stability (10-Vs), safety and red-flag events,
+              RN workload, and legal lock-down status. The goal is not to
+              punish, but to ensure high-risk cases are visible, supported, and
+              defensible.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+            <div className="px-3 py-1 rounded-lg border bg-slate-50 text-[10px] text-slate-700">
+              Active cases:{" "}
+              <span className="font-semibold">{totalCases}</span>
+            </div>
+            <div className="px-3 py-1 rounded-lg border bg-amber-50 text-[10px] text-amber-900">
+              Safety-marked cases:{" "}
+              <span className="font-semibold">
+                {casesWithSafety}
+              </span>
+            </div>
+            <div className="px-3 py-1 rounded-lg border bg-red-50 text-[10px] text-red-800">
+              Red posture:{" "}
+              <span className="font-semibold">{redCases}</span>
+            </div>
+            <div className="px-3 py-1 rounded-lg border bg-amber-50 text-[10px] text-amber-900">
+              Amber posture:{" "}
+              <span className="font-semibold">{amberCases}</span>
+            </div>
+            <div className="px-3 py-1 rounded-lg border bg-slate-900 text-[10px] text-white">
+              Legal lock-down:{" "}
+              <span className="font-semibold">
+                {legalLockedCases}
+              </span>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Pending Overrides */}
-      <section className="bg-white border rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Pending Overrides</h2>
-          <span className="text-xs text-slate-500">
-            Showing {list.length} override
-            {list.length === 1 ? "" : "s"}
-          </span>
+      {/* Case stability overview */}
+      <section className="border rounded-xl bg-white p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            Case Stability &amp; Risk Snapshot
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Director view across all active cases (10-Vs + safety + legal).
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50">
-                <th className="border px-2 py-1 text-left">Case / Client</th>
-                <th className="border px-2 py-1 text-left">Type</th>
-                <th className="border px-2 py-1 text-left">Origin</th>
-                <th className="border px-2 py-1 text-left">Severity</th>
-                <th className="border px-2 py-1 text-left">Workload</th>
-                <th className="border px-2 py-1 text-left">Status</th>
-                <th className="border px-2 py-1 text-left">Summary</th>
-                <th className="border px-2 py-1 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((ov) => (
-                <tr key={ov.id} className="hover:bg-slate-50">
-                  <td className="border px-2 py-1 align-top">
-                    <div className="font-semibold">
-                      {ov.clientName || "Unknown Client"}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Case: {ov.caseId}
-                    </div>
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div>{typeLabel(ov.type)}</div>
-                    {ov.category && (
-                      <div className="text-[10px] text-slate-500">
-                        {ov.category}
-                        {ov.reasonCategory ? ` · ${ov.reasonCategory}` : ""}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div className="text-[10px] text-slate-600">
-                      {ov.origin === "RN_TO_SUPERVISOR"
-                        ? "RN → Supervisor"
-                        : "Supervisor → Director"}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      RN: {ov.rnId || "n/a"}
-                      <br />
-                      Sup: {ov.supervisorId || "n/a"}
-                      <br />
-                      Dir: {ov.directorId || "n/a"}
-                    </div>
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div className="text-[11px]">
-                      Current:{" "}
-                      {ov.currentSeverityLevel
-                        ? `L${ov.currentSeverityLevel}`
-                        : "n/a"}
-                    </div>
-                    <div className="text-[11px]">
-                      Requested:{" "}
-                      {ov.requestedSeverityLevel
-                        ? `L${ov.requestedSeverityLevel}`
-                        : "n/a"}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      RAG: {ov.currentRagStatus || "n/a"}
-                    </div>
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div className="text-[11px]">
-                      Utilization:{" "}
-                      {ov.currentWorkloadPercent !== undefined
-                        ? `${ov.currentWorkloadPercent}%`
-                        : "n/a"}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      RN Load: {ov.rnWorkloadStatus || "n/a"}
-                    </div>
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <span
-                      className={
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold " +
-                        statusBadgeClass(ov.status)
-                      }
-                    >
-                      {ov.status}
-                    </span>
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div className="text-[11px]">
-                      {truncate(ov.narrative || "", 120)}
-                    </div>
-                    {ov.relatedVs && ov.relatedVs.length > 0 && (
-                      <div className="text-[10px] text-slate-500 mt-0.5">
-                        Vs: {ov.relatedVs.join(", ")}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border px-2 py-1 align-top">
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        className="border border-emerald-500 text-emerald-700 rounded px-2 py-0.5 text-[10px] hover:bg-emerald-50"
-                        onClick={() => handleAction(ov, "APPROVE")}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        className="border border-red-500 text-red-700 rounded px-2 py-0.5 text-[10px] hover:bg-red-50"
-                        onClick={() => handleAction(ov, "DENY")}
-                      >
-                        Deny
-                      </button>
-                      <button
-                        type="button"
-                        className="border border-slate-400 text-slate-700 rounded px-2 py-0.5 text-[10px] hover:bg-slate-50"
-                        onClick={() => handleAction(ov, "MORE_INFO")}
-                      >
-                        More Info
-                      </button>
-                    </div>
-                  </td>
+        {directorCases.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            No cases in the mock database yet. Once cases exist, this table will
+            summarize stability, risk, and lock-down status for the Director.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-[10px]">
+              <thead className="bg-slate-50">
+                <tr className="border-b">
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Case / Client
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    RN
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Provider
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    RAG
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Vitality (V3)
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Trajectory (V10)
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Safety events
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    High/Critical flags
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Legal lock-down
+                  </th>
+                  <th className="px-2 py-1 text-left font-semibold">
+                    Actions (Mock)
+                  </th>
                 </tr>
-              ))}
+              </thead>
+              <tbody>
+                {directorCases.map((c) => (
+                  <tr key={c.caseId} className="border-b last:border-0">
+                    <td className="px-2 py-1 align-top">
+                      <div className="font-semibold text-slate-800">
+                        {c.clientName}
+                      </div>
+                      <div className="font-mono text-slate-500">
+                        {c.caseId}
+                      </div>
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.rnName}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.providerInvolved ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800">
+                          Involved
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-500">
+                          Not yet
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {ragPill(c.ragLabel)}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.vitalityLabel}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.trajectoryLabel}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.safetyEvents}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.highFlags}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      {c.legalLocked ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-900 text-white text-[9px]">
+                          Lock-down active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 text-[9px]">
+                          Not locked
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 align-top">
+                      <button
+                        type="button"
+                        onClick={() => setActiveIndex(c.index)}
+                        className="px-2 py-0.5 rounded-full border bg-white text-slate-700 hover:bg-slate-50 text-[9px]"
+                      >
+                        Set as active case
+                      </button>
+                      <div className="mt-1 text-[9px] text-slate-400">
+                        In this mock, actions update the active case for RN /
+                        Attorney views. In production, this would record
+                        Director decisions and justifications.
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
-              {list.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="border px-2 py-4 text-center text-xs text-slate-500"
-                  >
-                    No override requests found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* RN workload snapshot */}
+      <section className="border rounded-xl bg-white p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            RN Workload Snapshot
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Mock-only caseload view; in production this would be tied to your
+            workload engine and formal caps.
+          </div>
         </div>
+        {Object.keys(rnWorkloadMap).length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            No RN assignments found in the mock data. Once cases are mapped to
+            RNs, this section will summarize caseload per RN for Director
+            review.
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            {Object.entries(rnWorkloadMap).map(([rnName, count]) => (
+              <div
+                key={rnName}
+                className="px-3 py-1 rounded-lg border bg-slate-50 text-slate-700"
+              >
+                <span className="font-semibold">{rnName}</span>:{" "}
+                <span>{count} case(s)</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-slate-600">
+          In the live RCMS platform, this panel will tie into your workload
+          engine: caps, exceptions, and reassignment tools. Here it simply
+          visualizes how cases are distributed across RNs.
+        </p>
+      </section>
 
-        <p className="text-[10px] text-slate-500 mt-3">
-          Note: This is a prototype view. Actions are logged to the browser
-          console. In production, each action will call an API and be written
-          into the audit log as part of the V10 (Validation) framework.
+      {/* Safety & high-risk event queue */}
+      <section className="border rounded-xl bg-white p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
+            Safety &amp; High-Risk Audit Queue
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Events marked for Director awareness due to safety, abuse risk, or
+            clinical red flags.
+          </div>
+        </div>
+        {safetyEventsQueue.length === 0 ? (
+          <div className="text-[11px] text-slate-600">
+            No safety-marked events in the mock data. When RN or Provider notes
+            flag abuse risk, suicide risk, or safety-critical tags, they will
+            appear here for Director review.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {safetyEventsQueue.map((evt) => {
+              const caseSummary = directorCases.find(
+                (c) => c.caseId === evt.caseId
+              );
+              const clientName =
+                caseSummary?.clientName || evt.caseId || "Client";
+
+              return (
+                <div
+                  key={evt.id}
+                  className="border rounded-lg p-2 bg-amber-50/60"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] font-semibold text-amber-900">
+                        {evt.summary || "Safety-marked event"}
+                      </div>
+                      <div className="text-[10px] text-amber-900">
+                        Case:{" "}
+                        <span className="font-mono">
+                          {evt.caseId}
+                        </span>{" "}
+                        · Client:{" "}
+                        <span className="font-semibold">
+                          {clientName}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-amber-900">
+                        By:{" "}
+                        <span className="font-semibold">
+                          {evt.actorName || evt.actorRole}
+                        </span>{" "}
+                        on {formatShortDateTime(evt.createdAt)}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[9px] border border-amber-300">
+                        Director review recommended
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded-full border border-emerald-600 bg-emerald-600 text-white text-[9px] cursor-not-allowed opacity-60"
+                          title="Mock-only; in production this would record a Director approval decision."
+                        >
+                          Approve (mock)
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded-full border border-amber-700 bg-white text-amber-900 text-[9px] cursor-not-allowed opacity-60"
+                          title="Mock-only; in production this would route back to RN/Provider for revision."
+                        >
+                          Return for clarification (mock)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {evt.details && (
+                    <div className="mt-1 text-[10px] text-amber-900 whitespace-pre-wrap">
+                      {evt.details}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-[10px] text-slate-600">
+          In the full platform, each action here will write to an audit log
+          (who reviewed, what decision was made, and why) to support legal and
+          accreditation requirements while still backing your RN and Provider
+          teams.
         </p>
       </section>
     </div>

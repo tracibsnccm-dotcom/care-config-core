@@ -8,16 +8,13 @@ import {
 } from "../domain/caseTimeline";
 import { mockTimelineEvents } from "../mock/mockTimeline";
 
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "./ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 
 import {
   computeTenVsFromEvents,
@@ -29,17 +26,32 @@ type Filter = "ALL" | CaseEventCategory | "CRITICAL" | "LEGAL_LOCK";
 interface RNCaseTimelineProps {
   caseId: string;
   isCaseLegalLocked?: boolean;
+  events?: CaseTimelineEvent[];
+  onAddEvent?: (event: CaseTimelineEvent) => void;
 }
 
 export const RNCaseTimeline: React.FC<RNCaseTimelineProps> = ({
   caseId,
   isCaseLegalLocked,
+  events,
+  onAddEvent,
 }) => {
   const [filter, setFilter] = React.useState<Filter>("ALL");
 
+  // New-event form state
+  const [showNewForm, setShowNewForm] = React.useState(false);
+  const [category, setCategory] =
+    React.useState<CaseEventCategory>("CLINICAL");
+  const [summary, setSummary] = React.useState("");
+  const [details, setDetails] = React.useState("");
+  const [isCritical, setIsCritical] = React.useState(false);
+  const [tagsText, setTagsText] = React.useState("");
+
+  // Prefer events from parent; fall back to mock data if none passed
   const eventsForCase = React.useMemo(
-    () => mockTimelineEvents.filter((e) => e.caseId === caseId),
-    [caseId]
+    () =>
+      (events ?? mockTimelineEvents).filter((e) => e.caseId === caseId),
+    [events, caseId]
   );
 
   const filteredEvents = React.useMemo(() => {
@@ -89,6 +101,45 @@ export const RNCaseTimeline: React.FC<RNCaseTimelineProps> = ({
     () => computeTenVsFromEvents(eventsForCase),
     [eventsForCase]
   );
+
+  // --- New event handler ----------------------------------------------------
+
+  const handleSubmitNew = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!summary.trim()) return;
+
+    const now = new Date();
+
+    const tags =
+      tagsText
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean) ?? [];
+
+    const newEvent: CaseTimelineEvent = {
+      id: `evt-${now.getTime()}`,
+      caseId,
+      category,
+      summary: summary.trim(),
+      details: details.trim() || undefined,
+      actorRole: "RN",
+      actorName: "RN Case Manager",
+      createdAt: now.toISOString(),
+      isCritical,
+      tags,
+    };
+
+    if (onAddEvent) {
+      onAddEvent(newEvent);
+    }
+
+    // Reset form
+    setSummary("");
+    setDetails("");
+    setTagsText("");
+    setIsCritical(false);
+    setShowNewForm(false);
+  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -150,6 +201,112 @@ export const RNCaseTimeline: React.FC<RNCaseTimelineProps> = ({
 
         {/* 10-Vs mini dashboard */}
         <TenVsSummaryBar snapshot={tenVsSnapshot} />
+
+        {/* Log New Event toggle + form */}
+        <div className="mt-2">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={() => setShowNewForm((v) => !v)}
+            >
+              {showNewForm ? "Cancel" : "Log New Event"}
+            </Button>
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">
+              RN-only; entries update this session&apos;s timeline and 10-Vs
+              snapshot.
+            </span>
+          </div>
+
+          {showNewForm && (
+            <form
+              onSubmit={handleSubmitNew}
+              className="mt-2 rounded-md border bg-muted/40 px-2 py-2 space-y-2"
+            >
+              <div className="grid gap-2 text-[11px]">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="font-medium">Category</span>
+                    <select
+                      className="h-7 rounded border px-2 text-xs bg-white"
+                      value={category}
+                      onChange={(e) =>
+                        setCategory(e.target.value as CaseEventCategory)
+                      }
+                    >
+                      <option value="CLINICAL">Clinical</option>
+                      <option value="LEGAL">Legal</option>
+                      <option value="SYSTEM">System</option>
+                      <option value="WORKLOAD">Workload</option>
+                      <option value="COMMUNICATION">Communication</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </label>
+
+                  <label className="flex items-center gap-2 mt-5">
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3"
+                      checked={isCritical}
+                      onChange={(e) => setIsCritical(e.target.checked)}
+                    />
+                    <span className="text-[11px]">Mark as critical</span>
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-medium">Summary</span>
+                  <Input
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="Short title for this event (required)…"
+                    className="h-7 text-xs"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-medium">Details</span>
+                  <Textarea
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    placeholder="Optional clinical / SDOH / workflow details…"
+                    className="text-xs"
+                    rows={3}
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-medium">Tags</span>
+                  <Input
+                    value={tagsText}
+                    onChange={(e) => setTagsText(e.target.value)}
+                    placeholder='Comma-separated (e.g. "sdoh, pt-no-show")'
+                    className="h-7 text-xs"
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setShowNewForm(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  size="xs"
+                  disabled={!summary.trim()}
+                >
+                  Save Event
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </CardHeader>
 
       <Separator />
@@ -201,7 +358,7 @@ const TenVsSummaryBar: React.FC<TenVsSummaryBarProps> = ({ snapshot }) => {
     <div className="rounded-md border bg-muted/40 px-2 py-2">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="text-[11px] font-medium text-muted-foreground">
-          10-Vs Snapshot (0–3 band)
+          10-Vs Snapshot (0–3 band, computed from timeline)
         </div>
       </div>
       <div className="flex flex-wrap gap-1">

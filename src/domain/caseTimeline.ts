@@ -26,6 +26,13 @@ export type CaseEventCategory =
   | "COMMUNICATION"
   | "OTHER";
 
+export interface FourPsProfile {
+  p1Physical?: boolean;       // Physical / pain / function
+  p2Psychological?: boolean;  // Psychological / emotional
+  p3Psychosocial?: boolean;   // Psychosocial / SDOH / environment
+  p4Professional?: boolean;   // Work / professional / economic
+}
+
 export interface CaseTimelineEvent {
   id: string;
   caseId: string;
@@ -34,7 +41,7 @@ export interface CaseTimelineEvent {
   summary: string;
   details?: string;
 
-  actorRole: "RN" | "ATTORNEY" | "CLIENT" | "SYSTEM";
+  actorRole: "RN" | "ATTORNEY" | "CLIENT" | "PROVIDER" | "SYSTEM";
   actorName?: string;
 
   createdAt: string; // ISO timestamp
@@ -49,7 +56,7 @@ export interface CaseTimelineEvent {
 
   /**
    * Optional snapshot of the 10-Vs at this moment (e.g., after major RN review).
-   * The 10-Vs engine will use the latest snapshot if present.
+   * If present, the 10-Vs engine treats this as a full refresh.
    */
   tenVsSnapshot?: TenVsSnapshot;
 
@@ -59,7 +66,22 @@ export interface CaseTimelineEvent {
    */
   tenVsDelta?: Partial<TenVsSnapshot>;
 
+  /**
+   * Free-form tags (e.g., "sdoh", "pt-no-show", "legal-lock") that the engine
+   * can optionally use for heuristics.
+   */
   tags?: string[];
+
+  /**
+   * 4Ps profile for this event (Physical, Psychological, Psychosocial, Professional).
+   */
+  fourPsProfile?: FourPsProfile;
+
+  /**
+   * Safety / abuse / suicidality signals. These should be rare but heavily weighted.
+   */
+  abuseRisk?: boolean;
+  suicideRisk?: boolean;
 }
 
 export type CommunicationChannel =
@@ -70,10 +92,7 @@ export type CommunicationChannel =
   | "VIDEO_VISIT"
   | "IN_PERSON";
 
-export type CommunicationDirection =
-  | "INBOUND"
-  | "OUTBOUND"
-  | "INTERNAL";
+export type CommunicationDirection = "INBOUND" | "OUTBOUND" | "INTERNAL";
 
 export type CommunicationConfidentiality =
   | "STANDARD"
@@ -94,7 +113,7 @@ export interface CaseCommunicationEntry {
   confidentiality: CommunicationConfidentiality;
 
   createdAt: string;
-  createdByRole: "RN" | "ATTORNEY" | "CLIENT" | "SYSTEM";
+  createdByRole: "RN" | "ATTORNEY" | "CLIENT" | "PROVIDER" | "SYSTEM";
   createdByName?: string;
 
   isLegalHold?: boolean;
@@ -105,3 +124,4 @@ export interface CaseCommunicationEntry {
 
   attachmentsCount?: number;
 }
+

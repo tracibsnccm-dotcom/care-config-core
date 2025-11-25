@@ -13,17 +13,23 @@ import DirectorDashboard from "./director/DirectorDashboard";
 // Single-case RN console (intake + follow-up + Supervisor audit panel)
 import App from "./App";
 
+// Provider visit note (Traci-optimized)
+import ProviderVisitNoteForm from "./provider/ProviderVisitNoteForm";
+
 // Shared mock DB (3–5 archetype cases)
 import { MockDBProvider, useMockDB } from "./lib/mockDB";
+// 🔹 NEW: wrap the whole shell in the case events provider
+import { CaseEventsProvider } from "./lib/caseEventsContext";
 
 type RoleView =
   | "rn"
   | "rnCase"
+  | "caseDemo"
+  | "provider"
   | "attorney"
   | "attorneyCase"
   | "client"
-  | "director"
-  | "caseDemo";
+  | "director";
 
 const ShellInner: React.FC = () => {
   const [view, setView] = useState<RoleView>("rn");
@@ -88,6 +94,29 @@ const ShellInner: React.FC = () => {
             <RNCaseView />
           </>
         );
+      case "caseDemo":
+        return (
+          <>
+            <p className="text-[11px] text-slate-600 mb-3">
+              Single-case RN console (intake + follow-up) with Supervisor audit
+              panel, 10-Vs engine, Vitality/RAG, workload enforcement, legal
+              lock-down, and case closure recommendations all working together.
+            </p>
+            <App />
+          </>
+        );
+      case "provider":
+        return (
+          <>
+            <p className="text-[11px] text-slate-600 mb-3">
+              Provider-facing visit note mock, optimized for the 10-Vs engine.
+              Each submission becomes a Provider event on the timeline and
+              strengthens utilization (V7) and validation (V9) for the
+              Attorney and RN views.
+            </p>
+            <ProviderVisitNoteForm />
+          </>
+        );
       case "attorney":
         return (
           <>
@@ -130,17 +159,6 @@ const ShellInner: React.FC = () => {
             <DirectorDashboard />
           </>
         );
-      case "caseDemo":
-        return (
-          <>
-            <p className="text-[11px] text-slate-600 mb-3">
-              Single-case RN console (intake + follow-up) with Supervisor audit
-              panel, 10-Vs engine, Vitality/RAG, workload enforcement, legal
-              lock-down, and case closure recommendations all working together.
-            </p>
-            <App />
-          </>
-        );
       default:
         return null;
     }
@@ -156,7 +174,7 @@ const ShellInner: React.FC = () => {
               Reconcile C.A.R.E.™ Platform Shell
             </div>
             <div className="text-[11px] text-slate-500 max-w-xl">
-              Mock navigation between RN, Attorney, Client, Supervisor, and
+              Mock navigation between RN, Provider, Client, Attorney, Supervisor, and
               Director experiences. No APIs yet — this is your clickable
               blueprint before we wire real data.
             </div>
@@ -165,6 +183,7 @@ const ShellInner: React.FC = () => {
             {navButton("rn", "RN Dashboard", "RN Case List")}
             {navButton("rnCase", "RN Case View", "Single Case Detail")}
             {navButton("caseDemo", "RN Case Engine", "10-Vs & Audit")}
+            {navButton("provider", "Provider Visit Note", "Provider View")}
             {navButton("attorney", "Attorney Dashboard", "Case Worklist")}
             {navButton(
               "attorneyCase",
@@ -188,15 +207,12 @@ const ShellInner: React.FC = () => {
 const AppShell: React.FC = () => {
   return (
     <MockDBProvider>
-      <ShellInner />
+      <CaseEventsProvider>
+        <ShellInner />
+      </CaseEventsProvider>
     </MockDBProvider>
   );
 };
 
 export default AppShell;
-
-
-
-
-
 
