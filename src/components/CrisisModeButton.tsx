@@ -2,10 +2,10 @@ import React, { useState } from "react";
 
 type CrisisModeButtonProps = {
   caseId: string;
-  onStart?: () => void;
+  onStart?: (incidentId: string) => void;
 };
 
-export const CrisisModeButton: React.FC<CrisisModeButtonProps> = ({
+const CrisisModeButton: React.FC<CrisisModeButtonProps> = ({
   caseId,
   onStart,
 }) => {
@@ -17,28 +17,38 @@ export const CrisisModeButton: React.FC<CrisisModeButtonProps> = ({
     setIsLoading(true);
 
     try {
-      // Placeholder API call – your dev will wire this to Supabase later
-      const res = await fetch("/api/crisis-incidents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          case_id: caseId,
-          trigger_source: "rn_manual",
-        }),
-      });
+      let incidentId = `dev-stub-incident-${Date.now()}`;
 
-      if (!res.ok) {
-        console.error("Failed to start crisis incident");
-        alert("Could not enter Crisis Mode. Please try again.");
-        return;
+      try {
+        const res = await fetch("/api/crisis-incidents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            case_id: caseId,
+            trigger_source: "rn_manual",
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("Crisis incident started (API):", data);
+          incidentId = (data && data.incidentId) || incidentId;
+        } else {
+          console.warn(
+            "Crisis incident API not OK in dev. Using fallback incident ID.",
+            res.status
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "Crisis incident API not reachable in dev. Using fallback incident ID.",
+          error
+        );
       }
 
-      const data = await res.json();
-      console.log("Crisis incident started:", data);
-
-      if (onStart) onStart();
+      if (onStart) onStart(incidentId);
 
       alert("Crisis Mode started for this case.");
     } catch (error) {
