@@ -1,27 +1,41 @@
 import React from "react";
+import {
+  CrisisState,
+  CRISIS_STATE_LABELS,
+  CRISIS_STATE_DESCRIPTIONS,
+} from "../domain/crisisState";
 
 type RNCrisisScreenProps = {
   caseId: string;
   incidentId?: string;
+  state?: CrisisState;
   onExit?: () => void;
 };
 
 const RNCrisisScreen: React.FC<RNCrisisScreenProps> = ({
   caseId,
   incidentId,
+  state = "crisis_detected",
   onExit,
 }) => {
-  // For now this is a static UI shell.
-  // Later, your dev (or we) can wire it to real data from Supabase.
+  const label = CRISIS_STATE_LABELS[state];
+  const description = CRISIS_STATE_DESCRIPTIONS[state];
+
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <header className="border-b pb-3 flex items-center justify-between">
-        <div>
+      <header className="border-b pb-3 flex items-center justify-between gap-3">
+        <div className="space-y-1">
           <h1 className="text-2xl font-semibold text-red-700">
             🚨 Crisis Mode Active
           </h1>
-          <p className="text-sm text-gray-700">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-red-700 border border-red-300">
+              {label}
+            </span>
+            <span className="text-gray-600">{description}</span>
+          </div>
+          <p className="text-[11px] text-gray-700 mt-1">
             Stay with the client. Buddy/Supervisor will handle EMS and
             escalation.
           </p>
@@ -43,18 +57,15 @@ const RNCrisisScreen: React.FC<RNCrisisScreenProps> = ({
 
       {/* RN Instructions */}
       <section className="bg-red-50 border border-red-200 rounded-md p-3">
-        <h2 className="font-semibold text-red-800 text-sm">
-          Your role right now
-        </h2>
+        <h2 className="font-semibold text-red-800 text-sm">Your role right now</h2>
         <ul className="mt-2 text-sm text-red-900 list-disc pl-5 space-y-1">
           <li>Stay with the client (on phone or in person).</li>
           <li>
-            Keep your tone calm and clear. Avoid arguing, shaming, or
-            minimizing.
+            Keep your tone calm and clear. Avoid arguing, shaming, or minimizing.
           </li>
           <li>
-            Do <span className="font-semibold">not</span> call EMS yourself
-            unless the system is unavailable.
+            Do <span className="font-semibold">not</span> call EMS yourself unless
+            the system is unavailable.
           </li>
           <li>
             Buddy or Supervisor will call EMS and law enforcement when needed.
@@ -68,8 +79,7 @@ const RNCrisisScreen: React.FC<RNCrisisScreenProps> = ({
         <div className="border rounded-md p-3 bg-white shadow-sm">
           <h3 className="font-semibold text-sm mb-1">Buddy / Decision Owner</h3>
           <p className="text-xs text-gray-500">
-            This section will show who is handling EMS decisions for this
-            crisis.
+            This section will show who is handling EMS decisions for this crisis.
           </p>
           <ul className="mt-2 text-sm text-gray-700 list-disc pl-5 space-y-1">
             <li>Decision Owner: (Buddy or Supervisor)</li>

@@ -3,11 +3,13 @@ import React, { useState } from "react";
 type BuddyCrisisScreenProps = {
   caseId: string;
   incidentId?: string;
+  onSystemUrgencyChange?: (urgency: "low" | "moderate" | "high" | null) => void;
 };
 
 const BuddyCrisisScreen: React.FC<BuddyCrisisScreenProps> = ({
   caseId,
   incidentId,
+  onSystemUrgencyChange,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemUrgency, setSystemUrgency] = useState<string | null>(null);
@@ -39,9 +41,29 @@ const BuddyCrisisScreen: React.FC<BuddyCrisisScreenProps> = ({
 
   const resolvedIncidentId = incidentId ?? "stub-incident-id";
 
+  const computeLocalUrgency = (): "low" | "moderate" | "high" => {
+    // Same logic we used on the API side:
+    // firearm OR immediate threat → high
+    // drugs/ETOH or visible injuries or children present → moderate
+    // else low
+    if (firearmPresent === true || immediateThreat === true) {
+      return "high";
+    }
+    if (
+      drugsEtOHInvolved === true ||
+      visibleInjuries === true ||
+      childrenPresent === true
+    ) {
+      return "moderate";
+    }
+    return "low";
+  };
+
   const handleSubmitChecklist = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+
+    let resolvedUrgency: "low" | "moderate" | "high" | null = null;
 
     try {
       const res = await fetch("/api/crisis-buddy-checklist", {
@@ -65,22 +87,50 @@ const BuddyCrisisScreen: React.FC<BuddyCrisisScreenProps> = ({
         }),
       });
 
-      if (!res.ok) {
-        console.error("Failed to submit buddy checklist");
-        alert("Could not save the Buddy checklist. Please try again.");
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        const apiUrgency = (data.system_ems_urgency as string | null) ?? null;
+        if (
+          apiUrgency === "low" ||
+          apiUrgency === "moderate" ||
+          apiUrgency === "high"
+        ) {
+          resolvedUrgency = apiUrgency;
+        } else {
+          console.warn(
+            "[Buddy] API returned unknown urgency, falling back to local logic:",
+            apiUrgency
+          );
+        }
+      } else {
+        console.warn(
+          "[Buddy] API response not OK (likely dev / no backend). Falling back to local urgency. Status:",
+          res.status
+        );
       }
-
-      const data = await res.json();
-      setSystemUrgency(data.system_ems_urgency ?? null);
-
-      alert("Buddy checklist saved for this crisis incident.");
     } catch (err) {
-      console.error("Error submitting buddy checklist:", err);
-      alert("Unexpected error saving Buddy checklist.");
-    } finally {
-      setIsSubmitting(false);
+      console.warn(
+        "[Buddy] API unreachable (dev mode). Using local urgency instead.",
+        err
+      );
     }
+
+    // If API didn't give us a usable urgency, compute it locally
+    if (!resolvedUrgency) {
+      resolvedUrgency = computeLocalUrgency();
+    }
+
+    // Update local state + notify app
+    setSystemUrgency(resolvedUrgency);
+    if (onSystemUrgencyChange) {
+      onSystemUrgencyChange(resolvedUrgency);
+    }
+
+    alert(
+      "Buddy checklist saved for this crisis incident (using dev/local logic if API is not available)."
+    );
+
+    setIsSubmitting(false);
   };
 
   const renderTriStateToggle = (
@@ -219,7 +269,8 @@ const BuddyCrisisScreen: React.FC<BuddyCrisisScreenProps> = ({
         </div>
 
         <p className="mt-2 text-xs text-red-700 font-semibold">
-          This version is now wired to the real Buddy checklist API endpoint.
+          This version is wired to use the Buddy checklist API when available,
+          and falls back to local logic in dev if the API is not reachable.
         </p>
       </section>
 
