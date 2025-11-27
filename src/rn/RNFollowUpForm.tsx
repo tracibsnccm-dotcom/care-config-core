@@ -1,7 +1,7 @@
 // src/rn/RNFollowUpForm.tsx
 // RN Follow-Up form for non-crisis case work.
-// Uses YOUR 4Ps: Physical · Psychological · Psychosocial · Professional
-// plus a simple 10-Vs note area for Dec 31 demos (no backend wiring yet).
+// Correct 4Ps: Physical · Psychological · Psychosocial · Professional
+// 10-Vs snapshot for Dec 31 demos (no backend wiring yet).
 
 import React from "react";
 
@@ -14,9 +14,9 @@ const RNFollowUpForm: React.FC = () => {
           RN Follow-Up – Case Workbench
         </h2>
         <p className="text-[10px] text-slate-500">
-          Use this space to document routine (non-crisis) contact using your 4Ps
-          and 10-Vs lenses. This version is for demo/testing only and does not
-          save to the live database yet.
+          Use this space to document routine (non-crisis) contact using your
+          4Ps and 10-Vs lenses. This version is for demo/testing only and does
+          not save to the live database yet.
         </p>
       </header>
 
@@ -78,7 +78,7 @@ const RNFollowUpForm: React.FC = () => {
             <textarea
               className="border rounded px-1 py-0.5 text-[10px] w-full"
               rows={2}
-              placeholder="Mobility, endurance, sleep, ADLs, wound status, physical function..."
+              placeholder="Mobility, endurance, sleep, ADLs, wound status, pain pattern, etc."
             />
           </div>
 
@@ -92,12 +92,12 @@ const RNFollowUpForm: React.FC = () => {
               <option>Anxious</option>
               <option>Depressed</option>
               <option>Irritable</option>
-              <option>New Behavior / Thought Change</option>
+              <option>New Behavior Change</option>
             </select>
             <textarea
               className="border rounded px-1 py-0.5 text-[10px] w-full"
               rows={2}
-              placeholder="Mood, coping, thought patterns, red flags, engagement with care..."
+              placeholder="Mood, coping, red flags, engagement with care, adherence..."
             />
           </div>
 
@@ -107,16 +107,16 @@ const RNFollowUpForm: React.FC = () => {
               Psychosocial
             </div>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
-              <option>Supports Adequate</option>
+              <option>Support Adequate</option>
               <option>Caregiver Strain</option>
               <option>Family Conflict</option>
               <option>Social Isolation</option>
-              <option>Community / SDOH Concern</option>
+              <option>Community / Faith / Peer Supports</option>
             </select>
             <textarea
               className="border rounded px-1 py-0.5 text-[10px] w-full"
               rows={2}
-              placeholder="Relationships, caregiving, support network, social stressors, SDOH context..."
+              placeholder="Family dynamics, caregiver capacity, social supports, community ties..."
             />
           </div>
 
@@ -127,15 +127,15 @@ const RNFollowUpForm: React.FC = () => {
             </div>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
               <option>Work Status Stable</option>
-              <option>Off Work / Restricted Duty</option>
-              <option>RTW In Progress</option>
-              <option>Work Conflict / Performance Concern</option>
-              <option>Vocational / Role Change Issue</option>
+              <option>Off Work / Restricted</option>
+              <option>RTW Plan in Progress</option>
+              <option>Vocational Concern</option>
+              <option>Employer / HR Issue</option>
             </select>
             <textarea
               className="border rounded px-1 py-0.5 text-[10px] w-full"
               rows={2}
-              placeholder="Work status, role, vocational identity, professional goals and barriers..."
+              placeholder="Work status, restrictions, RTW planning, vocation, employer/HR issues..."
             />
           </div>
         </div>
@@ -152,7 +152,7 @@ const RNFollowUpForm: React.FC = () => {
         <textarea
           className="border rounded px-1 py-0.5 text-[10px] w-full"
           rows={3}
-          placeholder="RN quick note using the 10-Vs lens (e.g., Vitals, Voice, Value, Visibility, Variability, Velocity of change, etc.). Demo field only; not yet saving to the database."
+          placeholder="RN quick note using the 10-Vs lens (e.g., Vitals, Voice, Value, Visibility, Variability, Velocity of change, etc.). This is a demo field only and does not yet save to the database."
         />
       </section>
 
@@ -170,7 +170,7 @@ const RNFollowUpForm: React.FC = () => {
             <textarea
               className="border rounded px-1 py-0.5 text-[10px] w-full"
               rows={3}
-              placeholder="Example: Call ortho to confirm follow-up; message attorney with functional update; request updated PT notes..."
+              placeholder="Example: Call ortho office to confirm follow-up; message attorney with functional update; request updated PT notes..."
             />
           </label>
 
