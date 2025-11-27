@@ -1,6 +1,6 @@
 // src/components/CrisisModeButton.tsx
-// RN Crisis Mode starter — now writes to Supabase when possible,
-// but still falls back to a dev stub incident ID if anything fails.
+// RN Crisis Mode starter — wired to Supabase REST URL,
+// falls back to a dev-stub incident ID if anything fails.
 
 import React, { useState } from "react";
 import { CrisisCategory } from "../domain/crisisCategory";
@@ -11,9 +11,9 @@ type CrisisModeButtonProps = {
   onStart?: (incidentId: string) => void;
 };
 
-// Read Supabase env vars for Vite
-const SUPABASE_URL =
-  (import.meta as any).env.VITE_SUPABASE_URL as string | undefined;
+// Read Supabase env vars for Vite (defined in .env.local)
+const SUPABASE_REST_URL =
+  (import.meta as any).env.VITE_SUPABASE_REST_URL as string | undefined;
 const SUPABASE_ANON_KEY =
   (import.meta as any).env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
@@ -24,9 +24,12 @@ async function createCrisisIncidentInSupabase(
   crisisCategory?: CrisisCategory | null
 ): Promise<{ incidentId: string; source: StartResultSource }> {
   // If env vars aren’t present, just use a stub ID (dev safe)
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
     console.warn(
-      "[CrisisModeButton] Supabase env not set. Using stub incident ID."
+      "[CrisisModeButton] Supabase REST env not set. Using stub incident ID."
+    );
+    alert(
+      "Supabase REST configuration is missing (VITE_SUPABASE_REST_URL or VITE_SUPABASE_ANON_KEY). Using local dev incident ID."
     );
     return {
       incidentId: `dev-stub-incident-${Date.now()}`,
@@ -35,7 +38,7 @@ async function createCrisisIncidentInSupabase(
   }
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/crisis_incidents`, {
+    const res = await fetch(`${SUPABASE_REST_URL}/crisis_incidents`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,14 +50,17 @@ async function createCrisisIncidentInSupabase(
         case_id: caseId,
         trigger_source: "rn_manual",
         crisis_category: crisisCategory ?? null,
-        // You can add more defaults here later if you want (ems_status, etc.)
       }),
     });
 
     if (!res.ok) {
       console.warn(
-        "[CrisisModeButton] Supabase insert not OK. Status:",
-        res.status
+        "[CrisisModeButton] Supabase insert not OK.",
+        res.status,
+        res.statusText
+      );
+      alert(
+        `Supabase insert failed (${res.status}). Using local dev incident ID instead.`
       );
       return {
         incidentId: `dev-stub-incident-${Date.now()}`,
@@ -64,6 +70,7 @@ async function createCrisisIncidentInSupabase(
 
     const data = await res.json();
     const row = Array.isArray(data) ? data[0] : data;
+
     const incidentId =
       row?.id?.toString() ??
       row?.incident_id?.toString?.() ??
@@ -77,9 +84,10 @@ async function createCrisisIncidentInSupabase(
     };
   } catch (error) {
     console.warn(
-      "[CrisisModeButton] Supabase insert failed. Using stub incident ID.",
+      "[CrisisModeButton] Supabase insert threw error. Using stub incident ID.",
       error
     );
+    alert("Supabase error when creating crisis incident. Using local dev ID.");
     return {
       incidentId: `dev-stub-incident-${Date.now()}`,
       source: "error",
@@ -97,7 +105,6 @@ const CrisisModeButton: React.FC<CrisisModeButtonProps> = ({
   const handleClick = async () => {
     if (isLoading) return;
 
-    // Require the RN to choose a crisis type first
     if (!crisisCategory) {
       alert("Please choose a crisis type before entering Crisis Mode.");
       return;
@@ -122,7 +129,11 @@ const CrisisModeButton: React.FC<CrisisModeButtonProps> = ({
         onStart(incidentId);
       }
 
-      alert("Crisis Mode started for this case.");
+      alert(
+        source === "supabase"
+          ? "Crisis Mode started and saved to Supabase."
+          : "Crisis Mode started (using local dev incident ID)."
+      );
     } catch (error) {
       console.error("[CrisisModeButton] Unexpected error:", error);
       alert("Unexpected error starting Crisis Mode.");
