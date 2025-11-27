@@ -1,9 +1,21 @@
 // src/rn/RNFollowUpForm.tsx
 // RN Follow-Up form for non-crisis case work.
-// Correct 4Ps: Physical · Psychological · Psychosocial · Professional
-// 10-Vs snapshot for Dec 31 demos (no backend wiring yet).
+//
+// Uses canonical domain dictionary:
+//  - 4Ps: Physical · Psychological · Psychosocial · Professional
+//  - Contact types / focus
+//  - Follow-up timeframes / routing
+//
+// Demo-only for Dec 31 (no backend wiring yet).
 
 import React from "react";
+import {
+  CONTACT_TYPES,
+  CONTACT_FOCUS_OPTIONS,
+  FOUR_PS,
+  FOLLOW_UP_TIMEFRAMES,
+  ROUTING_OPTIONS,
+} from "../domain/reconcileDomain";
 
 const RNFollowUpForm: React.FC = () => {
   return (
@@ -29,24 +41,18 @@ const RNFollowUpForm: React.FC = () => {
           <label className="flex flex-col gap-0.5">
             <span className="text-[10px] text-slate-600">Contact Type</span>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white">
-              <option>Phone – Outbound</option>
-              <option>Phone – Inbound</option>
-              <option>Video Visit</option>
-              <option>Portal Message</option>
-              <option>In-Person</option>
-              <option>Other</option>
+              {CONTACT_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-0.5">
             <span className="text-[10px] text-slate-600">Contact Focus</span>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white">
-              <option>Routine Follow-Up</option>
-              <option>New Symptom</option>
-              <option>Medication Issue</option>
-              <option>Return to Work / Function</option>
-              <option>Provider Coordination</option>
-              <option>Benefits / Financial</option>
+              {CONTACT_FOCUS_OPTIONS.map((focus) => (
+                <option key={focus}>{focus}</option>
+              ))}
             </select>
           </label>
         </div>
@@ -64,80 +70,25 @@ const RNFollowUpForm: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {/* Physical */}
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold text-slate-700">
-              Physical
+          {FOUR_PS.map((pLabel) => (
+            <div className="space-y-1" key={pLabel}>
+              <div className="text-[10px] font-semibold text-slate-700">
+                {pLabel}
+              </div>
+              <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
+                {/* Simple, generic options – can be refined per P later */}
+                <option>Stable</option>
+                <option>Improved</option>
+                <option>Worsened</option>
+                <option>New Concern</option>
+              </select>
+              <textarea
+                className="border rounded px-1 py-0.5 text-[10px] w-full"
+                rows={2}
+                placeholder={`RN notes for ${pLabel.toLowerCase()} lens...`}
+              />
             </div>
-            <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
-              <option>Stable / Baseline</option>
-              <option>Improved</option>
-              <option>Worsened</option>
-              <option>New Physical Concern</option>
-            </select>
-            <textarea
-              className="border rounded px-1 py-0.5 text-[10px] w-full"
-              rows={2}
-              placeholder="Mobility, endurance, sleep, ADLs, wound status, pain pattern, etc."
-            />
-          </div>
-
-          {/* Psychological */}
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold text-slate-700">
-              Psychological
-            </div>
-            <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
-              <option>Calm / Coping</option>
-              <option>Anxious</option>
-              <option>Depressed</option>
-              <option>Irritable</option>
-              <option>New Behavior Change</option>
-            </select>
-            <textarea
-              className="border rounded px-1 py-0.5 text-[10px] w-full"
-              rows={2}
-              placeholder="Mood, coping, red flags, engagement with care, adherence..."
-            />
-          </div>
-
-          {/* Psychosocial */}
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold text-slate-700">
-              Psychosocial
-            </div>
-            <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
-              <option>Support Adequate</option>
-              <option>Caregiver Strain</option>
-              <option>Family Conflict</option>
-              <option>Social Isolation</option>
-              <option>Community / Faith / Peer Supports</option>
-            </select>
-            <textarea
-              className="border rounded px-1 py-0.5 text-[10px] w-full"
-              rows={2}
-              placeholder="Family dynamics, caregiver capacity, social supports, community ties..."
-            />
-          </div>
-
-          {/* Professional */}
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold text-slate-700">
-              Professional
-            </div>
-            <select className="border rounded px-1 py-0.5 text-[10px] bg-white w-full">
-              <option>Work Status Stable</option>
-              <option>Off Work / Restricted</option>
-              <option>RTW Plan in Progress</option>
-              <option>Vocational Concern</option>
-              <option>Employer / HR Issue</option>
-            </select>
-            <textarea
-              className="border rounded px-1 py-0.5 text-[10px] w-full"
-              rows={2}
-              placeholder="Work status, restrictions, RTW planning, vocation, employer/HR issues..."
-            />
-          </div>
+          ))}
         </div>
       </section>
 
@@ -192,21 +143,18 @@ const RNFollowUpForm: React.FC = () => {
               Follow-Up Timeframe
             </span>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white">
-              <option>1–3 days</option>
-              <option>1 week</option>
-              <option>2 weeks</option>
-              <option>1 month</option>
-              <option>As needed / PRN</option>
+              {FOLLOW_UP_TIMEFRAMES.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-0.5">
             <span className="text-[10px] text-slate-600">Routing / FYI</span>
             <select className="border rounded px-1 py-0.5 text-[10px] bg-white">
-              <option>None</option>
-              <option>Notify Attorney</option>
-              <option>Notify Provider</option>
-              <option>Notify Internal Supervisor</option>
+              {ROUTING_OPTIONS.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
             </select>
           </label>
         </div>
