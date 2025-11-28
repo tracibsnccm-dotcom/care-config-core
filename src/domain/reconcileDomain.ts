@@ -25,20 +25,10 @@ export type FourP = (typeof FOUR_PS)[number];
 // (These names can be refined, but they all live here.)
 // -------------------------------
 
-export const TEN_VS = [
-  "Vitals",
-  "Voice",
-  "Value",
-  "Visibility",
-  "Variability",
-  "Velocity",
-  "Volume",
-  "Verification",
-  "Vulnerability",
-  "Victory",
-] as const;
+// Instead of defining labels here, we IMPORT the official 10-Vs
+export type { TenV } from "./tenVs";
+export { TEN_VS_ORDERED, TEN_VS_DICTIONARY } from "./tenVs";
 
-export type TenV = (typeof TEN_VS)[number];
 
 // -------------------------------
 // Crisis Categories

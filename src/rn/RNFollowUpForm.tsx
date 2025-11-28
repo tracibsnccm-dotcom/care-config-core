@@ -5,6 +5,8 @@
 //  - 4Ps: Physical · Psychological · Psychosocial · Professional
 //  - Contact types / focus
 //  - Follow-up timeframes / routing
+//  - Official 10-Vs (Voice/View, Viability, Vision, Veracity, Versatility,
+//    Vitality, Vigilance, Verification, Value, Validation)
 //
 // Demo-only for Dec 31 (no backend wiring yet).
 
@@ -16,6 +18,10 @@ import {
   FOLLOW_UP_TIMEFRAMES,
   ROUTING_OPTIONS,
 } from "../domain/reconcileDomain";
+import {
+  TEN_VS_ORDERED,
+  TEN_VS_DICTIONARY,
+} from "../domain/tenVs";
 
 const RNFollowUpForm: React.FC = () => {
   return (
@@ -27,8 +33,8 @@ const RNFollowUpForm: React.FC = () => {
         </h2>
         <p className="text-[10px] text-slate-500">
           Use this space to document routine (non-crisis) contact using your
-          4Ps and 10-Vs lenses. This version is for demo/testing only and does
-          not save to the live database yet.
+          4Ps and 10-Vs frameworks. This version is for demo/testing only and
+          does not save to the live database yet.
         </p>
       </header>
 
@@ -92,19 +98,34 @@ const RNFollowUpForm: React.FC = () => {
         </div>
       </section>
 
-      {/* 10-Vs High-Level Note */}
-      <section className="space-y-1 border rounded-md p-2 bg-white">
+      {/* 10-Vs High-Level Panel */}
+      <section className="space-y-2 border rounded-md p-2 bg-white">
         <div className="flex items-center justify-between">
           <div className="text-[10px] font-semibold uppercase text-slate-600">
-            10-Vs Checkpoint (High-Level)
+            10-Vs Checkpoint
+          </div>
+          <div className="text-[9px] text-slate-500">
+            Quick notes by V, using your official 10-Vs framework.
           </div>
         </div>
 
-        <textarea
-          className="border rounded px-1 py-0.5 text-[10px] w-full"
-          rows={3}
-          placeholder="RN quick note using the 10-Vs lens (e.g., Vitals, Voice, Value, Visibility, Variability, Velocity of change, etc.). This is a demo field only and does not yet save to the database."
-        />
+        <div className="grid grid-cols-2 gap-2">
+          {TEN_VS_ORDERED.map((vKey) => {
+            const vDef = TEN_VS_DICTIONARY[vKey];
+            return (
+              <div className="space-y-1" key={vKey}>
+                <div className="text-[10px] font-semibold text-slate-700">
+                  {vDef.label}
+                </div>
+                <textarea
+                  className="border rounded px-1 py-0.5 text-[10px] w-full"
+                  rows={2}
+                  placeholder={`RN note for ${vDef.label} lens...`}
+                />
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* RN Plan / Tasks */}
@@ -173,3 +194,5 @@ const RNFollowUpForm: React.FC = () => {
 };
 
 export default RNFollowUpForm;
+
+
