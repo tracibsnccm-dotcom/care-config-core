@@ -1,14 +1,12 @@
 // src/provider/ProviderVisitNoteForm.tsx
 // Reconcile C.A.R.E. — Provider Visit Note (demo-only)
 //
-// Uses the domain dictionary (4Ps + 10-Vs) to keep language consistent.
-// This is a structured shell for Dec 31 demos — no backend wiring yet.
+// Uses your canonical 4Ps and official 10-Vs. No made-up labels.
+// This is a structured shell for Dec 31 demos — not wired to the DB yet.
 
 import React from "react";
-import {
-  FOUR_PS,
-  TEN_VS,
-} from "../domain/reconcileDomain";
+import { FOUR_PS } from "../domain/reconcileDomain";
+import { TEN_VS_ORDERED, TEN_VS_DICTIONARY } from "../domain/tenVs";
 
 const ProviderVisitNoteForm: React.FC = () => {
   return (
@@ -19,10 +17,8 @@ const ProviderVisitNoteForm: React.FC = () => {
           Provider Visit Note – Structured Summary
         </h2>
         <p className="text-[10px] text-slate-500">
-          This view is designed to capture the key elements of a treating
-          provider visit in a way that supports the RN, the attorney, and
-          return-to-work planning. Demo-only for Dec 31 (not yet saving to the
-          live database).
+          Structured recap of a treating provider visit so the RN, attorney, and
+          client stay aligned. Demo-only for Dec 31 (no live save yet).
         </p>
       </header>
 
@@ -112,23 +108,26 @@ const ProviderVisitNoteForm: React.FC = () => {
             10-Vs Impressions
           </div>
           <div className="text-[9px] text-slate-500">
-            RN can translate the visit into the 10-Vs language for case strategy.
+            RN translates the visit into your 10-Vs language for strategy.
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {TEN_VS.map((v) => (
-            <div className="space-y-1" key={v}>
-              <div className="text-[10px] font-semibold text-slate-700">
-                {v}
+          {TEN_VS_ORDERED.map((vKey) => {
+            const vDef = TEN_VS_DICTIONARY[vKey];
+            return (
+              <div className="space-y-1" key={vKey}>
+                <div className="text-[10px] font-semibold text-slate-700">
+                  {vDef.label}
+                </div>
+                <textarea
+                  className="border rounded px-1 py-0.5 text-[10px] w-full"
+                  rows={2}
+                  placeholder={`RN note for ${vDef.label} lens...`}
+                />
               </div>
-              <textarea
-                className="border rounded px-1 py-0.5 text-[10px] w-full"
-                rows={2}
-                placeholder={`RN summary of visit through the "${v}" lens...`}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -231,9 +230,9 @@ const ProviderVisitNoteForm: React.FC = () => {
       <section className="border-t pt-2">
         <p className="text-[9px] text-slate-400">
           Demo note: This Provider Visit Note layout is intended to keep the RN,
-          attorney, and client aligned on what each visit actually produced in
-          terms of function, 4Ps, and 10-Vs. In a future phase, these fields
-          will map directly to the case record and attorney dashboard views.
+          attorney, and client aligned on what each visit produced in terms of
+          function, 4Ps, and 10-Vs. In a future phase, these fields will map
+          directly to the case record and attorney dashboard views.
         </p>
       </section>
     </div>
