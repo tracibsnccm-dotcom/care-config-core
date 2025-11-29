@@ -1,73 +1,60 @@
 // src/domain/crisisState.ts
-// Crisis Mode state machine for Reconcile C.A.R.E.
+// Reconcile C.A.R.E. — Simple crisis state module
+//
+// This is a minimal, non-reactive store that provides the fields and
+// functions used by RNCrisisScreen and App.tsx.
+// Later we can upgrade this to a proper shared store if needed.
 
-/**
- * All valid high-level states for a crisis incident.
- *
- * These should match the values stored in the
- * crisis_incidents.current_state column.
- */
-export type CrisisState =
-  | "crisis_detected"
-  | "buddy_active"
-  | "supervisor_review"
-  | "resolution_pending"
-  | "resolved";
+export type CrisisCategoryCode =
+  | "behavioral_suicide"
+  | "medical"
+  | "violence_assault"
+  | "other"
+  | null;
 
-/**
- * Human-friendly labels for each state.
- */
-export const CRISIS_STATE_LABELS: Record<CrisisState, string> = {
-  crisis_detected: "Crisis Detected",
-  buddy_active: "Buddy Active",
-  supervisor_review: "Supervisor Review",
-  resolution_pending: "Resolution Pending",
-  resolved: "Resolved",
+type CrisisStateInternal = {
+  crisisCategory: CrisisCategoryCode;
+  crisisDescription: string;
+  isInCrisis: boolean;
 };
 
-/**
- * Optional: short descriptions that can be used in tooltips or headers.
- */
-export const CRISIS_STATE_DESCRIPTIONS: Record<CrisisState, string> = {
-  crisis_detected:
-    "RN has identified a crisis and activated Crisis Mode. Buddy / Supervisor have not yet taken over.",
-  buddy_active:
-    "Buddy is completing the safety checklist and handling EMS decisions so the RN can stay with the client.",
-  supervisor_review:
-    "Supervisor is reviewing safety information, EMS decisions, and next steps.",
-  resolution_pending:
-    "The immediate crisis has been stabilized; final disposition and follow-up plan are being documented.",
-  resolved:
-    "Crisis incident is closed with final disposition and next steps documented.",
+const crisisState: CrisisStateInternal = {
+  crisisCategory: null,
+  crisisDescription: "",
+  isInCrisis: false,
 };
 
-/**
- * Allowed transitions between states.
- * This is used to enforce a simple, predictable workflow.
- */
-export const CRISIS_STATE_TRANSITIONS: Record<CrisisState, CrisisState[]> = {
-  crisis_detected: ["buddy_active", "supervisor_review"],
-  buddy_active: ["supervisor_review", "resolution_pending"],
-  supervisor_review: ["resolution_pending", "resolved"],
-  resolution_pending: ["resolved"],
-  resolved: [],
+type CrisisStateAPI = {
+  crisisCategory: CrisisCategoryCode;
+  crisisDescription: string;
+  isInCrisis: boolean;
+  setCrisisCategory: (cat: CrisisCategoryCode) => void;
+  setCrisisDescription: (desc: string) => void;
+  enterCrisisMode: () => void;
+  exitCrisisMode: () => void;
 };
 
-/**
- * Checks if a transition from one state to another is allowed.
- */
-export function canTransitionCrisisState(
-  from: CrisisState,
-  to: CrisisState
-): boolean {
-  if (from === to) return true;
-  return CRISIS_STATE_TRANSITIONS[from].includes(to);
-}
-
-/**
- * Convenience function to get a label with the state value,
- * e.g. "Buddy Active (buddy_active)".
- */
-export function formatCrisisStateWithCode(state: CrisisState): string {
-  return `${CRISIS_STATE_LABELS[state]} (${state})`;
+// Simple function-based API. This is NOT a React hook with reactivity;
+// it just gives callers access to the current values and mutators.
+// For now this keeps the build green and the API surface consistent.
+export function useCrisisState(): CrisisStateAPI {
+  return {
+    crisisCategory: crisisState.crisisCategory,
+    crisisDescription: crisisState.crisisDescription,
+    isInCrisis: crisisState.isInCrisis,
+    setCrisisCategory: (cat: CrisisCategoryCode) => {
+      crisisState.crisisCategory = cat;
+    },
+    setCrisisDescription: (desc: string) => {
+      crisisState.crisisDescription = desc;
+    },
+    enterCrisisMode: () => {
+      crisisState.isInCrisis = true;
+    },
+    exitCrisisMode: () => {
+      crisisState.isInCrisis = false;
+      // Optional: keep description/category, or clear them—your choice.
+      // For now we leave them as-is so the last crisis context is still visible.
+    },
+  };
 }

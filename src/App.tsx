@@ -1,14 +1,17 @@
 // src/App.tsx
 // RN Case Engine with Timeline + Case Summary Card
+// Now wired to real crisis state instead of hard-coded false.
 
 import React from "react";
 import { useMockDB } from "./lib/mockDB";
 import RNFollowUpForm from "./rn/RNFollowUpForm";
 import { RNCaseTimeline } from "./components/RNCaseTimeline";
 import CaseSummaryCard from "./components/CaseSummaryCard";
+import { useCrisisState } from "./domain/crisisState";
 
 const App: React.FC = () => {
   const { activeCase } = useMockDB() as any;
+  const { isInCrisis } = useCrisisState();
 
   if (!activeCase) {
     return (
@@ -25,8 +28,8 @@ const App: React.FC = () => {
   const caseId: string =
     activeCase.id ?? activeCase.caseId ?? client.id ?? "case-001";
 
-  // Crisis Mode state (mock for now)
-  const crisisActive = false; // until wired to state store
+  // Crisis Mode state now comes from the shared crisis store
+  const crisisActive = !!isInCrisis;
 
   return (
     <div className="space-y-3 text-[11px]">
@@ -41,7 +44,7 @@ const App: React.FC = () => {
         </p>
       </section>
 
-      {/* Layout: RN Follow-Up + Timeline + Summary */}
+      {/* Layout: RN Follow-Up + Summary + Timeline */}
       <section className="grid md:grid-cols-[2fr,1.5fr] gap-3">
         {/* Left side: RN Follow-Up + Summary stacked */}
         <div className="space-y-3">
