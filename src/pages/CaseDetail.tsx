@@ -15,7 +15,7 @@ import { CaseNotesTasksDrawer } from "@/components/CaseNotesTasksDrawer";
 import { CaseTimelineView } from "@/components/CaseTimelineView";
 import { AICaseSummarizer } from "@/components/AICaseSummarizer";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
-import { ProviderNotesDisplay } from "@/components/case/ProviderNotesDisplay";
+import { ProviderNotesDisplay } from "@/components/cases/ProviderNotesDisplay";
 import { DocumentShareRequest } from "@/components/rn/DocumentShareRequest";
 import { 
   ArrowLeft, 

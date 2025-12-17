@@ -1,67 +1,93 @@
 // src/App.tsx
-// RN Case Engine with Timeline + Case Summary Card
-// Now wired to real crisis state instead of hard-coded false.
 
-import React from "react";
-import { useMockDB } from "./lib/mockDB";
-import RNFollowUpForm from "./rn/RNFollowUpForm";
-import { RNCaseTimeline } from "./components/RNCaseTimeline";
-import CaseSummaryCard from "./components/CaseSummaryCard";
-import { useCrisisState } from "./domain/crisisState";
+import React, { useMemo, useState } from "react";
+
+// Screens (adjust paths ONLY if your filenames differ)
+import ClientIntakeScreen from "./screens/ClientIntakeScreen";
+import AttorneyConsole from "./screens/AttorneyConsole";
+
+// Optional: if you have a Home screen you still want to keep, import it here.
+// import Home from "./screens/Home";
+
+type AppTab = "clientDemo" | "attorneyDemo";
 
 const App: React.FC = () => {
-  const { activeCase } = useMockDB() as any;
-  const { isInCrisis } = useCrisisState();
+  // Demo mode by default for marketing links.
+  // If you ever want to show the full internal shell later, we can add a toggle/flag.
+  const tabs = useMemo(
+    () =>
+      [
+        { key: "clientDemo" as const, label: "Client Demo" },
+        { key: "attorneyDemo" as const, label: "Attorney Demo" },
+      ] as const,
+    []
+  );
 
-  if (!activeCase) {
-    return (
-      <div className="border rounded-xl bg-white p-4 text-[11px] text-slate-600">
-        No active case is selected. Go to the RN Dashboard, choose a case, then
-        return to the RN Case Engine view.
-      </div>
-    );
-  }
+  const [activeTab, setActiveTab] = useState<AppTab>("clientDemo");
 
-  const client = activeCase.client ?? activeCase.clientProfile ?? {};
-  const clientName: string =
-    client.name ?? activeCase.clientName ?? "Client";
-  const caseId: string =
-    activeCase.id ?? activeCase.caseId ?? client.id ?? "case-001";
-
-  // Crisis Mode state now comes from the shared crisis store
-  const crisisActive = !!isInCrisis;
+  const renderTab = () => {
+    switch (activeTab) {
+      case "clientDemo":
+        return <ClientIntakeScreen />;
+      case "attorneyDemo":
+        return <AttorneyConsole />;
+      default:
+        return <ClientIntakeScreen />;
+    }
+  };
 
   return (
-    <div className="space-y-3 text-[11px]">
-      {/* Header */}
-      <section className="border rounded-xl bg-white p-3">
-        <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide">
-          RN Case Engine – Timeline & Summary
-        </div>
-        <p className="text-[10px] text-slate-500">
-          Case: <span className="font-mono">{caseId}</span> · Client:{" "}
-          <span className="font-semibold">{clientName}</span>
-        </p>
-      </section>
-
-      {/* Layout: RN Follow-Up + Summary + Timeline */}
-      <section className="grid md:grid-cols-[2fr,1.5fr] gap-3">
-        {/* Left side: RN Follow-Up + Summary stacked */}
-        <div className="space-y-3">
-          <RNFollowUpForm />
-
-          <CaseSummaryCard
-            caseId={caseId}
-            clientName={clientName}
-            crisisActive={crisisActive}
-          />
-        </div>
-
-        {/* Right side: Timeline */}
+    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      {/* Top bar */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #e2e8f0",
+          padding: "0.9rem 1.25rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
         <div>
-          <RNCaseTimeline />
+          <div style={{ fontSize: "1rem", fontWeight: 800, color: "#0f172a" }}>
+            Reconcile C.A.R.E.™ Demo
+          </div>
+          <div style={{ fontSize: "0.85rem", color: "#64748b" }}>
+            Attorney-facing preview of the Client experience + Attorney Console.
+          </div>
         </div>
-      </section>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {tabs.map((t) => {
+            const active = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                style={{
+                  padding: "0.45rem 0.95rem",
+                  borderRadius: "999px",
+                  border: active ? "1px solid #0f2a6a" : "1px solid #cbd5e1",
+                  background: active ? "#0f2a6a" : "#ffffff",
+                  color: active ? "#ffffff" : "#0f172a",
+                  fontSize: "0.9rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: "1.25rem" }}>{renderTab()}</div>
     </div>
   );
 };

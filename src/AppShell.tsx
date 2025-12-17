@@ -1,17 +1,10 @@
-// src/AppShell.tsx
-// Reconcile C.A.R.E. — Simple tabbed shell
-//
-// Tabs:
-//  - RN Case Engine (App)
-//  - Attorney Case Console
-//  - Buddy Crisis Screen
-//  - Supervisor Crisis Screen
-
 import React, { useState } from "react";
-import App from "./App";
-import AttorneyConsole from "./attorney/AttorneyConsole";
-import BuddyCrisisScreen from "./buddy/BuddyCrisisScreen";
-import SupervisorCrisisScreen from "./supervisor/SupervisorCrisisScreen";
+
+import RNConsole from "./screens/RNConsole";
+import AttorneyConsole from "./screens/AttorneyConsole";
+import BuddyCrisisScreen from "./screens/BuddyCrisisScreen";
+import SupervisorCrisisScreen from "./screens/SupervisorCrisisScreen";
+
 
 type TabKey = "rn" | "attorney" | "buddy" | "supervisor";
 
@@ -21,7 +14,7 @@ const AppShell: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "rn":
-        return <App />;
+        return <RNConsole />;
       case "attorney":
         return <AttorneyConsole />;
       case "buddy":
@@ -29,7 +22,7 @@ const AppShell: React.FC = () => {
       case "supervisor":
         return <SupervisorCrisisScreen />;
       default:
-        return <App />;
+        return <RNConsole />;
     }
   };
 
@@ -39,8 +32,9 @@ const AppShell: React.FC = () => {
       <header className="border-b bg-white">
         <div className="max-w-6xl mx-auto px-3 py-2 flex items-center justify-between">
           <div className="text-[12px] font-semibold tracking-wide uppercase">
-            Reconcile C.A.R.E. – RCMS Trial Shell
+            Reconcile C.A.R.E. | RCMS Trial Shell
           </div>
+
           <nav className="flex gap-2">
             <button
               onClick={() => setActiveTab("rn")}
@@ -53,6 +47,7 @@ const AppShell: React.FC = () => {
             >
               RN Case Engine
             </button>
+
             <button
               onClick={() => setActiveTab("attorney")}
               className={
@@ -64,6 +59,7 @@ const AppShell: React.FC = () => {
             >
               Attorney Console
             </button>
+
             <button
               onClick={() => setActiveTab("buddy")}
               className={
@@ -75,6 +71,7 @@ const AppShell: React.FC = () => {
             >
               Buddy Crisis Screen
             </button>
+
             <button
               onClick={() => setActiveTab("supervisor")}
               className={
@@ -91,9 +88,7 @@ const AppShell: React.FC = () => {
       </header>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-3 py-3">
-        {renderContent()}
-      </main>
+      <main className="max-w-6xl mx-auto px-3 py-3">{renderContent()}</main>
     </div>
   );
 };

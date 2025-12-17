@@ -1,21 +1,20 @@
 // src/attorney/AttorneyCaseConsole.tsx
 // Reconcile C.A.R.E. — Attorney Case Console (demo shell)
 //
-// Read-only trial view for attorneys, built on top of:
+// Uses:
 //  - CaseSummaryCard (4Ps + 10-Vs snapshot)
 //  - RN Case Timeline (high-level event stream)
-//
-// For now this is a shell component; later we will:
-//  - Wire to real case data (Supabase)
-//  - Add document links, tasks, and negotiation notes.
+//  - Shared crisisState so RN and attorney see same crisis flag.
 
 import React from "react";
 import { useMockDB } from "../lib/mockDB";
 import CaseSummaryCard from "../components/CaseSummaryCard";
 import { RNCaseTimeline } from "../components/RNCaseTimeline";
+import { useCrisisState } from "../domain/crisisState";
 
 const AttorneyCaseConsole: React.FC = () => {
   const { activeCase } = useMockDB() as any;
+  const { isInCrisis } = useCrisisState();
 
   if (!activeCase) {
     return (
@@ -32,8 +31,7 @@ const AttorneyCaseConsole: React.FC = () => {
   const caseId: string =
     activeCase.id ?? activeCase.caseId ?? client.id ?? "case-001";
 
-  // For now, crisis flag is static; later we will read from crisisState.
-  const crisisActive = false;
+  const crisisActive = !!isInCrisis;
 
   return (
     <div className="space-y-3 text-[11px] text-slate-800">
