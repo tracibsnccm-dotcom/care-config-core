@@ -3,7 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import AppShell from "./AppShell";
-import DemoHub from "./pages/DemoHub";
+import DemoHub from "./pages/DemoHub.tsx";
 
 import "./index.css";
 
