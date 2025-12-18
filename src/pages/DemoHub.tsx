@@ -6,7 +6,7 @@ import ClientIntakeScreen from "../screens/ClientIntakeScreen";
 
 type DemoView = "hub" | "attorney" | "client";
 
-const ACCESS_CODE = "RCMS-DEMO-2025";
+const ACCESS_CODE = "RCMS-CARE-2026";
 const STORAGE_KEY = "rcms_demo_unlocked_v1";
 
 const DemoHub: React.FC = () => {
