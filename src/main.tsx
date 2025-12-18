@@ -8,16 +8,23 @@ import DemoHub from "./pages/DemoHub";
 import "./index.css";
 
 function Root() {
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
-  const isDemoPath =
-    pathname === "/" || pathname === "/demo" || pathname.startsWith("/demo/");
+  // Handle both normal routing and hash routing just in case
+  const pathname = typeof window !== "undefined" ? window.location.pathname || "/" : "/";
+  const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
 
-  // Always show the gate on the public marketing entry points
-  if (isDemoPath) {
+  const isDemoEntry =
+    pathname === "/" ||
+    pathname === "/demo" ||
+    pathname.startsWith("/demo/") ||
+    hash === "#/" ||
+    hash.startsWith("#/demo");
+
+  // Force the gate to be the first thing users see on public entry links
+  if (isDemoEntry) {
     return <DemoHub />;
   }
 
-  // Everything else (internal shell)
+  // Everything else remains your internal app shell
   return <AppShell />;
 }
 
