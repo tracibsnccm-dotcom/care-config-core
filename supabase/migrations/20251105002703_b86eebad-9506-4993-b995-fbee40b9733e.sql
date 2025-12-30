@@ -1,0 +1,4 @@
+-- Add new role values to app_role enum
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'RN_CM';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'CLINICAL_STAFF_EXTERNAL';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'RCMS_CLINICAL_MGMT';

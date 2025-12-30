@@ -1,0 +1,376 @@
+import { useEffect, useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Download, Eye, FileText, Clock, User } from "lucide-react";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Document {
+  id: string;
+  created_at: string;
+  file_name: string;
+  case_id: string;
+  uploaded_by: string;
+  document_type: string;
+  status: string;
+  read_by: string[];
+  requires_attention: boolean;
+  file_path: string;
+  mime_type: string | null;
+  category?: string;
+  is_sensitive?: boolean;
+  note?: string;
+}
+
+interface ActivityLog {
+  id: string;
+  action_type: string;
+  performed_by_name: string;
+  performed_by_role: string;
+  created_at: string;
+  metadata: any;
+}
+
+interface DocumentPreviewDrawerProps {
+  document: Document | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+export function DocumentPreviewDrawer({
+  document,
+  isOpen,
+  onClose,
+  onUpdate,
+}: DocumentPreviewDrawerProps) {
+  const { toast } = useToast();
+  const [note, setNote] = useState("");
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [caseInfo, setCaseInfo] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (document) {
+      setNote(document.note || "");
+      fetchActivityLogs();
+      fetchCaseInfo();
+      generatePreviewUrl();
+      logView();
+    }
+  }, [document]);
+
+  const fetchActivityLogs = async () => {
+    if (!document) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("document_activity_log")
+        .select("*")
+        .eq("document_id", document.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setActivityLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+    }
+  };
+
+  const fetchCaseInfo = async () => {
+    if (!document) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("cases")
+        .select("id, status, client_label")
+        .eq("id", document.case_id)
+        .single();
+
+      if (error) throw error;
+      setCaseInfo(data);
+    } catch (error) {
+      console.error("Error fetching case info:", error);
+    }
+  };
+
+  const generatePreviewUrl = async () => {
+    if (!document) return;
+    
+    try {
+      const { data } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(document.file_path, 3600);
+
+      if (data?.signedUrl) {
+        setPreviewUrl(data.signedUrl);
+      }
+    } catch (error) {
+      console.error("Error generating preview URL:", error);
+    }
+  };
+
+  const logView = async () => {
+    if (!document) return;
+    
+    try {
+      await supabase.rpc("log_document_activity", {
+        p_document_id: document.id,
+        p_action_type: "viewed",
+      });
+    } catch (error) {
+      console.error("Error logging view:", error);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!document) return;
+
+    setSaving(true);
+    try {
+      const user = await supabase.auth.getUser();
+      
+      // Update document note
+      const { error: docError } = await supabase
+        .from("documents")
+        .update({ note })
+        .eq("id", document.id);
+
+      if (docError) throw docError;
+
+      // Mirror to case notes if note changed
+      if (note !== document.note && note.trim()) {
+        await supabase.from("case_notes").insert({
+          case_id: document.case_id,
+          note_text: `📎 Document note updated: ${document.file_name}\n${note}`,
+          created_by: user.data.user?.id,
+          visibility: "private",
+        });
+      }
+
+      toast({
+        title: "Note Saved",
+        description: "Document note updated and synced to case notes",
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error("Error saving note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save note",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!document || !previewUrl) return;
+
+    try {
+      await supabase.rpc("log_document_activity", {
+        p_document_id: document.id,
+        p_action_type: "downloaded",
+      });
+
+      window.open(previewUrl, "_blank");
+    } catch (error) {
+      console.error("Error downloading:", error);
+    }
+  };
+
+  if (!document) return null;
+
+  const isPdf = document.mime_type?.includes("pdf") || document.file_name.toLowerCase().endsWith(".pdf");
+  const isImage = document.mime_type?.startsWith("image/");
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            {document.file_name}
+          </SheetTitle>
+          <SheetDescription>
+            Document preview and details
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 mt-6">
+          {/* Preview */}
+          <div>
+            <h3 className="font-semibold mb-2">Preview</h3>
+            <div className="border rounded-lg overflow-hidden bg-muted/20">
+              {previewUrl && isPdf ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-96"
+                  title="Document Preview"
+                />
+              ) : previewUrl && isImage ? (
+                <img
+                  src={previewUrl}
+                  alt={document.file_name}
+                  className="w-full h-auto"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                  <FileText className="w-16 h-16 mb-4 opacity-50" />
+                  <p>Preview not available for this file type</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={handleDownload}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download to View
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Case Information */}
+          {caseInfo && (
+            <div>
+              <h3 className="font-semibold mb-3">Case Information</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Case ID:</span>
+                  <span className="font-mono">{caseInfo.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge variant="outline">{caseInfo.status}</Badge>
+                </div>
+                {caseInfo.client_label && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Client:</span>
+                    <span>{caseInfo.client_label}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Document Details */}
+          <div>
+            <h3 className="font-semibold mb-3">Document Details</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type:</span>
+                <Badge>{document.document_type}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Category:</span>
+                <Badge variant="outline">{document.category || "Other"}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <Badge variant={document.status === "reviewed" ? "default" : "secondary"}>
+                  {document.status}
+                </Badge>
+              </div>
+              {document.is_sensitive && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Sensitivity:</span>
+                  <Badge variant="destructive">🔒 Sensitive</Badge>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Uploaded:</span>
+                <span>{format(new Date(document.created_at), "MMM dd, yyyy HH:mm")}</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="drawer-note" className="text-base font-semibold">
+              Notes
+            </Label>
+            <p className="text-sm text-muted-foreground mb-3">
+              Changes will sync to case notes automatically
+            </p>
+            <Textarea
+              id="drawer-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add notes about this document..."
+              rows={4}
+              className="mb-3"
+            />
+            <Button onClick={handleSaveNote} disabled={saving || note === document.note}>
+              {saving ? "Saving..." : "Save Note"}
+            </Button>
+          </div>
+
+          <Separator />
+
+          {/* Activity History */}
+          <div>
+            <h3 className="font-semibold mb-3">Activity History</h3>
+            <ScrollArea className="h-64">
+              {activityLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No activity recorded</p>
+              ) : (
+                <div className="space-y-3">
+                  {activityLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex gap-3 text-sm border-l-2 border-border pl-3"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {log.action_type === "viewed" && <Eye className="w-4 h-4 text-blue-500" />}
+                        {log.action_type === "downloaded" && <Download className="w-4 h-4 text-green-500" />}
+                        {log.action_type === "marked_sensitive" && <FileText className="w-4 h-4 text-red-500" />}
+                        {log.action_type === "shared" && <User className="w-4 h-4 text-purple-500" />}
+                        {!["viewed", "downloaded", "marked_sensitive", "shared"].includes(log.action_type) && (
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {log.action_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {log.performed_by_name} ({log.performed_by_role})
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
