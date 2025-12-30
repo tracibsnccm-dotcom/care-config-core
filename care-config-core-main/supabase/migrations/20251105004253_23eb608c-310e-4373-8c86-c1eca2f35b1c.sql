@@ -1,0 +1,3 @@
+-- Add RN_CM_DIRECTOR and COMPLIANCE roles to app_role enum
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'RN_CM_DIRECTOR';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'COMPLIANCE';
