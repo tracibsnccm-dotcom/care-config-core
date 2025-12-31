@@ -52,6 +52,9 @@ type DemoReport = {
 const DEMO_MODE_STORAGE_KEY = "rcms_attorney_demo_mode";
 
 // ---- Storage helpers ----
+// TODO: Case data source - Currently reads from localStorage key "rcms_case_summary".
+// This is where RNPublishPanel writes published RN assessments (CaseSummary with fourPs, tenVs, sdoh, crisis).
+// In production, this should read from Supabase database table with caseId association, not global localStorage.
 function loadCaseSummaryFromStorage(): CaseSummary | null {
   if (typeof window === "undefined") return null;
   try {
@@ -117,6 +120,12 @@ function fmtDateTime(iso: string): string {
   }
 }
 
+// TODO: Hard-coded mock data - DEMO_CLIENTS contains static demo case data.
+// These are placeholder clients with embedded CaseSummary objects.
+// In production, this should be replaced with:
+//   1. ActiveCaseContext.useActiveCase() to get real case data
+//   2. Supabase queries to fetch cases assigned to this attorney
+//   3. Real case list from database, not hard-coded array
 // ---- Demo data ----
 const DEMO_CLIENTS: DemoClient[] = [
   {
@@ -257,6 +266,13 @@ const DEMO_CLIENTS: DemoClient[] = [
   },
 ];
 
+// TODO: Mock-only reports - buildDemoReports generates placeholder reports from summary data.
+// Currently creates structured DemoReport objects with static body text.
+// In production, reports should be:
+//   1. Generated from actual RN published summaries stored in database
+//   2. Include real narrative content from RN assessments
+//   3. Link to actual documents/artifacts stored in Supabase
+//   4. Support version history and updates from RN publish workflow
 function buildDemoReports(
   selectedClient: DemoClient,
   summary: CaseSummary | null
@@ -409,6 +425,13 @@ const AttorneyConsole: React.FC = () => {
     };
   }, []);
 
+  // TODO: Case data sourcing - In demo mode, reads from localStorage (published RN data) or falls back to hard-coded selectedClient.summary.
+  // When demoMode is OFF, summary is set to null (shows "awaiting onboarding").
+  // In production, this should:
+  //   1. Read from useActiveCase() context to get the active case
+  //   2. Fetch published RN summary from Supabase using activeCase.id
+  //   3. NOT use localStorage (browser-specific, not case-scoped)
+  //   4. NOT use hard-coded demo client data
   // Initialize/seed only in Demo Mode
   useEffect(() => {
     if (!demoMode) {
@@ -425,6 +448,12 @@ const AttorneyConsole: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMode]);
 
+  // TODO: Client switching - Currently uses hard-coded selectedClientId state with DEMO_CLIENTS array.
+  // When switching, it overwrites localStorage with the selected demo client's embedded summary.
+  // In production, this should:
+  //   1. Use useActiveCase().setActiveCaseById(caseId) to switch active case
+  //   2. Fetch the published RN summary for that case from Supabase
+  //   3. NOT overwrite localStorage (should be case-specific database records)
   // When switching clients: only in Demo Mode
   useEffect(() => {
     if (!demoMode) return;
@@ -450,6 +479,14 @@ const AttorneyConsole: React.FC = () => {
     }
   };
 
+  // TODO: Published RN data usage - These variables extract RN assessment data from the CaseSummary.
+  // This is where published RN output (from RNPublishPanel) appears:
+  //   - fourPs: 4Ps overallScore, narrative, dimensions array
+  //   - tenVs: 10-Vs overallScore, narrative, dimensions array  
+  //   - sdoh: SDOH overallScore, narrative
+  //   - crisis: Crisis severityScore
+  // Currently reads from summary state (loaded from localStorage in demo mode).
+  // In production, this data should come from Supabase table (rn_case_summaries) filtered by activeCase.id.
   const fourPs = summary?.fourPs;
   const tenVs = summary?.tenVs;
   const sdoh = summary?.sdoh;
@@ -1679,6 +1716,13 @@ const AttorneyConsole: React.FC = () => {
                 ))}
               </ul>
 
+              {/* TODO: Published RN narratives - These sections display RN assessment narratives from published CaseSummary.
+                  This is where RN → Attorney narrative output appears:
+                    - fourPsNarrative: From RN 4Ps screen, published via RNPublishPanel
+                    - tenVsNarrative: From RN 10-Vs screen, published via RNPublishPanel
+                    - sdoh.narrative: Shown in sdohRisk tab
+                  Currently works in demo mode when summary contains these narratives.
+                  In production, narratives should come from published RN summaries in Supabase database. */}
               {demoMode && fourPsNarrative && (
                 <div style={{ marginTop: "0.55rem", paddingTop: "0.55rem", borderTop: "1px solid #e2e8f0" }}>
                   <div style={{ fontSize: "0.9rem", fontWeight: 800, marginBottom: "0.25rem" }}>
@@ -1755,6 +1799,12 @@ const AttorneyConsole: React.FC = () => {
           );
 
         case "timeline":
+          // TODO: Missing RN output - Timeline tab is currently empty/placeholder.
+          // Expected to show: key events from RN timeline (visits, imaging, crises, major changes, RN contacts).
+          // This should be populated from RN TimelineScreen data, either:
+          //   1. A filtered/summarized version of RN timeline events
+          //   2. Or a separate attorney-facing timeline table in Supabase
+          // Currently no data source is wired - this is a future feature placeholder.
           return (
             <div style={{ borderRadius: "10px", border: "1px solid #e2e8f0", background: "#ffffff", padding: "0.95rem" }}>
               <div style={{ fontSize: "0.95rem", fontWeight: 800, marginBottom: "0.35rem" }}>

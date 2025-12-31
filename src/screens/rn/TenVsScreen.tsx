@@ -1,28 +1,30 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import {
   TEN_VS,
   SeverityScore,
-  CaseSummary,
+  TenVsSummary,
 } from "../../constants/reconcileFramework";
 
-function mergeCaseSummary(partial: Partial<CaseSummary>) {
-  if (typeof window === "undefined") return;
-  let existing: CaseSummary = {};
+const DRAFT_STORAGE_KEY = "rcms_tenVs_draft";
+
+function loadDraft(): TenVsSummary | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem("rcms_case_summary");
-    if (raw) existing = JSON.parse(raw);
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as TenVsSummary;
   } catch (e) {
-    console.error("Failed to load case summary", e);
+    console.error("Failed to load 10-Vs draft", e);
+    return null;
   }
-  const updated: CaseSummary = {
-    ...existing,
-    ...partial,
-    updatedAt: new Date().toISOString(),
-  };
+}
+
+function saveDraft(summary: TenVsSummary) {
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem("rcms_case_summary", JSON.stringify(updated));
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(summary));
   } catch (e) {
-    console.error("Failed to save case summary", e);
+    console.error("Failed to save 10-Vs draft", e);
   }
 }
 
@@ -51,6 +53,26 @@ const TenVsScreen: React.FC = () => {
     }))
   );
   const [narrative, setNarrative] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+
+  // Load existing draft on mount
+  useEffect(() => {
+    const existing = loadDraft();
+    if (existing) {
+      setNarrative(existing.narrative ?? "");
+      setDimensions((prev) =>
+        prev.map((d) => {
+          const match = existing.dimensions.find((x) => x.id === d.id);
+          if (!match) return d;
+          return {
+            id: d.id,
+            score: match.score,
+            note: match.note ?? "",
+          };
+        })
+      );
+    }
+  }, []);
 
   const overallScore: SeverityScore = computeOverallScore(dimensions);
 
@@ -58,6 +80,7 @@ const TenVsScreen: React.FC = () => {
     setDimensions((prev) =>
       prev.map((d) => (d.id === id ? { ...d, score } : d))
     );
+    setStatus(null);
   };
 
   const handleNoteChange =
@@ -66,14 +89,16 @@ const TenVsScreen: React.FC = () => {
       setDimensions((prev) =>
         prev.map((d) => (d.id === id ? { ...d, note: value } : d))
       );
+      setStatus(null);
     };
 
   const handleNarrativeChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setNarrative(e.target.value);
+    setStatus(null);
   };
 
   const handleSave = () => {
-    const tenVsSummary = {
+    const summary: TenVsSummary = {
       overallScore,
       dimensions: dimensions.map((d) => ({
         id: d.id,
@@ -83,10 +108,8 @@ const TenVsScreen: React.FC = () => {
       narrative: narrative.trim() || undefined,
     };
 
-    mergeCaseSummary({ tenVs: tenVsSummary });
-
-    console.log("10-Vs draft saved:", tenVsSummary);
-    alert("10-Vs draft saved and shared with Attorney Console.");
+    saveDraft(summary);
+    setStatus("10-Vs draft saved. This will be available for RN summaries and publishing.");
   };
 
   const severityOptions: { score: SeverityScore; label: string }[] = [
@@ -110,6 +133,33 @@ const TenVsScreen: React.FC = () => {
 
   return (
     <div>
+      {/* Back to Dashboard button */}
+      <button
+        type="button"
+        onClick={() => {
+          window.history.pushState({}, "", "/rn");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
+        style={{
+          padding: "0.4rem 0.8rem",
+          borderRadius: "999px",
+          border: "1px solid #cbd5e1",
+          background: "#ffffff",
+          color: "#0f172a",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          cursor: "pointer",
+          marginBottom: "0.75rem",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f8fafc";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#ffffff";
+        }}
+      >
+        ← Back to Dashboard
+      </button>
       {/* Header */}
       <div
         style={{
@@ -335,15 +385,29 @@ const TenVsScreen: React.FC = () => {
           gap: "0.75rem",
         }}
       >
-        <div
-          style={{
-            fontSize: "0.75rem",
-            color: "#64748b",
-          }}
-        >
-          The 10-Vs scores and narrative will feed into the Clinical Intelligence
-          Engine and Attorney Console. Overall 10-Vs score is the average of all
-          10 Vs (1–5).
+        <div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "#64748b",
+            }}
+          >
+            The 10-Vs scores and narrative will feed into the Clinical Intelligence
+            Engine and Attorney Console. Overall 10-Vs score is the average of all
+            10 Vs (1–5).
+          </div>
+          {status && (
+            <div
+              style={{
+                fontSize: "0.75rem",
+                color: status.startsWith("Please") ? "#b45309" : "#16a34a",
+                marginTop: "0.25rem",
+                fontWeight: 500,
+              }}
+            >
+              {status}
+            </div>
+          )}
         </div>
 
         <button

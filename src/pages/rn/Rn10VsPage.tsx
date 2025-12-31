@@ -1,6 +1,5 @@
 // src/pages/rn/Rn10VsPage.tsx
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 
 type VKey =
   | "value"
@@ -34,8 +33,17 @@ const makeInitial = (): Record<VKey, VState> => ({
 });
 
 const Rn10VsPage: React.FC = () => {
-  const { caseId } = useParams();
-  const navigate = useNavigate();
+  // Get caseId from localStorage or URL pathname (not using react-router params)
+  const getCaseId = (): string | null => {
+    if (typeof window === "undefined") return null;
+    // Try to get from localStorage first
+    const stored = window.localStorage.getItem("rcms_active_case_id");
+    if (stored) return stored;
+    // Fallback: try to parse from pathname if it contains caseId pattern
+    const pathMatch = window.location.pathname.match(/\/case\/([^/]+)/);
+    return pathMatch ? pathMatch[1] : null;
+  };
+  const caseId = getCaseId();
   const [vs, setVs] = useState<Record<VKey, VState>>(makeInitial);
 
   const keys: VKey[] = [
@@ -82,7 +90,8 @@ const Rn10VsPage: React.FC = () => {
   };
 
   const handleBackToDashboard = () => {
-    navigate("/rn-dashboard");
+    window.history.pushState({}, "", "/rn/dashboard");
+    window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   return (

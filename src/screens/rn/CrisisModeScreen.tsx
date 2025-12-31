@@ -1,27 +1,29 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import {
   SeverityScore,
-  CaseSummary,
+  CrisisSummary,
 } from "../../constants/reconcileFramework";
 
-function mergeCaseSummary(partial: Partial<CaseSummary>) {
-  if (typeof window === "undefined") return;
-  let existing: CaseSummary = {};
+const DRAFT_STORAGE_KEY = "rcms_crisis_draft";
+
+function loadDraft(): CrisisSummary | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem("rcms_case_summary");
-    if (raw) existing = JSON.parse(raw);
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CrisisSummary;
   } catch (e) {
-    console.error("Failed to load case summary", e);
+    console.error("Failed to load Crisis draft", e);
+    return null;
   }
-  const updated: CaseSummary = {
-    ...existing,
-    ...partial,
-    updatedAt: new Date().toISOString(),
-  };
+}
+
+function saveDraft(summary: CrisisSummary) {
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem("rcms_case_summary", JSON.stringify(updated));
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(summary));
   } catch (e) {
-    console.error("Failed to save case summary", e);
+    console.error("Failed to save Crisis draft", e);
   }
 }
 
@@ -56,36 +58,56 @@ function crisisPhaseToSeverity(phase: CrisisPhase): SeverityScore {
   }
 }
 
+function severityToCrisisPhase(score: SeverityScore): CrisisPhase {
+  switch (score) {
+    case 1:
+      return "Active Crisis";
+    case 2:
+      return "Escalating";
+    case 3:
+      return "Post-Crisis";
+    case 4:
+      return "Monitoring";
+    case 5:
+    default:
+      return "Baseline / No Current Crisis";
+  }
+}
+
 const CrisisModeScreen: React.FC = () => {
   const [phase, setPhase] = useState<CrisisPhase>(
     "Baseline / No Current Crisis"
   );
   const [note, setNote] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+
+  // Load existing draft on mount
+  useEffect(() => {
+    const existing = loadDraft();
+    if (existing) {
+      setPhase(severityToCrisisPhase(existing.severityScore));
+    }
+  }, []);
 
   const severityScore: SeverityScore = crisisPhaseToSeverity(phase);
 
   const handlePhaseChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setPhase(e.target.value as CrisisPhase);
+    setStatus(null);
   };
 
   const handleNoteChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setNote(e.target.value);
+    setStatus(null);
   };
 
   const handleSave = () => {
-    const crisisSummary = {
+    const summary: CrisisSummary = {
       severityScore,
     };
 
-    mergeCaseSummary({ crisis: crisisSummary });
-
-    console.log("Crisis draft saved:", {
-      phase,
-      severityScore,
-      note: note.trim() || undefined,
-    });
-
-    alert("Crisis Mode severity saved and shared with Attorney Console.");
+    saveDraft(summary);
+    setStatus("Crisis draft saved. This will be available for RN summaries and publishing.");
   };
 
   const severityColor =
@@ -101,6 +123,33 @@ const CrisisModeScreen: React.FC = () => {
 
   return (
     <div>
+      {/* Back to Dashboard button */}
+      <button
+        type="button"
+        onClick={() => {
+          window.history.pushState({}, "", "/rn");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
+        style={{
+          padding: "0.4rem 0.8rem",
+          borderRadius: "999px",
+          border: "1px solid #cbd5e1",
+          background: "#ffffff",
+          color: "#0f172a",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          cursor: "pointer",
+          marginBottom: "0.75rem",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f8fafc";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#ffffff";
+        }}
+      >
+        ← Back to Dashboard
+      </button>
       {/* Header */}
       <div
         style={{
@@ -263,15 +312,29 @@ const CrisisModeScreen: React.FC = () => {
           gap: "0.75rem",
         }}
       >
-        <div
-          style={{
-            fontSize: "0.75rem",
-            color: "#64748b",
-          }}
-        >
-          Crisis severity is aligned to the same 1–5 scale as the Ps, Vs, and
-          SDOH so the Attorney Console can show the worst clinical concern at a
-          glance.
+        <div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "#64748b",
+            }}
+          >
+            Crisis severity is aligned to the same 1–5 scale as the Ps, Vs, and
+            SDOH so the Attorney Console can show the worst clinical concern at a
+            glance.
+          </div>
+          {status && (
+            <div
+              style={{
+                fontSize: "0.75rem",
+                color: status.startsWith("Please") ? "#b45309" : "#16a34a",
+                marginTop: "0.25rem",
+                fontWeight: 500,
+              }}
+            >
+              {status}
+            </div>
+          )}
         </div>
 
         <button

@@ -1,81 +1,141 @@
 // src/pages/rn/RnDashboardPage.tsx
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useMockDB } from "../../lib/mockDB";
 
 const RnDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [caseId, setCaseId] = useState("");
+  const { cases, activeIndex, setActiveIndex, activeCase } = useMockDB();
 
   const handleOpen4Ps = () => {
-    if (!caseId.trim()) {
-      alert("Please enter a Case ID first.");
+    if (!activeCase) {
+      alert("Select a case first.");
       return;
     }
-    navigate(`/rn/case/${caseId.trim()}/4ps`);
+    navigate(`/rn/case/${activeCase.id}/4ps`);
   };
 
   const handleOpen10Vs = () => {
-    if (!caseId.trim()) {
-      alert("Please enter a Case ID first.");
+    if (!activeCase) {
+      alert("Select a case first.");
       return;
     }
-    navigate(`/rn/case/${caseId.trim()}/10vs`);
+    navigate(`/rn/case/${activeCase.id}/10vs`);
   };
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-slate-900">
-          RN Case Engine — Pilot Workspace
+          RN Dashboard
         </h1>
         <p className="mt-2 text-sm text-slate-700 max-w-2xl">
-          This dashboard is your starting point for testing the{" "}
-          <strong>4Ps of Wellness Holistic Insight Model™</strong> and the{" "}
-          <strong>10-V of Care Management Framework™</strong> on real or pilot cases.
-          For now, paste a Case ID and jump into the assessment screens.
+          Access your RN portal, caseload, and clinical management tools from this dashboard.
         </p>
       </header>
 
       <section className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">
-          Open a Case for Assessment
+        <div className="mb-4">
+          <label htmlFor="caseSelector" className="block text-sm font-medium text-slate-700 mb-2">
+            Select Active Case
+          </label>
+          {cases.length > 0 ? (
+            <select
+              id="caseSelector"
+              value={activeIndex}
+              onChange={(e) => setActiveIndex(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+            >
+              {cases.map((case_, index) => (
+                <option key={case_.id} value={index}>
+                  {case_.shortId} — {case_.client.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="text-sm text-slate-600">No cases available</div>
+          )}
+        </div>
+
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          Case Assessments
         </h2>
-        <p className="text-xs text-slate-600 mb-4">
-          You can use any valid <code className="font-mono">rc_cases.id</code> from
-          Supabase (for example, your Dev Case) to test the workflow. Later this
-          will be wired to your real case list and notifications.
-        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={handleOpen4Ps}
+            className="flex-1 px-6 py-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Open 4Ps
+          </button>
+          <button
+            type="button"
+            onClick={handleOpen10Vs}
+            className="flex-1 px-6 py-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Open 10-Vs
+          </button>
+        </div>
+      </section>
 
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Case ID
-            </label>
-            <input
-              type="text"
-              value={caseId}
-              onChange={(e) => setCaseId(e.target.value)}
-              placeholder="Paste or type the Case ID (e.g. rc_cases.id)"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/70 focus:border-slate-900"
-            />
-          </div>
+      <section className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          Primary Navigation
+        </h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/rn-portal-landing";
+            }}
+            className="flex-1 px-6 py-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Open RN Portal
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/rn/caseload";
+            }}
+            className="flex-1 px-6 py-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Open RN Caseload
+          </button>
+        </div>
+      </section>
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleOpen4Ps}
-              className="whitespace-nowrap px-4 py-2 rounded-md text-xs font-medium bg-slate-900 text-white hover:bg-slate-800"
-            >
-              Open 4Ps Assessment
-            </button>
-            <button
-              type="button"
-              onClick={handleOpen10Vs}
-              className="whitespace-nowrap px-4 py-2 rounded-md text-xs font-medium border border-slate-300 text-slate-800 bg-white hover:bg-slate-50"
-            >
-              Open 10-Vs Engine
-            </button>
-          </div>
+      <section className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          Quick Links
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/rn-diary";
+            }}
+            className="px-4 py-2 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            RN Diary
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/rn/settings";
+            }}
+            className="px-4 py-2 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            RN Settings
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/rn-clinical-liaison";
+            }}
+            className="px-4 py-2 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            RN Clinical Liaison
+          </button>
         </div>
       </section>
 

@@ -326,6 +326,33 @@ const SDOHScreen: React.FC = () => {
 
   return (
     <div>
+      {/* Back to Dashboard button */}
+      <button
+        type="button"
+        onClick={() => {
+          window.history.pushState({}, "", "/rn");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
+        style={{
+          padding: "0.4rem 0.8rem",
+          borderRadius: "999px",
+          border: "1px solid #cbd5e1",
+          background: "#ffffff",
+          color: "#0f172a",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          cursor: "pointer",
+          marginBottom: "0.75rem",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f8fafc";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#ffffff";
+        }}
+      >
+        ← Back to Dashboard
+      </button>
       {/* Header */}
       <div
         style={{

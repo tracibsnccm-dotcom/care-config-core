@@ -10,6 +10,8 @@ import {
 } from "../../constants/reconcileFramework";
 
 const SCORE_OPTIONS: SeverityScore[] = [1, 2, 3, 4, 5];
+// TODO: localStorage draft key used - "rcms_fourPs_draft" stores the DRAFT (unpublished) FourPsSummary object.
+// This is a GLOBAL localStorage key (not case-scoped). In production, should be scoped by caseId.
 const DRAFT_STORAGE_KEY = "rcms_fourPs_draft";
 
 interface DimensionDraft {
@@ -114,6 +116,17 @@ const FourPsScreen: React.FC = () => {
     setStatus(null);
   };
 
+  // TODO: Data shape saved - saveDraft() writes a FourPsSummary object to localStorage:
+  //   - overallScore: SeverityScore (1-5, computed as the lowest/worst dimension score using Maslow logic)
+  //   - dimensions: Array of { id: string, score: SeverityScore, note?: string } (only dimensions with non-null scores are included)
+  //   - narrative?: string (optional RN care narrative summarizing how 4Ps interact)
+  // TODO: What is attorney-facing vs RN-only:
+  //   - Attorney-facing (published to Attorney Console): overallScore, dimensions scores, narrative
+  //   - RN-only (internal notes): dimension notes (per-domain clinical notes, not included in published summary)
+  //   The narrative field is explicitly labeled as "attorney-facing" in the UI and will be displayed in Attorney Console.
+  // TODO: How RNPublishPanel is expected to consume it - RNPublishPanel.loadFourPsDraft() reads from "rcms_fourPs_draft"
+  //   and includes the entire FourPsSummary (overallScore, dimensions array, narrative) in the published CaseSummary.
+  //   When RN publishes, RNPublishPanel collects this draft and includes it as summary.fourPs in the published summary.
   const handleSaveDraft = () => {
     const score = overallScore;
     if (!score) {
@@ -139,6 +152,33 @@ const FourPsScreen: React.FC = () => {
 
   return (
     <div>
+      {/* Back to Dashboard button */}
+      <button
+        type="button"
+        onClick={() => {
+          window.history.pushState({}, "", "/rn");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
+        style={{
+          padding: "0.4rem 0.8rem",
+          borderRadius: "999px",
+          border: "1px solid #cbd5e1",
+          background: "#ffffff",
+          color: "#0f172a",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          cursor: "pointer",
+          marginBottom: "0.75rem",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f8fafc";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#ffffff";
+        }}
+      >
+        ← Back to Dashboard
+      </button>
       <div
         style={{
           marginBottom: "0.75rem",
