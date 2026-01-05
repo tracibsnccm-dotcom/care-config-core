@@ -9,6 +9,7 @@ import {
   CrisisSummary,
   getSeverityLabel,
 } from "../constants/reconcileFramework";
+import { supabase } from "@/integrations/supabase/client";
 
 const FOUR_PS_DRAFT_KEY = "rcms_fourPs_draft";
 const TEN_VS_DRAFT_KEY = "rcms_tenVs_draft";
@@ -19,6 +20,22 @@ interface StoredVersion {
   version: number;
   publishedAt: string;
   summary: CaseSummary;
+}
+
+interface RCCase {
+  id: string;
+  case_status: string | null;
+  fourps: any;
+  incident: any;
+  revision_of_case_id: string | null;
+  rn_cm_id: string | null;
+  case_type: string | null;
+  date_of_injury: string | null;
+  jurisdiction: string | null;
+  released_at: string | null;
+  client_id: string | null;
+  attorney_id: string | null;
+  created_at: string;
 }
 
 function loadFourPsDraft(): FourPsSummary | null {
@@ -74,7 +91,8 @@ const RNPublishPanel: React.FC = () => {
   const [tenVsDraft, setTenVsDraft] = useState<TenVsSummary | null>(null);
   const [sdohDraft, setSdohDraft] = useState<SdohSummary | null>(null);
   const [crisisDraft, setCrisisDraft] = useState<CrisisSummary | null>(null);
-
+  const [currentCase, setCurrentCase] = useState<RCCase | null>(null);
+  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const loadAllDrafts = () => {
@@ -84,32 +102,62 @@ const RNPublishPanel: React.FC = () => {
     setCrisisDraft(loadCrisisDraft());
   };
 
-  // Load drafts when panel mounts
+  const loadCase = async () => {
+    if (typeof window === "undefined") return;
+    const activeCaseId = window.localStorage.getItem("rcms_active_case_id");
+    if (!activeCaseId) {
+      setStatus("No active case selected.");
+      setCurrentCase(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("rc_cases")
+        .select("*")
+        .eq("id", activeCaseId)
+        .single();
+
+      if (error) throw error;
+      if (!data) {
+        setStatus("Case not found.");
+        setCurrentCase(null);
+        return;
+      }
+
+      setCurrentCase(data as RCCase);
+      setStatus(null);
+    } catch (e) {
+      console.error("Failed to load case", e);
+      setStatus("Error loading case. Check console.");
+      setCurrentCase(null);
+    }
+  };
+
   useEffect(() => {
     loadAllDrafts();
+    loadCase();
   }, []);
 
-  const handlePublish = () => {
-    // Always grab the freshest drafts right before publishing
+  const buildCaseSummary = (): CaseSummary => {
     const latestFourPs = loadFourPsDraft();
     const latestTenVs = loadTenVsDraft();
     const latestSdoh = loadSdohDraft();
     const latestCrisis = loadCrisisDraft();
 
-    const summary: CaseSummary = {
+    return {
       fourPs: latestFourPs ?? undefined,
       tenVs: latestTenVs ?? undefined,
       sdoh: latestSdoh ?? undefined,
       crisis: latestCrisis ?? undefined,
       updatedAt: new Date().toISOString(),
     };
+  };
+
+  const updateLocalStorageHistory = (summary: CaseSummary) => {
+    if (typeof window === "undefined") return;
 
     try {
-      if (typeof window === "undefined") {
-        setStatus("Unable to publish (no window).");
-        return;
-      }
-
       const rawHistory = window.localStorage.getItem(
         "rcms_case_summary_versions"
       );
@@ -135,24 +183,153 @@ const RNPublishPanel: React.FC = () => {
 
       const newHistory = [...history, record];
 
-      // Save latest summary (what Attorney Console + RN summary card read)
       window.localStorage.setItem(
         "rcms_case_summary",
         JSON.stringify(summary)
       );
 
-      // Save version history
       window.localStorage.setItem(
         "rcms_case_summary_versions",
         JSON.stringify(newHistory)
       );
+    } catch (e) {
+      console.error("Failed to update localStorage history", e);
+    }
+  };
+
+  const handleRelease = async () => {
+    if (!currentCase) {
+      setStatus("No active case.");
+      return;
+    }
+
+    if (currentCase.case_status === "released" || currentCase.case_status === "closed") {
+      setStatus("Cannot release: case is already released or closed.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const summary = buildCaseSummary();
+      const isRevision = currentCase.case_status === "revised";
+
+      // Get current version from incident or default to 1
+      const currentIncident = currentCase.incident || {};
+      const currentVersion = currentIncident.rn_publish_version || 0;
+      const nextVersion = currentVersion + 1;
+
+      const updatedIncident = {
+        ...currentIncident,
+        rn_summary: summary,
+        rn_publish_version: nextVersion,
+        rn_last_published_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("rc_cases")
+        .update({
+          case_status: "released",
+          fourps: summary.fourPs || null,
+          incident: updatedIncident,
+          released_at: new Date().toISOString(),
+        })
+        .eq("id", currentCase.id);
+
+      if (error) throw error;
+
+      updateLocalStorageHistory(summary);
 
       setStatus(
-        `Published as version v${nextVersion}. Attorney Console is now up to date.`
+        isRevision
+          ? `Revision released successfully as version v${nextVersion}.`
+          : `Released successfully as version v${nextVersion}.`
       );
+
+      await loadCase();
     } catch (e) {
-      console.error("Failed to publish RN case summary", e);
-      setStatus("Error publishing summary. Check console.");
+      console.error("Failed to release case", e);
+      setStatus("Error releasing case. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevise = async () => {
+    if (!currentCase) {
+      setStatus("No active case.");
+      return;
+    }
+
+    if (currentCase.case_status !== "released") {
+      setStatus("Can only revise released cases.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: newCase, error } = await supabase
+        .from("rc_cases")
+        .insert({
+          case_status: "revised",
+          revision_of_case_id: currentCase.id,
+          rn_cm_id: currentCase.rn_cm_id,
+          case_type: currentCase.case_type,
+          date_of_injury: currentCase.date_of_injury,
+          jurisdiction: currentCase.jurisdiction,
+          fourps: currentCase.fourps,
+          incident: currentCase.incident,
+          client_id: currentCase.client_id || null,
+          attorney_id: currentCase.attorney_id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!newCase) throw new Error("Failed to create revision");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("rcms_active_case_id", newCase.id);
+      }
+
+      setStatus("Revision created. You can now edit and release the revision.");
+      await loadCase();
+    } catch (e) {
+      console.error("Failed to create revision", e);
+      setStatus("Error creating revision. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!currentCase) {
+      setStatus("No active case.");
+      return;
+    }
+
+    if (currentCase.case_status !== "released") {
+      setStatus("Can only close released cases.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("rc_cases")
+        .update({
+          case_status: "closed",
+        })
+        .eq("id", currentCase.id);
+
+      if (error) throw error;
+
+      setStatus("Case closed. No further edits allowed.");
+      await loadCase();
+    } catch (e) {
+      console.error("Failed to close case", e);
+      setStatus("Error closing case. Check console.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -193,6 +370,11 @@ const RNPublishPanel: React.FC = () => {
   const sdohOverall = sdohDraft?.overallScore ?? null;
   const crisisSeverity = crisisDraft?.severityScore ?? null;
 
+  const caseStatus = currentCase?.case_status || "unknown";
+  const releasedAt = currentCase?.released_at
+    ? new Date(currentCase.released_at).toLocaleString()
+    : null;
+
   return (
     <div
       style={{
@@ -221,7 +403,7 @@ const RNPublishPanel: React.FC = () => {
               marginBottom: "0.15rem",
             }}
           >
-            RN → Attorney Publish Panel
+            RN Case Workflow
           </div>
           <div
             style={{
@@ -240,11 +422,42 @@ const RNPublishPanel: React.FC = () => {
             textAlign: "right",
           }}
         >
-          4Ps, 10-Vs, SDOH, and Crisis scores & narratives are taken directly
-          from the RN screens. Update them there, save drafts, then publish
-          here.
+          Workflow: <strong>working → released → revised → released → closed</strong>
         </div>
       </div>
+
+      {/* Case Status Display */}
+      {currentCase && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.6rem 0.75rem",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            background: "#f8fafc",
+            fontSize: "0.78rem",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.75rem",
+              textTransform: "uppercase",
+              color: "#64748b",
+              marginBottom: "0.25rem",
+            }}
+          >
+            Case Status
+          </div>
+          <div style={{ color: "#0f172a", fontWeight: 500 }}>
+            Status: <strong>{caseStatus}</strong>
+          </div>
+          {releasedAt && (
+            <div style={{ color: "#64748b", marginTop: "0.2rem" }}>
+              Released: {releasedAt}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Snapshot of what will be published */}
       <div
@@ -394,40 +607,102 @@ const RNPublishPanel: React.FC = () => {
           gap: "0.75rem",
         }}
       >
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            type="button"
-            onClick={handlePublish}
-            style={{
-              padding: "0.45rem 1rem",
-              borderRadius: "999px",
-              border: "none",
-              background: "#0f2a6a",
-              color: "#ffffff",
-              fontSize: "0.8rem",
-              cursor: "pointer",
-            }}
-          >
-            Publish latest drafts to Attorney Console
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              loadAllDrafts();
-              setStatus("Reloaded latest RN drafts.");
-            }}
-            style={{
-              padding: "0.4rem 0.9rem",
-              borderRadius: "999px",
-              border: "1px solid #cbd5e1",
-              background: "#ffffff",
-              color: "#0f172a",
-              fontSize: "0.78rem",
-              cursor: "pointer",
-            }}
-          >
-            Reload drafts
-          </button>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {caseStatus === "working" && (
+            <button
+              type="button"
+              onClick={handleRelease}
+              disabled={loading}
+              style={{
+                padding: "0.45rem 1rem",
+                borderRadius: "999px",
+                border: "none",
+                background: loading ? "#94a3b8" : "#0f2a6a",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              Release
+            </button>
+          )}
+
+          {caseStatus === "revised" && (
+            <button
+              type="button"
+              onClick={handleRelease}
+              disabled={loading}
+              style={{
+                padding: "0.45rem 1rem",
+                borderRadius: "999px",
+                border: "none",
+                background: loading ? "#94a3b8" : "#0f2a6a",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              Release Revision
+            </button>
+          )}
+
+          {caseStatus === "released" && (
+            <>
+              <button
+                type="button"
+                onClick={handleRevise}
+                disabled={loading}
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  background: loading ? "#94a3b8" : "#0f2a6a",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                Revise
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  background: loading ? "#94a3b8" : "#dc2626",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                Close
+              </button>
+            </>
+          )}
+
+          {caseStatus !== "closed" && (
+            <button
+              type="button"
+              onClick={() => {
+                loadAllDrafts();
+                setStatus("Reloaded latest RN drafts.");
+              }}
+              style={{
+                padding: "0.4rem 0.9rem",
+                borderRadius: "999px",
+                border: "1px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "0.78rem",
+                cursor: "pointer",
+              }}
+            >
+              Reload drafts
+            </button>
+          )}
         </div>
         {status && (
           <div
@@ -435,10 +710,11 @@ const RNPublishPanel: React.FC = () => {
               fontSize: "0.76rem",
               color: status.startsWith("Error")
                 ? "#b91c1c"
-                : status.startsWith("Unable")
+                : status.startsWith("Unable") || status.startsWith("Cannot") || status.startsWith("Can only")
                 ? "#b45309"
                 : "#16a34a",
               textAlign: "right",
+              maxWidth: "400px",
             }}
           >
             {status}
