@@ -16,6 +16,15 @@ const TEN_VS_DRAFT_KEY = "rcms_tenVs_draft";
 const SDOH_DRAFT_KEY = "rcms_sdoh_draft";
 const CRISIS_DRAFT_KEY = "rcms_crisis_draft";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeCaseId(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = String(raw).trim().replace(/^"+|"+$/g, "");
+  if (!v) return null;
+  return UUID_RE.test(v) ? v : null;
+}
+
 interface StoredVersion {
   version: number;
   publishedAt: string;
@@ -94,6 +103,8 @@ const RNPublishPanel: React.FC = () => {
   const [currentCase, setCurrentCase] = useState<RCCase | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [banner, setBanner] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
 
   const loadAllDrafts = () => {
     setFourPsDraft(loadFourPsDraft());
@@ -104,8 +115,9 @@ const RNPublishPanel: React.FC = () => {
 
   const loadCase = async () => {
     if (typeof window === "undefined") return;
-    const activeCaseId = window.localStorage.getItem("rcms_active_case_id");
-    if (!activeCaseId) {
+    const raw = window.localStorage.getItem("rcms_active_case_id");
+    const caseId = normalizeCaseId(raw);
+    if (!caseId) {
       setStatus("No active case selected.");
       setCurrentCase(null);
       return;
@@ -115,7 +127,7 @@ const RNPublishPanel: React.FC = () => {
       const { data, error } = await supabase
         .from("rc_cases")
         .select("*")
-        .eq("id", activeCaseId)
+        .eq("id", caseId)
         .single();
 
       if (error) throw error;
@@ -127,9 +139,10 @@ const RNPublishPanel: React.FC = () => {
 
       setCurrentCase(data as RCCase);
       setStatus(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to load case", e);
-      setStatus("Error loading case. Check console.");
+      const msg = typeof e?.message === "string" ? e.message : "Unknown error";
+      setStatus(`Error loading case: ${msg}`);
       setCurrentCase(null);
     }
   };
@@ -208,8 +221,26 @@ const RNPublishPanel: React.FC = () => {
       return;
     }
 
+    setBusy(true);
+    setBanner(null);
     setLoading(true);
     try {
+      const caseIdToUpdate = currentCase?.id;
+
+      console.log("RELEASE_CLICK", {
+        currentCaseId: currentCase?.id,
+        currentCaseStatus: currentCase?.case_status,
+        revisionOf: currentCase?.revision_of_case_id,
+      });
+
+      if (!caseIdToUpdate) {
+        setBanner({ type: "error", message: "Release failed: no active case loaded." });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      setBanner({ type: "info", message: `Releasing case ${currentCase?.id} (status=${currentCase?.case_status})...` });
+
       const summary = buildCaseSummary();
       const isRevision = currentCase.case_status === "revised";
 
@@ -225,7 +256,7 @@ const RNPublishPanel: React.FC = () => {
         rn_last_published_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("rc_cases")
         .update({
           case_status: "released",
@@ -233,11 +264,39 @@ const RNPublishPanel: React.FC = () => {
           incident: updatedIncident,
           released_at: new Date().toISOString(),
         })
-        .eq("id", currentCase.id);
+        .eq("id", caseIdToUpdate)
+        .in("case_status", ["draft", "working", "revised"])
+        .select("id, case_status, released_at");
 
-      if (error) throw error;
+      if (error) {
+        const msg = typeof error?.message === "string" ? error.message : "Unknown error";
+        setBanner({ type: "error", message: `Release failed: ${msg}` });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setStatus("Error releasing case. Check console.");
+        return;
+      }
+
+      if (!data || data.length !== 1) {
+        const count = data?.length ?? 0;
+        setBanner({ type: "error", message: `Release failed: expected 1 row updated, got ${count}` });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setStatus("Error releasing case. No rows updated.");
+        return;
+      }
+
+      const updatedCase = data[0];
+
+      if (updatedCase.case_status !== "released") {
+        setBanner({ type: "error", message: "Release failed: Release did not set status to released" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setStatus("Error releasing case. Status not updated.");
+        return;
+      }
 
       updateLocalStorageHistory(summary);
+
+      setBanner({ type: "success", message: "Released successfully. Attorney view is now synced." });
+      window.scrollTo({ top: 0, behavior: "smooth" });
 
       setStatus(
         isRevision
@@ -246,11 +305,16 @@ const RNPublishPanel: React.FC = () => {
       );
 
       await loadCase();
-    } catch (e) {
+      window.location.reload();
+    } catch (e: any) {
       console.error("Failed to release case", e);
+      const msg = typeof e?.message === "string" ? e.message : "Unknown error";
+      setBanner({ type: "error", message: `Release failed: ${msg}` });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setStatus("Error releasing case. Check console.");
     } finally {
       setLoading(false);
+      setBusy(false);
     }
   };
 
@@ -270,7 +334,7 @@ const RNPublishPanel: React.FC = () => {
       const { data: newCase, error } = await supabase
         .from("rc_cases")
         .insert({
-          case_status: "revised",
+          case_status: "draft",
           revision_of_case_id: currentCase.id,
           rn_cm_id: currentCase.rn_cm_id,
           case_type: currentCase.case_type,
@@ -287,12 +351,19 @@ const RNPublishPanel: React.FC = () => {
       if (error) throw error;
       if (!newCase) throw new Error("Failed to create revision");
 
+      const newCaseId = newCase.id;
+
+      // Update active case for RN session
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("rcms_active_case_id", newCase.id);
+        window.localStorage.setItem("rcms_active_case_id", newCaseId);
       }
 
-      setStatus("Revision created. You can now edit and release the revision.");
-      await loadCase();
+      // Show banner and reload to switch to new revision
+      setBanner({ type: "success", message: `Revision created. Switching to ${newCaseId.slice(0, 8)}…` });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Force reload so RNCaseEngine re-reads case status and unlocks
+      setTimeout(() => window.location.reload(), 250);
     } catch (e) {
       console.error("Failed to create revision", e);
       setStatus("Error creating revision. Check console.");
@@ -374,6 +445,9 @@ const RNPublishPanel: React.FC = () => {
   const releasedAt = currentCase?.released_at
     ? new Date(currentCase.released_at).toLocaleString()
     : null;
+
+  const isDraft = currentCase?.case_status === "draft";
+  const isRevision = currentCase?.revision_of_case_id != null;
 
   return (
     <div
@@ -598,6 +672,64 @@ const RNPublishPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* Banner */}
+      {banner && (
+        <div
+          style={{
+            marginBottom: "0.85rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: `1px solid ${
+              banner.type === "success"
+                ? "#10b981"
+                : banner.type === "error"
+                ? "#ef4444"
+                : "#6b7280"
+            }`,
+            background:
+              banner.type === "success"
+                ? "#d1fae5"
+                : banner.type === "error"
+                ? "#fee2e2"
+                : "#f3f4f6",
+            color:
+              banner.type === "success"
+                ? "#065f46"
+                : banner.type === "error"
+                ? "#991b1b"
+                : "#374151",
+            fontSize: "0.85rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <div style={{ flex: 1 }}>{banner.message}</div>
+          <button
+            type="button"
+            onClick={() => setBanner(null)}
+            style={{
+              padding: "0.25rem 0.5rem",
+              borderRadius: "4px",
+              border: "none",
+              background: "rgba(0, 0, 0, 0.1)",
+              color: "inherit",
+              fontSize: "0.75rem",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(0, 0, 0, 0.2)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(0, 0, 0, 0.1)";
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Buttons + status */}
       <div
         style={{
@@ -608,41 +740,28 @@ const RNPublishPanel: React.FC = () => {
         }}
       >
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          {caseStatus === "working" && (
+          {["draft", "working", "revised"].includes(caseStatus) && (
             <button
               type="button"
               onClick={handleRelease}
-              disabled={loading}
+              disabled={busy}
               style={{
                 padding: "0.45rem 1rem",
                 borderRadius: "999px",
                 border: "none",
-                background: loading ? "#94a3b8" : "#0f2a6a",
+                background: busy ? "#94a3b8" : "#0f2a6a",
                 color: "#ffffff",
                 fontSize: "0.8rem",
-                cursor: loading ? "not-allowed" : "pointer",
+                cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              Release
-            </button>
-          )}
-
-          {caseStatus === "revised" && (
-            <button
-              type="button"
-              onClick={handleRelease}
-              disabled={loading}
-              style={{
-                padding: "0.45rem 1rem",
-                borderRadius: "999px",
-                border: "none",
-                background: loading ? "#94a3b8" : "#0f2a6a",
-                color: "#ffffff",
-                fontSize: "0.8rem",
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              Release Revision
+              {busy
+                ? "Releasing..."
+                : isDraft
+                ? "Release Draft"
+                : isRevision
+                ? "Release Revision"
+                : "Release"}
             </button>
           )}
 

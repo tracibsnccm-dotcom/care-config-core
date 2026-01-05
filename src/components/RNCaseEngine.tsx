@@ -15,6 +15,15 @@ import CrisisModeScreen from "../screens/rn/CrisisModeScreen";
 import TimelineScreen from "../screens/rn/TimelineScreen";
 import ProviderToolsScreen from "../screens/rn/ProviderToolsScreen";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeCaseId(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = String(raw).trim().replace(/^"+|"+$/g, "");
+  if (!v) return null;
+  return UUID_RE.test(v) ? v : null;
+}
+
 const RNCaseEngine: React.FC = () => {
   const [activeTab, setActiveTab] = useState("4ps");
   const [caseStatus, setCaseStatus] = useState<string | null>(null);
@@ -23,8 +32,9 @@ const RNCaseEngine: React.FC = () => {
   useEffect(() => {
     const loadCaseStatus = async () => {
       if (typeof window === "undefined") return;
-      const activeCaseId = window.localStorage.getItem("rcms_active_case_id");
-      if (!activeCaseId) {
+      const raw = window.localStorage.getItem("rcms_active_case_id");
+      const caseId = normalizeCaseId(raw);
+      if (!caseId) {
         setCaseStatus(null);
         return;
       }
@@ -33,7 +43,7 @@ const RNCaseEngine: React.FC = () => {
         const { data, error } = await supabase
           .from("rc_cases")
           .select("case_status")
-          .eq("id", activeCaseId)
+          .eq("id", caseId)
           .single();
 
         if (error) throw error;
@@ -88,6 +98,24 @@ const RNCaseEngine: React.FC = () => {
       {/* RN tab navigation */}
       <RNAssessmentNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
+      {/* Read-only banner */}
+      {isReadOnly && (
+        <div
+          style={{
+            marginTop: "1rem",
+            padding: "0.75rem 1rem",
+            background: "#fef3c7",
+            border: "1px solid #fbbf24",
+            borderRadius: "8px",
+            color: "#92400e",
+            fontSize: "0.9rem",
+            fontWeight: 500,
+          }}
+        >
+          This case is {caseStatus?.toUpperCase()} and is read-only. Click Revise to create an editable revision.
+        </div>
+      )}
+
       {/* Active tab content */}
       <div
         style={{
@@ -99,7 +127,9 @@ const RNCaseEngine: React.FC = () => {
           minHeight: "400px",
         }}
       >
-        {renderTab()}
+        <div style={{ pointerEvents: isReadOnly ? "none" : "auto", opacity: isReadOnly ? 0.65 : 1 }}>
+          {renderTab()}
+        </div>
       </div>
 
       {/* RN → Attorney publish panel */}

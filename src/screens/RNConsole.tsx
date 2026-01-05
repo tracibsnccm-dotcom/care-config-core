@@ -13,6 +13,7 @@ import {
   SdohSummary,
   CrisisSummary,
 } from "../constants/reconcileFramework";
+import { supabase } from "@/integrations/supabase/client";
 // RNCaseEngine renders all required RN screens:
 // - FourPsScreen, TenVsScreen, SDOHScreen, CrisisModeScreen (via tabs)
 // - RNPublishPanel (at bottom, accessible via "Publish / Review Drafts" button)
@@ -75,6 +76,12 @@ function loadCrisisDraft(): CrisisSummary | null {
   }
 }
 
+interface RCCaseOption {
+  id: string;
+  case_status: string | null;
+  created_at: string;
+}
+
 const RNConsole: React.FC = () => {
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [path, setPath] = useState<string>(() => window.location.pathname);
@@ -82,6 +89,9 @@ const RNConsole: React.FC = () => {
   const [tenVsDraft, setTenVsDraft] = useState<TenVsSummary | null>(null);
   const [sdohDraft, setSdohDraft] = useState<SdohSummary | null>(null);
   const [crisisDraft, setCrisisDraft] = useState<CrisisSummary | null>(null);
+  const [rcCases, setRcCases] = useState<RCCaseOption[]>([]);
+  const [caseError, setCaseError] = useState<string | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("");
 
   // Sync path with pathname changes
   useEffect(() => {
@@ -96,6 +106,36 @@ const RNConsole: React.FC = () => {
     setSdohDraft(loadSdohDraft());
     setCrisisDraft(loadCrisisDraft());
   };
+
+  // Load cases from Supabase on mount
+  useEffect(() => {
+    const loadCases = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("rc_cases")
+          .select("id, case_status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(25);
+
+        if (error) throw error;
+        setRcCases(data || []);
+        setCaseError(null);
+      } catch (e: any) {
+        console.error("Failed to load cases", e);
+        setCaseError(e?.message || "Failed to load cases");
+      }
+    };
+
+    loadCases();
+
+    // Preselect if localStorage already has a case ID
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("rcms_active_case_id");
+      if (stored) {
+        setSelectedCaseId(stored);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setActiveCaseId(loadActiveCaseId());
@@ -203,6 +243,47 @@ const RNConsole: React.FC = () => {
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
+      {/* Case Picker */}
+      <div style={{ marginBottom: "1rem", padding: "0.75rem", border: "1px solid #e2e8f0", borderRadius: 12, background: "#ffffff" }}>
+        <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
+          Select a case
+        </div>
+
+        <select
+          value={selectedCaseId}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedCaseId(id);
+            if (typeof window !== "undefined" && id) {
+              window.localStorage.setItem("rcms_active_case_id", id);
+              window.location.reload();
+            }
+          }}
+          style={{
+            width: "100%",
+            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            padding: "0.55rem 0.75rem",
+            fontSize: "0.9rem",
+            background: "#ffffff",
+            color: "#0f172a",
+          }}
+        >
+          <option value="">Select a case...</option>
+          {rcCases.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.id.slice(0, 8)}… — {c.case_status ?? "unknown"} — {new Date(c.created_at).toLocaleDateString()}
+            </option>
+          ))}
+        </select>
+
+        {caseError && (
+          <div style={{ marginTop: 8, fontSize: "0.82rem", color: "#b91c1c" }}>
+            {caseError}
+          </div>
+        )}
+      </div>
+
       {/* Warning banner if no active case (non-blocking) */}
       {showNoCaseWarning && (
         <div
