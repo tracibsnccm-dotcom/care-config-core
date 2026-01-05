@@ -1,9 +1,10 @@
 // src/components/RNCaseEngine.tsx
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import RNAssessmentNav from "./RNAssessmentNav";
 import RNCaseSummaryPanel from "./RNCaseSummaryPanel";
 import RNPublishPanel from "./RNPublishPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 // RN module screens
 import FourPsScreen from "../screens/rn/FourPsScreen";
@@ -16,25 +17,59 @@ import ProviderToolsScreen from "../screens/rn/ProviderToolsScreen";
 
 const RNCaseEngine: React.FC = () => {
   const [activeTab, setActiveTab] = useState("4ps");
+  const [caseStatus, setCaseStatus] = useState<string | null>(null);
+
+  // Load case status from Supabase to enforce read-only mode for released/closed cases
+  useEffect(() => {
+    const loadCaseStatus = async () => {
+      if (typeof window === "undefined") return;
+      const activeCaseId = window.localStorage.getItem("rcms_active_case_id");
+      if (!activeCaseId) {
+        setCaseStatus(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("rc_cases")
+          .select("case_status")
+          .eq("id", activeCaseId)
+          .single();
+
+        if (error) throw error;
+        setCaseStatus(data?.case_status || null);
+      } catch (e) {
+        console.error("Failed to load case status", e);
+        setCaseStatus(null);
+      }
+    };
+
+    loadCaseStatus();
+  }, []);
+
+  // Enforce read-only mode when case is released or closed (mirrors DB constraints)
+  const isReadOnly = caseStatus === "released" || caseStatus === "closed";
 
   const renderTab = () => {
+    // Pass readOnly prop to enforce read-only mode for released/closed cases (screens will accept this prop in future updates)
+    const readOnlyProps = { readOnly: isReadOnly } as any;
     switch (activeTab) {
       case "4ps":
-        return <FourPsScreen />;
+        return <FourPsScreen {...readOnlyProps} />;
       case "10vs":
-        return <TenVsScreen />;
+        return <TenVsScreen {...readOnlyProps} />;
       case "pain":
-        return <PainDiaryScreen />;
+        return <PainDiaryScreen {...readOnlyProps} />;
       case "sdoh":
-        return <SDOHScreen />;
+        return <SDOHScreen {...readOnlyProps} />;
       case "crisis":
-        return <CrisisModeScreen />;
+        return <CrisisModeScreen {...readOnlyProps} />;
       case "timeline":
-        return <TimelineScreen />;
+        return <TimelineScreen {...readOnlyProps} />;
       case "providers":
-        return <ProviderToolsScreen />;
+        return <ProviderToolsScreen {...readOnlyProps} />;
       default:
-        return <FourPsScreen />;
+        return <FourPsScreen {...readOnlyProps} />;
     }
   };
 
