@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Activity, Shield, Users } from "lucide-react";
+import { Activity, Shield, Users, ArrowDown, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -139,7 +139,7 @@ const Index = () => {
           <h2 className="text-2xl md:text-3xl font-semibold text-white leading-snug mb-6">
             Comprehensive Nursing Care Management<br />
             <span className="text-lg font-normal">for</span><br />
-            Legal and Medical Coordination
+            Legal and Clinical Coordination
           </h2>
 
           {/* Divider */}
@@ -153,21 +153,40 @@ const Index = () => {
               <span className="text-[#ff8c42]">C.A.R.E.</span>
             </h3>
 
-            {/* Instruction */}
-            <p className="text-black font-bold text-lg mb-3">What would you like to do?</p>
-            <p className="text-white text-base md:text-lg mb-8">
-              Start here to connect with your team. Our secure platform brings together
-              clients, attorneys, and nurse care managers to keep everyone informed.
-            </p>
-
-            {/* Large intake button (top) */}
-            <div className="flex justify-center mb-8">
+            {/* Client Intake path (PRIMARY) */}
+            <div className="flex flex-col items-center mb-10">
+              <p className="text-white text-lg md:text-xl font-medium mb-3 text-center">
+                New here or haven't completed Client Intake yet? Click below to begin.
+              </p>
+              <ArrowDown 
+                className="w-8 h-8 text-white mb-3" 
+                strokeWidth={3}
+                style={{ 
+                  opacity: 1,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                }}
+              />
               <a href="/client-intake" className="rcms-btn cta-intake">Client Intake</a>
             </div>
 
-            {/* Always-horizontal row */}
-            <div className="rcms-row">
+            {/* Client Portal path (SECONDARY) */}
+            <div className="flex flex-col items-center mb-8">
+              <p className="text-white text-lg md:text-xl font-medium mb-3 text-center">
+                Already completed client intake? Sign in to the Client Portal to check your status.
+              </p>
+              <ArrowDown 
+                className="w-8 h-8 text-white mb-3" 
+                strokeWidth={3}
+                style={{ 
+                  opacity: 1,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                }}
+              />
               <a href="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
+            </div>
+
+            {/* Bottom row (TERTIARY) */}
+            <div className="rcms-row">
               <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
               <a 
                 href="#"

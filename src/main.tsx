@@ -33,6 +33,7 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
+import Access from "./pages/Access";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -170,6 +171,17 @@ function Root() {
     // These routes are handled by RNCaseRouter within RNConsole
     if (pathname.startsWith("/rn/case/")) {
       return <AppShell defaultTab="rn" />;
+    }
+
+    // Sign-in/Access route: "/auth" routes to Access component (sign-in page)
+    // Also support "/access" for backward compatibility
+    if (pathname === "/auth" || pathname.startsWith("/auth")) {
+      return <Access />;
+    }
+
+    // Legacy /access route (backward compatibility)
+    if (pathname === "/access" || pathname.startsWith("/access")) {
+      return <Access />;
     }
 
     // Handle /go route (from Access.tsx redirect)

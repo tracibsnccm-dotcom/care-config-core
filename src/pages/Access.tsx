@@ -9,6 +9,7 @@ export default function Access() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const switchMode = params.has("switch");
+  const redirectTo = params.get("redirect") || "/client-portal";
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -16,8 +17,10 @@ export default function Access() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // If already signed in, redirect to role-based landing unless explicitly switching accounts
-  if (session && user && !switchMode) return <Navigate to="/go" replace />;
+  // If already signed in, redirect to requested route or client-portal unless explicitly switching accounts
+  if (session && user && !switchMode) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +46,8 @@ export default function Access() {
           password: pw,
         });
         if (error) throw error;
-        navigate("/go", { replace: true });
+        // Redirect to requested route or default to /client-portal
+        navigate(redirectTo, { replace: true });
         return;
       }
     } catch (ex: any) {

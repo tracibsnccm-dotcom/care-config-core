@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Clock, Shield } from 'lucide-react';
-import { COMPLIANCE_COPY, formatHMS, ATTORNEY_CONFIRM_WINDOW_HOURS } from '@/constants/compliance';
+import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AttorneyAttestationCardProps {
   intakeId: string;
@@ -26,10 +34,10 @@ export function AttorneyAttestationCard({
   onAttestationComplete,
 }: AttorneyAttestationCardProps) {
   const { user } = useAuth();
-  const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [msRemaining, setMsRemaining] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
+  const [showNotMyClientDialog, setShowNotMyClientDialog] = useState(false);
 
   // Update countdown every second
   useEffect(() => {
@@ -55,13 +63,15 @@ export function AttorneyAttestationCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="w-5 h-5" />
-            {COMPLIANCE_COPY.attorneyAttestationTitle}
+            {COMPLIANCE_COPY.attorneyExpired.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription className="whitespace-pre-line">
-              {COMPLIANCE_COPY.expiredCopy}
+            <AlertDescription className="space-y-2">
+              {COMPLIANCE_COPY.attorneyExpired.bodyLines.map((line, idx) => (
+                <p key={idx}>{line}</p>
+              ))}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -70,7 +80,7 @@ export function AttorneyAttestationCard({
   }
 
   const handleAttest = async () => {
-    if (!isChecked || !user) {
+    if (!user) {
       return;
     }
 
@@ -138,64 +148,85 @@ export function AttorneyAttestationCard({
     }
   };
 
+  const handleNotMyClient = async () => {
+    setShowNotMyClientDialog(false);
+    toast.info('Marked as not my client.');
+    // Navigate back or complete flow without writing PHI
+    onAttestationComplete();
+  };
+
   return (
-    <Card className="border-amber-500">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-amber-600" />
-          {COMPLIANCE_COPY.attorneyAttestationTitle}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Warning banner */}
-        <Alert variant="default" className="bg-amber-50 border-amber-500">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-900 font-semibold">
-            {COMPLIANCE_COPY.attorneyAttestationWarningTop}
-          </AlertDescription>
-        </Alert>
-
-        {/* Countdown timer */}
-        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-          <Clock className="w-5 h-5 text-primary" />
-          <div className="flex-1">
-            <p className="text-sm text-muted-foreground mb-1">
-              {COMPLIANCE_COPY.deadlineExplainer}
-            </p>
-            <p className="text-2xl font-bold font-mono text-primary">
-              {formatHMS(msRemaining)}
-            </p>
+    <>
+      <Card className="border-amber-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-amber-600" />
+            {COMPLIANCE_COPY.attorneyAttestation.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Body text - rendered as paragraphs */}
+          <div className="space-y-3">
+            {COMPLIANCE_COPY.attorneyAttestation.bodyLines.map((line, idx) => (
+              <p key={idx} className="text-sm leading-relaxed">
+                {line}
+              </p>
+            ))}
           </div>
-        </div>
 
-        {/* Attestation checkbox */}
-        <div className="space-y-2">
-          <div className="flex items-start gap-3 p-4 border rounded-lg">
-            <Checkbox
-              id="attestation-checkbox"
-              checked={isChecked}
-              onCheckedChange={(checked) => setIsChecked(checked === true)}
-              className="mt-1"
-            />
-            <Label
-              htmlFor="attestation-checkbox"
-              className="flex-1 cursor-pointer text-sm leading-relaxed"
+          {/* Countdown timer */}
+          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <Clock className="w-5 h-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground mb-1">
+                {COMPLIANCE_COPY.deadlineExplainer}
+              </p>
+              <p className="text-2xl font-bold font-mono text-primary">
+                {formatHMS(msRemaining)}
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={handleAttest}
+              disabled={isSubmitting}
+              className="w-full"
+              size="lg"
             >
-              {COMPLIANCE_COPY.attorneyAttestationCheckboxText}
-            </Label>
+              {isSubmitting ? 'Submitting...' : COMPLIANCE_COPY.attorneyAttestation.primaryCta}
+            </Button>
+            <Button
+              onClick={() => setShowNotMyClientDialog(true)}
+              disabled={isSubmitting}
+              variant="outline"
+              className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              size="lg"
+            >
+              {COMPLIANCE_COPY.attorneyAttestation.secondaryCta}
+            </Button>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Confirm button */}
-        <Button
-          onClick={handleAttest}
-          disabled={!isChecked || isSubmitting}
-          className="w-full"
-          size="lg"
-        >
-          {isSubmitting ? 'Submitting...' : 'Confirm Attestation'}
-        </Button>
-      </CardContent>
-    </Card>
+      {/* Not My Client Confirmation Dialog */}
+      <AlertDialog open={showNotMyClientDialog} onOpenChange={setShowNotMyClientDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure this is not your client? This will prevent access to this intake.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleNotMyClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -44,25 +44,45 @@ export function formatHMS(ms: number): string {
  */
 export const COMPLIANCE_COPY = {
   /**
-   * Attorney Attestation Title
-   * Displayed at the top of the attorney confirmation/attestation screen
+   * Attorney Attestation - Initial Screen
+   * FINAL copy for attorney attestation screen
    */
-  attorneyAttestationTitle: "HIPAA Compliance Attestation Required",
+  attorneyAttestation: {
+    title: "ATTORNEY ATTESTATION – REQUIRED",
+    bodyLines: [
+      "Before accessing any clinical information, you must confirm that this individual is your client.",
+      "Accessing Protected Health Information (PHI) for an individual who is not your client is a HIPAA violation and a reportable privacy breach.",
+      "If confirmation is not provided within 48 hours, all intake information will be permanently deleted and cannot be retrieved. The client will be required to complete the intake process again.",
+      "By proceeding, you attest that you are authorized to access this information and that a valid attorney–client relationship exists.",
+    ],
+    primaryCta: "✅ Confirm Client Relationship",
+    secondaryCta: "❌ This Is Not My Client",
+  },
 
   /**
-   * Attorney Attestation Checkbox Text
-   * Hard-hitting language covering HIPAA compliance, data deletion consequences,
-   * and the requirement to restart intake if not confirmed within window
+   * Attorney Follow-up Notices
+   * Used for 24/8/4/1 hour notices; may appear in banners/cards/emails
    */
-  attorneyAttestationCheckboxText:
-    "I understand that by confirming this case, I am certifying compliance with HIPAA regulations. I acknowledge that if I do not confirm within 48 hours, all client intake data will be permanently deleted and the intake process must start again from the beginning. This action cannot be undone.",
+  attorneyFollowup: {
+    title: "ACTION REQUIRED – CLIENT CONFIRMATION PENDING",
+    bodyLines: [
+      "A client has completed an intake and identified you as their attorney.",
+      "Before any clinical information can be released, you must confirm that this individual is your client.",
+      "If confirmation is not received within 48 hours, all intake information will be permanently deleted, cannot be retrieved, and the client will be required to complete the intake process again.",
+    ],
+  },
 
   /**
-   * Attorney Attestation Warning Top
-   * Short, hard-hitting warning displayed prominently at the top of the attestation screen
+   * Attorney View After Expiration
+   * Message displayed when intake has expired
    */
-  attorneyAttestationWarningTop:
-    "⚠️ Your response is required within 48 hours. Failure to confirm will result in permanent deletion of all intake data and require restarting the entire intake process.",
+  attorneyExpired: {
+    title: "INTAKE EXPIRED – DATA PERMANENTLY DELETED",
+    bodyLines: [
+      "The intake information associated with this individual has expired and has been permanently deleted in accordance with HIPAA data-minimization requirements.",
+      "Deleted information cannot be retrieved. The client must complete the intake process again to proceed.",
+    ],
+  },
 
   /**
    * Deadline Explainer
@@ -70,14 +90,6 @@ export const COMPLIANCE_COPY = {
    */
   deadlineExplainer:
     "Time remaining before automatic data deletion and intake restart requirement:",
-
-  /**
-   * Expired Copy
-   * Message displayed when the confirmation window has expired
-   * Emphasizes hard delete and mandatory restart
-   */
-  expiredCopy:
-    "⚠️ The 48-hour confirmation window has expired. All client intake data has been permanently deleted. The intake process must be restarted from the beginning. This action cannot be undone.",
 
   /**
    * Client Pending Attorney Copy

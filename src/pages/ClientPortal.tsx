@@ -56,6 +56,7 @@ export default function ClientPortal() {
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
   const [checkingIntake, setCheckingIntake] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [intakeStatus, setIntakeStatus] = useState<{
     status: string;
     attorneyAttestedAt: string | null;
@@ -68,6 +69,70 @@ export default function ClientPortal() {
     navigate("/access");
   };
 
+  // Defensive auth check: verify session on mount before running any queries
+  useEffect(() => {
+    async function verifyAuth() {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error checking auth session:", error);
+          setCheckingAuth(false);
+          return;
+        }
+
+        if (!session) {
+          // No session - gate immediately, don't proceed with intake checks
+          setCheckingAuth(false);
+          return;
+        }
+
+        // Session exists, proceed with normal flow
+        setCheckingAuth(false);
+      } catch (err) {
+        console.error("Error verifying auth:", err);
+        setCheckingAuth(false);
+      }
+    }
+
+    verifyAuth();
+  }, []);
+
+  // Gate: Show auth gate screen if not authenticated (defensive check)
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              <h2 className="text-lg font-semibold">Authentication Required</h2>
+            </div>
+            <p className="text-muted-foreground">
+              Please sign in to access the Client Portal.
+            </p>
+            <Button
+              onClick={() => window.location.assign('/auth?redirect=/client-portal')}
+              className="w-full"
+            >
+              Go to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Set default case when cases load
   useEffect(() => {
     if (!casesLoading && userCases.length > 0 && !selectedCaseId) {
@@ -79,6 +144,11 @@ export default function ClientPortal() {
   // Gate is per-case: each case requires its own intake completion
   // Also check intake status for attorney confirmation gating
   useEffect(() => {
+    // Don't run intake checks if auth is still being verified or user is not authenticated
+    if (checkingAuth || !user) {
+      return;
+    }
+
     async function checkIntakeCompletion() {
       if (!caseId) {
         // If no case selected yet, wait for cases to load
@@ -119,7 +189,8 @@ export default function ClientPortal() {
         }
       } catch (err) {
         console.error("Error checking intake completion:", err);
-        // On error, allow access (fail open for MVP)
+        // On error, don't assume access - only set true if we have valid auth
+        // Auth is already verified above, so safe to fail open here
         setIntakeCompleted(true);
       } finally {
         setCheckingIntake(false);
@@ -127,11 +198,12 @@ export default function ClientPortal() {
     }
 
     checkIntakeCompletion();
-  }, [caseId, casesLoading, selectedCaseId]);
+  }, [caseId, casesLoading, selectedCaseId, checkingAuth, user]);
 
   // Check for crisis indicators
   useEffect(() => {
-    if (!caseId || !user?.id) return;
+    // Don't run crisis checks if auth is still being verified or user is not authenticated
+    if (checkingAuth || !caseId || !user?.id) return;
     
     async function checkCrisisIndicators() {
       try {

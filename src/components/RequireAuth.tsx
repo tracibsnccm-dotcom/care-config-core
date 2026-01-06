@@ -42,7 +42,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
               Please sign in to continue.
             </p>
             <Button
-              onClick={() => navigate('/access')}
+              onClick={() => window.location.assign('/auth?redirect=/client-portal')}
               className="w-full"
             >
               Go to Sign In

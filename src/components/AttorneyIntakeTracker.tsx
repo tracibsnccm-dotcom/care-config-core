@@ -4,14 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, Clock, ArrowLeft, Eye } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { HelpCircle, Clock, ArrowLeft, Eye, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { AttorneyAttestationCard } from '@/components/AttorneyAttestationCard';
-import { formatHMS } from '@/constants/compliance';
+import { formatHMS, COMPLIANCE_COPY } from '@/constants/compliance';
 import { useAuth } from '@/auth/supabaseAuth';
 
 interface IntakeRow {
@@ -303,10 +304,20 @@ export const AttorneyIntakeTracker = () => {
 
         {isExpired && (
           <Card className="border-destructive">
-            <CardContent className="p-6">
-              <p className="text-destructive font-semibold whitespace-pre-line">
-                ⚠️ The 48-hour confirmation window has expired. All client intake data has been permanently deleted. The intake process must be restarted from the beginning. This action cannot be undone.
-              </p>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                {COMPLIANCE_COPY.attorneyExpired.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive">
+                <AlertDescription className="space-y-2">
+                  {COMPLIANCE_COPY.attorneyExpired.bodyLines.map((line, idx) => (
+                    <p key={idx}>{line}</p>
+                  ))}
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         )}
