@@ -136,7 +136,7 @@ const RnCaseRoutes: React.FC = () => {
               e.currentTarget.style.background = "#ffffff";
             }}
           >
-            Back to Demo Hub
+            Back to Dashboard
           </button>
         </div>
       </div>

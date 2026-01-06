@@ -8,13 +8,17 @@ import {
   TEN_VS,
   getSeverityLabel,
 } from "../constants/reconcileFramework";
+import { resolveLatestReleasedCase, CaseWithRevision } from "../lib/resolveLatestReleasedCase";
+import { AttorneyPrintReportButton } from "../attorney/AttorneyPrintReportButton";
+import { ExportAuditTrail } from "../components/ExportAuditTrail";
 
 type AttorneyTab =
   | "overview"
   | "clinicalStory"
   | "sdohRisk"
   | "timeline"
-  | "documents";
+  | "documents"
+  | "exportAudit";
 
 type ClientStatus = "Active" | "At-Risk" | "Needs Review";
 
@@ -26,6 +30,7 @@ type DemoClient = {
   jurisdiction: string;
   lastUpdateISO: string;
   status: ClientStatus;
+  case_status: "draft" | "released" | "closed";
   summary: CaseSummary;
 };
 
@@ -35,7 +40,7 @@ type ReportKind =
   | "RN_CARE_SUMMARY"
   | "DENIAL_RESPONSE_PACKET"
   | "TIMELINE_SNAPSHOT";
-type ReportStatus = "Draft" | "Ready";
+type ReportStatus = "Not available" | "Ready";
 
 type DemoReport = {
   id: string;
@@ -73,13 +78,13 @@ function saveCaseSummaryToStorage(summary: CaseSummary) {
 }
 
 function loadDemoModeFromStorage(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   try {
     const raw = window.localStorage.getItem(DEMO_MODE_STORAGE_KEY);
-    if (raw === null) return true; // default ON
+    if (raw === null) return false; // MVP: default OFF (use real data)
     return raw === "true";
   } catch {
-    return true;
+    return false; // MVP: default OFF (use real data)
   }
 }
 
@@ -136,6 +141,7 @@ const DEMO_CLIENTS: DemoClient[] = [
     jurisdiction: "Texas",
     lastUpdateISO: new Date().toISOString(),
     status: "At-Risk",
+    case_status: "released",
     summary: {
       updatedAt: new Date().toISOString(),
       fourPs: {
@@ -182,6 +188,7 @@ const DEMO_CLIENTS: DemoClient[] = [
     jurisdiction: "Illinois",
     lastUpdateISO: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     status: "Active",
+    case_status: "closed",
     summary: {
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
       fourPs: {
@@ -227,6 +234,7 @@ const DEMO_CLIENTS: DemoClient[] = [
     jurisdiction: "Missouri",
     lastUpdateISO: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     status: "Needs Review",
+    case_status: "draft",
     summary: {
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
       fourPs: {
@@ -291,11 +299,11 @@ function buildDemoReports(
     s.updatedAt || selectedClient.lastUpdateISO || new Date().toISOString();
 
   const readyCareSummary: ReportStatus =
-    s.fourPs?.overallScore && s.tenVs?.overallScore ? "Ready" : "Draft";
+    s.fourPs?.overallScore && s.tenVs?.overallScore ? "Ready" : "Not available";
 
-  const readyDenialPacket: ReportStatus = s.tenVs?.overallScore ? "Ready" : "Draft";
+  const readyDenialPacket: ReportStatus = s.tenVs?.overallScore ? "Ready" : "Not available";
 
-  const readyTimeline: ReportStatus = s.updatedAt ? "Ready" : "Draft";
+  const readyTimeline: ReportStatus = s.updatedAt ? "Ready" : "Not available";
 
   const careSummaryBody: string[] = [
     "Attorney-facing care summary generated from RN scoring tools (4Ps, 10-Vs, SDOH, Crisis Mode).",
@@ -309,7 +317,7 @@ function buildDemoReports(
   const denialPacketBody: string[] = [
     "Template-style packet used to support timely denial challenges using payer-recognized evidence logic.",
     "Includes: care pathway justification, adherence barriers (documented), and documentation timing safeguards.",
-    "Notes: This is a demo placeholder. Live mode will pull RN saved drafts and supporting artifacts.",
+    "Notes: This is a demo placeholder. Live mode will pull released RN notes and supporting artifacts.",
   ];
 
   const timelineBody: string[] = [
@@ -387,6 +395,63 @@ const AttorneyConsole: React.FC = () => {
     return DEMO_CLIENTS.find((c) => c.id === selectedClientId) ?? DEMO_CLIENTS[0];
   }, [selectedClientId]);
 
+  // TODO: In production, fetch cases array from Supabase or useActiveCase context
+  // For demo mode, use DEMO_CLIENTS converted to CaseWithRevision format
+  const casesArray: CaseWithRevision[] = useMemo(() => {
+    if (demoMode) {
+      // Convert DEMO_CLIENTS to CaseWithRevision format for the resolver
+      return DEMO_CLIENTS.map((client) => ({
+        id: client.caseId,
+        revision_of_case_id: null, // Demo clients don't have revision chains
+        case_status: client.case_status,
+        closed_at: null,
+        released_at: null,
+        updated_at: client.lastUpdateISO,
+        created_at: client.lastUpdateISO,
+      }));
+    }
+    // TODO: Replace with actual Supabase query or context data
+    // Example: const { cases } = useSupabaseCases();
+    return [];
+  }, [demoMode]);
+
+  // Resolve the latest released/closed case from the revision lineage
+  const displayCase = useMemo(() => {
+    // Get the case ID from selectedClient (or selectedCase if available)
+    const caseId = selectedClient?.caseId || selectedClientId;
+    const resolved = resolveLatestReleasedCase(casesArray, caseId);
+    
+    // For demo mode: if resolver returns null (no released/closed found), 
+    // find the first released/closed case from DEMO_CLIENTS as fallback
+    if (!resolved && demoMode) {
+      const releasedOrClosed = DEMO_CLIENTS.find(
+        (c) => c.case_status === "released" || c.case_status === "closed"
+      );
+      if (releasedOrClosed) {
+        return {
+          id: releasedOrClosed.caseId,
+          revision_of_case_id: null,
+          case_status: releasedOrClosed.case_status,
+          closed_at: null,
+          released_at: null,
+          updated_at: releasedOrClosed.lastUpdateISO,
+          created_at: releasedOrClosed.lastUpdateISO,
+        } as CaseWithRevision;
+      }
+    }
+    
+    return resolved;
+  }, [casesArray, selectedClient, selectedClientId, demoMode]);
+
+  // Alias for clarity
+  const resolvedCase = displayCase;
+  
+  // Find the demo client that matches the resolved case (for accessing summary data)
+  const resolvedDemoClient = useMemo(() => {
+    if (!resolvedCase || !demoMode) return null;
+    return DEMO_CLIENTS.find((c) => c.caseId === resolvedCase.id) ?? null;
+  }, [resolvedCase, demoMode]);
+
   const showToast = (message: string) => {
     setToast(message);
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
@@ -425,42 +490,52 @@ const AttorneyConsole: React.FC = () => {
     };
   }, []);
 
-  // TODO: Case data sourcing - In demo mode, reads from localStorage (published RN data) or falls back to hard-coded selectedClient.summary.
+  // TODO: Case data sourcing - In demo mode, reads from localStorage (published RN data) or falls back to resolved case's summary.
   // When demoMode is OFF, summary is set to null (shows "awaiting onboarding").
   // In production, this should:
   //   1. Read from useActiveCase() context to get the active case
   //   2. Fetch published RN summary from Supabase using activeCase.id
   //   3. NOT use localStorage (browser-specific, not case-scoped)
   //   4. NOT use hard-coded demo client data
-  // Initialize/seed only in Demo Mode
+  // Initialize/seed only in Demo Mode - use resolved case's summary, not selected client
   useEffect(() => {
     if (!demoMode) {
       setSummary(null);
       return;
     }
 
-    const stored = loadCaseSummaryFromStorage();
-    if (stored) setSummary(stored);
-    else {
-      saveCaseSummaryToStorage(selectedClient.summary);
-      setSummary(selectedClient.summary);
+    // Use resolved case's summary, not selected client's (to ensure we never show unreleased data)
+    if (resolvedDemoClient) {
+      const stored = loadCaseSummaryFromStorage();
+      if (stored) setSummary(stored);
+      else {
+        saveCaseSummaryToStorage(resolvedDemoClient.summary);
+        setSummary(resolvedDemoClient.summary);
+      }
+    } else {
+      setSummary(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode]);
+  }, [demoMode, resolvedDemoClient]);
 
   // TODO: Client switching - Currently uses hard-coded selectedClientId state with DEMO_CLIENTS array.
-  // When switching, it overwrites localStorage with the selected demo client's embedded summary.
+  // When switching, it uses the resolved case's summary (never unreleased).
   // In production, this should:
   //   1. Use useActiveCase().setActiveCaseById(caseId) to switch active case
   //   2. Fetch the published RN summary for that case from Supabase
   //   3. NOT overwrite localStorage (should be case-specific database records)
-  // When switching clients: only in Demo Mode
+  // When switching clients: only in Demo Mode - use resolved case, not selected client
   useEffect(() => {
     if (!demoMode) return;
-    saveCaseSummaryToStorage(selectedClient.summary);
-    setSummary(selectedClient.summary);
+    // Use resolved case's summary, not selected client's (to ensure we never show unreleased data)
+    if (resolvedDemoClient) {
+      saveCaseSummaryToStorage(resolvedDemoClient.summary);
+      setSummary(resolvedDemoClient.summary);
+    } else {
+      setSummary(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClientId, demoMode]);
+  }, [selectedClientId, demoMode, resolvedDemoClient]);
 
   const handleRefresh = () => {
     if (!demoMode) return;
@@ -540,7 +615,7 @@ const AttorneyConsole: React.FC = () => {
 
     if (!fourPs && !tenVs && !sdoh && !crisis) {
       lines.push(
-        "The RN has not yet saved 4Ps, 10-Vs, SDOH, or Crisis Mode drafts for this case. Once those are completed, this section will show a live summary."
+        "No released RN notes or reports available at this time."
       );
       return lines;
     }
@@ -581,7 +656,7 @@ const AttorneyConsole: React.FC = () => {
       );
     } else {
       lines.push(
-        "No Crisis Mode draft has been saved; acute safety risk has not yet been documented in this module."
+        "No released Crisis Mode documentation available at this time."
       );
     }
 
@@ -852,7 +927,11 @@ const AttorneyConsole: React.FC = () => {
     whiteSpace: "nowrap" as const,
   });
 
-  const reports = useMemo(() => buildDemoReports(selectedClient, summary), [selectedClient, summary]);
+  // Use resolved case's client for reports, not selected client (to ensure we never show unreleased data)
+  const reports = useMemo(() => {
+    const clientForReports = resolvedDemoClient ?? selectedClient;
+    return buildDemoReports(clientForReports, summary);
+  }, [resolvedDemoClient, selectedClient, summary]);
 
   const openReport = useMemo(() => {
     if (!openReportId) return null;
@@ -1375,22 +1454,24 @@ const AttorneyConsole: React.FC = () => {
                         <div style={{ fontSize: "0.9rem", fontWeight: 900 }}>
                           {c.displayName} • {c.caseId}
                         </div>
-                        <span style={statusChipStyle(c.status)}>
-                          <span
-                            style={{
-                              width: "7px",
-                              height: "7px",
-                              borderRadius: "999px",
-                              background:
-                                c.status === "Active"
-                                  ? "#06b6d4"
-                                  : c.status === "At-Risk"
-                                  ? "#f97316"
-                                  : "#ef4444",
-                            }}
-                          />
-                          {c.status}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                          <span style={statusChipStyle(c.status)}>
+                            <span
+                              style={{
+                                width: "7px",
+                                height: "7px",
+                                borderRadius: "999px",
+                                background:
+                                  c.status === "Active"
+                                    ? "#06b6d4"
+                                    : c.status === "At-Risk"
+                                    ? "#f97316"
+                                    : "#ef4444",
+                              }}
+                            />
+                            {c.status}
+                          </span>
+                        </div>
                       </div>
 
                       <div style={{ fontSize: "0.82rem", opacity: active ? 0.95 : 1, marginTop: "0.2rem" }}>
@@ -1432,6 +1513,26 @@ const AttorneyConsole: React.FC = () => {
     };
 
     const renderReportPreviewGrid = () => {
+      // If no resolved case (no released/closed version), show approved empty state
+      if (!resolvedCase) {
+        return (
+          <div
+            style={{
+              borderRadius: "12px",
+              border: "1px dashed #cbd5e1",
+              background: "#f8fafc",
+              padding: "1rem",
+              color: "#475569",
+              fontSize: "0.92rem",
+              lineHeight: 1.45,
+              textAlign: "center",
+            }}
+          >
+            No released RN notes or reports available at this time.
+          </div>
+        );
+      }
+
       if (!demoMode) {
         return (
           <div
@@ -1661,7 +1762,7 @@ const AttorneyConsole: React.FC = () => {
                       tenVsOverall ? (
                         <span>RN has scored each of the 10 Vs on a 1–5 scale to reflect care plan maintenance and reinforcement needs.</span>
                       ) : (
-                        <span>Once the RN saves the 10-Vs draft, you will see a concise snapshot of care planning logic.</span>
+                        <span>No released 10-Vs summary available at this time.</span>
                       )
                     ) : (
                       <span>Unavailable until onboarding begins.</span>
@@ -1790,7 +1891,7 @@ const AttorneyConsole: React.FC = () => {
                     </div>
                   ) : (
                     <p style={{ fontSize: "0.88rem", color: "#64748b", marginTop: "0.35rem" }}>
-                      Once the RN completes the SDOH narrative and saves the draft, it will appear here.
+                      No released SDOH documentation available at this time.
                     </p>
                   )}
                 </>
@@ -1827,9 +1928,21 @@ const AttorneyConsole: React.FC = () => {
               <div style={{ fontSize: "0.95rem", fontWeight: 800, marginBottom: "0.35rem" }}>
                 Reports & Docs
               </div>
-              <p style={{ fontSize: "0.9rem", color: "#0f172a", marginBottom: "0.65rem" }}>
+              <p style={{ fontSize: "0.9rem", color: "#0f172a", marginBottom: "0.5rem" }}>
                 Attorney hub for RN deliverables: structured reports, summaries, and attachments.
               </p>
+              {resolvedCase && (resolvedCase.released_at || resolvedCase.updated_at) && (
+                <div style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "0.65rem" }}>
+                  Released to Attorney on{" "}
+                  <strong>
+                    {new Date(resolvedCase.released_at || resolvedCase.updated_at || "").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </strong>
+                </div>
+              )}
 
               {renderReportPreviewGrid()}
 
@@ -1844,6 +1957,19 @@ const AttorneyConsole: React.FC = () => {
                   <li>Future: links to firm DMS / evidence folders.</li>
                 </ul>
               </div>
+            </div>
+          );
+
+        case "exportAudit":
+          return (
+            <div style={{ borderRadius: "10px", border: "1px solid #e2e8f0", background: "#ffffff", padding: "0.95rem" }}>
+              <div style={{ fontSize: "0.95rem", fontWeight: 800, marginBottom: "0.35rem" }}>
+                Export Audit Trail
+              </div>
+              <p style={{ fontSize: "0.9rem", color: "#64748b", marginBottom: "0.75rem" }}>
+                Read-only record of your exports of released RN case snapshots. Shows only exports for released or closed cases.
+              </p>
+              <ExportAuditTrail />
             </div>
           );
 
@@ -1862,6 +1988,27 @@ const AttorneyConsole: React.FC = () => {
             <p style={{ fontSize: "0.92rem", color: "#64748b" }}>
               Read-only, clinically informed view of the matter to support strategy, negotiations, and decision-making.
             </p>
+            {resolvedCase && (resolvedCase.released_at || resolvedCase.updated_at) && (
+              <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.25rem" }}>
+                Released to Attorney on{" "}
+                <strong>
+                  {new Date(resolvedCase.released_at || resolvedCase.updated_at || "").toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </strong>
+              </div>
+            )}
+            {resolvedCase && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <AttorneyPrintReportButton
+                  resolvedCase={resolvedCase}
+                  summary={summary}
+                  clientLabel={selectedClient?.displayName}
+                />
+              </div>
+            )}
           </div>
 
           <div style={{ textAlign: "right", fontSize: "0.85rem", color: "#64748b" }}>
@@ -1902,10 +2049,10 @@ const AttorneyConsole: React.FC = () => {
           <div>
             <div style={{ marginBottom: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.4rem", fontSize: "0.8rem" }}>
               {[
-                { label: "4Ps Draft", done: hasFourPs },
-                { label: "10-Vs Draft", done: hasTenVs },
-                { label: "SDOH Draft", done: hasSdoh },
-                { label: "Crisis Draft", done: hasCrisis },
+                { label: "4Ps (Not available)", done: hasFourPs },
+                { label: "10-Vs (Not available)", done: hasTenVs },
+                { label: "SDOH (Not available)", done: hasSdoh },
+                { label: "Crisis Mode (Not available)", done: hasCrisis },
               ].map((item) => (
                 <span
                   key={item.label}
@@ -1936,6 +2083,7 @@ const AttorneyConsole: React.FC = () => {
                   { key: "sdohRisk", label: "SDOH & Risk" },
                   { key: "timeline", label: "Timeline" },
                   { key: "documents", label: "Reports & Docs" },
+                  { key: "exportAudit", label: "Export Audit Trail" },
                 ] as { key: AttorneyTab; label: string }[]
               ).map((tab) => {
                 const active = activeTab === tab.key;
@@ -1961,7 +2109,24 @@ const AttorneyConsole: React.FC = () => {
             </div>
 
             <div style={{ background: "#ffffff", borderRadius: "10px", padding: "1rem", border: "1px solid #e2e8f0", minHeight: "320px" }}>
-              {renderTab()}
+              {!displayCase ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "280px",
+                    color: "#64748b",
+                    fontSize: "0.92rem",
+                    textAlign: "center",
+                    padding: "2rem",
+                  }}
+                >
+                  No released RN notes or reports available at this time.
+                </div>
+              ) : (
+                renderTab()
+              )}
             </div>
           </div>
         </div>
@@ -2258,7 +2423,9 @@ const AttorneyConsole: React.FC = () => {
   };
 
   const headerHeight = 64;
-  const headerCenterText = demoMode
+  const headerCenterText = displayCase
+    ? `${selectedClient.displayName} • ${displayCase.id} • ${selectedClient.jurisdiction}`
+    : demoMode
     ? `${selectedClient.displayName} • ${selectedClient.caseId} • ${selectedClient.jurisdiction}`
     : "Awaiting onboarding • No cases yet";
 

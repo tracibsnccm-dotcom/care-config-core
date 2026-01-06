@@ -3,8 +3,9 @@ import { Case, Provider, AuditEntry, Role, ROLES, RCMS_CONFIG } from "@/config/r
 import { store, nextQuarterReset } from "@/lib/store";
 import { isTrialActive, trialDaysRemaining, coerceTrialStartDate, TRIAL_DAYS } from "@/utils/trial";
 import { useAuth } from "@/auth/supabaseAuth";
-import { useCases, useProviders, useAuditLogs } from "@/hooks/useSupabaseData";
+import { useAttorneyCases, useProviders, useAuditLogs } from "@/hooks/useSupabaseData";
 import { audit } from "@/lib/supabaseOperations";
+import { AttorneyCase } from "@/lib/attorneyCaseQueries";
 
 type TierName = "Trial" | "Basic" | "Solo" | "Mid-Sized" | "Enterprise" | "Expired (Trial)" | "Inactive";
 
@@ -54,13 +55,36 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, roles, primaryRole } = useAuth();
   
-  // Fetch data from Supabase
-  const { cases: supabaseCases, loading: casesLoading } = useCases();
+  // Derive role from actual auth roles - use first role or default to ATTORNEY
+  const role = (primaryRole ? primaryRole.toUpperCase() : ROLES.ATTORNEY) as Role;
+  const isAttorney = role === ROLES.ATTORNEY;
+  
+  // Role-scoped data loading: Attorneys use released-only queries, non-attorneys load cases locally
+  // SECURITY: Attorneys must NEVER have useCases() data in memory (could contain drafts)
+  // For attorneys: use getAttorneyCases() via useAttorneyCases() hook
+  // For non-attorneys: cases are loaded locally in their components (ClientPortal, ClientCheckins, etc.)
+  
+  const { cases: attorneyCases, loading: attorneyCasesLoading } = useAttorneyCases();
+  
+  // For attorneys: use released-only cases from getAttorneyCases() RPC
+  // For non-attorneys: cases array is empty in AppContext (components load their own via useCases())
+  const rawCases = isAttorney 
+    ? (attorneyCases as AttorneyCase[]).filter((c: AttorneyCase) => {
+        // Hard filter: only released/closed cases allowed
+        const isValid = c.case_status === "released" || c.case_status === "closed";
+        if (!isValid && process.env.NODE_ENV === "development") {
+          console.warn(
+            `[ATTORNEY_MVP_SAFETY] ⚠️ Filtering out non-released case (ID: ${c.id}, Status: ${c.case_status})`
+          );
+        }
+        return isValid;
+      })
+    : []; // Non-attorneys: empty array in AppContext (components load their own)
+  const casesLoading = isAttorney ? attorneyCasesLoading : false; // Non-attorneys: not loading in AppContext
+  
   const { providers: supabaseProviders, loading: providersLoading } = useProviders();
   const { auditLogs, loading: auditLoading } = useAuditLogs();
   
-  // Derive role from actual auth roles - use first role or default to ATTORNEY
-  const role = (primaryRole ? primaryRole.toUpperCase() : ROLES.ATTORNEY) as Role;
   const setRole = () => {
     // Role cannot be changed - it comes from database
     console.warn("Role is read-only and determined by database user_roles table");
@@ -77,32 +101,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Transform Supabase data to match existing Case/Provider types
-  const cases: Case[] = supabaseCases.map((c: any) => ({
-    id: c.id,
-    firmId: user?.id || "unknown",
-    onsetOfService: c.created_at,
-    client: {
-      rcmsId: c.id,
-      attyRef: c.atty_ref || "",
-      displayNameMasked: c.client_label || "Unknown",
-      fullName: c.client_label || "Unknown",
-      dobMasked: "",
-      gender: "prefer_not_to_say",
-      state: "",
-    },
-    intake: c.incident || {},
-    fourPs: c.fourps || {},
-    sdoh: c.sdoh || {},
-    demographics: {},
-    consent: c.consent || { signed: false },
-    flags: c.flags || [],
-    sdohFlags: [],
-    riskLevel: "stable",
-    status: c.status || "NEW",
-    checkins: [],
-    createdAt: c.created_at,
-    updatedAt: c.updated_at || c.created_at,
-  }));
+  // For attorneys: transform AttorneyCase[] to Case[] (released-only)
+  // For non-attorneys: return empty array (components load their own via useCases())
+  const cases: Case[] = isAttorney 
+    ? (rawCases as AttorneyCase[]).map((c: AttorneyCase) => {
+        // Dev-only guard: drop any non-released cases and warn
+        if (c.case_status !== "released" && c.case_status !== "closed") {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              `[ATTORNEY_MVP_SAFETY] ⚠️ Dropping non-released case from AppContext (ID: ${c.id}, Status: ${c.case_status})`
+            );
+          }
+          return null; // Will be filtered out
+        }
+        
+        return {
+          id: c.id,
+          firmId: user?.id || "unknown",
+          onsetOfService: c.created_at,
+          client: {
+            rcmsId: c.id,
+            attyRef: "", // AttorneyCase doesn't have atty_ref
+            displayNameMasked: "Unknown", // AttorneyCase doesn't have client_label
+            fullName: "Unknown",
+            dobMasked: "",
+            gender: "prefer_not_to_say",
+            state: "",
+          },
+          intake: {},
+          fourPs: {},
+          sdoh: {},
+          demographics: {},
+          consent: { signed: true }, // Released cases have consent
+          flags: [],
+          sdohFlags: [],
+          riskLevel: "stable",
+          status: c.case_status === "released" ? "RELEASED" : c.case_status === "closed" ? "CLOSED" : "NEW",
+          checkins: [],
+          createdAt: c.created_at,
+          updatedAt: c.updated_at || c.created_at,
+        };
+      }).filter((c): c is Case => c !== null) // Filter out nulls from dropped cases
+    : []; // Non-attorneys: empty array (ClientPortal, ClientCheckins load their own via useCases())
+
+  // Invariant check: In attorney mode, verify no draft cases made it through (dev only)
+  // Note: Drafts are already filtered above, this is a final verification
+  useEffect(() => {
+    if (isAttorney && process.env.NODE_ENV === "development") {
+      const drafts = rawCases.filter((rc: any) => {
+        if ((rc as AttorneyCase).case_status) {
+          const status = (rc as AttorneyCase).case_status;
+          return status !== "released" && status !== "closed";
+        }
+        return false;
+      });
+      
+      if (drafts.length > 0) {
+        console.error(
+          "[ATTORNEY_MVP_SAFETY] ⚠️ CRITICAL: Draft cases detected after filtering!",
+          `Found ${drafts.length} draft case(s). This should never happen.`,
+          drafts
+        );
+      } else {
+        console.debug(
+          `[ATTORNEY_MVP_SAFETY] ✅ Invariant check passed: All ${rawCases.length} attorney cases are released/closed`
+        );
+      }
+    }
+  }, [isAttorney, rawCases]);
 
   const providers: Provider[] = supabaseProviders.map((p: any) => ({
     id: p.id,

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Activity, Shield, Users } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   return (
@@ -161,14 +162,23 @@ const Index = () => {
 
             {/* Large intake button (top) */}
             <div className="flex justify-center mb-8">
-              <a href="/intake" className="rcms-btn cta-intake">Client Intake</a>
+              <a href="/client-intake" className="rcms-btn cta-intake">Client Intake</a>
             </div>
 
             {/* Always-horizontal row */}
             <div className="rcms-row">
               <a href="/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
               <a href="/attorney-portal" className="rcms-btn btn-secondary btn-attorney-portal">Attorney Portal</a>
-              <a href="/provider-portal" className="rcms-btn btn-secondary btn-provider-portal">Provider Portal</a>
+              <a 
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toast.info("Provider Portal coming soon (not in Jan 15 MVP).");
+                }}
+                className="rcms-btn btn-secondary btn-provider-portal"
+              >
+                Provider Portal
+              </a>
             </div>
           </div>
         </section>
@@ -469,10 +479,19 @@ const Index = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/attorney-portal" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</a>
+            <a href="/attorney" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</a>
             <a href="/client-portal"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</a>
-            <a href="/provider-portal" className="inline-block bg-[#4b2e83] hover:bg-[#5a36a5] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Provider Portal</a>
-            <a href="/intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
+            <a 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                toast.info("Provider Portal coming soon (not in Jan 15 MVP).");
+              }}
+              className="inline-block bg-[#4b2e83] hover:bg-[#5a36a5] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition"
+            >
+              Provider Portal
+            </a>
+            <a href="/client-intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
           </div>
         </div>
 
@@ -496,10 +515,10 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">Portals &amp; Access</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/intake" className="hover:underline">Client Intake</a></li>
+              <li><a href="/client-intake" className="hover:underline">Client Intake</a></li>
               <li><a href="/client-portal" className="hover:underline">Client Portal</a></li>
-              <li><a href="/attorney-portal" className="hover:underline">Attorney Portal</a></li>
-              <li><a href="/provider-portal" className="hover:underline">Provider Portal</a></li>
+              <li><a href="/attorney" className="hover:underline">Attorney Portal</a></li>
+              <li><span className="text-white/60">Provider Portal (Coming Soon)</span></li>
               <li><span className="text-white/60">RN Portal (coming soon)</span></li>
             </ul>
           </div>

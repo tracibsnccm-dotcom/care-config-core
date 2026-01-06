@@ -64,6 +64,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
+import { CLIENT_INTAKE_WINDOW_HOURS, formatHMS } from "@/constants/compliance";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -86,6 +87,8 @@ export default function IntakeWizard() {
   const [hasMeds, setHasMeds] = useState<string>('');
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null); // Track case ID for saving disclosures
   const [sensitiveProgress, setSensitiveProgress] = useState<SensitiveExperiencesProgress | null>(null);
+  const [intakeStartedAt, setIntakeStartedAt] = useState<Date | null>(null); // Track when intake was first started
+  const [clientWindowExpired, setClientWindowExpired] = useState(false);
   
   // Mental health screening
   const [mentalHealth, setMentalHealth] = useState({
@@ -233,6 +236,16 @@ export default function IntakeWizard() {
   };
 
   async function submit() {
+    // Check if client window has expired
+    if (clientWindowExpired) {
+      toast({
+        title: "Intake Window Expired",
+        description: "Your 7-day intake window has expired. Please restart the intake process.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const masked = maskName(client.fullName || "");
     
     // Generate client ID
@@ -469,13 +482,92 @@ export default function IntakeWizard() {
             }
           }
         }
+
+        // Record intake completion in rc_client_intakes table (MVP: gates Client Portal access per-case)
+        // Build intake_json payload with all intake data
+        const intakeJson = {
+          client: {
+            ...client,
+            displayNameMasked: masked,
+          },
+          intake: {
+            ...intake,
+            conditions: medsBlock.conditions,
+            medList: medsBlock.meds,
+            allergies: medsBlock.allergies,
+            medsAttested: medsBlock.attested,
+            incidentNarrative,
+            incidentNarrativeExtra,
+            physicalPreDiagnoses,
+            physicalPreNotes,
+            physicalPostDiagnoses,
+            physicalPostNotes,
+            bhPreDiagnoses,
+            bhPostDiagnoses,
+            bhNotes,
+          },
+          fourPs,
+          sdoh,
+          consent: { ...consent, restrictedAccess: sensitiveTag || consent.restrictedAccess },
+          flags: newCase.flags,
+          status: newCase.status,
+          createdAt: newCase.created_at,
+          updatedAt: newCase.updated_at,
+        };
+
+        // Get attorney_id from rc_cases if available, otherwise use attorneyCode as text
+        let attorneyIdText: string | null = attorneyCode || null;
+        
+        // Try to get actual attorney_id from rc_cases
+        if (newCase.id) {
+          try {
+            const { data: caseData } = await supabase
+              .from('rc_cases')
+              .select('attorney_id')
+              .eq('id', newCase.id)
+              .maybeSingle();
+            
+            if (caseData?.attorney_id) {
+              attorneyIdText = caseData.attorney_id;
+            }
+          } catch (err) {
+            // If rc_cases doesn't exist or query fails, use attorneyCode as fallback
+            console.log('Using attorneyCode as attorney_id fallback');
+          }
+        }
+
+        // Set compliance timestamps
+        const now = new Date();
+        const submittedAt = now.toISOString();
+        const attorneyConfirmDeadlineAt = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(); // +48 hours
+
+        // Insert intake record with compliance workflow fields
+        const { error: intakeCompletionError } = await supabase
+          .from("rc_client_intakes")
+          .insert({
+            case_id: newCase.id,
+            intake_json: intakeJson,
+            intake_submitted_at: submittedAt,
+            attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
+            intake_status: 'submitted_pending_attorney',
+            attorney_attested_by: attorneyIdText, // Store attorney identifier (text or uuid)
+          });
+        
+        if (intakeCompletionError) {
+          console.error("Error recording intake completion:", intakeCompletionError);
+          // Don't block submission if this fails, but log it
+        }
       }
     } catch (error) {
       console.error("Error creating baseline check-in:", error);
     }
     
-    alert(`Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Status: ${newCase.status}`);
-    navigate("/cases");
+    toast({
+      title: "Intake Submitted Successfully",
+      description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
+    });
+    // Navigate to client portal (will show pending confirmation screen)
+    navigate("/client-portal");
   }
 
   const generatePDFSummary = () => {
@@ -676,10 +768,20 @@ export default function IntakeWizard() {
     };
   };
 
-  // Load draft on mount
+  // Load draft on mount and set intake started time
   useEffect(() => {
     async function loadSavedDraft() {
       const draft = await loadDraft();
+      
+      // Set intake started time from draft or now
+      if (!intakeStartedAt) {
+        if (draft?.createdAt) {
+          setIntakeStartedAt(new Date(draft.createdAt));
+        } else {
+          setIntakeStartedAt(new Date());
+        }
+      }
+      
       if (draft && draft.formData) {
       const data = draft.formData as any;
         if (data.client) setClient(data.client);
@@ -718,6 +820,22 @@ export default function IntakeWizard() {
     }
     loadSavedDraft();
   }, []);
+
+  // Update client window expiration check every second
+  useEffect(() => {
+    if (!intakeStartedAt) return;
+
+    const checkExpiration = () => {
+      const deadline = new Date(intakeStartedAt.getTime() + CLIENT_INTAKE_WINDOW_HOURS * 60 * 60 * 1000);
+      const now = new Date();
+      setClientWindowExpired(now >= deadline);
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 1000);
+
+    return () => clearInterval(interval);
+  }, [intakeStartedAt]);
 
   // Monitor mental health responses for risk flagging
   useEffect(() => {
@@ -787,8 +905,39 @@ export default function IntakeWizard() {
             <CaraGate onAskCara={() => setShowCaraModal(true)} />
             
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Client Intake Wizard</h1>
-              <p className="text-muted-foreground mt-1">Complete the intake process step by step</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">Client Intake Wizard</h1>
+                  <p className="text-muted-foreground mt-1">Complete the intake process step by step</p>
+                </div>
+                {intakeStartedAt && (
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground mb-1">Time Remaining</div>
+                    <div className={`text-lg font-mono font-bold ${clientWindowExpired ? 'text-destructive' : 'text-primary'}`}>
+                      {(() => {
+                        const deadline = new Date(intakeStartedAt.getTime() + CLIENT_INTAKE_WINDOW_HOURS * 60 * 60 * 1000);
+                        const msRemaining = deadline.getTime() - Date.now();
+                        if (msRemaining <= 0) {
+                          return "EXPIRED";
+                        }
+                        const days = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+                        return `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {clientWindowExpired && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Your 7-day intake window has expired. Please restart the intake process.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <Stepper

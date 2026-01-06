@@ -6,10 +6,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, Clock } from 'lucide-react';
+import { HelpCircle, Clock, ArrowLeft, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { AttorneyAttestationCard } from '@/components/AttorneyAttestationCard';
+import { formatHMS } from '@/constants/compliance';
+import { useAuth } from '@/auth/supabaseAuth';
 
 interface IntakeRow {
   case_id: string;
@@ -21,7 +24,21 @@ interface IntakeRow {
   my_client: boolean;
 }
 
+interface PendingIntake {
+  id: string;
+  case_id: string;
+  intake_submitted_at: string;
+  attorney_confirm_deadline_at: string;
+  attorney_attested_at: string | null;
+  intake_status: string;
+  rc_cases?: {
+    client_id?: string;
+    attorney_id?: string;
+  };
+}
+
 export const AttorneyIntakeTracker = () => {
+  const { user } = useAuth();
   const [rows, setRows] = useState<IntakeRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [scope, setScope] = useState<'mine' | 'all'>('mine');
@@ -29,6 +46,9 @@ export const AttorneyIntakeTracker = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoNudge, setAutoNudge] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedIntake, setSelectedIntake] = useState<PendingIntake | null>(null);
+  const [loadingIntake, setLoadingIntake] = useState(false);
 
   const calculateTTL = (expiresIso: string) => {
     const ms = Math.max(0, new Date(expiresIso).getTime() - Date.now());
@@ -52,15 +72,106 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('attorney-intake-tracker', {
-        body: { scope }
-      });
+      // Query rc_client_intakes for pending attorney confirmations
+      let query = supabase
+        .from('rc_client_intakes')
+        .select(`
+          id,
+          case_id,
+          intake_submitted_at,
+          attorney_confirm_deadline_at,
+          attorney_attested_at,
+          intake_status,
+          rc_cases!inner (
+            client_id,
+            attorney_id
+          )
+        `)
+        .eq('intake_status', 'submitted_pending_attorney')
+        .is('attorney_attested_at', null)
+        .not('intake_submitted_at', 'is', null)
+        .not('attorney_confirm_deadline_at', 'is', null);
+
+      // If "mine" scope, filter by attorney_id in cases
+      if (scope === 'mine' && user) {
+        // Get attorney rc_user id if available
+        const { data: rcUser } = await supabase
+          .from('rc_users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .eq('role', 'attorney')
+          .single();
+
+        if (rcUser?.id) {
+          query = query.eq('rc_cases.attorney_id', rcUser.id);
+        }
+      }
+
+      const { data: intakes, error } = await query;
+
       if (error) throw error;
-      setRows(data || []);
+
+      // Transform to IntakeRow format for display
+      const transformedRows: IntakeRow[] = (intakes || []).map((intake: any) => {
+        const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+        return {
+          case_id: intake.case_id,
+          client: 'Client', // Will need to fetch client name separately if needed
+          stage: 'Pending Attorney Confirmation',
+          last_activity_iso: intake.intake_submitted_at || new Date().toISOString(),
+          expires_iso: intake.attorney_confirm_deadline_at,
+          nudges: 0,
+          my_client: true,
+        };
+      });
+
+      setRows(transformedRows);
+
+      // If viewing a specific case, reload its intake data
+      if (selectedCaseId) {
+        loadIntakeForCase(selectedCaseId);
+      }
     } catch (error) {
       console.error('Failed to load intakes:', error);
       toast.error('Failed to load intake data');
     }
+  };
+
+  const loadIntakeForCase = async (caseId: string) => {
+    setLoadingIntake(true);
+    try {
+      const { data, error } = await supabase
+        .from('rc_client_intakes')
+        .select(`
+          id,
+          case_id,
+          intake_submitted_at,
+          attorney_confirm_deadline_at,
+          attorney_attested_at,
+          intake_status,
+          rc_cases!inner (
+            client_id,
+            attorney_id
+          )
+        `)
+        .eq('case_id', caseId)
+        .eq('intake_status', 'submitted_pending_attorney')
+        .maybeSingle();
+
+      if (error) throw error;
+      setSelectedIntake(data as PendingIntake | null);
+    } catch (error) {
+      console.error('Failed to load intake:', error);
+      toast.error('Failed to load intake details');
+      setSelectedIntake(null);
+    } finally {
+      setLoadingIntake(false);
+    }
+  };
+
+  const handleViewIntake = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    loadIntakeForCase(caseId);
   };
 
   const handleNudge = async (caseId: string) => {
@@ -145,6 +256,79 @@ export const AttorneyIntakeTracker = () => {
 
     return () => clearInterval(interval);
   }, [scope]);
+
+  // If viewing a specific intake, show attestation card
+  if (selectedCaseId && selectedIntake) {
+    const caseData = Array.isArray(selectedIntake.rc_cases) 
+      ? selectedIntake.rc_cases[0] 
+      : selectedIntake.rc_cases;
+
+    // Check if attestation is required
+    const needsAttestation = 
+      selectedIntake.intake_status === 'submitted_pending_attorney' &&
+      !selectedIntake.attorney_attested_at;
+
+    // Check if expired
+    const isExpired = selectedIntake.intake_status === 'expired_deleted' ||
+      (selectedIntake.attorney_confirm_deadline_at && 
+       new Date(selectedIntake.attorney_confirm_deadline_at).getTime() < Date.now());
+
+    return (
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSelectedCaseId(null);
+            setSelectedIntake(null);
+          }}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Intake List
+        </Button>
+
+        {needsAttestation && !isExpired && (
+          <AttorneyAttestationCard
+            intakeId={selectedIntake.id}
+            caseId={selectedIntake.case_id}
+            intakeSubmittedAt={selectedIntake.intake_submitted_at}
+            attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
+            onAttestationComplete={() => {
+              toast.success('Attestation complete. You can now view case details.');
+              loadData();
+              // Optionally navigate to case detail after attestation
+            }}
+          />
+        )}
+
+        {isExpired && (
+          <Card className="border-destructive">
+            <CardContent className="p-6">
+              <p className="text-destructive font-semibold whitespace-pre-line">
+                ⚠️ The 48-hour confirmation window has expired. All client intake data has been permanently deleted. The intake process must be restarted from the beginning. This action cannot be undone.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!needsAttestation && !isExpired && (
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground">
+                Intake has been confirmed. You can now view case details.
+              </p>
+              <Button
+                onClick={() => window.location.href = `/cases/${selectedCaseId}`}
+                className="mt-4"
+              >
+                View Case Details
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -278,9 +462,13 @@ export const AttorneyIntakeTracker = () => {
                     </td>
                     <td className="p-2">{row.client}</td>
                     <td className="p-2">
-                      <Link to={`/cases/${row.case_id}`} className="text-primary hover:underline">
+                      <Button
+                        variant="link"
+                        onClick={() => handleViewIntake(row.case_id)}
+                        className="p-0 h-auto text-primary hover:underline"
+                      >
                         {row.case_id}
-                      </Link>
+                      </Button>
                     </td>
                     <td className="p-2">
                       <Badge variant="outline">{row.stage}</Badge>
@@ -294,6 +482,14 @@ export const AttorneyIntakeTracker = () => {
                     </td>
                     <td className="p-2">
                       <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewIntake(row.case_id)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View/Attest
+                        </Button>
                         <Button size="sm" onClick={() => handleNudge(row.case_id)}>
                           Nudge
                         </Button>

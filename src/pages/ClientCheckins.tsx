@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { LabeledSelect } from "@/components/LabeledSelect";
 import { LabeledInput } from "@/components/LabeledInput";
 import { LabeledTextarea } from "@/components/LabeledTextarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useApp } from "@/context/AppContext";
+import { useCases } from "@/hooks/useSupabaseData";
 import { FourPs } from "@/config/rcms";
-import { Calendar, TrendingUp, AlertTriangle } from "lucide-react";
+import { Calendar, TrendingUp, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { fmtDate } from "@/lib/store";
 import { Sparkline } from "@/components/Sparkline";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,68 +22,289 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
+// Helper to validate if a string is a UUID
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidUuid(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return UUID_RE.test(String(value).trim());
+}
+
+// Migration helpers for displaying old scale values (0-4 or 0-10) on new 1-5 scale
+// These ensure backward compatibility with existing saved data
+function migrateOld4PsValue(value: number | null | undefined): number {
+  if (value === null || value === undefined) return 3; // Default to middle (3)
+  // If value is 0-4 (old scale), add 1 to convert to 1-5
+  if (value >= 0 && value <= 4) return value + 1;
+  // If value is 0-100 (stored percentage), convert to 1-5 scale
+  if (value > 4 && value <= 100) {
+    // Map 0-100 to 1-5: 0->1, 25->2, 50->3, 75->4, 100->5
+    return Math.max(1, Math.min(5, Math.round((value / 25) + 1)));
+  }
+  // If already 1-5, return as-is
+  return Math.max(1, Math.min(5, value));
+}
+
+function migrateOldPainDepressionAnxiety(value: number | null | undefined): number {
+  if (value === null || value === undefined) return 3; // Default to middle (3)
+  // If value is 0-10 (old scale), map to 1-5: 0->1, 2->2, 4->3, 7->4, 10->5
+  if (value >= 0 && value <= 10) {
+    if (value === 0) return 1;
+    if (value <= 2) return 2;
+    if (value <= 4) return 3;
+    if (value <= 7) return 4;
+    return 5;
+  }
+  // If already 1-5, return as-is
+  return Math.max(1, Math.min(5, value));
+}
+
+function migrateOldSdohValue(value: number | null | undefined): number {
+  if (value === null || value === undefined) return 1; // Default to minimum (1)
+  // If value is 0-4 (old scale), add 1 to convert to 1-5
+  if (value >= 0 && value <= 4) return value + 1;
+  // If already 1-5, return as-is
+  return Math.max(1, Math.min(5, value));
+}
+
 export default function ClientCheckins() {
-  const { cases, setCases, log } = useApp();
-  const [forCase, setForCase] = useState(cases[0]?.id ?? "");
-  const [pain, setPain] = useState(3);
-  const [depression, setDepression] = useState(0);
-  const [anxiety, setAnxiety] = useState(0);
+  const { cases: appContextCases, setCases, log } = useApp();
+  // Use useCases hook to fetch cases from Supabase (MVP data source)
+  const { cases: supabaseCases, loading: casesLoading, error: casesError, refetch: refetchCases } = useCases();
+  
+  // Use Supabase cases if available, otherwise fall back to app context cases
+  const availableCases = useMemo(() => {
+    return supabaseCases.length > 0 ? supabaseCases : appContextCases;
+  }, [supabaseCases, appContextCases]);
+  
+  const [forCase, setForCase] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSubmittedAt, setLastSubmittedAt] = useState<Date | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSuccessCooldown, setIsSuccessCooldown] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(null);
+  // All scales now use 1-5 (inclusive)
+  const [pain, setPain] = useState(3); // 1-5 scale
+  const [depression, setDepression] = useState(1); // 1-5 scale
+  const [anxiety, setAnxiety] = useState(1); // 1-5 scale
   const [note, setNote] = useState("");
   const [quick4ps, setQuick4ps] = useState<FourPs>({
-    physical: 2,
-    psychological: 2,
-    psychosocial: 2,
-    professional: 2,
+    physical: 3, // 1-5 scale (was 2 on 0-4)
+    psychological: 3,
+    psychosocial: 3,
+    professional: 3,
   });
 
-  // SDOH state (0-4 scale)
+  // SDOH state (1-5 scale, was 0-4)
   const [sdohScores, setSdohScores] = useState({
-    housing: 0,
-    food: 0,
-    transport: 0,
-    insurance: 0,
-    financial: 0,
-    employment: 0,
-    social_support: 0,
-    safety: 0,
-    healthcare_access: 0,
+    housing: 1,
+    food: 1,
+    transport: 1,
+    insurance: 1,
+    financial: 1,
+    employment: 1,
+    social_support: 1,
+    safety: 1,
+    healthcare_access: 1,
   });
+
+  // Fetch client_id from rc_clients on mount
+  useEffect(() => {
+    async function fetchClientId() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch client_id, handling multiple rows by taking the newest
+        const { data: client, error } = await supabase
+          .from("rc_clients")
+          .select("id")
+          .eq("user_id", user.id) // Filter by user_id, NOT id/email/etc
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("[ClientCheckins] Error fetching client_id:", error);
+          return;
+        }
+
+        if (client?.id) {
+          setClientId(client.id);
+        }
+      } catch (err) {
+        console.error("[ClientCheckins] Error in fetchClientId:", err);
+      }
+    }
+
+    fetchClientId();
+  }, []);
+
+  // Auto-select case if exactly 1 case is available
+  useEffect(() => {
+    if (!casesLoading && !casesError && availableCases.length === 1) {
+      const singleCase = availableCases[0];
+      if (singleCase.id && isValidUuid(singleCase.id)) {
+        setForCase(singleCase.id);
+      }
+    } else if (!casesLoading && availableCases.length === 0) {
+      setForCase(undefined);
+    }
+  }, [availableCases, casesLoading, casesError]);
+
+  // Validate selected case is a valid UUID
+  const selectedCase = useMemo(() => {
+    if (!forCase || !isValidUuid(forCase)) return undefined;
+    return availableCases.find((c) => c.id === forCase);
+  }, [forCase, availableCases]);
+
+  // Determine if submit should be disabled
+  const isSubmitDisabled = useMemo(() => {
+    return (
+      isSubmitting ||
+      isSuccessCooldown ||
+      casesLoading ||
+      casesError !== null ||
+      availableCases.length === 0 ||
+      !forCase ||
+      !isValidUuid(forCase) ||
+      !selectedCase
+    );
+  }, [isSubmitting, isSuccessCooldown, casesLoading, casesError, availableCases.length, forCase, selectedCase]);
+
+  // Get submit disabled reason for inline message
+  const getSubmitDisabledReason = () => {
+    if (isSubmitting) return "Submitting check-in...";
+    if (isSuccessCooldown) return "Please wait before submitting again...";
+    if (casesLoading) return "Loading cases...";
+    if (casesError) return "Error loading cases. Please retry.";
+    if (availableCases.length === 0) return "No assigned cases found. Please contact your care manager.";
+    if (!forCase) return "Please select a case to enable submit.";
+    if (!isValidUuid(forCase)) return "Invalid case selection. Please select a valid case.";
+    if (!selectedCase) return "Selected case not found. Please select a case.";
+    return null;
+  };
 
   async function submit() {
-    if (!forCase) {
-      toast.error("Please select a case");
+    if (!forCase || !isValidUuid(forCase)) {
+      toast.error("Please select a valid case");
       return;
     }
 
+    if (!selectedCase) {
+      toast.error("Selected case not found. Please select a case.");
+      return;
+    }
+
+    if (isSubmitting) {
+      return; // Prevent double submit
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null); // Clear any previous error
+
     try {
-      // Insert check-in to database
+      // Get authenticated user ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error("[ClientCheckins] Auth error:", {
+          message: userError.message,
+          details: userError,
+        });
+        toast.error(`Authentication error: ${userError.message || "Please log in again"}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!user) {
+        toast.error("You must be logged in to submit a check-in");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Get client_id from rc_clients if not already fetched
+      let resolvedClientId = clientId;
+      if (!resolvedClientId) {
+        // Fetch client_id, handling multiple rows by taking the newest
+        const { data: client, error: clientError } = await supabase
+          .from("rc_clients")
+          .select("id")
+          .eq("user_id", user.id) // Filter by user_id, NOT id/email/etc
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (clientError) {
+          console.error("[ClientCheckins] Error fetching client_id:", {
+            message: clientError.message,
+            details: clientError.details,
+            hint: clientError.hint,
+            code: clientError.code,
+          });
+          const errorMessage = clientError.message ?? "Unknown error";
+          setSubmitError(errorMessage);
+          toast.error("Submit failed: " + errorMessage);
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!client?.id) {
+          // No client profile found for this user
+          const errorMessage = "No client profile found for this user.";
+          setSubmitError(errorMessage);
+          toast.error(errorMessage);
+          setIsSubmitting(false);
+          return;
+        }
+
+        resolvedClientId = client.id;
+        setClientId(resolvedClientId); // Cache for future submissions
+      }
+
+      // Insert check-in to database (rc_client_checkins)
+      // 4Ps: Convert 1-5 scale to 0-100 for storage (1->0, 2->25, 3->50, 4->75, 5->100)
+      // Pain/depression/anxiety/SDOH: Store as-is (1-5)
       const { data: checkinData, error: checkinError } = await supabase
-        .from("client_checkins")
+        .from("rc_client_checkins")
         .insert({
-          case_id: forCase,
-          client_id: (await supabase.auth.getUser()).data.user?.id,
-          pain_scale: pain,
-          depression_scale: depression,
-          anxiety_scale: anxiety,
-          p_physical: quick4ps.physical * 25,
-          p_psychological: quick4ps.psychological * 25,
-          p_psychosocial: quick4ps.psychosocial * 25,
-          p_purpose: quick4ps.professional * 25,
-          sdoh_housing: sdohScores.housing,
-          sdoh_food: sdohScores.food,
-          sdoh_transport: sdohScores.transport,
-          sdoh_insurance: sdohScores.insurance,
-          sdoh_financial: sdohScores.financial,
-          sdoh_employment: sdohScores.employment,
-          sdoh_social_support: sdohScores.social_support,
-          sdoh_safety: sdohScores.safety,
-          sdoh_healthcare_access: sdohScores.healthcare_access,
+          case_id: forCase, // UUID from selected case
+          client_id: resolvedClientId, // Client ID from rc_clients
+          pain_scale: pain, // 1-5 scale
+          depression_scale: depression, // 1-5 scale
+          anxiety_scale: anxiety, // 1-5 scale
+          p_physical: (quick4ps.physical - 1) * 25, // Convert 1-5 to 0-100
+          p_psychological: (quick4ps.psychological - 1) * 25,
+          p_psychosocial: (quick4ps.psychosocial - 1) * 25,
+          p_professional: (quick4ps.professional - 1) * 25, // Note: column is p_professional, not p_purpose
+          housing: sdohScores.housing, // 1-5 scale (no sdoh_ prefix per schema)
+          food: sdohScores.food,
+          transport: sdohScores.transport,
+          insurance: sdohScores.insurance,
+          financial: sdohScores.financial,
+          employment: sdohScores.employment,
+          social_support: sdohScores.social_support,
+          safety: sdohScores.safety,
+          healthcare_access: sdohScores.healthcare_access,
           note: note || null,
         })
         .select()
         .single();
 
-      if (checkinError) throw checkinError;
+      if (checkinError) {
+        // Log detailed error information
+        console.error("[ClientCheckins] submit failed", {
+          message: checkinError.message,
+          details: checkinError.details,
+          hint: checkinError.hint,
+          code: checkinError.code,
+        });
+        
+        // Set error state and show toast
+        const errorMessage = checkinError.message ?? "Unknown error";
+        setSubmitError(errorMessage);
+        toast.error("Submit failed: " + errorMessage);
+        setIsSubmitting(false);
+        return;
+      }
 
       // Trigger wellness monitoring
       if (checkinData) {
@@ -96,97 +319,109 @@ export default function ClientCheckins() {
 
       // Check for immediate alerts
       const alerts = [];
-      const caseObj = cases.find((x) => x.id === forCase);
-      const clientName = caseObj?.client?.displayNameMasked || caseObj?.client?.attyRef || "Client";
+      const caseObj = availableCases.find((x) => x.id === forCase);
+      const clientName = (caseObj as any)?.client_label || (caseObj as any)?.atty_ref || "Client";
 
-      if (pain >= 7) {
+      // Thresholds for 1-5 scale (Maslow-based: 1=worst, 5=best): <= 2 triggers alerts (low scores = high need)
+      if (pain <= 2) {
         alerts.push({
           case_id: forCase,
           alert_type: "pain_threshold",
           severity: "high",
-          message: `${clientName} reported pain level ${pain}/10. Review recommended.`,
+          message: `${clientName} reported pain level ${pain}/5 (critical). Review recommended.`,
           disclosure_scope: "internal",
           metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
         });
       }
 
-      if (depression >= 7) {
+      if (depression <= 2) {
         alerts.push({
           case_id: forCase,
           alert_type: "depression_threshold",
           severity: "high",
-          message: `${clientName} reported depression level ${depression}/10. Review recommended.`,
+          message: `${clientName} reported depression level ${depression}/5 (critical). Review recommended.`,
           disclosure_scope: "internal",
           metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
         });
       }
 
-      if (anxiety >= 7) {
+      if (anxiety <= 2) {
         alerts.push({
           case_id: forCase,
           alert_type: "anxiety_threshold",
           severity: "high",
-          message: `${clientName} reported anxiety level ${anxiety}/10. Review recommended.`,
+          message: `${clientName} reported anxiety level ${anxiety}/5 (critical). Review recommended.`,
           disclosure_scope: "internal",
           metadata: { pain, depression, anxiety, timestamp: new Date().toISOString() },
         });
       }
 
-      // Check 4P scores (convert to 0-100 for thresholding)
-      const low4Ps = Object.entries(quick4ps).filter(([_, value]) => (value * 25) <= 30);
-      if (low4Ps.length > 0) {
-        const dimensions = low4Ps.map(([key]) => key).join(", ");
+      // Check 4P scores: <= 2 on 1-5 scale (Maslow-based: 1=worst, 5=best) - low scores = critical need
+      const critical4Ps = Object.entries(quick4ps).filter(([_, value]) => value <= 2);
+      if (critical4Ps.length > 0) {
+        const dimensions = critical4Ps.map(([key]) => key).join(", ");
         alerts.push({
           case_id: forCase,
-          alert_type: "4p_low_score",
+          alert_type: "4p_critical_score",
           severity: "medium",
-          message: `${clientName} has low 4P scores (${dimensions} ≤ 30). RN review recommended.`,
+          message: `${clientName} has critical 4P scores (${dimensions} ≤ 2). RN review recommended.`,
           disclosure_scope: "internal",
           metadata: { fourPs: quick4ps, timestamp: new Date().toISOString() },
         });
       }
 
-      // Check for trend alerts (3 consecutive high readings)
+      // Check for trend alerts (3 consecutive critical readings)
+      // Threshold: <= 2 on 1-5 scale (Maslow-based: 1=worst, 5=best) - low scores = critical need
       const { data: recentCheckins } = await supabase
-        .from("client_checkins")
+        .from("rc_client_checkins")
         .select("pain_scale, depression_scale, anxiety_scale")
         .eq("case_id", forCase)
         .order("created_at", { ascending: false })
         .limit(3);
 
       if (recentCheckins && recentCheckins.length === 3) {
-        const allPainHigh = recentCheckins.every((c) => c.pain_scale >= 7);
-        const allDepressionHigh = recentCheckins.every((c) => c.depression_scale >= 7);
-        const allAnxietyHigh = recentCheckins.every((c) => c.anxiety_scale >= 7);
+        // Migrate old values (0-10) to new scale (1-5) for comparison
+        const allPainCritical = recentCheckins.every((c) => {
+          const migrated = migrateOldPainDepressionAnxiety(c.pain_scale);
+          return migrated <= 2;
+        });
+        const allDepressionCritical = recentCheckins.every((c) => {
+          const migrated = migrateOldPainDepressionAnxiety(c.depression_scale);
+          return migrated <= 2;
+        });
+        const allAnxietyCritical = recentCheckins.every((c) => {
+          const migrated = migrateOldPainDepressionAnxiety(c.anxiety_scale);
+          return migrated <= 2;
+        });
 
-        if (allPainHigh) {
+        if (allPainCritical) {
           alerts.push({
             case_id: forCase,
             alert_type: "pain_trend",
             severity: "critical",
-            message: `${clientName} has reported pain ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            message: `${clientName} has reported pain ≤ 2 for 3 consecutive check-ins. Immediate review required.`,
             disclosure_scope: "internal",
             metadata: { trend: "pain", checkins: recentCheckins, timestamp: new Date().toISOString() },
           });
         }
 
-        if (allDepressionHigh) {
+        if (allDepressionCritical) {
           alerts.push({
             case_id: forCase,
             alert_type: "depression_trend",
             severity: "critical",
-            message: `${clientName} has reported depression ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            message: `${clientName} has reported depression ≤ 2 for 3 consecutive check-ins. Immediate review required.`,
             disclosure_scope: "internal",
             metadata: { trend: "depression", checkins: recentCheckins, timestamp: new Date().toISOString() },
           });
         }
 
-        if (allAnxietyHigh) {
+        if (allAnxietyCritical) {
           alerts.push({
             case_id: forCase,
             alert_type: "anxiety_trend",
             severity: "critical",
-            message: `${clientName} has reported anxiety ≥ 7 for 3 consecutive check-ins. Immediate review required.`,
+            message: `${clientName} has reported anxiety ≤ 2 for 3 consecutive check-ins. Immediate review required.`,
             disclosure_scope: "internal",
             metadata: { trend: "anxiety", checkins: recentCheckins, timestamp: new Date().toISOString() },
           });
@@ -196,56 +431,99 @@ export default function ClientCheckins() {
       // Insert all alerts
       if (alerts.length > 0) {
         const { error: alertError } = await supabase.from("case_alerts").insert(alerts);
-        if (alertError) console.error("Error creating alerts:", alertError);
+        if (alertError) {
+          console.error("[ClientCheckins] Alert insert error:", {
+            message: alertError.message,
+            details: alertError.details,
+            hint: alertError.hint,
+            code: alertError.code,
+          });
+          // Don't fail the whole submission if alerts fail - just log it
+        }
       }
 
-      // Update local state for UI
-      setCases((arr) =>
-        arr.map((c) =>
-          c.id === forCase
-            ? {
-                ...c,
-                checkins: [
-                  ...(c.checkins || []),
-                  { ts: new Date().toISOString(), pain, depression, anxiety, note, fourPs: quick4ps },
-                ],
-                status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
-              }
-            : c
-        )
-      );
-      log("CHECKIN_SUBMIT", forCase);
+      // Update local state for UI (if using app context)
+      if (setCases) {
+        setCases((arr) =>
+          arr.map((c) =>
+            c.id === forCase
+              ? {
+                  ...c,
+                  checkins: [
+                    ...(c.checkins || []),
+                    { ts: new Date().toISOString(), pain, depression, anxiety, note, fourPs: quick4ps },
+                  ],
+                  status: c.status === "NEW" ? "IN_PROGRESS" : c.status,
+                }
+              : c
+          )
+        );
+      }
+      if (log) {
+        log("CHECKIN_SUBMIT", forCase);
+      }
 
+      // Show success message
+      const submittedAt = new Date();
+      setLastSubmittedAt(submittedAt);
+      setSubmitError(null); // Clear any previous error on success
       toast.success("Check-in submitted successfully");
       if (alerts.length > 0) {
         toast.info(`${alerts.length} alert(s) created for RN review`);
       }
 
-      // Reset form
+      // Reset form to defaults (1-5 scale)
       setPain(3);
-      setDepression(0);
-      setAnxiety(0);
+      setDepression(1);
+      setAnxiety(1);
       setNote("");
-      setQuick4ps({ physical: 2, psychological: 2, psychosocial: 2, professional: 2 });
+      setQuick4ps({ physical: 3, psychological: 3, psychosocial: 3, professional: 3 });
       setSdohScores({
-        housing: 0,
-        food: 0,
-        transport: 0,
-        insurance: 0,
-        financial: 0,
-        employment: 0,
-        social_support: 0,
-        safety: 0,
-        healthcare_access: 0,
+        housing: 1,
+        food: 1,
+        transport: 1,
+        insurance: 1,
+        financial: 1,
+        employment: 1,
+        social_support: 1,
+        safety: 1,
+        healthcare_access: 1,
       });
-    } catch (error) {
-      console.error("Error submitting check-in:", error);
-      toast.error("Failed to submit check-in. Please try again.");
+
+      setIsSubmitting(false);
+      
+      // Disable button for 2 seconds after success to prevent double-click
+      setIsSuccessCooldown(true);
+      setTimeout(() => {
+        setIsSuccessCooldown(false);
+      }, 2000);
+    } catch (error: any) {
+      // Catch any unexpected errors
+      console.error("[ClientCheckins] submit failed", {
+        message: error?.message || String(error),
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        error: error,
+      });
+      
+      const errorMessage = error?.message ?? "Unknown error";
+      setSubmitError(errorMessage);
+      toast.error("Submit failed: " + errorMessage);
+      setIsSubmitting(false);
     }
   }
 
-  const selectedCase = cases.find((c) => c.id === forCase);
-  const recentCheckins = selectedCase?.checkins?.slice(-5).reverse() ?? [];
+  // Format timestamp for display
+  const formatSubmissionTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  const recentCheckins = (selectedCase as any)?.checkins?.slice(-5).reverse() ?? [];
 
   // Progress tracker helpers
   type Period = 'day' | 'week' | 'month';
@@ -258,7 +536,7 @@ export default function ClientCheckins() {
   }
 
   function aggregateCheckins(period: Period) {
-    const checkins = selectedCase?.checkins || [];
+    const checkins = (selectedCase as any)?.checkins || [];
     if (checkins.length === 0) return [];
 
     // Group by period
@@ -281,18 +559,20 @@ export default function ClientCheckins() {
       groups[key].push(ci);
     });
 
-    // Aggregate data
+    // Aggregate data with migration support for old values
     return Object.entries(groups)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, items]) => ({
         date: formatDateForPeriod(items[0].ts, period),
-        pain: Math.round((items.reduce((sum, i) => sum + (i.pain || 0), 0) / items.length) * 10) / 10,
-        depression: Math.round((items.reduce((sum, i) => sum + (i.depression || 0), 0) / items.length) * 10) / 10,
-        anxiety: Math.round((items.reduce((sum, i) => sum + (i.anxiety || 0), 0) / items.length) * 10) / 10,
-        physical: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.physical || 0) > 4 ? (i.fourPs?.physical || 0) / 25 : (i.fourPs?.physical || 0))), 0) / items.length) * 10) / 10,
-        psychological: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.psychological || 0) > 4 ? (i.fourPs?.psychological || 0) / 25 : (i.fourPs?.psychological || 0))), 0) / items.length) * 10) / 10,
-        psychosocial: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.psychosocial || 0) > 4 ? (i.fourPs?.psychosocial || 0) / 25 : (i.fourPs?.psychosocial || 0))), 0) / items.length) * 10) / 10,
-        professional: Math.round((items.reduce((sum, i) => sum + (((i.fourPs?.professional || 0) > 4 ? (i.fourPs?.professional || 0) / 25 : (i.fourPs?.professional || 0))), 0) / items.length) * 10) / 10,
+        // Migrate old pain/depression/anxiety values (0-10) to new scale (1-5)
+        pain: Math.round((items.reduce((sum, i) => sum + migrateOldPainDepressionAnxiety(i.pain || 0), 0) / items.length) * 10) / 10,
+        depression: Math.round((items.reduce((sum, i) => sum + migrateOldPainDepressionAnxiety(i.depression || 0), 0) / items.length) * 10) / 10,
+        anxiety: Math.round((items.reduce((sum, i) => sum + migrateOldPainDepressionAnxiety(i.anxiety || 0), 0) / items.length) * 10) / 10,
+        // Migrate old 4Ps values (0-4 or 0-100) to new scale (1-5)
+        physical: Math.round((items.reduce((sum, i) => sum + migrateOld4PsValue(i.fourPs?.physical || 0), 0) / items.length) * 10) / 10,
+        psychological: Math.round((items.reduce((sum, i) => sum + migrateOld4PsValue(i.fourPs?.psychological || 0), 0) / items.length) * 10) / 10,
+        psychosocial: Math.round((items.reduce((sum, i) => sum + migrateOld4PsValue(i.fourPs?.psychosocial || 0), 0) / items.length) * 10) / 10,
+        professional: Math.round((items.reduce((sum, i) => sum + migrateOld4PsValue(i.fourPs?.professional || 0), 0) / items.length) * 10) / 10,
       }));
   }
 
@@ -307,6 +587,8 @@ export default function ClientCheckins() {
     }
   }
 
+  const submitDisabledReason = getSubmitDisabledReason();
+
   return (
     <AppLayout>
       <div className="p-8 max-w-6xl mx-auto">
@@ -314,6 +596,85 @@ export default function ClientCheckins() {
           <h1 className="text-3xl font-bold text-foreground">Client Check-ins</h1>
           <p className="text-muted-foreground mt-1">Track your wellbeing and progress over time — including pain, mood, stress, and The 4Ps of Wellness (Physical, Psychological, Psychosocial, and Professional).</p>
         </div>
+
+        {/* Case Selector */}
+        <Card className="p-6 border-border mb-6">
+          <Label className="text-sm font-medium mb-2 block">Select Your Case</Label>
+          {casesLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading cases...</span>
+            </div>
+          ) : casesError ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error loading cases</AlertTitle>
+              <AlertDescription className="flex items-center justify-between">
+                <span>{casesError.message || "Failed to load cases"}</span>
+                <Button
+                  variant="link"
+                  onClick={refetchCases}
+                  className="p-0 h-auto text-destructive"
+                >
+                  Retry <RefreshCw className="w-3 h-3 ml-1" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : availableCases.length === 0 ? (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>No assigned cases found</AlertTitle>
+              <AlertDescription className="flex items-center justify-between">
+                <span>There are no active cases assigned to your account. Please contact your care manager.</span>
+                <Button
+                  variant="link"
+                  onClick={refetchCases}
+                  className="p-0 h-auto"
+                >
+                  Retry <RefreshCw className="w-3 h-3 ml-1" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : availableCases.length === 1 ? (
+            <div className="p-3 bg-muted/50 rounded-md border border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Case Selected</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(availableCases[0] as any)?.client_label || 
+                     (availableCases[0] as any)?.atty_ref || 
+                     `Case ${availableCases[0].id.slice(0, 8)}`}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  Auto-selected
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            <Select 
+              value={forCase || ""} 
+              onValueChange={(value) => setForCase(value)}
+              disabled={casesLoading}
+            >
+              <SelectTrigger className="w-full bg-background border-border">
+                <SelectValue placeholder="Choose your case" />
+              </SelectTrigger>
+              <SelectContent className="z-[60] bg-popover border-border shadow-lg">
+                {availableCases.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {(c as any)?.client_label || (c as any)?.atty_ref || `Case ${c.id.slice(0, 8)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {submitDisabledReason && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {submitDisabledReason}
+            </p>
+          )}
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Check-in Form */}
@@ -323,51 +684,64 @@ export default function ClientCheckins() {
             <div className="space-y-6">
               <div>
                 <Label className="text-sm font-medium mb-3 block">
-                  Pain Scale: {pain}/10
+                  Pain Scale: {pain}/5
                 </Label>
                 <Slider
                   value={[pain]}
                   onValueChange={([value]) => setPain(value)}
-                  max={10}
+                  min={1}
+                  max={5}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>No Pain</span>
-                  <span>Moderate</span>
-                  <span>Severe</span>
+                  <span>1 = Severe pain (worst)</span>
+                  <span>2 = Significant pain</span>
+                  <span>3 = Moderate pain</span>
+                  <span>4 = Mild pain</span>
+                  <span>5 = No/minimal pain (best)</span>
                 </div>
               </div>
 
               <div>
                 <Label className="text-sm font-medium mb-3 block">
-                  How depressed or down did you feel today? {depression}/10
+                  How depressed or down did you feel today? {depression}/5
                 </Label>
                 <Slider
                   value={[depression]}
                   onValueChange={([value]) => setDepression(value)}
-                  max={10}
+                  min={1}
+                  max={5}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>0 = not at all, 10 = extremely</span>
+                  <span>1 = Severe (worst)</span>
+                  <span>2 = Significant</span>
+                  <span>3 = Moderate</span>
+                  <span>4 = Mild</span>
+                  <span>5 = None/minimal (best)</span>
                 </div>
               </div>
 
               <div>
                 <Label className="text-sm font-medium mb-3 block">
-                  How anxious or nervous did you feel today? {anxiety}/10
+                  How anxious or nervous did you feel today? {anxiety}/5
                 </Label>
                 <Slider
                   value={[anxiety]}
                   onValueChange={([value]) => setAnxiety(value)}
-                  max={10}
+                  min={1}
+                  max={5}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>0 = not at all, 10 = extremely</span>
+                  <span>1 = Severe (worst)</span>
+                  <span>2 = Significant</span>
+                  <span>3 = Moderate</span>
+                  <span>4 = Mild</span>
+                  <span>5 = None/minimal (best)</span>
                 </div>
               </div>
 
@@ -382,13 +756,13 @@ export default function ClientCheckins() {
 
               <div className="rounded-lg border border-border bg-card p-4 mb-4">
                 <h3 className="text-sm font-semibold text-foreground">How to Score the 4Ps &amp; SDOH</h3>
-                <p className="text-xs text-muted-foreground mt-1">Each category measures <strong>distress or impairment</strong>, not wellness. Use this scale to rate your impairment:</p>
+                <p className="text-xs text-muted-foreground mt-1">Each category measures <strong>distress or impairment</strong>, not wellness. Use this scale to rate your impairment (Maslow-based: 1 = worst/highest need, 5 = best/needs met):</p>
                 <ul className="mt-3 space-y-1 text-xs text-foreground">
-                  <li><span className="font-semibold">0</span> — Doing just fine - No problems with my daily activities</li>
-                  <li><span className="font-semibold">1</span> — A little tricky sometimes - Mostly able to do what I need to</li>
-                  <li><span className="font-semibold">2</span> — Pretty difficult at times - Have to push through to get things done</li>
-                  <li><span className="font-semibold">3</span> — Really hard most days - Struggle with regular tasks and activities</li>
-                  <li><span className="font-semibold">4</span> — Extremely difficult - Can't do normal daily things without help</li>
+                  <li><span className="font-semibold">1</span> — Critical barrier / unmet basic needs (worst) - Can't do normal daily things without help</li>
+                  <li><span className="font-semibold">2</span> — Really hard most days - Struggle with regular tasks and activities</li>
+                  <li><span className="font-semibold">3</span> — Pretty difficult at times - Have to push through to get things done</li>
+                  <li><span className="font-semibold">4</span> — A little tricky sometimes - Mostly able to do what I need to</li>
+                  <li><span className="font-semibold">5</span> — Stable / needs met (best) - Doing just fine, no problems with my daily activities</li>
                 </ul>
               </div>
               <div>
@@ -398,7 +772,7 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Physical (pain, fatigue, sleep, mobility): {quick4ps.physical}/4
+                          Physical (pain, fatigue, sleep, mobility): {quick4ps.physical}/5
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
@@ -414,7 +788,8 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, physical: value }))
                         }
-                        max={4}
+                        min={1}
+                        max={5}
                         step={1}
                         className="w-full"
                       />
@@ -423,7 +798,7 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Psychological (mood, coping, stress): {quick4ps.psychological}/4
+                          Psychological (mood, coping, stress): {quick4ps.psychological}/5
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
@@ -439,7 +814,8 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, psychological: value }))
                         }
-                        max={4}
+                        min={1}
+                        max={5}
                         step={1}
                         className="w-full"
                       />
@@ -448,7 +824,7 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Psychosocial (relationships, finances, transportation, support): {quick4ps.psychosocial}/4
+                          Psychosocial (relationships, finances, transportation, support): {quick4ps.psychosocial}/5
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
@@ -464,7 +840,8 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, psychosocial: value }))
                         }
-                        max={4}
+                        min={1}
+                        max={5}
                         step={1}
                         className="w-full"
                       />
@@ -473,7 +850,7 @@ export default function ClientCheckins() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Label className="text-xs font-medium">
-                          Professional (job, school, or home-based role): {quick4ps.professional}/4
+                          Professional (job, school, or home-based role): {quick4ps.professional}/5
                         </Label>
                         <UITooltip>
                           <TooltipTrigger asChild>
@@ -489,7 +866,8 @@ export default function ClientCheckins() {
                         onValueChange={([value]) =>
                           setQuick4ps((p) => ({ ...p, professional: value }))
                         }
-                        max={4}
+                        min={1}
+                        max={5}
                         step={1}
                         className="w-full"
                       />
@@ -498,10 +876,10 @@ export default function ClientCheckins() {
                 </TooltipProvider>
               </div>
 
-              {/* SDOH Tracking (0-4 Scale) */}
+              {/* SDOH Tracking (1-5 Scale) */}
               <div className="pt-4 border-t border-border">
                 <Label className="text-sm font-medium mb-3 block">Social Determinants of Health (SDOH) - Optional</Label>
-                <p className="text-xs text-muted-foreground mb-4">Rate your current situation: 0 = doing fine, 4 = severe difficulty</p>
+                <p className="text-xs text-muted-foreground mb-4">Rate your current situation: 1 = critical barrier / unmet needs (worst), 5 = stable / needs met (best)</p>
                 <div className="space-y-4">
                   {[
                     { key: 'housing', label: 'Housing Stability' },
@@ -517,12 +895,13 @@ export default function ClientCheckins() {
                     <div key={key} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs">{label}</Label>
-                        <span className="text-xs font-semibold">{(sdohScores as any)[key]}/4</span>
+                        <span className="text-xs font-semibold">{(sdohScores as any)[key]}/5</span>
                       </div>
                       <Slider
                         value={[(sdohScores as any)[key]]}
                         onValueChange={([value]) => setSdohScores((s) => ({ ...s, [key]: value }))}
-                        max={4}
+                        min={1}
+                        max={5}
                         step={1}
                         className="w-full"
                       />
@@ -531,10 +910,45 @@ export default function ClientCheckins() {
                 </div>
               </div>
 
-              <Button onClick={submit} className="w-full" disabled={!forCase}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Submit Check-in
-              </Button>
+              <div>
+                <Button 
+                  onClick={submit} 
+                  className="w-full" 
+                  disabled={isSubmitDisabled}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Submit Check-in
+                    </>
+                  )}
+                </Button>
+                {submitError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center font-medium">
+                    Error: {submitError}
+                  </p>
+                )}
+                {lastSubmittedAt && !isSubmitting && !submitError && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center font-medium">
+                    Submitted ✔ {formatSubmissionTime(lastSubmittedAt)}
+                  </p>
+                )}
+                {submitDisabledReason && !lastSubmittedAt && !submitError && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    {submitDisabledReason}
+                  </p>
+                )}
+                {isSuccessCooldown && !submitError && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Please wait before submitting again...
+                  </p>
+                )}
+              </div>
             </div>
           </Card>
 
@@ -552,9 +966,12 @@ export default function ClientCheckins() {
               ) : (
                 <div className="space-y-3">
                   {recentCheckins.map((checkin, idx) => {
-                    const isPainIncreasing =
+                    // Migrate old pain values for display
+                    const displayedPain = migrateOldPainDepressionAnxiety(checkin.pain);
+                    // With 1=worst, 5=best: pain is worsening if current < previous (score decreased)
+                    const isPainWorsening =
                       idx < recentCheckins.length - 1 &&
-                      checkin.pain > recentCheckins[idx + 1].pain;
+                      displayedPain < migrateOldPainDepressionAnxiety(recentCheckins[idx + 1].pain);
                     
                     return (
                       <div
@@ -570,9 +987,9 @@ export default function ClientCheckins() {
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-foreground">
-                              Pain: {checkin.pain}/10
+                              Pain: {displayedPain}/5
                             </span>
-                            {isPainIncreasing && (
+                            {isPainWorsening && (
                               <AlertTriangle className="w-4 h-4 text-warning" />
                             )}
                           </div>
@@ -600,7 +1017,7 @@ export default function ClientCheckins() {
             {/* 📈 Progress Tracker */}
             <Card id="progress-tracker" className="p-6 border-border">
               <h2 className="text-lg font-semibold text-foreground mb-4">📈 Progress Tracker</h2>
-              {!selectedCase || (selectedCase.checkins || []).length === 0 ? (
+              {!selectedCase || ((selectedCase as any).checkins || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No data yet</p>
               ) : (
                 <Tabs defaultValue="day" className="w-full">
@@ -620,16 +1037,16 @@ export default function ClientCheckins() {
                         {/* Symptom Trends */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold text-foreground">Symptom Trends (0-10)</h3>
+                            <h3 className="text-sm font-semibold text-foreground">Symptom Trends (1-5)</h3>
                             {latest && (
                               <div className="flex gap-2 text-xs">
-                                <span className={latest.pain >= 7 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.pain <= 2 ? "text-destructive font-semibold" : ""}>
                                   Pain: {latest.pain}
                                 </span>
-                                <span className={latest.depression >= 7 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.depression <= 2 ? "text-destructive font-semibold" : ""}>
                                   Depression: {latest.depression}
                                 </span>
-                                <span className={latest.anxiety >= 7 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.anxiety <= 2 ? "text-destructive font-semibold" : ""}>
                                   Anxiety: {latest.anxiety}
                                 </span>
                               </div>
@@ -644,7 +1061,7 @@ export default function ClientCheckins() {
                                 style={{ fontSize: '12px' }}
                               />
                               <YAxis 
-                                domain={[0, 10]} 
+                                domain={[1, 5]} 
                                 stroke="hsl(var(--muted-foreground))"
                                 style={{ fontSize: '12px' }}
                               />
@@ -685,13 +1102,14 @@ export default function ClientCheckins() {
                           </ResponsiveContainer>
                           {latest && previous && (
                             <div className="flex gap-4 mt-2 text-xs">
-                              <span style={{ color: getTrendColor(latest.pain, previous.pain, false) }}>
+                              {/* With 1=worst, 5=best: higher score = improvement (green), lower score = worsening (red) */}
+                              <span style={{ color: getTrendColor(latest.pain, previous.pain, true) }}>
                                 Pain {latest.pain > previous.pain ? '↑' : latest.pain < previous.pain ? '↓' : '→'}
                               </span>
-                              <span style={{ color: getTrendColor(latest.depression, previous.depression, false) }}>
+                              <span style={{ color: getTrendColor(latest.depression, previous.depression, true) }}>
                                 Depression {latest.depression > previous.depression ? '↑' : latest.depression < previous.depression ? '↓' : '→'}
                               </span>
-                              <span style={{ color: getTrendColor(latest.anxiety, previous.anxiety, false) }}>
+                              <span style={{ color: getTrendColor(latest.anxiety, previous.anxiety, true) }}>
                                 Anxiety {latest.anxiety > previous.anxiety ? '↑' : latest.anxiety < previous.anxiety ? '↓' : '→'}
                               </span>
                             </div>
@@ -701,19 +1119,19 @@ export default function ClientCheckins() {
                         {/* 4Ps Progress */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold text-foreground">4Ps Progress (0-4)</h3>
+                            <h3 className="text-sm font-semibold text-foreground">4Ps Progress (1-5)</h3>
                             {latest && (
                               <div className="flex gap-2 text-xs">
-                                <span className={latest.physical <= 1 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.physical <= 2 ? "text-destructive font-semibold" : ""}>
                                   Physical: {latest.physical}
                                 </span>
-                                <span className={latest.psychological <= 1 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.psychological <= 2 ? "text-destructive font-semibold" : ""}>
                                   Psychological: {latest.psychological}
                                 </span>
-                                <span className={latest.psychosocial <= 1 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.psychosocial <= 2 ? "text-destructive font-semibold" : ""}>
                                   Psychosocial: {latest.psychosocial}
                                 </span>
-                                <span className={latest.professional <= 1 ? "text-destructive font-semibold" : ""}>
+                                <span className={latest.professional <= 2 ? "text-destructive font-semibold" : ""}>
                                   Professional: {latest.professional}
                                 </span>
                               </div>
@@ -728,7 +1146,7 @@ export default function ClientCheckins() {
                                 style={{ fontSize: '12px' }}
                               />
                               <YAxis 
-                                domain={[0, 4]} 
+                                domain={[1, 5]} 
                                 stroke="hsl(var(--muted-foreground))"
                                 style={{ fontSize: '12px' }}
                               />

@@ -10,6 +10,24 @@ import {
   getSeverityLabel,
 } from "../constants/reconcileFramework";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  isEditableRNStatus,
+  isReleasableRNStatus,
+  isReleasedOrClosed,
+  getRNStatusLabel,
+} from "@/lib/rnCaseStatus";
+import { getLatestReleasedForChain, getCurrentDraftInChain, type LatestReleasedCase } from "@/lib/rnCaseHelpers";
 
 const FOUR_PS_DRAFT_KEY = "rcms_fourPs_draft";
 const TEN_VS_DRAFT_KEY = "rcms_tenVs_draft";
@@ -42,6 +60,7 @@ interface RCCase {
   date_of_injury: string | null;
   jurisdiction: string | null;
   released_at: string | null;
+  released_by_rn_id: string | null;
   client_id: string | null;
   attorney_id: string | null;
   created_at: string;
@@ -95,7 +114,11 @@ function loadCrisisDraft(): CrisisSummary | null {
   }
 }
 
-const RNPublishPanel: React.FC = () => {
+interface RNPublishPanelProps {
+  onCaseChange?: () => void;
+}
+
+const RNPublishPanel: React.FC<RNPublishPanelProps> = ({ onCaseChange }) => {
   const [fourPsDraft, setFourPsDraft] = useState<FourPsSummary | null>(null);
   const [tenVsDraft, setTenVsDraft] = useState<TenVsSummary | null>(null);
   const [sdohDraft, setSdohDraft] = useState<SdohSummary | null>(null);
@@ -105,6 +128,12 @@ const RNPublishPanel: React.FC = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+  const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const [showMarkReadyDialog, setShowMarkReadyDialog] = useState(false);
+  const [latestReleased, setLatestReleased] = useState<LatestReleasedCase | null>(null);
+  const [viewingReleasedId, setViewingReleasedId] = useState<string | null>(null);
+  const [originalDraftId, setOriginalDraftId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const loadAllDrafts = () => {
     setFourPsDraft(loadFourPsDraft());
@@ -137,8 +166,37 @@ const RNPublishPanel: React.FC = () => {
         return;
       }
 
-      setCurrentCase(data as RCCase);
+      const loadedCase = data as RCCase;
+
+      // Guardrail: If loaded case is released/closed, warn and suggest revising
+      if (isReleasedOrClosed(loadedCase.case_status)) {
+        setStatus(
+          `Warning: Active case is ${loadedCase.case_status}. Released cases are read-only. Click 'Revise' to create an editable draft.`
+        );
+        // Still set the case so UI can show read-only state and Revise button
+        setCurrentCase(loadedCase);
+        // If we're viewing a released case and haven't set viewingReleasedId yet, set it
+        // (this handles page reload or direct navigation to a released case)
+        if (!viewingReleasedId && loadedCase.case_status === "released") {
+          setViewingReleasedId(loadedCase.id);
+          // Try to find the current draft in the chain to restore later
+          getCurrentDraftInChain(loadedCase.id).then((draftId) => {
+            if (draftId && !originalDraftId) {
+              setOriginalDraftId(draftId);
+            }
+          });
+        }
+        return;
+      }
+
+      setCurrentCase(loadedCase);
       setStatus(null);
+      
+      // If we're now on a draft, clear viewingReleasedId if it was set
+      if (viewingReleasedId && !isReleasedOrClosed(loadedCase.case_status)) {
+        setViewingReleasedId(null);
+        setOriginalDraftId(null);
+      }
     } catch (e: any) {
       console.error("Failed to load case", e);
       const msg = typeof e?.message === "string" ? e.message : "Unknown error";
@@ -147,10 +205,30 @@ const RNPublishPanel: React.FC = () => {
     }
   };
 
+  const loadLatestReleased = async () => {
+    if (!currentCase?.id) {
+      setLatestReleased(null);
+      return;
+    }
+
+    try {
+      const latest = await getLatestReleasedForChain(currentCase.id);
+      setLatestReleased(latest);
+    } catch (e) {
+      console.error("Failed to load latest released case", e);
+      setLatestReleased(null);
+    }
+  };
+
   useEffect(() => {
     loadAllDrafts();
     loadCase();
   }, []);
+
+  useEffect(() => {
+    // Load latest released when current case changes
+    loadLatestReleased();
+  }, [currentCase?.id]);
 
   const buildCaseSummary = (): CaseSummary => {
     const latestFourPs = loadFourPsDraft();
@@ -211,40 +289,49 @@ const RNPublishPanel: React.FC = () => {
   };
 
   const handleRelease = async () => {
+    console.log("[RN RELEASE] CONFIRM CLICKED");
+    console.log("[RN RELEASE] clicked", { 
+      activeCaseId: currentCase?.id, 
+      case_status: currentCase?.case_status 
+    });
+
     if (!currentCase) {
-      setStatus("No active case.");
+      toast({
+        title: "Error",
+        description: "No active case.",
+        variant: "destructive",
+      });
+      setShowReleaseDialog(false);
       return;
     }
 
     if (currentCase.case_status === "released" || currentCase.case_status === "closed") {
-      setStatus("Cannot release: case is already released or closed.");
+      toast({
+        title: "Cannot Release",
+        description: "Case is already released or closed.",
+        variant: "destructive",
+      });
+      setShowReleaseDialog(false);
       return;
     }
 
     setBusy(true);
     setBanner(null);
     setLoading(true);
+    setShowReleaseDialog(false);
+
+    console.log("[RN RELEASE] starting release...");
+
     try {
-      const caseIdToUpdate = currentCase?.id;
-
-      console.log("RELEASE_CLICK", {
-        currentCaseId: currentCase?.id,
-        currentCaseStatus: currentCase?.case_status,
-        revisionOf: currentCase?.revision_of_case_id,
-      });
-
-      if (!caseIdToUpdate) {
-        setBanner({ type: "error", message: "Release failed: no active case loaded." });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
+      // Get current RN user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("No authenticated user found");
       }
 
-      setBanner({ type: "info", message: `Releasing case ${currentCase?.id} (status=${currentCase?.case_status})...` });
-
       const summary = buildCaseSummary();
-      const isRevision = currentCase.case_status === "revised";
 
-      // Get current version from incident or default to 1
+      // Get current version from incident or default to 0
       const currentIncident = currentCase.incident || {};
       const currentVersion = currentIncident.rn_publish_version || 0;
       const nextVersion = currentVersion + 1;
@@ -256,63 +343,164 @@ const RNPublishPanel: React.FC = () => {
         rn_last_published_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      // Create a NEW released revision (immutable snapshot)
+      // The released revision references the current case as its parent
+      // This preserves the revision chain: draft -> released -> (new draft) -> released -> ...
+      const releasedPayload = {
+        case_status: "released",
+        revision_of_case_id: currentCase.id,
+        rn_cm_id: currentCase.rn_cm_id,
+        case_type: currentCase.case_type,
+        date_of_injury: currentCase.date_of_injury,
+        jurisdiction: currentCase.jurisdiction,
+        fourps: summary.fourPs || currentCase.fourps,
+        incident: updatedIncident,
+        client_id: currentCase.client_id,
+        attorney_id: currentCase.attorney_id,
+        released_at: new Date().toISOString(),
+        released_by_rn_id: user.id,
+      };
+
+      console.log("[RN RELEASE] inserting released revision payload", releasedPayload);
+
+      const { data: newReleasedCase, error } = await supabase
         .from("rc_cases")
-        .update({
-          case_status: "released",
-          fourps: summary.fourPs || null,
-          incident: updatedIncident,
-          released_at: new Date().toISOString(),
-        })
-        .eq("id", caseIdToUpdate)
-        .in("case_status", ["draft", "working", "revised"])
-        .select("id, case_status, released_at");
+        .insert(releasedPayload)
+        .select("id, case_status, released_at, released_by_rn_id")
+        .single();
+
+      console.log("[RN RELEASE] insert result", { data: newReleasedCase, error });
 
       if (error) {
-        const msg = typeof error?.message === "string" ? error.message : "Unknown error";
-        setBanner({ type: "error", message: `Release failed: ${msg}` });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setStatus("Error releasing case. Check console.");
-        return;
+        throw error;
       }
 
-      if (!data || data.length !== 1) {
-        const count = data?.length ?? 0;
-        setBanner({ type: "error", message: `Release failed: expected 1 row updated, got ${count}` });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setStatus("Error releasing case. No rows updated.");
-        return;
-      }
-
-      const updatedCase = data[0];
-
-      if (updatedCase.case_status !== "released") {
-        setBanner({ type: "error", message: "Release failed: Release did not set status to released" });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setStatus("Error releasing case. Status not updated.");
-        return;
+      if (!newReleasedCase || newReleasedCase.case_status !== "released") {
+        throw new Error(
+          `Failed to create released revision. Status: ${newReleasedCase?.case_status || "null"}`
+        );
       }
 
       updateLocalStorageHistory(summary);
 
-      setBanner({ type: "success", message: "Released successfully. Attorney view is now synced." });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Create a new draft for continued work
+      // The new draft references the released revision as its parent
+      // IMPORTANT: Must be created as "draft" (or "working"), NOT "ready"
+      // The RN must explicitly mark it as ready before it can be released again
+      
+      // Build draft payload by removing fields that must not carry over
+      const {
+        case_status: _ignoreStatus,
+        released_at: _ignoreReleasedAt,
+        released_by_rn_id: _ignoreReleasedBy,
+        id: _ignoreId,
+        created_at: _ignoreCreatedAt,
+        ...rest
+      } = currentCase;
+
+      const draftPayload = {
+        ...rest,
+        case_status: "draft", // MUST be "draft" - set after spread to override any accidental inheritance
+        released_at: null, // MUST be null - never copy from currentCase
+        released_by_rn_id: null, // MUST be null - never copy from currentCase
+        revision_of_case_id: newReleasedCase.id, // Use released case as parent
+      };
+
+      // Hard guard: verify case_status is correct before insert
+      if (draftPayload.case_status !== "draft") {
+        throw new Error("Continuation must be draft");
+      }
+
+      console.log("[RN RELEASE] creating new draft payload", draftPayload);
+
+      const { data: newDraft, error: draftError } = await supabase
+        .from("rc_cases")
+        .insert(draftPayload)
+        .select("id, case_status")
+        .single();
+
+      console.log("[RN RELEASE] new draft inserted", newDraft);
+      console.log("[RN RELEASE] new draft result", { draftData: newDraft, draftError });
+
+      if (draftError) {
+        throw draftError;
+      }
+
+      // Verify the new draft was created with correct status (should be "draft")
+      if (newDraft && newDraft.case_status !== "draft") {
+        console.error("[RN RELEASE] ERROR: New draft created with wrong status", {
+          expected: "draft",
+          actual: newDraft.case_status,
+          draftPayload,
+          returnedRow: newDraft,
+        });
+        
+        // Safety net: correct the status if it's wrong (only for non-released rows)
+        if (newDraft.case_status !== "released" && newDraft.case_status !== "closed") {
+          console.warn("[RN RELEASE] Attempting to correct draft status...");
+          const { error: updateError } = await supabase
+            .from("rc_cases")
+            .update({ case_status: "draft" })
+            .eq("id", newDraft.id)
+            .in("case_status", ["ready", "working", "revised"]); // Only update if not already immutable
+          
+          if (updateError) {
+            console.error("[RN RELEASE] Failed to correct draft status", updateError);
+          } else {
+            // Reload to get corrected status
+            newDraft.case_status = "draft";
+          }
+        }
+      }
+      
+      // Note: released_at verification removed since select only returns id and case_status
+      // The payload construction ensures released_at is null
+
+      // Update active case to the new draft (if created) or keep current
+      if (newDraft && typeof window !== "undefined") {
+        window.localStorage.setItem("rcms_active_case_id", newDraft.id);
+      }
+
+      toast({
+        title: "Released to Attorney",
+        description: `Case released successfully. ${newDraft ? "New draft created for continued work." : ""}`,
+      });
 
       setStatus(
-        isRevision
-          ? `Revision released successfully as version v${nextVersion}.`
-          : `Released successfully as version v${nextVersion}.`
+        `Released to attorney on ${new Date(newReleasedCase.released_at).toLocaleString()}. ${
+          newDraft ? "New draft created." : ""
+        }`
       );
 
+      // Reload case to show the new state (reactive update - no reload)
       await loadCase();
-      window.location.reload();
+      
+      // Notify parent component to refresh case status
+      if (onCaseChange) {
+        onCaseChange();
+      }
+      
+      // Clear any existing drafts since we're on a new draft
+      loadAllDrafts();
+      
+      console.log("[RN RELEASE] completed successfully", {
+        releasedCaseId: newReleasedCase.id,
+        newDraftId: newDraft?.id,
+      });
     } catch (e: any) {
-      console.error("Failed to release case", e);
-      const msg = typeof e?.message === "string" ? e.message : "Unknown error";
-      setBanner({ type: "error", message: `Release failed: ${msg}` });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setStatus("Error releasing case. Check console.");
+      console.error("[RN RELEASE] failed", e);
+
+      const errorMessage = e?.message || e?.details || "Unknown error";
+      
+      toast({
+        title: "Release Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setStatus(`Error releasing case: ${errorMessage}`);
+      // Dialog already closed at start of function, but ensure state is consistent
     } finally {
+      // ALWAYS reset in-flight state, even on error - prevents button from staying disabled
       setLoading(false);
       setBusy(false);
     }
@@ -358,15 +546,82 @@ const RNPublishPanel: React.FC = () => {
         window.localStorage.setItem("rcms_active_case_id", newCaseId);
       }
 
-      // Show banner and reload to switch to new revision
+      // Show banner
       setBanner({ type: "success", message: `Revision created. Switching to ${newCaseId.slice(0, 8)}…` });
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Force reload so RNCaseEngine re-reads case status and unlocks
-      setTimeout(() => window.location.reload(), 250);
+      // Reload case to show the new state (reactive update - no reload)
+      await loadCase();
+      
+      // Notify parent component to refresh case status
+      if (onCaseChange) {
+        onCaseChange();
+      }
+      
+      // Clear any existing drafts since we're on a new draft
+      loadAllDrafts();
     } catch (e) {
       console.error("Failed to create revision", e);
       setStatus("Error creating revision. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkReady = async () => {
+    if (!currentCase) {
+      toast({
+        title: "Error",
+        description: "No active case.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isEditableRNStatus(currentCase.case_status)) {
+      toast({
+        title: "Cannot Mark Ready",
+        description: "Case must be in an editable state (draft, working, or revised).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setShowMarkReadyDialog(false);
+
+    try {
+      const { error } = await supabase
+        .from("rc_cases")
+        .update({
+          case_status: "ready",
+        })
+        .eq("id", currentCase.id)
+        .in("case_status", ["draft", "working", "revised"]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Marked Ready",
+        description: "Case is now ready for release to attorney.",
+      });
+
+      setStatus("Case marked as ready for release.");
+      await loadCase();
+      
+      // Notify parent component to refresh case status
+      if (onCaseChange) {
+        onCaseChange();
+      }
+    } catch (e: any) {
+      console.error("Failed to mark case as ready", e);
+      const msg = typeof e?.message === "string" ? e.message : "Unknown error";
+      toast({
+        title: "Failed to Mark Ready",
+        description: msg,
+        variant: "destructive",
+      });
+      setStatus("Error marking case as ready. Check console.");
     } finally {
       setLoading(false);
     }
@@ -396,6 +651,11 @@ const RNPublishPanel: React.FC = () => {
 
       setStatus("Case closed. No further edits allowed.");
       await loadCase();
+      
+      // Notify parent component to refresh case status
+      if (onCaseChange) {
+        onCaseChange();
+      }
     } catch (e) {
       console.error("Failed to close case", e);
       setStatus("Error closing case. Check console.");
@@ -446,7 +706,10 @@ const RNPublishPanel: React.FC = () => {
     ? new Date(currentCase.released_at).toLocaleString()
     : null;
 
-  const isDraft = currentCase?.case_status === "draft";
+  // Use status helpers for gating
+  const isEditable = isEditableRNStatus(caseStatus);
+  const isReleasable = isReleasableRNStatus(caseStatus);
+  const isImmutable = isReleasedOrClosed(caseStatus);
   const isRevision = currentCase?.revision_of_case_id != null;
 
   return (
@@ -496,9 +759,130 @@ const RNPublishPanel: React.FC = () => {
             textAlign: "right",
           }}
         >
-          Workflow: <strong>working → released → revised → released → closed</strong>
+          Workflow: <strong>draft/working → ready → released → closed</strong>
         </div>
       </div>
+
+      {/* RN-only workflow banner - show immutable message prominently */}
+      {currentCase && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: isImmutable || viewingReleasedId ? "1px solid #fbbf24" : "1px solid #3b82f6",
+            background: isImmutable || viewingReleasedId ? "#fef3c7" : "#dbeafe",
+            color: isImmutable || viewingReleasedId ? "#92400e" : "#1e40af",
+            fontSize: "0.85rem",
+            fontWeight: 500,
+          }}
+        >
+          {isImmutable || viewingReleasedId ? (
+            <>This is a released snapshot and cannot be edited.</>
+          ) : (
+            <>You are editing a draft. Attorneys will not see changes until you click &apos;Release to Attorney&apos;.</>
+          )}
+        </div>
+      )}
+
+      {/* Last Released Info - show when viewing draft and a released snapshot exists */}
+      {!isImmutable && latestReleased && !viewingReleasedId && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: "1px solid #10b981",
+            background: "#d1fae5",
+            color: "#065f46",
+            fontSize: "0.85rem",
+          }}
+        >
+          <div style={{ marginBottom: "0.5rem", fontWeight: 500 }}>
+            Last released to attorney on {new Date(latestReleased.released_at).toLocaleString()}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              // Store original draft ID
+              if (currentCase?.id && typeof window !== "undefined") {
+                setOriginalDraftId(currentCase.id);
+                setViewingReleasedId(latestReleased.id);
+                window.localStorage.setItem("rcms_active_case_id", latestReleased.id);
+                // Trigger refresh
+                if (onCaseChange) {
+                  onCaseChange();
+                }
+                loadCase();
+              }
+            }}
+            style={{
+              padding: "0.35rem 0.75rem",
+              borderRadius: "6px",
+              border: "1px solid #059669",
+              background: "#ffffff",
+              color: "#059669",
+              fontSize: "0.8rem",
+              cursor: "pointer",
+              fontWeight: 500,
+            }}
+          >
+            View released snapshot
+          </button>
+        </div>
+      )}
+
+      {/* Viewing Released Snapshot Banner */}
+      {viewingReleasedId && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: "1px solid #fbbf24",
+            background: "#fef3c7",
+            color: "#92400e",
+            fontSize: "0.85rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ fontWeight: 500 }}>
+            Viewing released snapshot (read-only)
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              // Restore original draft
+              if (originalDraftId && typeof window !== "undefined") {
+                setViewingReleasedId(null);
+                window.localStorage.setItem("rcms_active_case_id", originalDraftId);
+                setOriginalDraftId(null);
+                // Trigger refresh
+                if (onCaseChange) {
+                  onCaseChange();
+                }
+                loadCase();
+              }
+            }}
+            style={{
+              padding: "0.35rem 0.75rem",
+              borderRadius: "6px",
+              border: "1px solid #92400e",
+              background: "#ffffff",
+              color: "#92400e",
+              fontSize: "0.8rem",
+              cursor: "pointer",
+              fontWeight: 500,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Back to current draft
+          </button>
+        </div>
+      )}
 
       {/* Case Status Display */}
       {currentCase && (
@@ -523,11 +907,11 @@ const RNPublishPanel: React.FC = () => {
             Case Status
           </div>
           <div style={{ color: "#0f172a", fontWeight: 500 }}>
-            Status: <strong>{caseStatus}</strong>
+            Status: <strong>{getRNStatusLabel(caseStatus)}</strong>
           </div>
           {releasedAt && (
             <div style={{ color: "#64748b", marginTop: "0.2rem" }}>
-              Released: {releasedAt}
+              Released to Attorney: {releasedAt}
             </div>
           )}
         </div>
@@ -730,78 +1114,96 @@ const RNPublishPanel: React.FC = () => {
         </div>
       )}
 
+      {/* Release Confirmation Dialog */}
+      <AlertDialog open={showReleaseDialog} onOpenChange={setShowReleaseDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Release to Attorney?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a released snapshot for attorneys. Further edits will require a new draft.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRelease} disabled={busy}>
+              Release
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Mark Ready Confirmation Dialog */}
+      <AlertDialog open={showMarkReadyDialog} onOpenChange={setShowMarkReadyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Ready for Release?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the case as ready for release. You can then release it to attorneys.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkReady} disabled={loading}>
+              Mark Ready
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Buttons + status */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "0.75rem",
-        }}
-      >
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          {["draft", "working", "revised"].includes(caseStatus) && (
-            <button
-              type="button"
-              onClick={handleRelease}
-              disabled={busy}
-              style={{
-                padding: "0.45rem 1rem",
-                borderRadius: "999px",
-                border: "none",
-                background: busy ? "#94a3b8" : "#0f2a6a",
+      {/* NEVER show workflow buttons for immutable cases or when viewing released snapshot */}
+      {!isImmutable && !viewingReleasedId && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {/* Release to Attorney - only for releasable statuses */}
+            {isReleasable && (
+              <button
+                type="button"
+                onClick={() => setShowReleaseDialog(true)}
+                disabled={busy}
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  background: busy ? "#94a3b8" : "#0f2a6a",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  cursor: busy ? "not-allowed" : "pointer",
+                }}
+              >
+                {busy ? "Releasing..." : "Release to Attorney"}
+              </button>
+            )}
+
+            {/* Mark Ready for Release - for editable but not releasable */}
+            {isEditable && !isReleasable && (
+              <button
+                type="button"
+                onClick={() => setShowMarkReadyDialog(true)}
+                disabled={loading}
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  background: loading ? "#94a3b8" : "#059669",
                 color: "#ffffff",
                 fontSize: "0.8rem",
-                cursor: busy ? "not-allowed" : "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {busy
-                ? "Releasing..."
-                : isDraft
-                ? "Release Draft"
-                : isRevision
-                ? "Release Revision"
-                : "Release"}
+              {loading ? "Marking..." : "Mark Ready for Release"}
             </button>
           )}
 
-          {caseStatus === "released" && (
-            <>
-              <button
-                type="button"
-                onClick={handleRevise}
-                disabled={loading}
-                style={{
-                  padding: "0.45rem 1rem",
-                  borderRadius: "999px",
-                  border: "none",
-                  background: loading ? "#94a3b8" : "#0f2a6a",
-                  color: "#ffffff",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "not-allowed" : "pointer",
-                }}
-              >
-                Revise
-              </button>
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={loading}
-                style={{
-                  padding: "0.45rem 1rem",
-                  borderRadius: "999px",
-                  border: "none",
-                  background: loading ? "#94a3b8" : "#dc2626",
-                  color: "#ffffff",
-                  fontSize: "0.8rem",
-                  cursor: loading ? "not-allowed" : "pointer",
-                }}
-              >
-                Close
-              </button>
-            </>
-          )}
-
+          {/* Note: Revise and Close buttons are NOT shown for immutable cases - they should only be accessible from other contexts if needed */}
+          {/* Reload drafts - only for editable cases */}
           {caseStatus !== "closed" && (
             <button
               type="button"
@@ -839,7 +1241,8 @@ const RNPublishPanel: React.FC = () => {
             {status}
           </div>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

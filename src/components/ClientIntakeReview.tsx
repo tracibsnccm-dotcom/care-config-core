@@ -29,7 +29,7 @@ export function ClientIntakeReview({ caseId }: { caseId: string }) {
     setError(null);
     try {
       const { data, error: fetchError } = await supabase
-        .from("cases")
+        .from("rc_cases")
         .select("*")
         .eq("id", caseId)
         .maybeSingle();

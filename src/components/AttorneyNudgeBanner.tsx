@@ -55,7 +55,7 @@ export const AttorneyNudgeBanner = () => {
 
       const ttl = ttlLabel(data.expires_iso);
       setTimeRemaining(ttl);
-      setResumeUrl(data.resume_url || localStorage.getItem('rcms_resume_url') || '/intake');
+      setResumeUrl(data.resume_url || localStorage.getItem('rcms_resume_url') || '/client-intake');
       setVisible(true);
     } catch (error) {
       console.error('Failed to check nudge status:', error);

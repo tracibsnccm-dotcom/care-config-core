@@ -5,6 +5,7 @@ import RNAssessmentNav from "./RNAssessmentNav";
 import RNCaseSummaryPanel from "./RNCaseSummaryPanel";
 import RNPublishPanel from "./RNPublishPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { isEditableRNStatus, isReleasedOrClosed, getRNStatusLabel } from "@/lib/rnCaseStatus";
 
 // RN module screens
 import FourPsScreen from "../screens/rn/FourPsScreen";
@@ -27,38 +28,42 @@ function normalizeCaseId(raw: string | null): string | null {
 const RNCaseEngine: React.FC = () => {
   const [activeTab, setActiveTab] = useState("4ps");
   const [caseStatus, setCaseStatus] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Load case status from Supabase to enforce read-only mode for released/closed cases
+  const loadCaseStatus = async () => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem("rcms_active_case_id");
+    const caseId = normalizeCaseId(raw);
+    if (!caseId) {
+      setCaseStatus(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("rc_cases")
+        .select("case_status")
+        .eq("id", caseId)
+        .single();
+
+      if (error) throw error;
+      setCaseStatus(data?.case_status || null);
+    } catch (e) {
+      console.error("Failed to load case status", e);
+      setCaseStatus(null);
+    }
+  };
+
   useEffect(() => {
-    const loadCaseStatus = async () => {
-      if (typeof window === "undefined") return;
-      const raw = window.localStorage.getItem("rcms_active_case_id");
-      const caseId = normalizeCaseId(raw);
-      if (!caseId) {
-        setCaseStatus(null);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("rc_cases")
-          .select("case_status")
-          .eq("id", caseId)
-          .single();
-
-        if (error) throw error;
-        setCaseStatus(data?.case_status || null);
-      } catch (e) {
-        console.error("Failed to load case status", e);
-        setCaseStatus(null);
-      }
-    };
-
     loadCaseStatus();
-  }, []);
+  }, [refreshKey]);
 
   // Enforce read-only mode when case is released or closed (mirrors DB constraints)
-  const isReadOnly = caseStatus === "released" || caseStatus === "closed";
+  // Force immutable check: case_status must be explicitly checked
+  const isImmutable = caseStatus === "released" || caseStatus === "closed";
+  const isReadOnly = isImmutable; // Non-bypassable read-only for immutable cases
+  const isEditable = isEditableRNStatus(caseStatus);
 
   const renderTab = () => {
     // Pass readOnly prop to enforce read-only mode for released/closed cases (screens will accept this prop in future updates)
@@ -98,21 +103,25 @@ const RNCaseEngine: React.FC = () => {
       {/* RN tab navigation */}
       <RNAssessmentNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Read-only banner */}
-      {isReadOnly && (
+      {/* RN-only workflow banner */}
+      {caseStatus && (
         <div
           style={{
             marginTop: "1rem",
             padding: "0.75rem 1rem",
-            background: "#fef3c7",
-            border: "1px solid #fbbf24",
+            background: isReadOnly ? "#fef3c7" : "#dbeafe",
+            border: isReadOnly ? "1px solid #fbbf24" : "1px solid #3b82f6",
             borderRadius: "8px",
-            color: "#92400e",
+            color: isReadOnly ? "#92400e" : "#1e40af",
             fontSize: "0.9rem",
             fontWeight: 500,
           }}
         >
-          This case is {caseStatus?.toUpperCase()} and is read-only. Click Revise to create an editable revision.
+          {isReadOnly ? (
+            <>This is a released snapshot and cannot be edited. Click &apos;Revise&apos; to create an editable revision.</>
+          ) : (
+            <>You are editing a draft. Attorneys will not see changes until you click &apos;Release to Attorney&apos;.</>
+          )}
         </div>
       )}
 
@@ -134,7 +143,7 @@ const RNCaseEngine: React.FC = () => {
 
       {/* RN → Attorney publish panel */}
       <div style={{ marginTop: "1.5rem" }}>
-        <RNPublishPanel />
+        <RNPublishPanel onCaseChange={() => setRefreshKey(prev => prev + 1)} />
       </div>
     </div>
   );

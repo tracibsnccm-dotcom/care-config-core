@@ -98,7 +98,7 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
   const fetchTeamMembers = async () => {
     try {
       const { data: assignments, error } = await supabase
-        .from("case_assignments")
+        .from("rc_case_assignments")
         .select("user_id, role")
         .eq("case_id", caseId)
         .neq("user_id", currentUserId);

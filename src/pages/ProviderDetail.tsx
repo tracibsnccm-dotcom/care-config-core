@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientAppointmentBooking } from "@/components/appointments/ClientAppointmentBooking";
-import { useCases } from "@/hooks/useSupabaseData";
+import { useApp } from "@/context/AppContext";
 import { toast } from "sonner";
 import { ProviderRatingsDisplay } from "@/components/provider/ProviderRatingsDisplay";
 import {
@@ -50,7 +50,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 export default function ProviderDetail() {
   const { providerId } = useParams();
   const navigate = useNavigate();
-  const { cases: userCases } = useCases();
+  const { cases: userCases } = useApp();
   const caseId = userCases?.[0]?.id as string | undefined;
 
   const [provider, setProvider] = useState<Provider | null>(null);

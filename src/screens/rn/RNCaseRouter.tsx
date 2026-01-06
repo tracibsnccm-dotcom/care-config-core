@@ -50,9 +50,9 @@ const RNCaseRouter: React.FC = () => {
 
   // Unknown route - show error message
   const handleGoToDashboard = () => {
-    // Try /demo first, fallback to /rn/dashboard
+    // MVP: Navigate to RN dashboard (removed /demo navigation)
     if (typeof window !== "undefined") {
-      window.location.pathname = "/demo";
+      window.location.pathname = "/";
     }
   };
 

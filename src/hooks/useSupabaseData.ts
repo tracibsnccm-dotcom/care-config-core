@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/supabaseAuth";
+import { getAttorneyCases, AttorneyCase } from "@/lib/attorneyCaseQueries";
 
 /* ===================== Types ===================== */
 
@@ -124,14 +125,14 @@ export function useCases() {
 
     async function fetchCases() {
       try {
-        // Fetch cases the user has access to via case_assignments
+        // Fetch cases the user has access to via rc_case_assignments
         const { data, error: fetchError } = await supabase
-          .from("cases")
+          .from("rc_cases")
           .select(`
             *,
-            case_assignments!inner(user_id)
+            rc_case_assignments!inner(user_id)
           `)
-          .eq("case_assignments.user_id", user.id)
+          .eq("rc_case_assignments.user_id", user.id)
           .order("created_at", { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -148,13 +149,13 @@ export function useCases() {
 
     // Subscribe to real-time updates
     const channel = supabase
-      .channel("cases-changes")
+      .channel("rc-cases-changes")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "cases",
+          table: "rc_cases",
         },
         () => {
           fetchCases();
@@ -165,6 +166,49 @@ export function useCases() {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [user]);
+
+  return { cases, loading, error, refetch: () => setLoading(true) };
+}
+
+/* ===================== Attorney Cases Hook (Released-Only) ===================== */
+
+/**
+ * Hook for attorneys to fetch cases.
+ * ONLY returns released/closed cases via attorney_accessible_cases() RPC.
+ * Never exposes draft cases.
+ */
+export function useAttorneyCases() {
+  const { user } = useAuth();
+  const [cases, setCases] = useState<AttorneyCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setCases([]);
+      setLoading(false);
+      return;
+    }
+
+    async function fetchAttorneyCases() {
+      try {
+        // Use attorney_accessible_cases() RPC which enforces released-only access
+        const attorneyCases = await getAttorneyCases();
+        setCases(attorneyCases || []);
+      } catch (err) {
+        console.error("Failed to fetch attorney cases:", err);
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAttorneyCases();
+
+    // Note: Real-time subscriptions for attorney cases would need to be handled
+    // via the attorney_latest_final_cases view, but for MVP we'll refetch on demand
+    // Attorneys can manually refresh if needed
   }, [user]);
 
   return { cases, loading, error, refetch: () => setLoading(true) };

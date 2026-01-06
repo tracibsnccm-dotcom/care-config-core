@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClientAppointmentBooking } from "@/components/appointments/ClientAppointmentBooking";
 import { supabase } from "@/integrations/supabase/client";
-import { useCases } from "@/hooks/useSupabaseData";
+import { useApp } from "@/context/AppContext";
 
 interface Provider {
   id: string;
@@ -27,7 +27,7 @@ export default function Providers() {
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
-  const { cases: userCases } = useCases();
+  const { cases: userCases } = useApp();
   const caseId = userCases?.[0]?.id as string | undefined;
 
   useEffect(() => {

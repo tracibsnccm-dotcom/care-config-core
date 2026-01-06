@@ -33,40 +33,112 @@ import { useAuth } from "@/auth/supabaseAuth";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity, Settings, LogOut, Shield, Building2 } from "lucide-react";
+import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Clock, BookOpen, Stethoscope, Briefcase, Users, BookText, UserRound, Activity, Settings, LogOut, Shield, Building2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClientPendingAttorneyConfirmation } from "@/components/ClientPendingAttorneyConfirmation";
+import { COMPLIANCE_COPY } from "@/constants/compliance";
 
 export default function ClientPortal() {
   const { cases: userCases, loading: casesLoading } = useCases();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
-  const caseId = userCases?.[0]?.id as string | undefined;
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("");
+  const caseId = selectedCaseId || (userCases?.[0]?.id as string | undefined);
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("checkins");
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
+  const [checkingIntake, setCheckingIntake] = useState(true);
+  const [intakeStatus, setIntakeStatus] = useState<{
+    status: string;
+    attorneyAttestedAt: string | null;
+    attorneyConfirmDeadlineAt: string | null;
+    intakeId: string | null;
+  } | null>(null);
   
   const handleLogout = async () => {
     await signOut();
     navigate("/access");
   };
 
+  // Set default case when cases load
+  useEffect(() => {
+    if (!casesLoading && userCases.length > 0 && !selectedCaseId) {
+      setSelectedCaseId(userCases[0].id);
+    }
+  }, [userCases, casesLoading, selectedCaseId]);
+
+  // MVP Gate: Check if client has completed intake for the selected case before allowing portal access
+  // Gate is per-case: each case requires its own intake completion
+  // Also check intake status for attorney confirmation gating
+  useEffect(() => {
+    async function checkIntakeCompletion() {
+      if (!caseId) {
+        // If no case selected yet, wait for cases to load
+        if (!casesLoading) {
+          setCheckingIntake(false);
+          // If cases loaded but no caseId, allow access (will show empty state)
+          setIntakeCompleted(true);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("rc_client_intakes")
+          .select("id, case_id, intake_json, created_at, intake_status, attorney_attested_at, attorney_confirm_deadline_at, intake_submitted_at")
+          .eq("case_id", caseId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking intake completion:", error);
+          // On error, allow access (fail open for MVP)
+          setIntakeCompleted(true);
+          setIntakeStatus(null);
+        } else {
+          setIntakeCompleted(!!data);
+          if (data) {
+            setIntakeStatus({
+              status: data.intake_status || 'draft',
+              attorneyAttestedAt: data.attorney_attested_at,
+              attorneyConfirmDeadlineAt: data.attorney_confirm_deadline_at,
+              intakeId: data.id,
+            });
+          } else {
+            setIntakeStatus(null);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking intake completion:", err);
+        // On error, allow access (fail open for MVP)
+        setIntakeCompleted(true);
+      } finally {
+        setCheckingIntake(false);
+      }
+    }
+
+    checkIntakeCompletion();
+  }, [caseId, casesLoading, selectedCaseId]);
+
   // Check for crisis indicators
   useEffect(() => {
-    if (!caseId) return;
+    if (!caseId || !user?.id) return;
     
     async function checkCrisisIndicators() {
       try {
-        const user = await supabase.auth.getUser();
         const { data, error } = await supabase
           .from("client_checkins")
           .select("pain_scale, depression_scale, anxiety_scale")
-          .eq("client_id", user.data.user?.id)
+          .eq("client_id", user.id)
           .eq("case_id", caseId)
           .order("created_at", { ascending: false })
           .limit(1);
@@ -84,7 +156,107 @@ export default function ClientPortal() {
     }
 
     checkCrisisIndicators();
-  }, [caseId]);
+  }, [caseId, user?.id]);
+
+  // Auto-redirect to intake after delay if not completed
+  useEffect(() => {
+    if (!checkingIntake && intakeCompleted === false) {
+      const timer = setTimeout(() => {
+        navigate("/client-intake");
+      }, 5000); // 5 second delay
+      return () => clearTimeout(timer);
+    }
+  }, [checkingIntake, intakeCompleted, navigate]);
+
+  // Show intake gate message if intake not completed
+  if (checkingIntake) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (intakeCompleted === false) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Please complete Client Intake to access the Client Portal.
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => navigate("/client-intake")} className="w-full">
+                Go to Client Intake
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Redirecting automatically in a few seconds...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Gate: Check if intake is pending attorney confirmation
+  const needsAttorneyConfirmation = 
+    intakeStatus &&
+    intakeStatus.status === 'submitted_pending_attorney' &&
+    !intakeStatus.attorneyAttestedAt;
+
+  const isExpired = 
+    intakeStatus?.status === 'expired_deleted' ||
+    (intakeStatus?.attorneyConfirmDeadlineAt &&
+     new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() < Date.now());
+
+  // Show pending attorney confirmation screen
+  if (needsAttorneyConfirmation && caseId && intakeStatus.attorneyConfirmDeadlineAt) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <ClientPendingAttorneyConfirmation
+            caseId={caseId}
+            attorneyConfirmDeadlineAt={intakeStatus.attorneyConfirmDeadlineAt}
+            onExpired={() => {
+              // Refresh intake status when expired
+              setIntakeStatus((prev) => prev ? { ...prev, status: 'expired_deleted' } : null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show expired state
+  if (isExpired && caseId) {
+    return (
+      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-destructive">
+          <CardContent className="p-6 space-y-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="whitespace-pre-line">
+                {COMPLIANCE_COPY.expiredCopy}
+              </AlertDescription>
+            </Alert>
+            <Button
+              onClick={() => navigate("/client-intake")}
+              className="w-full"
+              variant="default"
+            >
+              Restart Intake Process
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-rcms-white">
@@ -101,6 +273,26 @@ export default function ClientPortal() {
               <p className="text-rcms-mint text-lg">
                 Your care, communication, and progress in one place
               </p>
+              {/* Case Selector */}
+              {userCases.length > 0 && (
+                <div className="mt-4 max-w-md">
+                  <label className="text-sm font-medium text-white mb-2 block">
+                    Select Case
+                  </label>
+                  <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select a case" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userCases.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.client_label || `Case ${c.id.slice(0, 8)}`} - {c.status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-3 md:self-end md:mb-1">
               {/* Top Row: Notifications, Settings, Logout */}

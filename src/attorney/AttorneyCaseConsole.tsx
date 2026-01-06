@@ -1,5 +1,5 @@
 // src/attorney/AttorneyCaseConsole.tsx
-// Reconcile C.A.R.E. — Attorney Case Console (demo shell)
+// Reconcile C.A.R.E. — Attorney Case Console
 //
 // Uses:
 //  - CaseSummaryCard (4Ps + 10-Vs snapshot)
@@ -57,9 +57,6 @@ const AttorneyCaseConsole: React.FC = () => {
                 }
               />
               {crisisActive ? "CRISIS ACTIVE" : "Stable / No Active Crisis"}
-            </span>
-            <span className="text-[9px] text-slate-400">
-              Demo shell only — not yet wired to live documents or tasks.
             </span>
           </div>
         </div>

@@ -66,7 +66,7 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
 
       // Fetch baseline scores including BMI from intake
       const { data: caseData, error: caseError } = await supabase
-        .from("cases")
+        .from("rc_cases")
         .select(`
           fourps, 
           sdoh, 

@@ -41,7 +41,7 @@ export function ClientQuickMessage({ caseId }: ClientQuickMessageProps) {
   async function fetchCareTeam() {
     try {
       const { data, error } = await supabase
-        .from("case_assignments")
+        .from("rc_case_assignments")
         .select(`
           user_id,
           role,

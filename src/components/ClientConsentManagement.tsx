@@ -31,7 +31,7 @@ export function ClientConsentManagement({ caseId }: { caseId: string }) {
     setError(null);
     try {
       const { data, error: fetchError } = await supabase
-        .from("cases")
+        .from("rc_cases")
         .select("consent_signed, consent_signed_at, consent_attorney, consent_providers")
         .eq("id", caseId)
         .maybeSingle();

@@ -8,8 +8,17 @@ import SupervisorCrisisScreen from "./screens/SupervisorCrisisScreen";
 
 type TabKey = "rn" | "attorney" | "buddy" | "supervisor";
 
-const AppShell: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>("rn");
+interface AppShellProps {
+  /**
+   * Optional default tab to show when AppShell mounts.
+   * If not provided, defaults to "attorney" for MVP attorney portal.
+   */
+  defaultTab?: TabKey;
+}
+
+const AppShell: React.FC<AppShellProps> = ({ defaultTab = "attorney" }) => {
+  // MVP: Use provided defaultTab or fallback to "attorney" for attorney portal
+  const [activeTab, setActiveTab] = useState<TabKey>(defaultTab);
 
   const renderContent = () => {
     switch (activeTab) {

@@ -113,32 +113,24 @@ export default function Dashboard() {
   const trialEnd = getTrialEndDate({ trialStartDate, trialEndDate });
 
   // Fetch attorney's cases for RN CM liaison tab
+  // Use released-only attorney cases query (never drafts)
   useEffect(() => {
     if (!user?.id || role !== "ATTORNEY") return;
 
     const fetchCases = async () => {
       try {
-        const { data, error } = await supabase
-          .from("case_assignments")
-          .select(
-            `
-            case_id,
-            cases (
-              id,
-              client_label,
-              status,
-              created_at
-            )
-          `
-          )
-          .eq("user_id", user.id)
-          .eq("role", "ATTORNEY");
+        // Use getAttorneyCases() which enforces released-only access via attorney_accessible_cases() RPC
+        const { getAttorneyCases } = await import("@/lib/attorneyCaseQueries");
+        const attorneyCases = await getAttorneyCases();
 
-        if (error) throw error;
-
-        const casesData = data
-          .map((item: any) => item.cases)
-          .filter(Boolean)
+        // Transform to match expected format
+        const casesData = attorneyCases
+          .map((c: any) => ({
+            id: c.id,
+            client_label: "Unknown", // AttorneyCase doesn't expose client_label for privacy
+            status: c.case_status === "released" ? "RELEASED" : c.case_status === "closed" ? "CLOSED" : "NEW",
+            created_at: c.created_at,
+          }))
           .sort(
             (a: any, b: any) =>
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -149,7 +141,7 @@ export default function Dashboard() {
           setSelectedCaseId(casesData[0].id);
         }
       } catch (error: any) {
-        console.error("Error fetching cases:", error);
+        console.error("Error fetching attorney cases:", error);
       }
     };
 
@@ -157,18 +149,34 @@ export default function Dashboard() {
   }, [user?.id, role]);
 
   // Fetch case details and RN CM info when case is selected
+  // For attorneys: use released-only case query
   useEffect(() => {
     if (!selectedCaseId) return;
 
     const fetchCaseDetails = async () => {
       try {
-        const { data: caseData, error: caseError } = await supabase
-          .from("cases")
-          .select("*")
-          .eq("id", selectedCaseId)
-          .single();
-
-        if (caseError) throw caseError;
+        let caseData: any;
+        
+        // For attorneys, use getAttorneyCaseById() which enforces released-only access
+        if (role === "ATTORNEY") {
+          const { getAttorneyCaseById } = await import("@/lib/attorneyCaseQueries");
+          caseData = await getAttorneyCaseById(selectedCaseId);
+          if (!caseData) {
+            console.warn("Case not found or not accessible (may be draft)");
+            setCaseDetails(null);
+            return;
+          }
+        } else {
+          // For non-attorneys, use standard query
+          const { data, error: caseError } = await supabase
+            .from("cases")
+            .select("*")
+            .eq("id", selectedCaseId)
+            .single();
+          if (caseError) throw caseError;
+          caseData = data;
+        }
+        
         setCaseDetails(caseData);
 
         const { data: rnAssignment, error: rnError } = await supabase

@@ -62,7 +62,7 @@ const navigation = [
   // Shared Navigation
   { name: "Documents & Files", href: "/documents", icon: FolderKanban, roles: [ROLES.ATTORNEY, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: [ROLES.ATTORNEY, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
-  { name: "Client Intake", href: "/intake", icon: ClipboardEdit, roles: [ROLES.CLIENT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "Client Intake", href: "/client-intake", icon: ClipboardEdit, roles: [ROLES.CLIENT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Cases", href: "/cases", icon: FileText, roles: [ROLES.ATTORNEY, ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.STAFF, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   
   // Attorney-Only Tools

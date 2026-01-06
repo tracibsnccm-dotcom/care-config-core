@@ -49,6 +49,30 @@ interface BaselineProgressComparisonProps {
   caseId: string;
 }
 
+// Migration helpers for displaying old scale values (0-4 or 0-100) on new 1-5 scale
+// Migration behavior: old 0-4 values are converted by adding 1 (0->1, 1->2, 2->3, 3->4, 4->5)
+// Old 0-100 values (stored percentages) are converted: (value / 25) + 1
+function migrateOld4PsValue(value: number | null | undefined): number {
+  if (value === null || value === undefined) return 3; // Default to middle (3)
+  // If value is 0-4 (old scale), add 1 to convert to 1-5
+  if (value >= 0 && value <= 4) return value + 1;
+  // If value is 0-100 (stored percentage), convert to 1-5 scale
+  if (value > 4 && value <= 100) {
+    // Map 0-100 to 1-5: 0->1, 25->2, 50->3, 75->4, 100->5
+    return Math.max(1, Math.min(5, Math.round((value / 25) + 1)));
+  }
+  // If already 1-5, return as-is
+  return Math.max(1, Math.min(5, value));
+}
+
+function migrateOldSdohValue(value: number | null | undefined): number {
+  if (value === null || value === undefined) return 1; // Default to minimum (1)
+  // If value is 0-4 (old scale), add 1 to convert to 1-5
+  if (value >= 0 && value <= 4) return value + 1;
+  // If already 1-5, return as-is
+  return Math.max(1, Math.min(5, value));
+}
+
 export function BaselineProgressComparison({ caseId }: BaselineProgressComparisonProps) {
   const [baseline, setBaseline] = useState<BaselineScores | null>(null);
   const [current, setCurrent] = useState<CurrentScores | null>(null);
@@ -62,56 +86,81 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
   const fetchScores = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      // Fetch baseline from cases table
-      const { data: caseData, error: caseError } = await supabase
-        .from("cases")
-        .select("fourps, sdoh, created_at")
-        .eq("id", caseId)
-        .single();
-
-      if (caseError) throw caseError;
-
-      if (caseData?.fourps && caseData?.sdoh) {
-        setBaseline({
-          fourPs: caseData.fourps as any,
-          sdoh: caseData.sdoh as any,
-          baselineDate: caseData.created_at
-        });
+      // Get current user
+      const user = await supabase.auth.getUser();
+      if (!user.data.user?.id) {
+        setLoading(false);
+        return;
       }
 
-      // Fetch latest check-in
-      const user = await supabase.auth.getUser();
-      const { data: checkinData, error: checkinError } = await supabase
-        .from("client_checkins")
+      // Fetch all check-ins for this case to find baseline (first check-in)
+      const { data: allCheckins, error: checkinsError } = await supabase
+        .from("rc_client_checkins")
         .select("*")
         .eq("case_id", caseId)
-        .eq("client_id", user.data.user?.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+        .eq("client_id", user.data.user.id)
+        .order("created_at", { ascending: true });
 
-      if (!checkinError && checkinData) {
-        setCurrent({
-          physical: checkinData.p_physical,
-          psychological: checkinData.p_psychological,
-          psychosocial: checkinData.p_psychosocial,
-          professional: checkinData.p_purpose,
-          housing: checkinData.sdoh_housing ?? 0,
-          food: checkinData.sdoh_food ?? 0,
-          transport: checkinData.sdoh_transport ?? 0,
-          insurance: checkinData.sdoh_insurance ?? 0,
-          financial: checkinData.sdoh_financial ?? 0,
-          employment: checkinData.sdoh_employment ?? 0,
-          social_support: checkinData.sdoh_social_support ?? 0,
-          safety: checkinData.sdoh_safety ?? 0,
-          healthcare_access: checkinData.sdoh_healthcare_access ?? 0,
-          checkinDate: checkinData.created_at
+      if (checkinsError) {
+        console.warn("[BaselineProgressComparison] Error fetching check-ins:", checkinsError);
+        // Don't throw - just continue without baseline
+      }
+
+      // Use first check-in as baseline if available
+      if (allCheckins && allCheckins.length > 0) {
+        const baselineCheckin = allCheckins[0];
+        const latestCheckin = allCheckins[allCheckins.length - 1];
+
+        // Set baseline from first check-in
+        // Convert 0-100 (stored) to 1-5 scale: (value / 25) + 1
+        // Migration: old 0-4 values will be handled by migrateOld4PsValue
+        setBaseline({
+          fourPs: {
+            physical: migrateOld4PsValue((baselineCheckin.p_physical || 0) / 25),
+            psychological: migrateOld4PsValue((baselineCheckin.p_psychological || 0) / 25),
+            psychosocial: migrateOld4PsValue((baselineCheckin.p_psychosocial || 0) / 25),
+            professional: migrateOld4PsValue((baselineCheckin.p_professional || 0) / 25),
+          },
+          sdoh: {
+            housing: migrateOldSdohValue(baselineCheckin.housing),
+            food: migrateOldSdohValue(baselineCheckin.food),
+            transport: migrateOldSdohValue(baselineCheckin.transport),
+            insuranceGap: migrateOldSdohValue(baselineCheckin.insurance),
+            financial: migrateOldSdohValue(baselineCheckin.financial),
+            employment: migrateOldSdohValue(baselineCheckin.employment),
+            social_support: migrateOldSdohValue(baselineCheckin.social_support),
+            safety: migrateOldSdohValue(baselineCheckin.safety),
+            healthcare_access: migrateOldSdohValue(baselineCheckin.healthcare_access),
+          },
+          baselineDate: baselineCheckin.created_at
         });
+
+        // Set current from latest check-in (if different from baseline)
+        if (allCheckins.length > 1) {
+          setCurrent({
+            physical: migrateOld4PsValue((latestCheckin.p_physical || 0) / 25),
+            psychological: migrateOld4PsValue((latestCheckin.p_psychological || 0) / 25),
+            psychosocial: migrateOld4PsValue((latestCheckin.p_psychosocial || 0) / 25),
+            professional: migrateOld4PsValue((latestCheckin.p_professional || 0) / 25),
+            housing: migrateOldSdohValue(latestCheckin.housing),
+            food: migrateOldSdohValue(latestCheckin.food),
+            transport: migrateOldSdohValue(latestCheckin.transport),
+            insurance: migrateOldSdohValue(latestCheckin.insurance),
+            financial: migrateOldSdohValue(latestCheckin.financial),
+            employment: migrateOldSdohValue(latestCheckin.employment),
+            social_support: migrateOldSdohValue(latestCheckin.social_support),
+            safety: migrateOldSdohValue(latestCheckin.safety),
+            healthcare_access: migrateOldSdohValue(latestCheckin.healthcare_access),
+            checkinDate: latestCheckin.created_at
+          });
+        }
       }
     } catch (err: any) {
-      console.error("Error fetching scores:", err);
-      setError(err.message);
+      console.error("[BaselineProgressComparison] Error fetching scores:", err);
+      // Don't set error state - just log and continue
+      // This component is non-critical and should not break the page
     } finally {
       setLoading(false);
     }
@@ -122,7 +171,8 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
     return {
       value: Math.abs(change).toFixed(1),
       direction: change > 0 ? "up" : change < 0 ? "down" : "same",
-      isImprovement: change < 0 // Lower scores are better
+      // Maslow-based: 1=worst, 5=best, so higher scores = improvement
+      isImprovement: change > 0
     };
   };
 
@@ -146,6 +196,7 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
     });
   };
 
+  // Loading state
   if (loading) {
     return (
       <Card>
@@ -161,24 +212,28 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
     );
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>Error loading baseline comparison: {error}</AlertDescription>
-      </Alert>
-    );
-  }
-
+  // If no baseline data, show minimal message and return null (non-critical component)
   if (!baseline) {
     return (
-      <Alert>
-        <AlertDescription>
-          Baseline scores not available. Complete your intake assessment to establish baseline.
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Baseline Progress Comparison
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              Baseline comparison unavailable. Complete your first check-in to establish a baseline.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
+  // If baseline exists but no current data (only one check-in)
   if (!current) {
     return (
       <Card>
@@ -194,7 +249,7 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
         <CardContent>
           <Alert className="mb-4">
             <AlertDescription>
-              Complete your first check-in to see progress compared to your baseline.
+              Complete your next check-in to see progress compared to your baseline.
             </AlertDescription>
           </Alert>
           
@@ -209,7 +264,7 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
                   { label: "Professional", value: baseline.fourPs.professional }
                 ].map((item) => (
                   <div key={item.label} className="p-3 bg-muted rounded-lg text-center">
-                    <div className="text-2xl font-bold text-foreground">{item.value}</div>
+                    <div className="text-2xl font-bold text-foreground">{item.value.toFixed(1)}</div>
                     <div className="text-xs text-muted-foreground">{item.label}</div>
                   </div>
                 ))}
@@ -241,7 +296,7 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
     { label: "Healthcare Access", baseline: baseline.sdoh.healthcare_access, current: current.healthcare_access }
   ];
 
-  // Calculate average baseline and current
+  // Calculate average baseline and current (1-5 scale)
   const avgBaseline = (
     [...fourPsComparison.map(c => c.baseline), ...sdohComparison.map(c => c.baseline)]
       .reduce((sum, val) => sum + val, 0) / 13
@@ -299,9 +354,10 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
               {getChangeIcon(overallChange.direction, overallChange.isImprovement)}
             </div>
           </div>
-          <Progress value={((4 - Number(avgCurrent)) / 4) * 100} className="h-2" />
+          {/* Progress bar: 1=worst (0%), 5=best (100%) */}
+          <Progress value={((Number(avgCurrent) - 1) / 4) * 100} className="h-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            Lower scores indicate better wellness (0 = No concerns, 4 = Critical)
+            Maslow-based scale: Lower scores indicate higher need (1 = Critical barrier / unmet needs, 5 = Stable / needs met)
           </p>
         </div>
 
@@ -318,13 +374,14 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
                       <span className="text-sm font-medium">{item.label}</span>
                       <div className="flex items-center gap-2 text-sm">
                         <Badge variant="outline" className="text-xs">
-                          {item.baseline} → {item.current}
+                          {item.baseline.toFixed(1)} → {item.current.toFixed(1)}
                         </Badge>
                         {getChangeIcon(change.direction, change.isImprovement)}
                       </div>
                     </div>
+                    {/* Progress bar: 1=worst (0%), 5=best (100%) */}
                     <Progress 
-                      value={((4 - item.current) / 4) * 100} 
+                      value={((item.current - 1) / 4) * 100} 
                       className="h-2"
                     />
                   </div>
@@ -345,7 +402,7 @@ export function BaselineProgressComparison({ caseId }: BaselineProgressCompariso
                   <span className="flex-1">{item.label}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                      {item.baseline} → {item.current}
+                      {item.baseline.toFixed(1)} → {item.current.toFixed(1)}
                     </span>
                     {getChangeIcon(change.direction, change.isImprovement)}
                   </div>

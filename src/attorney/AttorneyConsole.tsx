@@ -23,45 +23,6 @@ type AttorneyTimelineEvent = {
   rnNote?: string;
 };
 
-// TEMP: demo/sample events just so the Timeline tab shows real cards.
-// Later we can wire this to the real RN timeline storage instead.
-const DEMO_TIMELINE_EVENTS: AttorneyTimelineEvent[] = [
-  {
-    id: "1",
-    date: "2024-10-25",
-    title: "Emergency Department Visit",
-    bullets: [
-      "Acute neck and low-back pain documented after collision.",
-      "Pain rated 8/10 with significant functional limitation.",
-      "Initial imaging performed; soft-tissue injury suspected.",
-    ],
-    rnNote:
-      "Presentation consistent with acute injury; RN recommends timely follow-up with PCP and PT to avoid gaps in care.",
-  },
-  {
-    id: "2",
-    date: "2024-11-03",
-    title: "Primary Care Follow-Up",
-    bullets: [
-      "Persistent pain interfering with sleep and daily activities.",
-      "Work restrictions noted; difficulty with prolonged sitting and lifting.",
-    ],
-    rnNote:
-      "Functional impact clearly documented; this visit supports ongoing treatment and work restrictions.",
-  },
-  {
-    id: "3",
-    date: "2024-11-15",
-    title: "Physical Therapy Evaluation",
-    bullets: [
-      "Objective findings of reduced ROM and strength.",
-      "Plan of care outlined for 2–3 sessions/week over 6 weeks.",
-    ],
-    rnNote:
-      "Early PT engagement aligns with evidence-based guidelines (e.g., ODG/MCG) and supports medical necessity.",
-  },
-];
-
 function loadCaseSummary(): CaseSummary | null {
   if (typeof window === "undefined") return null;
   try {
@@ -806,22 +767,16 @@ const AttorneyConsole: React.FC = () => {
               the RN is interpreting its impact on the case.
             </p>
 
-            {DEMO_TIMELINE_EVENTS.length === 0 && (
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  color: "#64748b",
-                }}
-              >
-                No timeline events have been recorded for this case yet. Once
-                the RN begins logging visits, crises, and milestones, they will
-                appear here as concise, attorney-ready cards.
-              </p>
-            )}
-
-            {DEMO_TIMELINE_EVENTS.map((evt) => (
-              <AttorneyTimelineCard key={evt.id} event={evt} />
-            ))}
+            <p
+              style={{
+                fontSize: "0.78rem",
+                color: "#64748b",
+              }}
+            >
+              No timeline events have been recorded for this case yet. Once
+              the RN begins logging visits, crises, and milestones, they will
+              appear here as concise, attorney-ready cards.
+            </p>
           </div>
         );
 

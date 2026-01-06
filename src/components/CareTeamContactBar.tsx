@@ -51,7 +51,7 @@ export function CareTeamContactBar({ caseId }: CareTeamContactBarProps) {
 
       // Get team members assigned to this case
       const { data: assignments, error: assignError } = await supabase
-        .from("case_assignments")
+        .from("rc_case_assignments")
         .select("user_id, role")
         .eq("case_id", caseId)
         .neq("user_id", currentUser.data.user?.id); // Exclude self
