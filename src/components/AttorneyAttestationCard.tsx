@@ -7,6 +7,7 @@ import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
+import { audit } from '@/lib/supabaseOperations';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,18 +108,68 @@ export function AttorneyAttestationCard({
         console.log('Using fallback attorney identifier');
       }
 
-      // Update intake with attestation
+      // 1. Fetch current intake_json
+      const { data: currentIntake, error: fetchError } = await supabase
+        .from('rc_client_intakes')
+        .select('id, case_id, intake_json')
+        .eq('id', intakeId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // 2. Build receipt object
+      const receipt = {
+        type: "attorney_client_relationship_confirmed",
+        confirmed_at: now,
+        confirmed_by: attorneyId,
+        method: "ui_attestation",
+        text: "Attorney confirmed client relationship before accessing PHI. Confirmation required within 48 hours to prevent deletion."
+      };
+
+      // 3. Merge into intake_json under compliance.attorney_attestation_receipt
+      const existingIntakeJson = (currentIntake?.intake_json as Record<string, any>) || {};
+      const newIntakeJson = {
+        ...existingIntakeJson,
+        compliance: {
+          ...(existingIntakeJson?.compliance || {}),
+          attorney_attestation_receipt: receipt
+        }
+      };
+
+      // 4. Update intake with attestation and receipt
       const { error: updateError } = await supabase
         .from('rc_client_intakes')
         .update({
           attorney_attested_at: now,
           attorney_attested_by: attorneyId,
           intake_status: 'attorney_confirmed',
+          intake_json: newIntakeJson,
         })
         .eq('id', intakeId);
 
       if (updateError) {
         throw updateError;
+      }
+
+      // 5. Log audit entry
+      try {
+        await audit({
+          actorRole: 'ATTORNEY',
+          actorId: user.id,
+          action: 'ATTORNEY_CLIENT_RELATIONSHIP_CONFIRMED',
+          caseId: caseId,
+          meta: {
+            intake_id: intakeId,
+            confirmed_at: now,
+            confirmed_by: attorneyId,
+            message: `Attorney confirmed client relationship and PHI access authorization at ${now}.`
+          }
+        });
+      } catch (auditError) {
+        console.error('Failed to log audit entry:', auditError);
+        // Don't fail the attestation if audit logging fails
       }
 
       // Log notification
@@ -167,11 +218,20 @@ export function AttorneyAttestationCard({
         <CardContent className="space-y-4">
           {/* Body text - rendered as paragraphs */}
           <div className="space-y-3">
-            {COMPLIANCE_COPY.attorneyAttestation.bodyLines.map((line, idx) => (
-              <p key={idx} className="text-sm leading-relaxed">
-                {line}
-              </p>
-            ))}
+            {COMPLIANCE_COPY.attorneyAttestation.bodyLines.map((line, idx) => {
+              // Check if this is the bolded deletion clause (starts with **)
+              const isBold = line.startsWith('**') && line.endsWith('**');
+              const text = isBold ? line.slice(2, -2) : line;
+              
+              return (
+                <p 
+                  key={idx} 
+                  className={`text-sm leading-relaxed ${isBold ? 'font-bold' : ''}`}
+                >
+                  {text}
+                </p>
+              );
+            })}
           </div>
 
           {/* Countdown timer */}

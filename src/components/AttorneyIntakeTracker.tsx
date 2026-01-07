@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { HelpCircle, Clock, ArrowLeft, Eye, AlertTriangle } from 'lucide-react';
+import { HelpCircle, Clock, ArrowLeft, Eye, AlertTriangle, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -269,6 +269,11 @@ export const AttorneyIntakeTracker = () => {
       selectedIntake.intake_status === 'submitted_pending_attorney' &&
       !selectedIntake.attorney_attested_at;
 
+    // Check if confirmed
+    const isConfirmed = 
+      selectedIntake.intake_status === 'attorney_confirmed' ||
+      !!selectedIntake.attorney_attested_at;
+
     // Check if expired
     const isExpired = selectedIntake.intake_status === 'expired_deleted' ||
       (selectedIntake.attorney_confirm_deadline_at && 
@@ -296,10 +301,29 @@ export const AttorneyIntakeTracker = () => {
             attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
             onAttestationComplete={() => {
               toast.success('Attestation complete. You can now view case details.');
+              // Refresh the intake data to show confirmed status
+              loadIntakeForCase(selectedCaseId);
               loadData();
-              // Optionally navigate to case detail after attestation
             }}
           />
+        )}
+
+        {isConfirmed && !isExpired && selectedIntake.attorney_attested_at && (
+          <Card className="border-green-500">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700">
+                <Shield className="w-5 h-5" />
+                Confirmed
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="default" className="bg-green-50 border-green-200">
+                <AlertDescription className="text-green-900">
+                  Confirmed on {new Date(selectedIntake.attorney_attested_at).toLocaleString()}.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         )}
 
         {isExpired && (
@@ -322,12 +346,9 @@ export const AttorneyIntakeTracker = () => {
           </Card>
         )}
 
-        {!needsAttestation && !isExpired && (
+        {isConfirmed && !isExpired && (
           <Card>
             <CardContent className="p-6">
-              <p className="text-muted-foreground">
-                Intake has been confirmed. You can now view case details.
-              </p>
               <Button
                 onClick={() => window.location.href = `/cases/${selectedCaseId}`}
                 className="mt-4"

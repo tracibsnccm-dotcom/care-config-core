@@ -50,10 +50,10 @@ export const COMPLIANCE_COPY = {
   attorneyAttestation: {
     title: "ATTORNEY ATTESTATION – REQUIRED",
     bodyLines: [
-      "Before accessing any clinical information, you must confirm that this individual is your client.",
+      "Before accessing any Protected Health Information (PHI), you must confirm that this individual is your client.",
       "Accessing Protected Health Information (PHI) for an individual who is not your client is a HIPAA violation and a reportable privacy breach.",
-      "If confirmation is not provided within 48 hours, all intake information will be permanently deleted and cannot be retrieved. The client will be required to complete the intake process again.",
-      "By proceeding, you attest that you are authorized to access this information and that a valid attorney–client relationship exists.",
+      "**If confirmation is not provided within 48 hours, all intake information will be permanently deleted and cannot be retrieved. The client will be required to complete the intake process again.**",
+      "By proceeding, you attest that you are authorized to access this client's Protected Health Information (PHI) and that a valid attorney–client relationship exists.",
     ],
     primaryCta: "✅ Confirm Client Relationship",
     secondaryCta: "❌ This Is Not My Client",
@@ -67,7 +67,7 @@ export const COMPLIANCE_COPY = {
     title: "ACTION REQUIRED – CLIENT CONFIRMATION PENDING",
     bodyLines: [
       "A client has completed an intake and identified you as their attorney.",
-      "Before any clinical information can be released, you must confirm that this individual is your client.",
+      "Before any Protected Health Information (PHI) can be released, you must confirm that this individual is your client.",
       "If confirmation is not received within 48 hours, all intake information will be permanently deleted, cannot be retrieved, and the client will be required to complete the intake process again.",
     ],
   },

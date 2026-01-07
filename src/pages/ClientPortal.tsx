@@ -282,6 +282,11 @@ export default function ClientPortal() {
     intakeStatus.status === 'submitted_pending_attorney' &&
     !intakeStatus.attorneyAttestedAt;
 
+  // Check if attorney has confirmed
+  const isAttorneyConfirmed = 
+    intakeStatus?.status === 'attorney_confirmed' ||
+    !!intakeStatus?.attorneyAttestedAt;
+
   const isExpired = 
     intakeStatus?.status === 'expired_deleted' ||
     (intakeStatus?.attorneyConfirmDeadlineAt &&
@@ -332,6 +337,20 @@ export default function ClientPortal() {
   
   return (
     <div className="min-h-screen bg-rcms-white">
+      {/* Attorney Confirmation Banner */}
+      {isAttorneyConfirmed && intakeStatus?.attorneyAttestedAt && (
+        <div className="bg-green-50 border-b border-green-200">
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <Alert variant="default" className="bg-green-50 border-green-200">
+              <Shield className="h-4 w-4 text-green-700" />
+              <AlertDescription className="text-green-900">
+                Your attorney confirmed your client relationship on {new Date(intakeStatus.attorneyAttestedAt).toLocaleString()}.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      )}
+
       {/* SECTION 1 - HEADER BAR */}
       <header className="bg-rcms-navy border-b-4 border-rcms-gold shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
