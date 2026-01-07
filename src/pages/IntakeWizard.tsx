@@ -549,8 +549,6 @@ export default function IntakeWizard() {
             intake_json: intakeJson,
             intake_submitted_at: submittedAt,
             attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
-            intake_status: 'submitted_pending_attorney',
-            attorney_attested_by: attorneyIdText, // Store attorney identifier (text or uuid)
           });
         
         if (intakeCompletionError) {

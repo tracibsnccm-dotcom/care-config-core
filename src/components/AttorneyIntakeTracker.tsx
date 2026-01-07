@@ -31,7 +31,8 @@ interface PendingIntake {
   intake_submitted_at: string;
   attorney_confirm_deadline_at: string;
   attorney_attested_at: string | null;
-  intake_status: string;
+  intake_json: any;
+  created_at: string;
   rc_cases?: {
     client_id?: string;
     attorney_id?: string;
@@ -74,6 +75,7 @@ export const AttorneyIntakeTracker = () => {
   const loadData = async () => {
     try {
       // Query rc_client_intakes for pending attorney confirmations
+      // Pending = attorney_attested_at IS NULL AND deadline exists AND deadline > now
       let query = supabase
         .from('rc_client_intakes')
         .select(`
@@ -82,16 +84,16 @@ export const AttorneyIntakeTracker = () => {
           intake_submitted_at,
           attorney_confirm_deadline_at,
           attorney_attested_at,
-          intake_status,
+          intake_json,
+          created_at,
           rc_cases!inner (
             client_id,
             attorney_id
           )
         `)
-        .eq('intake_status', 'submitted_pending_attorney')
         .is('attorney_attested_at', null)
-        .not('intake_submitted_at', 'is', null)
-        .not('attorney_confirm_deadline_at', 'is', null);
+        .not('attorney_confirm_deadline_at', 'is', null)
+        .gt('attorney_confirm_deadline_at', new Date().toISOString());
 
       // If "mine" scope, filter by attorney_id in cases
       if (scope === 'mine' && user) {
@@ -141,6 +143,7 @@ export const AttorneyIntakeTracker = () => {
   const loadIntakeForCase = async (caseId: string) => {
     setLoadingIntake(true);
     try {
+      // Fetch the latest intake record for this case (regardless of status)
       const { data, error } = await supabase
         .from('rc_client_intakes')
         .select(`
@@ -149,14 +152,16 @@ export const AttorneyIntakeTracker = () => {
           intake_submitted_at,
           attorney_confirm_deadline_at,
           attorney_attested_at,
-          intake_status,
+          intake_json,
+          created_at,
           rc_cases!inner (
             client_id,
             attorney_id
           )
         `)
         .eq('case_id', caseId)
-        .eq('intake_status', 'submitted_pending_attorney')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
@@ -264,20 +269,16 @@ export const AttorneyIntakeTracker = () => {
       ? selectedIntake.rc_cases[0] 
       : selectedIntake.rc_cases;
 
-    // Check if attestation is required
-    const needsAttestation = 
-      selectedIntake.intake_status === 'submitted_pending_attorney' &&
-      !selectedIntake.attorney_attested_at;
-
     // Check if confirmed
-    const isConfirmed = 
-      selectedIntake.intake_status === 'attorney_confirmed' ||
-      !!selectedIntake.attorney_attested_at;
+    const isConfirmed = !!selectedIntake.attorney_attested_at;
 
-    // Check if expired
-    const isExpired = selectedIntake.intake_status === 'expired_deleted' ||
-      (selectedIntake.attorney_confirm_deadline_at && 
-       new Date(selectedIntake.attorney_confirm_deadline_at).getTime() < Date.now());
+    // Check if expired (deadline exists and has passed, but not confirmed)
+    const isExpired = !isConfirmed &&
+      !!selectedIntake.attorney_confirm_deadline_at &&
+      new Date(selectedIntake.attorney_confirm_deadline_at).getTime() < Date.now();
+
+    // Check if attestation is needed (not confirmed and not expired)
+    const needsAttestation = !isConfirmed && !isExpired && !!selectedIntake.attorney_confirm_deadline_at;
 
     return (
       <div className="space-y-4">
@@ -293,15 +294,23 @@ export const AttorneyIntakeTracker = () => {
           Back to Intake List
         </Button>
 
-        {needsAttestation && !isExpired && (
+        {needsAttestation && (
           <AttorneyAttestationCard
             intakeId={selectedIntake.id}
             caseId={selectedIntake.case_id}
             intakeSubmittedAt={selectedIntake.intake_submitted_at}
             attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
+            onAttested={(attestedAt, updatedJson) => {
+              // Immediately update local state to stop countdown
+              setSelectedIntake(prev => prev ? {
+                ...prev,
+                attorney_attested_at: attestedAt,
+                intake_json: updatedJson
+              } : null);
+            }}
             onAttestationComplete={() => {
               toast.success('Attestation complete. You can now view case details.');
-              // Refresh the intake data to show confirmed status
+              // Refresh the intake data to ensure consistency
               loadIntakeForCase(selectedCaseId);
               loadData();
             }}
@@ -316,12 +325,24 @@ export const AttorneyIntakeTracker = () => {
                 Confirmed
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <Alert variant="default" className="bg-green-50 border-green-200">
                 <AlertDescription className="text-green-900">
                   Confirmed on {new Date(selectedIntake.attorney_attested_at).toLocaleString()}.
                 </AlertDescription>
               </Alert>
+              
+              {/* Show receipt if available */}
+              {selectedIntake.intake_json?.compliance?.attorney_confirmation_receipt && (
+                <div className="mt-4 p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2">Attorney Confirmation Receipt</h4>
+                  <div className="text-sm space-y-1">
+                    <p><strong>Confirmed at:</strong> {new Date(selectedIntake.intake_json.compliance.attorney_confirmation_receipt.confirmed_at).toLocaleString()}</p>
+                    <p><strong>Confirmed by:</strong> {selectedIntake.intake_json.compliance.attorney_confirmation_receipt.confirmed_by}</p>
+                    <p><strong>Action:</strong> {selectedIntake.intake_json.compliance.attorney_confirmation_receipt.action}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

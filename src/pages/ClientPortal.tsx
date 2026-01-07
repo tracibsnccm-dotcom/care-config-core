@@ -58,10 +58,10 @@ export default function ClientPortal() {
   const [checkingIntake, setCheckingIntake] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [intakeStatus, setIntakeStatus] = useState<{
-    status: string;
     attorneyAttestedAt: string | null;
     attorneyConfirmDeadlineAt: string | null;
     intakeId: string | null;
+    intakeJson: any;
   } | null>(null);
   
   const handleLogout = async () => {
@@ -163,7 +163,7 @@ export default function ClientPortal() {
       try {
         const { data, error } = await supabase
           .from("rc_client_intakes")
-          .select("id, case_id, intake_json, created_at, intake_status, attorney_attested_at, attorney_confirm_deadline_at, intake_submitted_at")
+          .select("id, case_id, intake_json, created_at, attorney_attested_at, attorney_confirm_deadline_at, intake_submitted_at")
           .eq("case_id", caseId)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -178,10 +178,10 @@ export default function ClientPortal() {
           setIntakeCompleted(!!data);
           if (data) {
             setIntakeStatus({
-              status: data.intake_status || 'draft',
               attorneyAttestedAt: data.attorney_attested_at,
               attorneyConfirmDeadlineAt: data.attorney_confirm_deadline_at,
               intakeId: data.id,
+              intakeJson: data.intake_json,
             });
           } else {
             setIntakeStatus(null);
@@ -277,20 +277,21 @@ export default function ClientPortal() {
   }
 
   // Gate: Check if intake is pending attorney confirmation
+  // needsAttorneyConfirmation = intake exists AND attorney_attested_at is null AND deadline exists AND now < deadline
   const needsAttorneyConfirmation = 
     intakeStatus &&
-    intakeStatus.status === 'submitted_pending_attorney' &&
-    !intakeStatus.attorneyAttestedAt;
+    !intakeStatus.attorneyAttestedAt &&
+    !!intakeStatus.attorneyConfirmDeadlineAt &&
+    new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() > Date.now();
 
   // Check if attorney has confirmed
-  const isAttorneyConfirmed = 
-    intakeStatus?.status === 'attorney_confirmed' ||
-    !!intakeStatus?.attorneyAttestedAt;
+  const isAttorneyConfirmed = !!intakeStatus?.attorneyAttestedAt;
 
+  // isExpired = deadline exists AND now > deadline AND not confirmed
   const isExpired = 
-    intakeStatus?.status === 'expired_deleted' ||
-    (intakeStatus?.attorneyConfirmDeadlineAt &&
-     new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() < Date.now());
+    !isAttorneyConfirmed &&
+    intakeStatus?.attorneyConfirmDeadlineAt &&
+    new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() < Date.now();
 
   // Show pending attorney confirmation screen
   if (needsAttorneyConfirmation && caseId && intakeStatus.attorneyConfirmDeadlineAt) {
@@ -318,8 +319,10 @@ export default function ClientPortal() {
           <CardContent className="p-6 space-y-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="whitespace-pre-line">
-                {COMPLIANCE_COPY.expiredCopy}
+              <AlertDescription className="space-y-2">
+                {COMPLIANCE_COPY.attorneyExpired.bodyLines.map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
               </AlertDescription>
             </Alert>
             <Button

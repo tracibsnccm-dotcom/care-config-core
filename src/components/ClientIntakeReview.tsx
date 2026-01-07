@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 export function ClientIntakeReview({ caseId }: { caseId: string }) {
   const { user } = useAuth();
   const [caseData, setCaseData] = useState<any>(null);
+  const [intakeData, setIntakeData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,22 +29,40 @@ export function ClientIntakeReview({ caseId }: { caseId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
+      // Fetch case data
+      const { data: caseDataResult, error: caseError } = await supabase
         .from("rc_cases")
         .select("*")
         .eq("id", caseId)
         .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error("Error loading intake data:", fetchError);
-        setError("Failed to load intake information");
+      if (caseError && caseError.code !== 'PGRST116') {
+        console.error("Error loading case data:", caseError);
+        setError("Failed to load case information");
         return;
       }
 
-      if (data) {
-        setCaseData(data);
+      // Fetch intake data to get receipt
+      const { data: intakeResult, error: intakeError } = await supabase
+        .from("rc_client_intakes")
+        .select("id, intake_json, attorney_attested_at")
+        .eq("case_id", caseId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (intakeError && intakeError.code !== 'PGRST116') {
+        console.error("Error loading intake data:", intakeError);
+      }
+
+      if (caseDataResult) {
+        setCaseData(caseDataResult);
       } else {
-        setError("No intake data found");
+        setError("No case data found");
+      }
+
+      if (intakeResult) {
+        setIntakeData(intakeResult);
       }
     } catch (err: any) {
       console.error("Error loading intake data:", err);
@@ -290,6 +309,41 @@ export function ClientIntakeReview({ caseId }: { caseId: string }) {
                 </div>
               </div>
             )}
+          </div>
+        </Card>
+      )}
+
+      {/* Attorney Confirmation Receipt */}
+      {intakeData?.intake_json?.compliance?.attorney_confirmation_receipt && (
+        <Card className="p-6 border-green-500">
+          <h3 className="text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Shield className="w-5 h-5 text-green-600" />
+            Attorney Confirmation Receipt
+          </h3>
+          
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Confirmed at</p>
+              <p className="font-medium">
+                {new Date(intakeData.intake_json.compliance.attorney_confirmation_receipt.confirmed_at).toLocaleString()}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-muted-foreground">Confirmed by</p>
+              <p className="font-medium">
+                {intakeData.intake_json.compliance.attorney_confirmation_receipt.confirmed_by?.includes('@')
+                  ? intakeData.intake_json.compliance.attorney_confirmation_receipt.confirmed_by.split('@')[0] + '@***'
+                  : intakeData.intake_json.compliance.attorney_confirmation_receipt.confirmed_by}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-muted-foreground">Action</p>
+              <Badge variant={intakeData.intake_json.compliance.attorney_confirmation_receipt.action === 'CONFIRMED_CLIENT_RELATIONSHIP' ? 'default' : 'outline'}>
+                {intakeData.intake_json.compliance.attorney_confirmation_receipt.action}
+              </Badge>
+            </div>
           </div>
         </Card>
       )}

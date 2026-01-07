@@ -25,6 +25,7 @@ interface AttorneyAttestationCardProps {
   intakeSubmittedAt: string;
   attorneyConfirmDeadlineAt: string;
   onAttestationComplete: () => void;
+  onAttested?: (attestedAt: string, updatedIntakeJson: any) => void;
 }
 
 export function AttorneyAttestationCard({
@@ -33,6 +34,7 @@ export function AttorneyAttestationCard({
   intakeSubmittedAt,
   attorneyConfirmDeadlineAt,
   onAttestationComplete,
+  onAttested,
 }: AttorneyAttestationCardProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,30 +123,27 @@ export function AttorneyAttestationCard({
 
       // 2. Build receipt object
       const receipt = {
-        type: "attorney_client_relationship_confirmed",
         confirmed_at: now,
         confirmed_by: attorneyId,
-        method: "ui_attestation",
-        text: "Attorney confirmed client relationship before accessing PHI. Confirmation required within 48 hours to prevent deletion."
+        attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`,
+        action: "CONFIRMED_CLIENT_RELATIONSHIP"
       };
 
-      // 3. Merge into intake_json under compliance.attorney_attestation_receipt
+      // 3. Merge into intake_json under compliance.attorney_confirmation_receipt
       const existingIntakeJson = (currentIntake?.intake_json as Record<string, any>) || {};
       const newIntakeJson = {
         ...existingIntakeJson,
         compliance: {
           ...(existingIntakeJson?.compliance || {}),
-          attorney_attestation_receipt: receipt
+          attorney_confirmation_receipt: receipt
         }
       };
 
-      // 4. Update intake with attestation and receipt
+      // 4. Update intake with attestation and receipt (ONLY existing columns)
       const { error: updateError } = await supabase
         .from('rc_client_intakes')
         .update({
           attorney_attested_at: now,
-          attorney_attested_by: attorneyId,
-          intake_status: 'attorney_confirmed',
           intake_json: newIntakeJson,
         })
         .eq('id', intakeId);
@@ -153,7 +152,12 @@ export function AttorneyAttestationCard({
         throw updateError;
       }
 
-      // 5. Log audit entry
+      // 5. Immediately update parent state to stop countdown
+      if (onAttested) {
+        onAttested(now, newIntakeJson);
+      }
+
+      // 6. Log audit entry
       try {
         await audit({
           actorRole: 'ATTORNEY',
@@ -200,10 +204,80 @@ export function AttorneyAttestationCard({
   };
 
   const handleNotMyClient = async () => {
+    if (!user) {
+      return;
+    }
+
     setShowNotMyClientDialog(false);
-    toast.info('Marked as not my client.');
-    // Navigate back or complete flow without writing PHI
-    onAttestationComplete();
+    setIsSubmitting(true);
+
+    try {
+      const now = new Date().toISOString();
+      let attorneyId: string = user.email || user.id;
+      
+      try {
+        const { data: rcUser } = await supabase
+          .from('rc_users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .eq('role', 'attorney')
+          .single();
+        
+        if (rcUser?.id) {
+          attorneyId = rcUser.id;
+        }
+      } catch (err) {
+        console.log('Using fallback attorney identifier');
+      }
+
+      // Fetch current intake_json
+      const { data: currentIntake, error: fetchError } = await supabase
+        .from('rc_client_intakes')
+        .select('id, case_id, intake_json')
+        .eq('id', intakeId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Build receipt for "not my client"
+      const receipt = {
+        confirmed_at: now,
+        confirmed_by: attorneyId,
+        action: "NOT_MY_CLIENT"
+      };
+
+      // Merge receipt into intake_json
+      const existingIntakeJson = (currentIntake?.intake_json as Record<string, any>) || {};
+      const newIntakeJson = {
+        ...existingIntakeJson,
+        compliance: {
+          ...(existingIntakeJson?.compliance || {}),
+          attorney_confirmation_receipt: receipt
+        }
+      };
+
+      // Update intake_json only (don't set attorney_attested_at for "not my client")
+      const { error: updateError } = await supabase
+        .from('rc_client_intakes')
+        .update({
+          intake_json: newIntakeJson,
+        })
+        .eq('id', intakeId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      toast.info('Marked as not my client.');
+      onAttestationComplete();
+    } catch (error: any) {
+      console.error('Error marking as not my client:', error);
+      toast.error(error.message || 'Failed to update');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
