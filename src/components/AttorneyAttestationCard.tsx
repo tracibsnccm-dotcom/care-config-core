@@ -417,6 +417,9 @@ export function AttorneyAttestationCard({
       return;
     }
 
+    console.log('handleAttest called with intakeId:', intakeId);
+    console.log('intakeId type:', typeof intakeId);
+
     setIsSubmitting(true);
     
     try {
@@ -474,6 +477,11 @@ export function AttorneyAttestationCard({
 
       // Update ALL required fields in a single update
       // Target exactly one row by PRIMARY KEY id
+      console.log('About to update rc_client_intakes with:', {
+        intakeId,
+        intakeIdType: typeof intakeId,
+        now
+      });
       const { data, error } = await supabase
         .from('rc_client_intakes')
         .update({
