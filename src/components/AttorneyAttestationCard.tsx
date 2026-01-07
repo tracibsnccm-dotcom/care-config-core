@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Clock, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Clock, Shield, CheckCircle2, Printer } from 'lucide-react';
 import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,12 +20,199 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Helper function to escape HTML for security
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Helper function to open print window for confirmation receipt
+function openConfirmationPrintWindow(
+  caseId: string,
+  intakeId: string,
+  receipt: {
+    action: string;
+    confirmed_at: string;
+    confirmed_by?: string;
+    attestation_text?: string;
+  }
+) {
+  const confirmedDate = new Date(receipt.confirmed_at).toLocaleString();
+  const status = receipt.action === "CONFIRMED" ? "Confirmed" : "Not My Client";
+  const attestationText = receipt.attestation_text || "";
+
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Attorney Confirmation Receipt</title>
+    <style>
+      @page { size: Letter; margin: 0.75in; }
+      body { 
+        font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; 
+        color: #0f172a; 
+        line-height: 1.6;
+      }
+      .header {
+        margin-bottom: 24px;
+      }
+      .title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #0f172a;
+      }
+      .hr {
+        height: 1px;
+        background: #e2e8f0;
+        margin: 16px 0;
+      }
+      .meta {
+        font-size: 13px;
+        color: #334155;
+        margin-bottom: 16px;
+      }
+      .meta-row {
+        margin-bottom: 8px;
+      }
+      .meta-label {
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+      }
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #10b981;
+        color: white;
+      }
+      .status.not-my-client {
+        background: #f59e0b;
+      }
+      .attestation-section {
+        margin-top: 24px;
+      }
+      .attestation-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #0f172a;
+      }
+      .attestation-text {
+        white-space: pre-wrap;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #334155;
+        padding: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+      }
+      .attestation-text p {
+        margin-bottom: 12px;
+      }
+      .attestation-text p:last-child {
+        margin-bottom: 0;
+      }
+      .footer {
+        margin-top: 32px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 10px;
+        color: #64748b;
+        text-align: center;
+      }
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title">Attorney Confirmation Receipt</div>
+    </div>
+    <div class="hr"></div>
+    
+    <div class="meta">
+      <div class="meta-row">
+        <span class="meta-label">Case ID:</span>
+        <span>${escapeHtml(caseId)}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Intake ID:</span>
+        <span>${escapeHtml(intakeId)}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Status:</span>
+        <span class="status ${receipt.action === "NOT_MY_CLIENT" ? "not-my-client" : ""}">${escapeHtml(status)}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Confirmed Date/Time:</span>
+        <span>${escapeHtml(confirmedDate)}</span>
+      </div>
+      ${receipt.confirmed_by ? `
+      <div class="meta-row">
+        <span class="meta-label">Confirmed By:</span>
+        <span>${escapeHtml(receipt.confirmed_by)}</span>
+      </div>
+      ` : ''}
+    </div>
+
+    ${attestationText ? `
+    <div class="attestation-section">
+      <div class="attestation-title">Attestation Text</div>
+      <div class="attestation-text">
+        ${attestationText
+          .split(/\n\n+/)
+          .map((para) => {
+            const isBold = para.includes('**');
+            const cleaned = para.replace(/\*\*/g, '');
+            return `<p${isBold ? ' style="font-weight: 700;"' : ''}>${escapeHtml(cleaned)}</p>`;
+          })
+          .join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+      Confidential — Attorney Work Product
+    </div>
+
+    <div class="no-print" style="margin-top:16px;">
+      <button onclick="window.print()" style="padding: 8px 16px; font-size: 14px; cursor: pointer; background: #0f172a; color: white; border: none; border-radius: 4px;">
+        Print / Save as PDF
+      </button>
+    </div>
+    <script>window.onload = () => setTimeout(() => window.print(), 250);</script>
+  </body>
+</html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) {
+    alert("Please allow pop-ups to print this receipt.");
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
 interface AttorneyAttestationCardProps {
   intakeId: string;
   caseId: string;
   intakeSubmittedAt: string;
   attorneyConfirmDeadlineAt: string;
   attorneyAttestedAt?: string | null;
+  intakeJson?: any;
   onAttestationComplete: () => void;
   onAttested?: (attestedAt: string, updatedIntakeJson: any) => void;
   onResolved?: (resolution: "CONFIRMED" | "DECLINED", timestamp: string, updatedIntakeJson: any) => void;
@@ -37,6 +225,7 @@ export function AttorneyAttestationCard({
   intakeSubmittedAt,
   attorneyConfirmDeadlineAt,
   attorneyAttestedAt,
+  intakeJson,
   onAttestationComplete,
   onAttested,
   onResolved,
@@ -79,25 +268,101 @@ export function AttorneyAttestationCard({
     return () => clearInterval(interval);
   }, [shouldShowCountdown, attorneyConfirmDeadlineAt, intakeId]);
 
-  // Handle confirmed state (attorney_attested_at exists) - show static status instead of countdown
+  // Handle confirmed state (attorney_attested_at exists) - show receipt instead of form
+  // Only rely on DB state, not local-only state
   if (attorneyAttestedAt || resolved === "CONFIRMED") {
-    const confirmedTimestamp = attorneyAttestedAt || (resolved === "CONFIRMED" ? new Date().toISOString() : null);
+    // Get receipt from intake_json (DB state) or fallback to attorneyAttestedAt
+    const storedReceipt = intakeJson?.compliance?.attorney_confirmation_receipt;
+    const receiptData = 
+      (storedReceipt ? { confirmedAt: storedReceipt.confirmed_at, confirmedBy: storedReceipt.confirmed_by } : null) ||
+      (attorneyAttestedAt ? { confirmedAt: attorneyAttestedAt, confirmedBy: '' } : null);
+    
+    const receipt = storedReceipt || (receiptData ? {
+      action: "CONFIRMED",
+      confirmed_at: receiptData.confirmedAt,
+      confirmed_by: receiptData.confirmedBy,
+      attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`
+    } : null);
+
     return (
       <Card className="border-green-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-green-700">
-            <Shield className="w-5 h-5" />
-            Confirmed
+            <CheckCircle2 className="w-5 h-5" />
+            Attorney Confirmation Received
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Alert variant="default" className="bg-green-50 border-green-200">
-            <AlertDescription className="text-green-900">
-              {confirmedTimestamp
-                ? `Attorney confirmation recorded on ${new Date(confirmedTimestamp).toLocaleString()}.`
-                : 'Attorney confirmation recorded. Access is now enabled.'}
-            </AlertDescription>
-          </Alert>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="font-semibold text-lg">Confirmed</p>
+              </div>
+              <Badge className="bg-green-600 text-white">Confirmed</Badge>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Date/time</p>
+              <p className="font-medium">
+                {receiptData ? new Date(receiptData.confirmedAt).toLocaleString() : (attorneyAttestedAt ? new Date(attorneyAttestedAt).toLocaleString() : '')}
+              </p>
+            </div>
+            {receipt && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">What was confirmed</p>
+                <p className="text-sm">
+                  Attorney confirmed client relationship and authorization to access Protected Health Information (PHI) for this case.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {receipt && (
+            <div className="mt-4 p-4 bg-muted rounded-lg space-y-4">
+              {receipt.confirmed_by && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Confirmed by</p>
+                  <p className="font-medium">{receipt.confirmed_by}</p>
+                </div>
+              )}
+              {receipt.attestation_text && (
+                <div>
+                  <h4 className="font-semibold mb-3">Attestation Text</h4>
+                  <div className="text-sm space-y-2 whitespace-pre-line">
+                    {receipt.attestation_text.split('\n\n').map((paragraph, idx) => (
+                      <p key={idx} className={paragraph.includes('**') ? 'font-bold' : ''}>
+                        {paragraph.replace(/\*\*/g, '')}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              onClick={onAttestationComplete}
+              className="flex-1"
+              variant="default"
+            >
+              Continue to Case
+            </Button>
+            <Button
+              onClick={() => {
+                if (!receipt) {
+                  toast.error("Receipt data not available");
+                  return;
+                }
+                openConfirmationPrintWindow(caseId, intakeId, receipt);
+              }}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print Confirmation
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -148,16 +413,17 @@ export function AttorneyAttestationCard({
 
   const handleAttest = async () => {
     if (!user) {
+      toast.error('User not authenticated');
       return;
     }
 
     setIsSubmitting(true);
+    
     try {
       const now = new Date().toISOString();
-      
-      // Get attorney ID - try to get from rc_users first, otherwise use user.email or user.id as text
       let attorneyId: string = user.email || user.id;
       
+      // Get attorney ID (same pattern as handleNotMyClient)
       try {
         const { data: rcUser } = await supabase
           .from('rc_users')
@@ -170,11 +436,10 @@ export function AttorneyAttestationCard({
           attorneyId = rcUser.id;
         }
       } catch (err) {
-        // If we can't find rc_users entry, use email/id as text (MVP fallback)
         console.log('Using fallback attorney identifier');
       }
 
-      // 1. Fetch current intake_json
+      // Fetch current intake_json
       const { data: currentIntake, error: fetchError } = await supabase
         .from('rc_client_intakes')
         .select('id, case_id, intake_json')
@@ -185,86 +450,64 @@ export function AttorneyAttestationCard({
         throw fetchError;
       }
 
-      // 2. Build receipt object
+      // Build receipt for "confirmed"
       const receipt = {
+        action: "CONFIRMED",
         confirmed_at: now,
         confirmed_by: attorneyId,
-        attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`,
-        action: "CONFIRMED_CLIENT_RELATIONSHIP"
+        attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`
       };
 
-      // 3. Merge into intake_json under compliance.attorney_confirmation_receipt
+      // Merge receipt and attorney_attestation into intake_json
       const existingIntakeJson = (currentIntake?.intake_json as Record<string, any>) || {};
-      const newIntakeJson = {
+      const updatedIntakeJson = {
         ...existingIntakeJson,
         compliance: {
           ...(existingIntakeJson?.compliance || {}),
           attorney_confirmation_receipt: receipt
-        }
+        },
+        attorney_attestation: {
+          status: 'confirmed',
+          confirmed_at: now,
+        },
       };
 
-      // 4. Update intake with attestation and receipt (ONLY existing columns)
-      const { error: updateError } = await supabase
+      // Update ALL required fields in a single update
+      // Target exactly one row by PRIMARY KEY id
+      const { data, error } = await supabase
         .from('rc_client_intakes')
         .update({
           attorney_attested_at: now,
-          intake_json: newIntakeJson,
+          attorney_confirm_deadline_at: null,
+          intake_status: 'attorney_confirmed',
+          intake_json: updatedIntakeJson,
         })
-        .eq('id', intakeId);
+        .eq('id', intakeId)
+        .select('id, intake_status, attorney_attested_at')
+        .maybeSingle();
 
-      if (updateError) {
-        throw updateError;
+      if (error) {
+        console.error('Attestation error', error);
+        const errorMsg = error.code ? `${error.code} ${error.message || ''}` : (error.message || 'Failed to submit attestation');
+        toast.error(errorMsg.trim() || 'Failed to submit attestation');
+        return;
       }
 
-      // 5. Immediately notify parent of resolution to stop countdown
-      if (onResolved) {
-        onResolved("CONFIRMED", now, newIntakeJson);
-      }
-      if (onAttested) {
-        onAttested(now, newIntakeJson);
-      }
-
-      // 6. Log audit entry
-      try {
-        await audit({
-          actorRole: 'ATTORNEY',
-          actorId: user.id,
-          action: 'ATTORNEY_CLIENT_RELATIONSHIP_CONFIRMED',
-          caseId: caseId,
-          meta: {
-            intake_id: intakeId,
-            confirmed_at: now,
-            confirmed_by: attorneyId,
-            message: `Attorney confirmed client relationship and PHI access authorization at ${now}.`
-          }
-        });
-      } catch (auditError) {
-        console.error('Failed to log audit entry:', auditError);
-        // Don't fail the attestation if audit logging fails
+      if (!data) {
+        // No row updated - update failed
+        console.error('Attorney confirmation failed – no row updated.', { intakeId });
+        toast.error('Attorney confirmation failed – no row updated.');
+        return;
       }
 
-      // Log notification
-      const { error: logError } = await supabase
-        .from('rc_notification_log')
-        .insert({
-          intake_id: intakeId,
-          case_id: caseId,
-          attorney_id: attorneyId,
-          channel: 'inapp',
-          template_key: 'attorney_confirmed',
-          dedupe_key: `intake:${intakeId}:attorney:confirmed`,
-        });
-
-      if (logError) {
-        console.error('Failed to log notification:', logError);
-        // Don't fail the attestation if logging fails
-      }
-
-      toast.success('Attestation submitted successfully');
+      // Success - show success message and refresh
+      // The UI will update based on the refreshed attorneyAttestedAt value
+      toast.success('Client relationship confirmed.');
       onAttestationComplete();
     } catch (error: any) {
-      console.error('Attestation error:', error);
-      toast.error(error.message || 'Failed to submit attestation');
+      console.error('Attestation error', error);
+      const errorMsg = error.code ? `${error.code} ${error.message || ''}` : (error.message || 'Failed to submit attestation');
+      toast.error(errorMsg.trim() || 'Failed to submit attestation');
     } finally {
       setIsSubmitting(false);
     }
@@ -310,26 +553,33 @@ export function AttorneyAttestationCard({
 
       // Build receipt for "not my client"
       const receipt = {
+        action: "NOT_MY_CLIENT",
         confirmed_at: now,
         confirmed_by: attorneyId,
-        action: "NOT_MY_CLIENT"
+        attestation_text: ""
       };
 
-      // Merge receipt into intake_json
+      // Merge receipt and attorney_attestation into intake_json
       const existingIntakeJson = (currentIntake?.intake_json as Record<string, any>) || {};
-      const newIntakeJson = {
+      const updatedIntakeJson = {
         ...existingIntakeJson,
         compliance: {
           ...(existingIntakeJson?.compliance || {}),
           attorney_confirmation_receipt: receipt
-        }
+        },
+        attorney_attestation: {
+          status: 'declined_not_client',
+          declined_at: now,
+        },
       };
 
-      // Update intake_json only (don't set attorney_attested_at for "not my client")
+      // Update intake: set status, clear deadline, do NOT set attorney_attested_at
       const { error: updateError } = await supabase
         .from('rc_client_intakes')
         .update({
-          intake_json: newIntakeJson,
+          intake_status: 'attorney_declined_not_client',
+          attorney_confirm_deadline_at: null,
+          intake_json: updatedIntakeJson,
         })
         .eq('id', intakeId);
 
@@ -337,9 +587,9 @@ export function AttorneyAttestationCard({
         throw updateError;
       }
 
-      // Notify parent of resolution to stop countdown
+      // 5. Notify parent of resolution to stop countdown
       if (onResolved) {
-        onResolved("DECLINED", now, newIntakeJson);
+        onResolved("DECLINED", now, updatedIntakeJson);
       }
 
       toast.info('Marked as not my client.');
