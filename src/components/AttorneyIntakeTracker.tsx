@@ -51,6 +51,7 @@ export const AttorneyIntakeTracker = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [selectedIntake, setSelectedIntake] = useState<PendingIntake | null>(null);
   const [loadingIntake, setLoadingIntake] = useState(false);
+  const [resolution, setResolution] = useState<null | "CONFIRMED" | "DECLINED">(null);
 
   const calculateTTL = (expiresIso: string) => {
     const ms = Math.max(0, new Date(expiresIso).getTime() - Date.now());
@@ -131,7 +132,9 @@ export const AttorneyIntakeTracker = () => {
       setRows(transformedRows);
 
       // If viewing a specific case, reload its intake data
+      // Reset resolution when reloading data
       if (selectedCaseId) {
+        setResolution(null);
         loadIntakeForCase(selectedCaseId);
       }
     } catch (error) {
@@ -177,6 +180,7 @@ export const AttorneyIntakeTracker = () => {
 
   const handleViewIntake = (caseId: string) => {
     setSelectedCaseId(caseId);
+    setResolution(null); // Reset resolution when viewing a new intake
     loadIntakeForCase(caseId);
   };
 
@@ -287,6 +291,7 @@ export const AttorneyIntakeTracker = () => {
           onClick={() => {
             setSelectedCaseId(null);
             setSelectedIntake(null);
+            setResolution(null); // Reset resolution when leaving
           }}
           className="mb-4"
         >
@@ -294,14 +299,39 @@ export const AttorneyIntakeTracker = () => {
           Back to Intake List
         </Button>
 
+        {/* Only render attestation card if not confirmed - if confirmed, show confirmed state below */}
         {needsAttestation && (
           <AttorneyAttestationCard
             intakeId={selectedIntake.id}
             caseId={selectedIntake.case_id}
             intakeSubmittedAt={selectedIntake.intake_submitted_at}
             attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
+            attorneyAttestedAt={selectedIntake.attorney_attested_at}
+            resolved={resolution}
+            onResolved={(res, timestamp, updatedJson) => {
+              // Immediately set resolution to stop countdown
+              setResolution(res);
+              if (res === "CONFIRMED") {
+                // Immediately update state with attorney_attested_at to stop countdown
+                setSelectedIntake(prev => prev ? {
+                  ...prev,
+                  attorney_attested_at: timestamp,
+                  intake_json: updatedJson
+                } : null);
+              } else if (res === "DECLINED") {
+                // DO NOT set attorney_attested_at; decline is not attestation
+                setSelectedIntake(prev => prev ? {
+                  ...prev,
+                  intake_json: updatedJson
+                } : null);
+              }
+              // Re-fetch latest intake after a short delay to ensure consistency
+              setTimeout(() => {
+                loadIntakeForCase(selectedCaseId);
+              }, 500);
+            }}
             onAttested={(attestedAt, updatedJson) => {
-              // Immediately update local state to stop countdown
+              // Keep this for backward compatibility, but resolution state is primary
               setSelectedIntake(prev => prev ? {
                 ...prev,
                 attorney_attested_at: attestedAt,
@@ -309,7 +339,9 @@ export const AttorneyIntakeTracker = () => {
               } : null);
             }}
             onAttestationComplete={() => {
-              toast.success('Attestation complete. You can now view case details.');
+              toast.success(resolution === "CONFIRMED" 
+                ? 'Attestation complete. You can now view case details.'
+                : 'Action complete.');
               // Refresh the intake data to ensure consistency
               loadIntakeForCase(selectedCaseId);
               loadData();
@@ -317,7 +349,8 @@ export const AttorneyIntakeTracker = () => {
           />
         )}
 
-        {isConfirmed && !isExpired && selectedIntake.attorney_attested_at && (
+        {/* Show confirmed state when attorney_attested_at exists (not in attestation card view) */}
+        {isConfirmed && !needsAttestation && (
           <Card className="border-green-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-green-700">
@@ -328,7 +361,9 @@ export const AttorneyIntakeTracker = () => {
             <CardContent className="space-y-4">
               <Alert variant="default" className="bg-green-50 border-green-200">
                 <AlertDescription className="text-green-900">
-                  Confirmed on {new Date(selectedIntake.attorney_attested_at).toLocaleString()}.
+                  {selectedIntake.attorney_attested_at 
+                    ? `Attorney confirmation recorded on ${new Date(selectedIntake.attorney_attested_at).toLocaleString()}.`
+                    : 'Attorney confirmation recorded.'}
                 </AlertDescription>
               </Alert>
               
@@ -343,6 +378,27 @@ export const AttorneyIntakeTracker = () => {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Show declined state when resolved as declined */}
+        {resolution === "DECLINED" && (
+          <Card className="border-amber-500">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="w-5 h-5" />
+                Declined
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="default" className="bg-amber-50 border-amber-200">
+                <AlertDescription className="text-amber-900">
+                  {selectedIntake.intake_json?.compliance?.attorney_confirmation_receipt?.confirmed_at
+                    ? `Marked as not my client on ${new Date(selectedIntake.intake_json.compliance.attorney_confirmation_receipt.confirmed_at).toLocaleString()}. Intake access is disabled.`
+                    : 'Marked as not my client. Intake access is disabled.'}
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         )}

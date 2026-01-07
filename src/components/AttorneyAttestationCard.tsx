@@ -24,8 +24,11 @@ interface AttorneyAttestationCardProps {
   caseId: string;
   intakeSubmittedAt: string;
   attorneyConfirmDeadlineAt: string;
+  attorneyAttestedAt?: string | null;
   onAttestationComplete: () => void;
   onAttested?: (attestedAt: string, updatedIntakeJson: any) => void;
+  onResolved?: (resolution: "CONFIRMED" | "DECLINED", timestamp: string, updatedIntakeJson: any) => void;
+  resolved?: null | "CONFIRMED" | "DECLINED";
 }
 
 export function AttorneyAttestationCard({
@@ -33,8 +36,11 @@ export function AttorneyAttestationCard({
   caseId,
   intakeSubmittedAt,
   attorneyConfirmDeadlineAt,
+  attorneyAttestedAt,
   onAttestationComplete,
   onAttested,
+  onResolved,
+  resolved,
 }: AttorneyAttestationCardProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,8 +48,22 @@ export function AttorneyAttestationCard({
   const [isExpired, setIsExpired] = useState(false);
   const [showNotMyClientDialog, setShowNotMyClientDialog] = useState(false);
 
-  // Update countdown every second
+  // Countdown visibility rule: only show if deadline exists, not attested, and deadline hasn't passed
+  const shouldShowCountdown =
+    !!attorneyConfirmDeadlineAt &&
+    !attorneyAttestedAt &&
+    Date.now() < new Date(attorneyConfirmDeadlineAt).getTime() &&
+    resolved === null;
+
+  // Update countdown every second - only when it should be visible
+  // Interval is created only when shouldShowCountdown is true and cleared when it becomes false
   useEffect(() => {
+    if (!shouldShowCountdown) {
+      // Clear any existing state when countdown should not show
+      setMsRemaining(0);
+      return;
+    }
+
     const updateCountdown = () => {
       const deadline = new Date(attorneyConfirmDeadlineAt).getTime();
       const now = Date.now();
@@ -57,7 +77,51 @@ export function AttorneyAttestationCard({
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [attorneyConfirmDeadlineAt]);
+  }, [shouldShowCountdown, attorneyConfirmDeadlineAt, intakeId]);
+
+  // Handle confirmed state (attorney_attested_at exists) - show static status instead of countdown
+  if (attorneyAttestedAt || resolved === "CONFIRMED") {
+    const confirmedTimestamp = attorneyAttestedAt || (resolved === "CONFIRMED" ? new Date().toISOString() : null);
+    return (
+      <Card className="border-green-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-700">
+            <Shield className="w-5 h-5" />
+            Confirmed
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="default" className="bg-green-50 border-green-200">
+            <AlertDescription className="text-green-900">
+              {confirmedTimestamp
+                ? `Attorney confirmation recorded on ${new Date(confirmedTimestamp).toLocaleString()}.`
+                : 'Attorney confirmation recorded. Access is now enabled.'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (resolved === "DECLINED") {
+    return (
+      <Card className="border-amber-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-700">
+            <AlertTriangle className="w-5 h-5" />
+            Declined
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="default" className="bg-amber-50 border-amber-200">
+            <AlertDescription className="text-amber-900">
+              Marked as not my client. Intake access is disabled.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Handle expired state
   if (isExpired) {
@@ -152,7 +216,10 @@ export function AttorneyAttestationCard({
         throw updateError;
       }
 
-      // 5. Immediately update parent state to stop countdown
+      // 5. Immediately notify parent of resolution to stop countdown
+      if (onResolved) {
+        onResolved("CONFIRMED", now, newIntakeJson);
+      }
       if (onAttested) {
         onAttested(now, newIntakeJson);
       }
@@ -270,6 +337,11 @@ export function AttorneyAttestationCard({
         throw updateError;
       }
 
+      // Notify parent of resolution to stop countdown
+      if (onResolved) {
+        onResolved("DECLINED", now, newIntakeJson);
+      }
+
       toast.info('Marked as not my client.');
       onAttestationComplete();
     } catch (error: any) {
@@ -308,18 +380,20 @@ export function AttorneyAttestationCard({
             })}
           </div>
 
-          {/* Countdown timer */}
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-            <Clock className="w-5 h-5 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground mb-1">
-                {COMPLIANCE_COPY.deadlineExplainer}
-              </p>
-              <p className="text-2xl font-bold font-mono text-primary">
-                {formatHMS(msRemaining)}
-              </p>
+          {/* Countdown timer - only show when not resolved */}
+          {shouldShowCountdown && (
+            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+              <Clock className="w-5 h-5 text-primary" />
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {COMPLIANCE_COPY.deadlineExplainer}
+                </p>
+                <p className="text-2xl font-bold font-mono text-primary">
+                  {formatHMS(msRemaining)}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex flex-col gap-2">
