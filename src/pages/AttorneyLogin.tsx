@@ -60,7 +60,7 @@ export default function AttorneyLogin() {
         .eq("auth_user_id", authData.user.id)
         .maybeSingle();
 
-      console.log("AttorneyLogin: Role query result:", { userData, roleError });
+      console.log('AttorneyLogin: Role query result:', userData, roleError);
 
       if (roleError) {
         console.error("AttorneyLogin: Error checking user role:", roleError);
@@ -78,7 +78,9 @@ export default function AttorneyLogin() {
 
       // Check if role is 'attorney' (case-insensitive)
       const userRole = userData.role.toLowerCase();
-      if (userRole !== "attorney") {
+      const isAttorney = userRole === "attorney";
+      console.log('AttorneyLogin: Is attorney?', isAttorney);
+      if (!isAttorney) {
         console.error("AttorneyLogin: User role is not attorney:", userRole);
         // Sign out the user since they're not an attorney
         await supabase.auth.signOut();
@@ -86,6 +88,7 @@ export default function AttorneyLogin() {
       }
 
       console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
+      console.log('AttorneyLogin: About to redirect to /attorney-console');
       // Success! Redirect to attorney console with full page reload to ensure proper component mounting
       window.location.href = '/attorney-console';
     } catch (err: any) {
