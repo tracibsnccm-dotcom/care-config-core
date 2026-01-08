@@ -163,6 +163,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Safety timeout - ensure authLoading becomes false
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('=== Auth: Safety timeout triggered - forcing authLoading to false ===');
+      setAuthLoading(false);
+    }, 3000);
+    
+    return () => clearTimeout(timeout);
+  }, []);
+
   const signInWithEmail = async (email: string) => {
     // You can adapt this to magic link, password, etc.
     await supabase.auth.signInWithOtp({ email });
