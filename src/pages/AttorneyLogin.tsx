@@ -17,20 +17,43 @@ export default function AttorneyLogin() {
     setLoading(true);
     setError(null);
 
+    // Trim email to remove any whitespace (common issue)
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    console.log("AttorneyLogin: Starting login attempt");
+    console.log("AttorneyLogin: Email (original):", JSON.stringify(email));
+    console.log("AttorneyLogin: Email (trimmed):", JSON.stringify(trimmedEmail));
+    console.log("AttorneyLogin: Password length:", trimmedPassword.length);
+    console.log("AttorneyLogin: Email length:", trimmedEmail.length);
+
     try {
-      // Sign in with email and password
+      // Sign in with email and password (using trimmed values)
+      console.log("AttorneyLogin: Calling supabase.auth.signInWithPassword");
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: trimmedEmail,
+        password: trimmedPassword,
       });
 
+      console.log("AttorneyLogin: Auth response received");
+      console.log("AttorneyLogin: Auth data:", authData ? { user: authData.user?.id, session: !!authData.session } : null);
+      console.log("AttorneyLogin: Auth error:", authError);
+
       if (authError) {
+        console.error("AttorneyLogin: Authentication error details:", {
+          message: authError.message,
+          status: authError.status,
+          name: authError.name,
+        });
         throw authError;
       }
 
-      if (!authData.user) {
+      if (!authData || !authData.user) {
+        console.error("AttorneyLogin: No user returned from auth");
         throw new Error("Login failed: No user returned");
       }
+
+      console.log("AttorneyLogin: User authenticated, checking role for user ID:", authData.user.id);
 
       // Check the user's role in rc_users table
       const { data: userData, error: roleError } = await supabase
@@ -39,31 +62,45 @@ export default function AttorneyLogin() {
         .eq("auth_user_id", authData.user.id)
         .maybeSingle();
 
+      console.log("AttorneyLogin: Role query result:", { userData, roleError });
+
       if (roleError) {
-        console.error("Error checking user role:", roleError);
-        throw new Error("Failed to verify user role. Please try again.");
+        console.error("AttorneyLogin: Error checking user role:", roleError);
+        throw new Error(`Failed to verify user role: ${roleError.message}`);
       }
 
       if (!userData || !userData.role) {
+        console.error("AttorneyLogin: No role found for user");
         // Sign out the user since they don't have a role
         await supabase.auth.signOut();
         throw new Error("User account not found. Please contact your administrator.");
       }
 
+      console.log("AttorneyLogin: User role found:", userData.role);
+
       // Check if role is 'attorney' (case-insensitive)
       const userRole = userData.role.toLowerCase();
       if (userRole !== "attorney") {
+        console.error("AttorneyLogin: User role is not attorney:", userRole);
         // Sign out the user since they're not an attorney
         await supabase.auth.signOut();
-        throw new Error("This login is for attorneys only. Your account has a different role.");
+        throw new Error(`This login is for attorneys only. Your account has role: ${userData.role}`);
       }
 
+      console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
       // Success! Redirect to attorney console
       navigate("/attorney-console", { replace: true });
     } catch (err: any) {
-      console.error("Attorney login error:", err);
+      console.error("AttorneyLogin: Error caught in catch block:", err);
+      console.error("AttorneyLogin: Error details:", {
+        message: err.message,
+        status: err.status,
+        name: err.name,
+        stack: err.stack,
+      });
       setError(err.message || "Login failed. Please check your credentials and try again.");
     } finally {
+      console.log("AttorneyLogin: Setting loading to false");
       setLoading(false);
     }
   }
