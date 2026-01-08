@@ -244,17 +244,20 @@ export default function ClientPortal() {
   // Show intake gate message if intake not completed
   if (checkingIntake) {
     return (
-      <div className="min-h-screen bg-rcms-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Loading...</p>
+      <RoleGuard requiredRole="client" redirectTo="/">
+        <div className="min-h-screen bg-rcms-white flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
+      </RoleGuard>
     );
   }
 
   if (intakeCompleted === false) {
     return (
-      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
+      <RoleGuard requiredRole="client" redirectTo="/">
+        <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="p-6 space-y-4">
             <Alert>
@@ -274,6 +277,7 @@ export default function ClientPortal() {
           </CardContent>
         </Card>
       </div>
+      </RoleGuard>
     );
   }
 
@@ -290,7 +294,8 @@ export default function ClientPortal() {
     Date.now() >= new Date(intake.attorneyConfirmDeadlineAt).getTime();
   
   return (
-    <div className="min-h-screen bg-rcms-white">
+    <RoleGuard requiredRole="client" redirectTo="/">
+      <div className="min-h-screen bg-rcms-white">
       {/* Attorney Confirmation Status Banner - Always visible at top */}
       {intakeStatus && (
         <div className="border-b">
