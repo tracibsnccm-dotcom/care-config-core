@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 export default function AttorneyLogin() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -88,8 +86,8 @@ export default function AttorneyLogin() {
       }
 
       console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
-      // Success! Redirect to attorney console
-      navigate("/attorney-console", { replace: true });
+      // Success! Redirect to attorney console with full page reload to ensure proper component mounting
+      window.location.href = '/attorney-console';
     } catch (err: any) {
       console.error("AttorneyLogin: Error caught in catch block:", err);
       console.error("AttorneyLogin: Error details:", {
