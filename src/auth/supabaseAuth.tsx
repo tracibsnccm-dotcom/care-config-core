@@ -9,16 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import {
-  createClient,
   type Session,
   type User,
 } from "@supabase/supabase-js";
-
-// 👇 Make sure these env vars are set in your Vite env (.env.local, etc.)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from "@/integrations/supabase/client";
 
 // Map rc_users role values to app role names
 function mapRcUserRoleToAppRole(rcRole: string): string {

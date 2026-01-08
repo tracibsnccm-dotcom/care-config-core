@@ -1,6 +1,7 @@
 // src/client/ClientIntakePage.tsx
 import { useEffect, useState } from "react";
-import { supabase, useAuth } from "../auth/supabaseAuth";
+import { useAuth } from "../auth/supabaseAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type SDOHValue = "ok" | "issue" | "prefer-not-say";
 type SensitiveComfort = "yes" | "not-today" | "prefer-not-say";

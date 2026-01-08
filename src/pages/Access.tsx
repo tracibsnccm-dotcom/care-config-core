@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase, useAuth } from "../auth/supabaseAuth";
+import { useAuth } from "../auth/supabaseAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { RCMS, btn } from "../constants/brand";
 

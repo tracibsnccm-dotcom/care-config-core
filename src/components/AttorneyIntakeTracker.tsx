@@ -63,6 +63,7 @@ interface PendingIntake {
 }
 
 export const AttorneyIntakeTracker = () => {
+  console.log('=== AttorneyIntakeTracker RENDER ===');
   const { user } = useAuth();
   const [rows, setRows] = useState<IntakeRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,7 +98,18 @@ export const AttorneyIntakeTracker = () => {
   };
 
   const loadData = async () => {
+    console.log('=== AttorneyIntakeTracker loadData FIRST LINE ===');
     try {
+      // Test if Supabase client works now
+      console.log('Testing Supabase client...');
+      const testStart = Date.now();
+      const { data: testData, error: testError } = await supabase
+        .from('rc_cases')
+        .select('id')
+        .limit(1);
+      console.log('Supabase client test completed in', Date.now() - testStart, 'ms');
+      console.log('Test result:', { testData, testError });
+      
       // Get current user's auth ID and look up their rc_user ID
       let attorneyRcUserId: string | null = null;
       
@@ -290,6 +302,7 @@ export const AttorneyIntakeTracker = () => {
   });
 
   useEffect(() => {
+    console.log('=== AttorneyIntakeTracker useEffect - about to call loadData ===');
     loadData();
     const interval = setInterval(() => {
       loadData();

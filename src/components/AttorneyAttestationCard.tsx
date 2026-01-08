@@ -7,7 +7,7 @@ import { AlertTriangle, Clock, Shield, CheckCircle2, Printer } from 'lucide-reac
 import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
-import { supabase } from '@/auth/supabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { audit } from '@/lib/supabaseOperations';
 
 // Helper function for direct fetch to Supabase REST API (GET)
