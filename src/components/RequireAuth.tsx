@@ -16,11 +16,13 @@ interface RequireAuthProps {
  */
 export function RequireAuth({ children }: RequireAuthProps) {
   const { user, loading } = useAuth();
+  console.log('=== RequireAuth: loading =', loading, 'user =', !!user);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Show nothing while checking auth
   if (loading) {
+    console.log('=== RequireAuth: Returning loading state ===');
     return (
       <div className="min-h-screen bg-rcms-white flex items-center justify-center">
         <div className="text-center">
@@ -32,6 +34,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
 
   // Block if not authenticated
   if (!user) {
+    console.log('=== RequireAuth: User not authenticated ===');
     // Determine redirect based on pathname
     // Attorney routes go to /attorney-login, others go to /auth
     const isAttorneyRoute = location.pathname.includes('attorney');
@@ -63,5 +66,6 @@ export function RequireAuth({ children }: RequireAuthProps) {
   }
 
   // User is authenticated, render children
+  console.log('=== RequireAuth: Rendering children ===');
   return <>{children}</>;
 }
