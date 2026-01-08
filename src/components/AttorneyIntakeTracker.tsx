@@ -98,13 +98,30 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      // Build query string for Supabase REST API
-      const hardcodedAttorneyId = 'e995aad3-e8f5-4845-b3db-259d0321287e';
-      
-      let queryString = 'select=*,rc_cases(id,attorney_id,case_type)&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      // Get current user's auth ID and look up their rc_user ID
+      let attorneyRcUserId: string | null = null;
       
       if (scope === 'mine' && user) {
-        queryString += `&rc_cases.attorney_id=eq.${hardcodedAttorneyId}`;
+        try {
+          // Get current user's auth ID
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          const authUserId = authUser?.id;
+          
+          if (authUserId) {
+            // Look up their rc_users.id using direct fetch
+            const rcUsers = await supabaseFetch('rc_users', `auth_user_id=eq.${authUserId}&select=id`);
+            attorneyRcUserId = Array.isArray(rcUsers) ? (rcUsers[0]?.id || null) : (rcUsers?.id || null);
+          }
+        } catch (err) {
+          console.error('Failed to get attorney rc_user ID:', err);
+        }
+      }
+      
+      // Build query string for Supabase REST API
+      let queryString = 'select=*,rc_cases(id,attorney_id,case_type)&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      
+      if (scope === 'mine' && attorneyRcUserId) {
+        queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
       }
       
       const intakes = await supabaseFetch('rc_client_intakes', queryString);
