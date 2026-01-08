@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -78,17 +79,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const lastLoadedUserIdRef = useRef<string | null>(null);
 
   // Fetch roles when user changes
   useEffect(() => {
     const fetchRoles = async () => {
       if (user?.id) {
-        setRolesLoading(true);
+        // Only set loading if this is a different user than the one we already loaded roles for
+        if (user.id !== lastLoadedUserIdRef.current) {
+          setRolesLoading(true);
+        }
         const userRoles = await fetchUserRoles(user.id);
         setRoles(userRoles);
+        lastLoadedUserIdRef.current = user.id;
         setRolesLoading(false);
       } else {
         setRoles([]);
+        lastLoadedUserIdRef.current = null;
         setRolesLoading(false);
       }
     };
@@ -112,16 +119,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session ?? null);
-      setUser(session?.user ?? null);
-      // Fetch roles when auth state changes
-      if (session?.user?.id) {
-        setRolesLoading(true);
-        const userRoles = await fetchUserRoles(session.user.id);
-        setRoles(userRoles);
-        setRolesLoading(false);
+      const newUserId = session?.user?.id ?? null;
+      const currentUserId = user?.id ?? null;
+      
+      // Only set rolesLoading if the user ID has actually changed
+      if (newUserId !== currentUserId) {
+        setUser(session?.user ?? null);
+        // Fetch roles when auth state changes
+        if (session?.user?.id) {
+          // Only set loading if this is a different user than the one we already loaded roles for
+          if (session.user.id !== lastLoadedUserIdRef.current) {
+            setRolesLoading(true);
+          }
+          const userRoles = await fetchUserRoles(session.user.id);
+          setRoles(userRoles);
+          lastLoadedUserIdRef.current = session.user.id;
+          setRolesLoading(false);
+        } else {
+          setRoles([]);
+          lastLoadedUserIdRef.current = null;
+          setRolesLoading(false);
+        }
       } else {
-        setRoles([]);
-        setRolesLoading(false);
+        // Same user, just update session/user state without reloading roles
+        setUser(session?.user ?? null);
       }
     });
 
