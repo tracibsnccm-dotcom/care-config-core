@@ -165,6 +165,46 @@ export const AttorneyIntakeTracker = () => {
       console.log('STEP 4f: Limit builder has then:', typeof limitBuilder?.then);
 
       console.log('STEP 4g: About to await');
+      
+      // Test direct fetch to Supabase REST API to bypass client
+      console.log('STEP 4h: Testing direct fetch to Supabase');
+      try {
+        // Get the URL and key from the client or environment
+        const supabaseUrl = supabaseClient.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = supabaseClient.supabaseKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        console.log('STEP 4h: Supabase URL:', supabaseUrl);
+        console.log('STEP 4h: Supabase key exists:', !!supabaseKey);
+        console.log('STEP 4h: Supabase key length:', supabaseKey?.length);
+        
+        const response = await fetch(`${supabaseUrl}/rest/v1/rc_cases?select=id&limit=1`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          }
+        });
+        console.log('STEP 4i: Fetch response status:', response.status);
+        console.log('STEP 4i: Fetch response ok:', response.ok);
+        console.log('STEP 4i: Fetch response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('STEP 4i: Fetch error response:', errorText);
+        } else {
+          const json = await response.json();
+          console.log('STEP 4j: Fetch data:', json);
+        }
+      } catch (err) {
+        console.log('STEP 4i: Fetch error:', err);
+        console.log('STEP 4i: Fetch error details:', {
+          message: (err as Error)?.message,
+          stack: (err as Error)?.stack,
+          name: (err as Error)?.name,
+        });
+      }
+      
       const { data: testData, error: testError } = await limitBuilder;
       console.log('STEP 5: Query completed', { testData, testError });
       console.log('Simple rc_cases test:', { testData, testError });
