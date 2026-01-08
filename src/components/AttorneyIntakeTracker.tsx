@@ -77,18 +77,22 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      console.log('STEP 1: loadData started');
+      console.log('STEP 1: About to test supabase client');
+      console.log('STEP 2: Supabase client exists:', !!supabase);
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
-      
-      // Test simplest possible rc_cases query BEFORE any other queries
-      console.log('STEP 2: About to query supabase');
+
+      // Test auth first - this doesn't hit database
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('STEP 3: Auth works, user:', user?.id);
+
+      // Now test database
+      console.log('STEP 4: About to query database');
       const { data: testData, error: testError } = await supabase
         .from('rc_cases')
         .select('id')
         .limit(1);
-
-      console.log('STEP 3: Query completed', { data: testData, error: testError });
+      console.log('STEP 5: Database query completed', { testData, testError });
       console.log('Simple rc_cases test:', { testData, testError });
       
       console.log('STEP 4: About to build main query');
