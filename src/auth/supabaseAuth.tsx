@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [authLoading, setAuthLoading] = useState(true);
+  console.log('=== Auth: AuthProvider render, authLoading =', authLoading);
   const [rolesLoading, setRolesLoading] = useState(true);
   const lastLoadedUserIdRef = useRef<string | null>(null);
 
@@ -107,12 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
+      console.log('=== Auth: init() function called ===');
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      console.log('=== Auth: getSession() completed, session =', !!session);
       setSession(session ?? null);
       setUser(session?.user ?? null);
+      console.log('=== Auth: About to set authLoading to false ===');
       setAuthLoading(false);
+      console.log('=== Auth: authLoading set to false ===');
     };
 
     void init();
@@ -167,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Backwards compatibility: loading is true if EITHER auth is loading OR roles are loading
   // This prevents race conditions where components see empty roles before they're fetched
   const loading = authLoading || rolesLoading;
+  console.log('=== Auth: Computing context value, authLoading =', authLoading, 'rolesLoading =', rolesLoading, 'loading =', loading);
 
   const value: AuthContextValue = {
     user,
