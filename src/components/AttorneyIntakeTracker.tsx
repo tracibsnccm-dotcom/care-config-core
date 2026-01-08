@@ -166,15 +166,48 @@ export const AttorneyIntakeTracker = () => {
         console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
       }
 
+      // Alternative approach: Test querying rc_cases first to verify attorney ID works
+      if (attorneyRcUserId) {
+        console.log('AttorneyIntakeTracker: Testing attorney ID by querying rc_cases first');
+        const { data: cases, error: casesError } = await supabase
+          .from('rc_cases')
+          .select('id')
+          .eq('attorney_id', attorneyRcUserId);
+
+        console.log('AttorneyIntakeTracker: Attorney cases query result:');
+        console.log('  Cases:', cases);
+        console.log('  Error:', casesError);
+        console.log('  Number of cases:', cases?.length || 0);
+        
+        if (casesError) {
+          console.error('AttorneyIntakeTracker: Error querying rc_cases:', casesError);
+          console.error('AttorneyIntakeTracker: Attorney ID may be invalid:', attorneyRcUserId);
+        } else if (cases && cases.length > 0) {
+          console.log('AttorneyIntakeTracker: Attorney ID is valid, found', cases.length, 'cases');
+          console.log('AttorneyIntakeTracker: Case IDs:', cases.map((c: any) => c.id));
+        } else {
+          console.warn('AttorneyIntakeTracker: Attorney ID is valid but no cases found for attorney:', attorneyRcUserId);
+        }
+      }
+
       console.log('AttorneyIntakeTracker: Executing final query with attorney ID filter:', attorneyRcUserId);
       const { data: intakes, error } = await query;
       
       console.log('AttorneyIntakeTracker: Query executed');
+      console.log('AttorneyIntakeTracker: Supabase query result:', JSON.stringify({ data: intakes, error }, null, 2));
       console.log('AttorneyIntakeTracker: Query returned data:', intakes);
       console.log('AttorneyIntakeTracker: Query returned error:', error);
       console.log('AttorneyIntakeTracker: Number of intakes returned:', intakes?.length || 0);
 
-      if (error) throw error;
+      if (error) {
+        console.error('AttorneyIntakeTracker: Query error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
 
       // Transform to IntakeRow format for display
       const transformedRows: IntakeRow[] = (intakes || []).map((intake: any) => {
