@@ -5,9 +5,10 @@
  * Redirects to home with error message if role doesn't match.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/supabaseAuth";
+import { supabase } from "@/auth/supabaseAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -24,39 +25,91 @@ export function RoleGuard({
   redirectTo = '/',
   showError = true 
 }: RoleGuardProps) {
-  const { user, loading, roles, primaryRole } = useAuth();
+  const { user, authLoading, roles, primaryRole } = useAuth();
+  const [localRoles, setLocalRoles] = useState<string[]>([]);
+  const [rolesFetched, setRolesFetched] = useState(false);
+  const [waitTimeoutExpired, setWaitTimeoutExpired] = useState(false);
   const navigate = useNavigate();
+  
+  // Use local roles if available, otherwise use context roles
+  const effectiveRoles = localRoles.length > 0 ? localRoles : roles;
+  const effectivePrimaryRole = localRoles.length > 0 ? localRoles[0] : primaryRole;
 
   console.log(`RoleGuard[${requiredRole}]: Starting role check`);
-  console.log(`RoleGuard[${requiredRole}]: Loading:`, loading);
+  console.log(`RoleGuard[${requiredRole}]: authLoading:`, authLoading);
   console.log(`RoleGuard[${requiredRole}]: User:`, user);
   console.log(`RoleGuard[${requiredRole}]: Roles array:`, roles);
+  console.log(`RoleGuard[${requiredRole}]: Local roles:`, localRoles);
+  console.log(`RoleGuard[${requiredRole}]: Effective roles:`, effectiveRoles);
   console.log(`RoleGuard[${requiredRole}]: PrimaryRole:`, primaryRole);
+  console.log(`RoleGuard[${requiredRole}]: Effective PrimaryRole:`, effectivePrimaryRole);
   console.log(`RoleGuard[${requiredRole}]: Required role (lowercase):`, requiredRole.toLowerCase());
   console.log(`RoleGuard[${requiredRole}]: Required role (uppercase):`, requiredRole.toUpperCase());
   
   // Show detailed comparison
-  if (roles && roles.length > 0) {
-    console.log(`RoleGuard[${requiredRole}]: Comparing roles array:`, roles.map(r => ({
+  if (effectiveRoles && effectiveRoles.length > 0) {
+    console.log(`RoleGuard[${requiredRole}]: Comparing roles array:`, effectiveRoles.map(r => ({
       original: r,
       uppercase: r.toUpperCase(),
       matches: r.toUpperCase() === requiredRole.toUpperCase()
     })));
   }
-  if (primaryRole) {
+  if (effectivePrimaryRole) {
     console.log(`RoleGuard[${requiredRole}]: Comparing primaryRole:`, {
-      original: primaryRole,
-      uppercase: primaryRole.toUpperCase(),
+      original: effectivePrimaryRole,
+      uppercase: effectivePrimaryRole.toUpperCase(),
       requiredUppercase: requiredRole.toUpperCase(),
-      matches: primaryRole.toUpperCase() === requiredRole.toUpperCase()
+      matches: effectivePrimaryRole.toUpperCase() === requiredRole.toUpperCase()
     });
   }
+  
+  // Fallback: Fetch roles directly if they're empty after auth completes
+  useEffect(() => {
+    const fetchRolesFallback = async () => {
+      // Only fetch if auth is done, user exists, roles are empty, and we haven't fetched yet
+      if (!authLoading && user?.id && roles.length === 0 && !rolesFetched) {
+        console.log(`RoleGuard[${requiredRole}]: Roles empty, fetching directly as fallback`);
+        setRolesFetched(true);
+        try {
+          const { data, error } = await supabase
+            .from('rc_users')
+            .select('role')
+            .eq('auth_user_id', user.id)
+            .maybeSingle();
+          
+          if (error) {
+            console.error(`RoleGuard[${requiredRole}]: Error fetching roles:`, error);
+            return;
+          }
+          
+          if (data?.role) {
+            // Map role to app format (same as in supabaseAuth)
+            const roleMap: Record<string, string> = {
+              'attorney': 'ATTORNEY',
+              'rn_cm': 'RN_CM',
+              'rn': 'RN_CM',
+              'provider': 'PROVIDER',
+              'client': 'CLIENT',
+              'supervisor': 'RN_CM_SUPERVISOR',
+            };
+            const appRole = roleMap[data.role.toLowerCase()] || data.role.toUpperCase();
+            console.log(`RoleGuard[${requiredRole}]: Fetched role:`, appRole);
+            setLocalRoles([appRole]);
+          }
+        } catch (error) {
+          console.error(`RoleGuard[${requiredRole}]: Exception fetching roles:`, error);
+        }
+      }
+    };
+    
+    void fetchRolesFallback();
+  }, [authLoading, user?.id, roles.length, rolesFetched, requiredRole]);
 
   useEffect(() => {
-    console.log(`RoleGuard[${requiredRole}]: useEffect triggered - loading:`, loading, 'user:', !!user, 'roles:', roles, 'primaryRole:', primaryRole);
+    console.log(`RoleGuard[${requiredRole}]: useEffect triggered - authLoading:`, authLoading, 'user:', !!user, 'roles:', roles, 'localRoles:', localRoles, 'primaryRole:', primaryRole);
     
     // Wait for auth to load
-    if (loading) {
+    if (authLoading) {
       console.log(`RoleGuard[${requiredRole}]: Still loading auth, waiting...`);
       return;
     }
@@ -68,12 +121,15 @@ export function RoleGuard({
       return;
     }
 
-    // Wait for roles to be loaded (roles array might be empty initially)
-    // If roles is empty and primaryRole is null, wait a bit more
-    if (roles.length === 0 && !primaryRole) {
-      console.log(`RoleGuard[${requiredRole}]: Roles not loaded yet (empty array, no primaryRole), waiting...`);
-      // Don't redirect yet - roles might still be loading
-      return;
+    // If roles are empty, wait briefly then proceed anyway (don't block forever)
+    if (effectiveRoles.length === 0 && !effectivePrimaryRole && !waitTimeoutExpired) {
+      console.log(`RoleGuard[${requiredRole}]: Roles not loaded yet, waiting briefly...`);
+      // Wait up to 2 seconds for roles to load
+      const timeout = setTimeout(() => {
+        console.log(`RoleGuard[${requiredRole}]: Timeout reached, proceeding without roles (may deny access)`);
+        setWaitTimeoutExpired(true);
+      }, 2000);
+      return () => clearTimeout(timeout);
     }
 
     // Check if user has the required role
@@ -83,17 +139,17 @@ export function RoleGuard({
     const requiredUpper = requiredRole.toUpperCase();
     console.log(`RoleGuard[${requiredRole}]: Comparing against required role (uppercase):`, requiredUpper);
     
-    const rolesMatch = roles.some(role => {
+    const rolesMatch = effectiveRoles.some(role => {
       const roleUpper = role.toUpperCase();
       const matches = roleUpper === requiredUpper;
       console.log(`RoleGuard[${requiredRole}]: Checking role "${role}" (${roleUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
       return matches;
     });
     
-    const primaryRoleMatch = primaryRole ? (() => {
-      const primaryUpper = primaryRole.toUpperCase();
+    const primaryRoleMatch = effectivePrimaryRole ? (() => {
+      const primaryUpper = effectivePrimaryRole.toUpperCase();
       const matches = primaryUpper === requiredUpper;
-      console.log(`RoleGuard[${requiredRole}]: Checking primaryRole "${primaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+      console.log(`RoleGuard[${requiredRole}]: Checking primaryRole "${effectivePrimaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
       return matches;
     })() : false;
     
@@ -103,8 +159,8 @@ export function RoleGuard({
       rolesMatch,
       primaryRoleMatch,
       hasRole,
-      rolesArray: roles,
-      primaryRole,
+      rolesArray: effectiveRoles,
+      primaryRole: effectivePrimaryRole,
       requiredRole,
       requiredUpper
     });
@@ -119,17 +175,17 @@ export function RoleGuard({
         // Store error message in sessionStorage for display on redirect page
         sessionStorage.setItem(
           'roleError',
-          `Access denied: This page requires ${requiredRole} role. Your current role: ${primaryRole || 'unknown'}. Roles array: ${JSON.stringify(roles)}`
+          `Access denied: This page requires ${requiredRole} role. Your current role: ${effectivePrimaryRole || 'unknown'}. Roles array: ${JSON.stringify(effectiveRoles)}`
         );
       }
       navigate(redirectTo, { replace: true });
     } else {
       console.log(`RoleGuard[${requiredRole}]: Access granted - user has required role`);
     }
-  }, [user, loading, roles, primaryRole, requiredRole, navigate, redirectTo, showError]);
+  }, [user, authLoading, roles, localRoles, effectiveRoles, effectivePrimaryRole, primaryRole, requiredRole, navigate, redirectTo, showError, waitTimeoutExpired]);
 
   // Show loading state
-  if (loading) {
+  if (authLoading) {
     console.log(`=== RoleGuard[${requiredRole}]: Returning Loading state ===`);
     console.log(`RoleGuard[${requiredRole}]: Rendering loading state`);
     return (
@@ -153,7 +209,7 @@ export function RoleGuard({
   }
 
   // Check role (same logic as in useEffect)
-  const rolesMatch = roles.some(role => {
+  const rolesMatch = effectiveRoles.some(role => {
     const roleUpper = role.toUpperCase();
     const requiredUpper = requiredRole.toUpperCase();
     const matches = roleUpper === requiredUpper;
@@ -161,11 +217,11 @@ export function RoleGuard({
     return matches;
   });
   
-  const primaryRoleMatch = primaryRole ? (() => {
-    const primaryUpper = primaryRole.toUpperCase();
+  const primaryRoleMatch = effectivePrimaryRole ? (() => {
+    const primaryUpper = effectivePrimaryRole.toUpperCase();
     const requiredUpper = requiredRole.toUpperCase();
     const matches = primaryUpper === requiredUpper;
-    console.log(`RoleGuard[${requiredRole}]: Render - Checking primaryRole "${primaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+    console.log(`RoleGuard[${requiredRole}]: Render - Checking primaryRole "${effectivePrimaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
     return matches;
   })() : false;
   
@@ -174,8 +230,8 @@ export function RoleGuard({
   console.log(`RoleGuard[${requiredRole}]: Render check - hasRole:`, hasRole, {
     rolesMatch,
     primaryRoleMatch,
-    rolesArray: roles,
-    primaryRole
+    rolesArray: effectiveRoles,
+    primaryRole: effectivePrimaryRole
   });
 
   if (!hasRole) {
@@ -185,7 +241,7 @@ export function RoleGuard({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Access denied: This page requires {requiredRole} role. Your current role: {primaryRole || 'unknown'}
+            Access denied: This page requires {requiredRole} role. Your current role: {effectivePrimaryRole || 'unknown'}
           </AlertDescription>
         </Alert>
       </div>
