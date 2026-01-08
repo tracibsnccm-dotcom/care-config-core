@@ -21,6 +21,7 @@ import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-
 import { ExportButton } from "@/components/AttorneyActions";
 import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
 import { useAuth } from "@/auth/supabaseAuth";
+import { RoleGuard } from "@/components/RoleGuard";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
 import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
@@ -149,6 +150,7 @@ function getStatusColor(status: CaseStatus): {
 }
 
 export default function AttorneyLanding() {
+  console.log('=== AttorneyLanding: Component function called ===');
   const navigate = useNavigate();
   const { user, roles } = useAuth();
   const {
@@ -220,8 +222,10 @@ export default function AttorneyLanding() {
   });
 
 
+  console.log('=== AttorneyLanding: About to render RoleGuard ===');
   return (
     <RoleGuard requiredRole="attorney" redirectTo="/attorney-login">
+      {(() => { console.log('=== AttorneyLanding: Inside RoleGuard, rendering content ==='); return null; })()}
       <AppLayout>
       <PolicyAcknowledgmentBanner />
       
