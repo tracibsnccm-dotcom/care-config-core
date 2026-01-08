@@ -16,7 +16,7 @@ interface RequireAuthProps {
  */
 export function RequireAuth({ children }: RequireAuthProps) {
   const { user, authLoading } = useAuth();
-  console.log('=== RequireAuth: loading =', authLoading, 'user =', !!user);
+  console.log('=== RequireAuth: authLoading =', authLoading, 'user =', !!user);
   const navigate = useNavigate();
   const location = useLocation();
 
