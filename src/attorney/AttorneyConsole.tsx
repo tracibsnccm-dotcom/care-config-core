@@ -848,7 +848,7 @@ const AttorneyConsole: React.FC = () => {
   };
 
   return (
-    <RoleGuard requiredRole="attorney" redirectTo="/">
+    <RoleGuard requiredRole="attorney" redirectTo="/attorney-login">
       <div style={{ padding: "1.5rem" }}>
         {/* Header */}
         <div

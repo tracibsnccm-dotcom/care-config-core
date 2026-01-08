@@ -33,6 +33,7 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
+import AttorneyLogin from "./pages/AttorneyLogin";
 import Access from "./pages/Access";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
@@ -135,9 +136,16 @@ function Root() {
       );
     }
 
+    // MVP Attorney Login: "/attorney-login" routes to AttorneyLogin component
+    // Separate login flow for attorneys (NOT through /auth)
+    if (pathname === "/attorney-login" || pathname.startsWith("/attorney-login")) {
+      return <AttorneyLogin />;
+    }
+
     // MVP Attorney Console: "/attorney-console" routes to AttorneyLanding component
     // Production attorney landing page (NOT demo)
     // REQUIRES AUTHENTICATION - gate at route level
+    // Redirects to /attorney-login if not authenticated (NOT /auth)
     if (pathname === "/attorney-console" || pathname.startsWith("/attorney-console")) {
       return (
         <RequireAuth>

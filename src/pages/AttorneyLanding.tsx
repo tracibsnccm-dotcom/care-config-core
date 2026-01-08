@@ -221,7 +221,7 @@ export default function AttorneyLanding() {
 
 
   return (
-    <RoleGuard requiredRole="attorney" redirectTo="/">
+    <RoleGuard requiredRole="attorney" redirectTo="/attorney-login">
       <AppLayout>
       <PolicyAcknowledgmentBanner />
       

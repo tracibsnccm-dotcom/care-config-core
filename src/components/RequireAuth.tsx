@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/auth/supabaseAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
@@ -12,10 +12,12 @@ interface RequireAuthProps {
 /**
  * Minimal auth gate wrapper for route-level protection.
  * Blocks unauthenticated access and shows sign-in prompt.
+ * Attorneys are redirected to /attorney-login, others to /auth.
  */
 export function RequireAuth({ children }: RequireAuthProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Show nothing while checking auth
   if (loading) {
@@ -30,6 +32,13 @@ export function RequireAuth({ children }: RequireAuthProps) {
 
   // Block if not authenticated
   if (!user) {
+    // Determine redirect based on pathname
+    // Attorney routes go to /attorney-login, others go to /auth
+    const isAttorneyRoute = location.pathname.includes('attorney');
+    const loginUrl = isAttorneyRoute 
+      ? '/attorney-login' 
+      : '/auth?redirect=/client-portal';
+
     return (
       <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -42,7 +51,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
               Please sign in to continue.
             </p>
             <Button
-              onClick={() => window.location.assign('/auth?redirect=/client-portal')}
+              onClick={() => window.location.assign(loginUrl)}
               className="w-full"
             >
               Go to Sign In
