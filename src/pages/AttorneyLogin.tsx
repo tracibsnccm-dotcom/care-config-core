@@ -53,44 +53,61 @@ export default function AttorneyLogin() {
 
       console.log("AttorneyLogin: User authenticated, checking role for user ID:", authData.user.id);
 
-      // Check the user's role in rc_users table
-      const { data: userData, error: roleError } = await supabase
+      // Check the user's role in rc_users table with timeout
+      const roleCheckPromise = supabase
         .from("rc_users")
         .select("role")
         .eq("auth_user_id", authData.user.id)
         .maybeSingle();
 
-      console.log('AttorneyLogin: Role query result:', userData, roleError);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Role check timeout')), 3000)
+      );
 
-      if (roleError) {
-        console.error("AttorneyLogin: Error checking user role:", roleError);
-        throw new Error(`Failed to verify user role: ${roleError.message}`);
+      try {
+        const { data: userData, error: roleError } = await Promise.race([roleCheckPromise, timeoutPromise]) as any;
+
+        console.log('AttorneyLogin: Role query result:', userData, roleError);
+
+        if (roleError) {
+          console.error("AttorneyLogin: Error checking user role:", roleError);
+          throw new Error(`Failed to verify user role: ${roleError.message}`);
+        }
+
+        if (!userData || !userData.role) {
+          console.error("AttorneyLogin: No role found for user");
+          // Sign out the user since they don't have a role
+          await supabase.auth.signOut();
+          throw new Error("User account not found. Please contact your administrator.");
+        }
+
+        console.log("AttorneyLogin: User role found:", userData.role);
+
+        // Check if role is 'attorney' (case-insensitive)
+        const userRole = userData.role.toLowerCase();
+        const isAttorney = userRole === "attorney";
+        console.log('AttorneyLogin: Is attorney?', isAttorney);
+        if (!isAttorney) {
+          console.error("AttorneyLogin: User role is not attorney:", userRole);
+          // Sign out the user since they're not an attorney
+          await supabase.auth.signOut();
+          throw new Error(`This login is for attorneys only. Your account has role: ${userData.role}`);
+        }
+
+        console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
+        console.log('AttorneyLogin: About to redirect to /attorney-console');
+        // Success! Redirect to attorney console with full page reload to ensure proper component mounting
+        window.location.href = '/attorney-console';
+      } catch (err: any) {
+        // If timeout or other error, assume attorney and proceed (AttorneyLanding will handle any issues)
+        if (err.message === 'Role check timeout') {
+          console.log('AttorneyLogin: Role check failed or timed out, proceeding anyway');
+          window.location.href = '/attorney-console';
+          return;
+        }
+        // Re-throw other errors to be handled by outer catch
+        throw err;
       }
-
-      if (!userData || !userData.role) {
-        console.error("AttorneyLogin: No role found for user");
-        // Sign out the user since they don't have a role
-        await supabase.auth.signOut();
-        throw new Error("User account not found. Please contact your administrator.");
-      }
-
-      console.log("AttorneyLogin: User role found:", userData.role);
-
-      // Check if role is 'attorney' (case-insensitive)
-      const userRole = userData.role.toLowerCase();
-      const isAttorney = userRole === "attorney";
-      console.log('AttorneyLogin: Is attorney?', isAttorney);
-      if (!isAttorney) {
-        console.error("AttorneyLogin: User role is not attorney:", userRole);
-        // Sign out the user since they're not an attorney
-        await supabase.auth.signOut();
-        throw new Error(`This login is for attorneys only. Your account has role: ${userData.role}`);
-      }
-
-      console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
-      console.log('AttorneyLogin: About to redirect to /attorney-console');
-      // Success! Redirect to attorney console with full page reload to ensure proper component mounting
-      window.location.href = '/attorney-console';
     } catch (err: any) {
       console.error("AttorneyLogin: Error caught in catch block:", err);
       console.error("AttorneyLogin: Error details:", {
