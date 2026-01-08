@@ -160,6 +160,7 @@ const AttorneyTimelineCard: React.FC<{ event: AttorneyTimelineEvent }> = ({
 };
 
 const AttorneyConsole: React.FC = () => {
+  console.log('AttorneyConsole RENDER - starting');
   console.log('AttorneyConsole: Component mounted');
   
   const { user, roles, primaryRole } = useAuth();
@@ -847,9 +848,24 @@ const AttorneyConsole: React.FC = () => {
     }
   };
 
+  console.log('AttorneyConsole RENDER - about to return JSX');
+
   return (
     <RoleGuard requiredRole="attorney" redirectTo="/attorney-login">
       <div style={{ padding: "1.5rem" }}>
+        {/* DEBUG: Test div to confirm component is mounting */}
+        <div style={{ 
+          color: 'red', 
+          backgroundColor: 'yellow', 
+          padding: '20px', 
+          fontSize: '24px', 
+          fontWeight: 'bold',
+          border: '3px solid black',
+          marginBottom: '20px',
+          zIndex: 9999
+        }}>
+          ✅ ATTORNEY CONSOLE LOADED - Component is rendering!
+        </div>
         {/* Header */}
         <div
           style={{
