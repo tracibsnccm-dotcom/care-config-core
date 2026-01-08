@@ -13,15 +13,17 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Get all cases accessible to the authenticated attorney.
- * Returns only released/closed cases (never drafts).
+ * Returns released/closed/ready cases (never drafts).
  * 
  * Uses direct query to rc_cases with RLS policies enforcing:
  * - attorney_id must match the authenticated attorney's rc_users.id (via RLS)
- * - case_status must be 'released' or 'closed' (not 'draft')
+ * - case_status must be 'released', 'closed', or 'ready' (not 'draft')
+ * 
+ * 'ready' status is included so attorneys can see cases that need attestation.
  * 
  * RLS policies automatically filter by attorney_id, so we just need to filter by status.
  * 
- * @returns Array of case objects with latest released/closed version per revision chain
+ * @returns Array of case objects with latest released/closed/ready version per revision chain
  */
 export async function getAttorneyCases() {
   console.log('getAttorneyCases: About to fetch cases');
@@ -29,14 +31,31 @@ export async function getAttorneyCases() {
   // Query rc_cases directly - RLS policies will automatically enforce:
   // 1. Only cases where attorney_id matches the authenticated attorney's rc_users.id
   // 2. User must be authenticated (auth.uid() IS NOT NULL)
-  // We add explicit filter for released/closed status to ensure no drafts
+  // We filter for released/closed/ready status to ensure no drafts
+  // 'ready' status is needed for attorneys to perform attestation
+  const statusFilter = ['released', 'closed', 'ready'];
+  console.log('getAttorneyCases: Applying case_status filter:', statusFilter);
+  
   const { data, error } = await supabase
     .from('rc_cases')
     .select('*')
-    .in('case_status', ['released', 'closed'])
+    .in('case_status', statusFilter)
     .order('updated_at', { ascending: false });
 
+  console.log('getAttorneyCases: Query executed');
+  console.log('getAttorneyCases: Cases returned:', data?.length || 0, 'rows');
   console.log('getAttorneyCases: Cases data:', data);
+  
+  if (data && data.length > 0) {
+    console.log('getAttorneyCases: Case statuses in results:', data.map(c => ({ id: c.id, status: c.case_status })));
+  } else {
+    console.log('getAttorneyCases: No cases returned - check if:');
+    console.log('  - RLS policies are blocking access');
+    console.log('  - attorney_id matches the user\'s rc_users.id');
+    console.log('  - case_status is in the filter:', statusFilter);
+    console.log('  - Try querying without status filter to see all accessible cases');
+  }
+  
   console.log('getAttorneyCases: Cases error:', error);
 
   if (error) {
