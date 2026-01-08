@@ -106,6 +106,17 @@ export const AttorneyIntakeTracker = () => {
       // If "mine" scope, filter by attorney_id in cases
       let attorneyRcUserId: string | null = null;
       if (scope === 'mine' && user) {
+        // TEMPORARY DEBUG: Hardcode attorney ID to test intake query
+        const hardcodedAttorneyId = 'e995aad3-e8f5-4845-b3db-259d0321287e';
+        console.log('AttorneyIntakeTracker: Using hardcoded attorney ID:', hardcodedAttorneyId);
+        
+        // Use hardcoded ID instead of querying
+        attorneyRcUserId = hardcodedAttorneyId;
+        query = query.eq('rc_cases.attorney_id', hardcodedAttorneyId);
+        console.log('AttorneyIntakeTracker: Filtering by hardcoded attorney_id:', hardcodedAttorneyId);
+        
+        // TEMPORARY: Skip the actual query - commented out for debugging
+        /*
         console.log('AttorneyIntakeTracker: Fetching attorney rc_user ID for scope="mine"');
         console.log('AttorneyIntakeTracker: Querying rc_users for auth_user_id:', user.id);
         console.log('AttorneyIntakeTracker: Query will use column: auth_user_id');
@@ -155,6 +166,7 @@ export const AttorneyIntakeTracker = () => {
           console.log('AttorneyIntakeTracker: rc_user details:', { id: rcUser.id, auth_user_id: rcUser.auth_user_id, role: rcUser.role });
           console.log('AttorneyIntakeTracker: Filtering by attorney_id:', rcUser.id);
         }
+        */
       } else {
         console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
       }
