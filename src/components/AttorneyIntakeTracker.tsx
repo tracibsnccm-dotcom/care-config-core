@@ -20,14 +20,31 @@ import { useAuth } from '@/auth/supabaseAuth';
 // Uses dynamic import to avoid initialization order issues
 async function getSupabaseClient() {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
+    console.log('getSupabaseClient: Starting dynamic import');
+    const module = await import('@/integrations/supabase/client');
+    console.log('getSupabaseClient: Module imported:', module);
+    console.log('getSupabaseClient: Module keys:', Object.keys(module));
+    console.log('getSupabaseClient: module.supabase:', module.supabase);
+    console.log('getSupabaseClient: typeof module.supabase:', typeof module.supabase);
+    
+    const { supabase } = module;
+    console.log('getSupabaseClient: Destructured supabase:', supabase);
+    console.log('getSupabaseClient: typeof supabase:', typeof supabase);
+    
     if (!supabase) {
-      console.error('Supabase client is not initialized');
+      console.error('getSupabaseClient: Supabase client is not initialized in module');
+      console.error('getSupabaseClient: Full module:', module);
       return null;
     }
+    console.log('getSupabaseClient: Returning supabase client');
     return supabase;
   } catch (err) {
-    console.error('Error loading supabase client:', err);
+    console.error('getSupabaseClient: Error loading supabase client:', err);
+    console.error('getSupabaseClient: Error details:', {
+      message: (err as Error)?.message,
+      stack: (err as Error)?.stack,
+      name: (err as Error)?.name,
+    });
     return null;
   }
 }
@@ -97,6 +114,13 @@ export const AttorneyIntakeTracker = () => {
       // Get supabase client using lazy loader to avoid initialization errors
       console.log('STEP 0: Supabase client check');
       const supabaseClient = await getSupabaseClient();
+      
+      console.log('Supabase client from dynamic import:', supabaseClient);
+      console.log('Has from method:', typeof supabaseClient?.from);
+      console.log('Has auth method:', typeof supabaseClient?.auth);
+      console.log('Client type:', typeof supabaseClient);
+      console.log('Client constructor:', supabaseClient?.constructor?.name);
+      console.log('Client keys:', supabaseClient ? Object.keys(supabaseClient) : 'null/undefined');
       
       if (!supabaseClient) {
         console.error('ERROR: Supabase client is not initialized!');
