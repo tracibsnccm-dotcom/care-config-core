@@ -77,15 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   // Fetch roles when user changes
   useEffect(() => {
     const fetchRoles = async () => {
       if (user?.id) {
+        setRolesLoading(true);
         const userRoles = await fetchUserRoles(user.id);
         setRoles(userRoles);
+        setRolesLoading(false);
       } else {
         setRoles([]);
+        setRolesLoading(false);
       }
     };
 
@@ -111,10 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       // Fetch roles when auth state changes
       if (session?.user?.id) {
+        setRolesLoading(true);
         const userRoles = await fetchUserRoles(session.user.id);
         setRoles(userRoles);
+        setRolesLoading(false);
       } else {
         setRoles([]);
+        setRolesLoading(false);
       }
     });
 
@@ -134,10 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const primaryRole = roles.length > 0 ? roles[0] : null;
 
+  // Loading is true if EITHER auth is loading OR roles are loading
+  // This prevents race conditions where components see empty roles before they're fetched
+  const isLoading = loading || rolesLoading;
+
   const value: AuthContextValue = {
     user,
     session,
-    loading,
+    loading: isLoading,
     roles,
     primaryRole,
     signInWithEmail,
