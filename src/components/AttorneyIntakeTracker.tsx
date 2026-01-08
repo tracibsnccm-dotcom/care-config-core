@@ -81,6 +81,15 @@ export const AttorneyIntakeTracker = () => {
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
       
+      // Test simplest possible rc_cases query BEFORE any other queries
+      console.log('AttorneyIntakeTracker: Testing simplest possible rc_cases query');
+      const { data: testData, error: testError } = await supabase
+        .from('rc_cases')
+        .select('id')
+        .limit(1);
+
+      console.log('Simple rc_cases test:', { testData, testError });
+      
       // Query rc_client_intakes with join to rc_cases to filter by attorney_id
       // rc_client_intakes.case_id -> rc_cases.id -> rc_cases.attorney_id
       let query = supabase
@@ -164,30 +173,6 @@ export const AttorneyIntakeTracker = () => {
         */
       } else {
         console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
-      }
-
-      // Alternative approach: Test querying rc_cases first to verify attorney ID works
-      if (attorneyRcUserId) {
-        console.log('AttorneyIntakeTracker: Testing attorney ID by querying rc_cases first');
-        const { data: cases, error: casesError } = await supabase
-          .from('rc_cases')
-          .select('id')
-          .eq('attorney_id', attorneyRcUserId);
-
-        console.log('AttorneyIntakeTracker: Attorney cases query result:');
-        console.log('  Cases:', cases);
-        console.log('  Error:', casesError);
-        console.log('  Number of cases:', cases?.length || 0);
-        
-        if (casesError) {
-          console.error('AttorneyIntakeTracker: Error querying rc_cases:', casesError);
-          console.error('AttorneyIntakeTracker: Attorney ID may be invalid:', attorneyRcUserId);
-        } else if (cases && cases.length > 0) {
-          console.log('AttorneyIntakeTracker: Attorney ID is valid, found', cases.length, 'cases');
-          console.log('AttorneyIntakeTracker: Case IDs:', cases.map((c: any) => c.id));
-        } else {
-          console.warn('AttorneyIntakeTracker: Attorney ID is valid but no cases found for attorney:', attorneyRcUserId);
-        }
       }
 
       console.log('AttorneyIntakeTracker: Executing final query with attorney ID filter:', attorneyRcUserId);
