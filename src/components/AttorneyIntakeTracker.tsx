@@ -144,13 +144,29 @@ export const AttorneyIntakeTracker = () => {
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
 
-      // Now test database
+      // Now test database - break down query builder steps
       console.log('STEP 4: About to query database');
-      const { data: testData, error: testError } = await supabaseClient
-        .from('rc_cases')
-        .select('id')
-        .limit(1);
-      console.log('STEP 5: Database query completed', { testData, testError });
+      console.log('STEP 4a: Calling .from()');
+      const queryBuilder = supabaseClient.from('rc_cases');
+      console.log('STEP 4b: Query builder:', queryBuilder);
+      console.log('STEP 4b: Query builder type:', typeof queryBuilder);
+      console.log('STEP 4b: Query builder has select:', typeof queryBuilder?.select);
+
+      console.log('STEP 4c: Calling .select()');
+      const selectBuilder = queryBuilder.select('id');
+      console.log('STEP 4d: Select builder:', selectBuilder);
+      console.log('STEP 4d: Select builder type:', typeof selectBuilder);
+      console.log('STEP 4d: Select builder has limit:', typeof selectBuilder?.limit);
+
+      console.log('STEP 4e: Calling .limit()');
+      const limitBuilder = selectBuilder.limit(1);
+      console.log('STEP 4f: Limit builder:', limitBuilder);
+      console.log('STEP 4f: Limit builder type:', typeof limitBuilder);
+      console.log('STEP 4f: Limit builder has then:', typeof limitBuilder?.then);
+
+      console.log('STEP 4g: About to await');
+      const { data: testData, error: testError } = await limitBuilder;
+      console.log('STEP 5: Query completed', { testData, testError });
       console.log('Simple rc_cases test:', { testData, testError });
       
       console.log('STEP 4: About to build main query');
