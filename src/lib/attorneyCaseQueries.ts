@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
  * @returns Array of case objects with latest released/closed version per revision chain
  */
 export async function getAttorneyCases() {
+  console.log('getAttorneyCases: About to fetch cases');
+  
   // Query rc_cases directly - RLS policies will automatically enforce:
   // 1. Only cases where attorney_id matches the authenticated attorney's rc_users.id
   // 2. User must be authenticated (auth.uid() IS NOT NULL)
@@ -33,6 +35,9 @@ export async function getAttorneyCases() {
     .select('*')
     .in('case_status', ['released', 'closed'])
     .order('updated_at', { ascending: false });
+
+  console.log('getAttorneyCases: Cases data:', data);
+  console.log('getAttorneyCases: Cases error:', error);
 
   if (error) {
     console.error('Error fetching attorney cases:', error);

@@ -7,6 +7,7 @@ import {
   getSeverityLabel,
 } from "../constants/reconcileFramework";
 import { RoleGuard } from "../components/RoleGuard";
+import { useAuth } from "../auth/supabaseAuth";
 
 type AttorneyTab =
   | "overview"
@@ -159,11 +160,21 @@ const AttorneyTimelineCard: React.FC<{ event: AttorneyTimelineEvent }> = ({
 };
 
 const AttorneyConsole: React.FC = () => {
+  console.log('AttorneyConsole: Component mounted');
+  
+  const { user, roles, primaryRole } = useAuth();
+  console.log('AttorneyConsole: User:', user);
+  console.log('AttorneyConsole: User roles:', roles);
+  console.log('AttorneyConsole: User primaryRole:', primaryRole);
+  
   const [activeTab, setActiveTab] = useState<AttorneyTab>("overview");
   const [summary, setSummary] = useState<CaseSummary | null>(null);
 
   useEffect(() => {
-    setSummary(loadCaseSummary());
+    console.log('AttorneyConsole: About to load case summary from localStorage');
+    const loadedSummary = loadCaseSummary();
+    console.log('AttorneyConsole: Loaded summary:', loadedSummary);
+    setSummary(loadedSummary);
   }, []);
 
   const handleRefresh = () => {
