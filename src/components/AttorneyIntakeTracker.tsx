@@ -109,14 +109,32 @@ export const AttorneyIntakeTracker = () => {
         console.log('AttorneyIntakeTracker: Fetching attorney rc_user ID for scope="mine"');
         console.log('AttorneyIntakeTracker: Querying rc_users for auth_user_id:', user.id);
         console.log('AttorneyIntakeTracker: Query will use column: auth_user_id');
+        console.log('AttorneyIntakeTracker: supabase client:', supabase);
+        console.log('AttorneyIntakeTracker: About to execute rc_users query NOW');
         
         // Get attorney rc_user id if available
-        const { data: rcUser, error: rcUserError } = await supabase
-          .from('rc_users')
-          .select('id, auth_user_id, role')
-          .eq('auth_user_id', user.id)
-          .eq('role', 'attorney')
-          .maybeSingle();
+        let rcUser: any = null;
+        let rcUserError: any = null;
+        
+        try {
+          const result = await supabase
+            .from('rc_users')
+            .select('id, auth_user_id, role')
+            .eq('auth_user_id', user.id)
+            .eq('role', 'attorney')
+            .maybeSingle();
+          
+          rcUser = result.data;
+          rcUserError = result.error;
+        } catch (e) {
+          console.error('AttorneyIntakeTracker: Query exception:', e);
+          console.error('AttorneyIntakeTracker: Exception details:', {
+            message: (e as Error)?.message,
+            stack: (e as Error)?.stack,
+            name: (e as Error)?.name,
+          });
+          rcUserError = e;
+        }
 
         console.log('AttorneyIntakeTracker: rc_users query result:', { rcUser, error: rcUserError });
         console.log('AttorneyIntakeTracker: rc_users query - data:', rcUser);
