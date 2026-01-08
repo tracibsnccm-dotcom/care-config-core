@@ -69,6 +69,7 @@ export function RoleGuard({
       // Only fetch if auth is done, user exists, roles are empty, and we haven't fetched yet
       if (!authLoading && user?.id && roles.length === 0 && !rolesFetched) {
         console.log(`RoleGuard[${requiredRole}]: Roles empty, fetching directly as fallback`);
+        console.log('RoleGuard fallback: Fetching role for user.id:', user.id);
         setRolesFetched(true);
         try {
           const { data, error } = await supabase
@@ -77,8 +78,17 @@ export function RoleGuard({
             .eq('auth_user_id', user.id)
             .maybeSingle();
           
+          console.log('RoleGuard fallback: Query result - data:', data, 'error:', error);
+          console.log('RoleGuard fallback: Query details - table: rc_users, column: auth_user_id, value:', user.id);
+          
           if (error) {
             console.error(`RoleGuard[${requiredRole}]: Error fetching roles:`, error);
+            console.error('RoleGuard fallback: Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
             return;
           }
           
@@ -94,7 +104,11 @@ export function RoleGuard({
             };
             const appRole = roleMap[data.role.toLowerCase()] || data.role.toUpperCase();
             console.log(`RoleGuard[${requiredRole}]: Fetched role:`, appRole);
+            console.log('RoleGuard fallback: Role mapping - raw:', data.role, 'mapped:', appRole);
             setLocalRoles([appRole]);
+          } else {
+            console.warn('RoleGuard fallback: Data found but no role field:', data);
+            console.warn('RoleGuard fallback: Full data object:', JSON.stringify(data, null, 2));
           }
         } catch (error) {
           console.error(`RoleGuard[${requiredRole}]: Exception fetching roles:`, error);
