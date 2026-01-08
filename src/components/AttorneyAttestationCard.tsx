@@ -5,10 +5,53 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Clock, Shield, CheckCircle2, Printer } from 'lucide-react';
 import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
 import { audit } from '@/lib/supabaseOperations';
+
+// Helper function for direct fetch to Supabase REST API (GET)
+async function supabaseFetch(table: string, query: string = '') {
+  const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Supabase fetch error: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+// Helper function for UPDATE operations (PATCH)
+async function supabaseUpdate(table: string, filter: string, updates: object) {
+  const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${filter}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(updates)
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Update error: ${response.status} - ${errorText}`);
+  }
+  
+  return true;
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -417,24 +460,16 @@ export function AttorneyAttestationCard({
       return;
     }
 
-    console.log('handleAttest called with intakeId:', intakeId);
-    console.log('intakeId type:', typeof intakeId);
-
     setIsSubmitting(true);
     
     try {
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
       
-      // Get attorney ID (same pattern as handleNotMyClient)
+      // Get attorney ID using direct fetch
       try {
-        const { data: rcUser } = await supabase
-          .from('rc_users')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .eq('role', 'attorney')
-          .single();
-        
+        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+        const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
         if (rcUser?.id) {
           attorneyId = rcUser.id;
         }
@@ -442,15 +477,12 @@ export function AttorneyAttestationCard({
         console.log('Using fallback attorney identifier');
       }
 
-      // Fetch current intake_json
-      const { data: currentIntake, error: fetchError } = await supabase
-        .from('rc_client_intakes')
-        .select('id, case_id, intake_json')
-        .eq('id', intakeId)
-        .single();
+      // Fetch current intake_json using direct fetch
+      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
 
-      if (fetchError) {
-        throw fetchError;
+      if (!currentIntake) {
+        throw new Error('Intake not found');
       }
 
       // Build receipt for "confirmed"
@@ -475,38 +507,13 @@ export function AttorneyAttestationCard({
         },
       };
 
-      // Update ALL required fields in a single update
-      // Target exactly one row by PRIMARY KEY id
-      console.log('About to update rc_client_intakes with:', {
-        intakeId,
-        intakeIdType: typeof intakeId,
-        now
+      // Update ALL required fields in a single update using direct fetch
+      await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
+        attorney_attested_at: now,
+        attorney_confirm_deadline_at: null,
+        intake_status: 'attorney_confirmed',
+        intake_json: updatedIntakeJson,
       });
-      const { data, error } = await supabase
-        .from('rc_client_intakes')
-        .update({
-          attorney_attested_at: now,
-          attorney_confirm_deadline_at: null,
-          intake_status: 'attorney_confirmed',
-          intake_json: updatedIntakeJson,
-        })
-        .eq('id', intakeId)
-        .select('id, intake_status, attorney_attested_at')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Attestation error', error);
-        const errorMsg = error.code ? `${error.code} ${error.message || ''}` : (error.message || 'Failed to submit attestation');
-        toast.error(errorMsg.trim() || 'Failed to submit attestation');
-        return;
-      }
-
-      if (!data) {
-        // No row updated - update failed
-        console.error('Attorney confirmation failed – no row updated.', { intakeId });
-        toast.error('Attorney confirmation failed – no row updated.');
-        return;
-      }
 
       // Success - show success message and refresh
       // The UI will update based on the refreshed attorneyAttestedAt value
@@ -534,13 +541,8 @@ export function AttorneyAttestationCard({
       let attorneyId: string = user.email || user.id;
       
       try {
-        const { data: rcUser } = await supabase
-          .from('rc_users')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .eq('role', 'attorney')
-          .single();
-        
+        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+        const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
         if (rcUser?.id) {
           attorneyId = rcUser.id;
         }
@@ -548,15 +550,12 @@ export function AttorneyAttestationCard({
         console.log('Using fallback attorney identifier');
       }
 
-      // Fetch current intake_json
-      const { data: currentIntake, error: fetchError } = await supabase
-        .from('rc_client_intakes')
-        .select('id, case_id, intake_json')
-        .eq('id', intakeId)
-        .single();
+      // Fetch current intake_json using direct fetch
+      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
 
-      if (fetchError) {
-        throw fetchError;
+      if (!currentIntake) {
+        throw new Error('Intake not found');
       }
 
       // Build receipt for "not my client"
@@ -582,18 +581,11 @@ export function AttorneyAttestationCard({
       };
 
       // Update intake: set status, clear deadline, do NOT set attorney_attested_at
-      const { error: updateError } = await supabase
-        .from('rc_client_intakes')
-        .update({
-          intake_status: 'attorney_declined_not_client',
-          attorney_confirm_deadline_at: null,
-          intake_json: updatedIntakeJson,
-        })
-        .eq('id', intakeId);
-
-      if (updateError) {
-        throw updateError;
-      }
+      await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
+        intake_status: 'attorney_declined_not_client',
+        attorney_confirm_deadline_at: null,
+        intake_json: updatedIntakeJson,
+      });
 
       // 5. Notify parent of resolution to stop countdown
       if (onResolved) {
