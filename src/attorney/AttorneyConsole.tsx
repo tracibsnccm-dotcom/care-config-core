@@ -6,6 +6,7 @@ import {
   TEN_VS,
   getSeverityLabel,
 } from "../constants/reconcileFramework";
+import { RoleGuard } from "../components/RoleGuard";
 
 type AttorneyTab =
   | "overview"
@@ -836,32 +837,33 @@ const AttorneyConsole: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      {/* Header */}
-      <div
-        style={{
-          marginBottom: "0.75rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: 600,
-              marginBottom: "0.15rem",
-            }}
-          >
-            Attorney Console
-          </h1>
-          <p style={{ fontSize: "0.8rem", color: "#64748b" }}>
-            Read-only, clinically informed view of the case to support
-            strategy, negotiations, and decision-making.
-          </p>
-        </div>
+    <RoleGuard requiredRole="attorney" redirectTo="/">
+      <div style={{ padding: "1.5rem" }}>
+        {/* Header */}
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <div>
+            <h1
+              style={{
+                fontSize: "1.2rem",
+                fontWeight: 600,
+                marginBottom: "0.15rem",
+              }}
+            >
+              Attorney Console
+            </h1>
+            <p style={{ fontSize: "0.8rem", color: "#64748b" }}>
+              Read-only, clinically informed view of the case to support
+              strategy, negotiations, and decision-making.
+            </p>
+          </div>
 
         <div
           style={{
@@ -991,6 +993,7 @@ const AttorneyConsole: React.FC = () => {
         {renderTab()}
       </div>
     </div>
+    </RoleGuard>
   );
 };
 

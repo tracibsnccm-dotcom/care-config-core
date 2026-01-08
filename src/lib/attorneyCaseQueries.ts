@@ -2,10 +2,11 @@
  * Attorney Case Queries
  * 
  * This module provides helper functions for attorneys to query cases from Supabase.
- * All queries use the attorney_latest_final_cases view or attorney_accessible_cases()
- * function, which ensures attorneys can ONLY see released/closed cases, never drafts.
+ * All queries use direct Supabase queries with RLS policies to ensure attorneys can 
+ * ONLY see released/closed cases, never drafts.
  * 
- * The database layer enforces this restriction via RLS policies and the view definition.
+ * The database layer enforces this restriction via RLS policies which automatically
+ * filter cases by attorney_id and case_status.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,18 +15,31 @@ import { supabase } from "@/integrations/supabase/client";
  * Get all cases accessible to the authenticated attorney.
  * Returns only released/closed cases (never drafts).
  * 
+ * Uses direct query to rc_cases with RLS policies enforcing:
+ * - attorney_id must match the authenticated attorney's rc_users.id (via RLS)
+ * - case_status must be 'released' or 'closed' (not 'draft')
+ * 
+ * RLS policies automatically filter by attorney_id, so we just need to filter by status.
+ * 
  * @returns Array of case objects with latest released/closed version per revision chain
  */
 export async function getAttorneyCases() {
-  // Use the security definer function which filters by attorney_id automatically
-  const { data, error } = await supabase.rpc('attorney_accessible_cases');
+  // Query rc_cases directly - RLS policies will automatically enforce:
+  // 1. Only cases where attorney_id matches the authenticated attorney's rc_users.id
+  // 2. User must be authenticated (auth.uid() IS NOT NULL)
+  // We add explicit filter for released/closed status to ensure no drafts
+  const { data, error } = await supabase
+    .from('rc_cases')
+    .select('*')
+    .in('case_status', ['released', 'closed'])
+    .order('updated_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching attorney cases:', error);
     throw error;
   }
 
-  return data || [];
+  return (data || []) as AttorneyCase[];
 }
 
 /**

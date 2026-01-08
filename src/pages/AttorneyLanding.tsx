@@ -221,7 +221,8 @@ export default function AttorneyLanding() {
 
 
   return (
-    <AppLayout>
+    <RoleGuard requiredRole="attorney" redirectTo="/">
+      <AppLayout>
       <PolicyAcknowledgmentBanner />
       
       <div className="p-8 pb-24 lg:pb-8">
@@ -684,6 +685,7 @@ export default function AttorneyLanding() {
         <MobileQuickActions />
       </div>
     </AppLayout>
+    </RoleGuard>
   );
 }
 

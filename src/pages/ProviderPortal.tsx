@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { User, Calendar, FileText, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { RoleGuard } from "@/components/RoleGuard";
 
 interface CaseOption {
   id: string;
@@ -60,8 +61,9 @@ export default function ProviderPortal() {
   }
 
   return (
-    <AppLayout>
-      <div className="p-8">
+    <RoleGuard requiredRole="provider" redirectTo="/">
+      <AppLayout>
+        <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Provider Portal</h1>
@@ -135,5 +137,6 @@ export default function ProviderPortal() {
         </div>
       </div>
     </AppLayout>
+    </RoleGuard>
   );
 }

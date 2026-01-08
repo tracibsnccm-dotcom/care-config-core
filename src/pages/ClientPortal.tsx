@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientPendingAttorneyConfirmation } from "@/components/ClientPendingAttorneyConfirmation";
 import { COMPLIANCE_COPY } from "@/constants/compliance";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function ClientPortal() {
   const { cases: userCases, loading: casesLoading } = useCases();
@@ -276,80 +277,72 @@ export default function ClientPortal() {
     );
   }
 
-  // Gate: Check if intake is pending attorney confirmation
-  // needsAttorneyConfirmation = intake exists AND attorney_attested_at is null AND deadline exists AND now < deadline
-  const needsAttorneyConfirmation = 
-    intakeStatus &&
-    !intakeStatus.attorneyAttestedAt &&
-    !!intakeStatus.attorneyConfirmDeadlineAt &&
-    new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() > Date.now();
-
-  // Check if attorney has confirmed
-  const isAttorneyConfirmed = !!intakeStatus?.attorneyAttestedAt;
-
-  // isExpired = deadline exists AND now > deadline AND not confirmed
+  // Compute explicit states based on intake data (mutually exclusive)
+  const intake = intakeStatus;
+  const isConfirmed = !!intake?.attorneyAttestedAt;
+  const isPending = 
+    !isConfirmed &&
+    !!intake?.attorneyConfirmDeadlineAt &&
+    Date.now() < new Date(intake.attorneyConfirmDeadlineAt).getTime();
   const isExpired = 
-    !isAttorneyConfirmed &&
-    intakeStatus?.attorneyConfirmDeadlineAt &&
-    new Date(intakeStatus.attorneyConfirmDeadlineAt).getTime() < Date.now();
-
-  // Show pending attorney confirmation screen
-  if (needsAttorneyConfirmation && caseId && intakeStatus.attorneyConfirmDeadlineAt) {
-    return (
-      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full">
-          <ClientPendingAttorneyConfirmation
-            caseId={caseId}
-            attorneyConfirmDeadlineAt={intakeStatus.attorneyConfirmDeadlineAt}
-            onExpired={() => {
-              // Refresh intake status when expired
-              setIntakeStatus((prev) => prev ? { ...prev, status: 'expired_deleted' } : null);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Show expired state
-  if (isExpired && caseId) {
-    return (
-      <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-destructive">
-          <CardContent className="p-6 space-y-4">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="space-y-2">
-                {COMPLIANCE_COPY.attorneyExpired.bodyLines.map((line, idx) => (
-                  <p key={idx}>{line}</p>
-                ))}
-              </AlertDescription>
-            </Alert>
-            <Button
-              onClick={() => navigate("/client-intake")}
-              className="w-full"
-              variant="default"
-            >
-              Restart Intake Process
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+    !isConfirmed &&
+    !!intake?.attorneyConfirmDeadlineAt &&
+    Date.now() >= new Date(intake.attorneyConfirmDeadlineAt).getTime();
   
   return (
     <div className="min-h-screen bg-rcms-white">
-      {/* Attorney Confirmation Banner */}
-      {isAttorneyConfirmed && intakeStatus?.attorneyAttestedAt && (
-        <div className="bg-green-50 border-b border-green-200">
+      {/* Attorney Confirmation Status Banner - Always visible at top */}
+      {intakeStatus && (
+        <div className="border-b">
           <div className="max-w-7xl mx-auto px-6 py-3">
-            <Alert variant="default" className="bg-green-50 border-green-200">
-              <Shield className="h-4 w-4 text-green-700" />
-              <AlertDescription className="text-green-900">
-                Your attorney confirmed your client relationship on {new Date(intakeStatus.attorneyAttestedAt).toLocaleString()}.
-              </AlertDescription>
-            </Alert>
+            {isConfirmed ? (
+              // Confirmed state - MUST render when attorney_attested_at exists
+              <Card className="bg-green-50 border-green-200 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-5 w-5 text-green-700 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-green-900 mb-2">
+                        Attorney Confirmation Completed
+                      </h3>
+                      <p className="text-green-900 mb-1">
+                        Your attorney confirmed your intake on {new Date(intake.attorneyAttestedAt!).toLocaleString()}.
+                      </p>
+                      <p className="text-green-900 font-medium">
+                        You may now proceed.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : isPending ? (
+              // Pending confirmation state
+              <Alert variant="default" className="bg-amber-50 border-amber-200">
+                <Clock className="h-4 w-4 text-amber-700" />
+                <AlertDescription className="text-amber-900">
+                  Pending attorney confirmation. If your attorney does not confirm within 48 hours, intake will be deleted and must be restarted.
+                </AlertDescription>
+              </Alert>
+            ) : isExpired ? (
+              // Expired state
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="space-y-2">
+                  {COMPLIANCE_COPY.attorneyExpired.bodyLines.map((line, idx) => (
+                    <p key={idx}>{line}</p>
+                  ))}
+                </AlertDescription>
+                <div className="mt-3">
+                  <Button
+                    onClick={() => navigate("/client-intake")}
+                    variant="default"
+                    size="sm"
+                  >
+                    Restart Intake Process
+                  </Button>
+                </div>
+              </Alert>
+            ) : null}
           </div>
         </div>
       )}
@@ -874,5 +867,6 @@ export default function ClientPortal() {
         </div>
       </footer>
     </div>
+    </RoleGuard>
   );
 }
