@@ -130,6 +130,7 @@ export function RoleGuard({
 
   // Show loading state
   if (loading) {
+    console.log(`=== RoleGuard[${requiredRole}]: Returning Loading state ===`);
     console.log(`RoleGuard[${requiredRole}]: Rendering loading state`);
     return (
       <div className="p-6 text-sm text-muted-foreground">Loading...</div>
@@ -192,6 +193,7 @@ export function RoleGuard({
   }
 
   // User has correct role, render children
+  console.log(`=== RoleGuard[${requiredRole}]: Rendering children (AttorneyConsole content) ===`);
   console.log(`RoleGuard[${requiredRole}]: Rendering children`);
   return <>{children}</>;
 }

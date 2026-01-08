@@ -160,6 +160,7 @@ const AttorneyTimelineCard: React.FC<{ event: AttorneyTimelineEvent }> = ({
 };
 
 const AttorneyConsole: React.FC = () => {
+  console.log('=== AttorneyConsole: Component function called ===');
   console.log('AttorneyConsole RENDER - starting');
   console.log('AttorneyConsole: Component mounted');
   
@@ -848,6 +849,7 @@ const AttorneyConsole: React.FC = () => {
     }
   };
 
+  console.log('=== AttorneyConsole: Returning main content ===');
   console.log('AttorneyConsole RENDER - about to return JSX');
 
   return (
