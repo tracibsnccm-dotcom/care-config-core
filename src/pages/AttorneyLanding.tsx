@@ -166,6 +166,15 @@ export default function AttorneyLanding() {
     log,
   } = useApp();
 
+  console.log('=== AttorneyLanding: Cases data from useApp ===');
+  console.log('AttorneyLanding: User ID:', user?.id);
+  console.log('AttorneyLanding: Number of cases:', cases?.length || 0);
+  console.log('AttorneyLanding: Cases data:', cases);
+  if (cases && cases.length > 0) {
+    console.log('AttorneyLanding: Case IDs:', cases.map(c => c.id));
+    console.log('AttorneyLanding: Case statuses:', cases.map(c => ({ id: c.id, status: c.status })));
+  }
+
   const [tierData, setTierData] = useState<any>(null);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
 

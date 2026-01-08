@@ -193,11 +193,18 @@ export function useAttorneyCases() {
 
     async function fetchAttorneyCases() {
       try {
+        console.log('=== useAttorneyCases: fetchAttorneyCases called ===');
+        console.log('useAttorneyCases: User ID:', user?.id);
+        
         // Use attorney_accessible_cases() RPC which enforces released-only access
         const attorneyCases = await getAttorneyCases();
+        
+        console.log('useAttorneyCases: Cases returned from getAttorneyCases:', attorneyCases?.length || 0);
+        console.log('useAttorneyCases: Cases data:', attorneyCases);
+        
         setCases(attorneyCases || []);
       } catch (err) {
-        console.error("Failed to fetch attorney cases:", err);
+        console.error("useAttorneyCases: Failed to fetch attorney cases:", err);
         setError(err as Error);
       } finally {
         setLoading(false);

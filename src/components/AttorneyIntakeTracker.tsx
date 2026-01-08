@@ -21,6 +21,8 @@ interface IntakeRow {
   stage: string;
   last_activity_iso: string;
   expires_iso: string;
+  attorney_attested_at: string | null;
+  attorney_confirm_deadline_at: string | null;
   nudges: number;
   my_client: boolean;
 }
@@ -75,8 +77,12 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      // Query rc_client_intakes for pending attorney confirmations
-      // Pending = attorney_attested_at IS NULL AND deadline exists AND deadline > now
+      console.log('=== AttorneyIntakeTracker: loadData called ===');
+      console.log('AttorneyIntakeTracker: Scope:', scope);
+      console.log('AttorneyIntakeTracker: User ID:', user?.id);
+      
+      // Query rc_client_intakes - include pending, confirmed, and declined
+      // Show all intakes that need attorney attention (pending) or have been resolved
       let query = supabase
         .from('rc_client_intakes')
         .select(`
@@ -85,6 +91,7 @@ export const AttorneyIntakeTracker = () => {
           intake_submitted_at,
           attorney_confirm_deadline_at,
           attorney_attested_at,
+          intake_status,
           intake_json,
           created_at,
           rc_cases!inner (
@@ -92,38 +99,71 @@ export const AttorneyIntakeTracker = () => {
             attorney_id
           )
         `)
-        .is('attorney_attested_at', null)
-        .not('attorney_confirm_deadline_at', 'is', null)
-        .gt('attorney_confirm_deadline_at', new Date().toISOString());
+        .in('intake_status', ['submitted_pending_attorney', 'attorney_confirmed', 'attorney_declined_not_client']);
+
+      console.log('AttorneyIntakeTracker: Base query built - table: rc_client_intakes, status filter: submitted_pending_attorney, attorney_confirmed, attorney_declined_not_client');
 
       // If "mine" scope, filter by attorney_id in cases
+      let attorneyRcUserId: string | null = null;
       if (scope === 'mine' && user) {
+        console.log('AttorneyIntakeTracker: Fetching attorney rc_user ID for scope="mine"');
         // Get attorney rc_user id if available
-        const { data: rcUser } = await supabase
+        const { data: rcUser, error: rcUserError } = await supabase
           .from('rc_users')
           .select('id')
           .eq('auth_user_id', user.id)
           .eq('role', 'attorney')
           .single();
 
+        console.log('AttorneyIntakeTracker: rc_users query result:', { rcUser, error: rcUserError });
+        
         if (rcUser?.id) {
+          attorneyRcUserId = rcUser.id;
           query = query.eq('rc_cases.attorney_id', rcUser.id);
+          console.log('AttorneyIntakeTracker: Filtering by attorney_id:', rcUser.id);
+        } else {
+          console.warn('AttorneyIntakeTracker: No rc_user found for attorney, cannot filter by attorney_id');
         }
+      } else {
+        console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
       }
 
+      console.log('AttorneyIntakeTracker: Executing final query with attorney ID filter:', attorneyRcUserId);
       const { data: intakes, error } = await query;
+      
+      console.log('AttorneyIntakeTracker: Query executed');
+      console.log('AttorneyIntakeTracker: Query returned data:', intakes);
+      console.log('AttorneyIntakeTracker: Query returned error:', error);
+      console.log('AttorneyIntakeTracker: Number of intakes returned:', intakes?.length || 0);
 
       if (error) throw error;
 
       // Transform to IntakeRow format for display
       const transformedRows: IntakeRow[] = (intakes || []).map((intake: any) => {
         const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+        const isConfirmed = !!intake.attorney_attested_at;
+        const isDeclined = intake.intake_status === 'attorney_declined_not_client';
+        const isExpired = !isConfirmed && !isDeclined &&
+          intake.attorney_confirm_deadline_at &&
+          new Date(intake.attorney_confirm_deadline_at).getTime() < Date.now();
+        
+        let stage = 'Pending Attorney Confirmation';
+        if (isConfirmed) {
+          stage = 'Confirmed';
+        } else if (isDeclined) {
+          stage = 'Declined';
+        } else if (isExpired) {
+          stage = 'Expired';
+        }
+        
         return {
           case_id: intake.case_id,
           client: 'Client', // Will need to fetch client name separately if needed
-          stage: 'Pending Attorney Confirmation',
+          stage,
           last_activity_iso: intake.intake_submitted_at || new Date().toISOString(),
-          expires_iso: intake.attorney_confirm_deadline_at,
+          expires_iso: intake.attorney_confirm_deadline_at || '',
+          attorney_attested_at: intake.attorney_attested_at,
+          attorney_confirm_deadline_at: intake.attorney_confirm_deadline_at,
           nudges: 0,
           my_client: true,
         };
@@ -155,6 +195,7 @@ export const AttorneyIntakeTracker = () => {
           intake_submitted_at,
           attorney_confirm_deadline_at,
           attorney_attested_at,
+          intake_status,
           intake_json,
           created_at,
           rc_cases!inner (
@@ -168,7 +209,15 @@ export const AttorneyIntakeTracker = () => {
         .maybeSingle();
 
       if (error) throw error;
-      setSelectedIntake(data as PendingIntake | null);
+      
+      // Update selected intake and reset resolution if this is a refresh
+      const updatedIntake = data as PendingIntake | null;
+      setSelectedIntake(updatedIntake);
+      
+      // If intake is confirmed, clear resolution state so receipt shows
+      if (updatedIntake?.attorney_attested_at) {
+        setResolution("CONFIRMED");
+      }
     } catch (error) {
       console.error('Failed to load intake:', error);
       toast.error('Failed to load intake details');
@@ -299,15 +348,16 @@ export const AttorneyIntakeTracker = () => {
           Back to Intake List
         </Button>
 
-        {/* Only render attestation card if not confirmed - if confirmed, show confirmed state below */}
-        {needsAttestation && (
+        {/* Show attestation card if needed, or receipt if already confirmed */}
+        {(needsAttestation || isConfirmed) && (
           <AttorneyAttestationCard
             intakeId={selectedIntake.id}
             caseId={selectedIntake.case_id}
             intakeSubmittedAt={selectedIntake.intake_submitted_at}
             attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
             attorneyAttestedAt={selectedIntake.attorney_attested_at}
-            resolved={resolution}
+            intakeJson={selectedIntake.intake_json}
+            resolved={resolution || (isConfirmed ? "CONFIRMED" : null)}
             onResolved={(res, timestamp, updatedJson) => {
               // Immediately set resolution to stop countdown
               setResolution(res);
@@ -342,45 +392,14 @@ export const AttorneyIntakeTracker = () => {
               toast.success(resolution === "CONFIRMED" 
                 ? 'Attestation complete. You can now view case details.'
                 : 'Action complete.');
-              // Refresh the intake data to ensure consistency
-              loadIntakeForCase(selectedCaseId);
-              loadData();
+              // Re-fetch the latest intake to ensure state is up to date
+              loadIntakeForCase(selectedCaseId).then(() => {
+                loadData();
+              });
             }}
           />
         )}
 
-        {/* Show confirmed state when attorney_attested_at exists (not in attestation card view) */}
-        {isConfirmed && !needsAttestation && (
-          <Card className="border-green-500">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
-                <Shield className="w-5 h-5" />
-                Confirmed
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert variant="default" className="bg-green-50 border-green-200">
-                <AlertDescription className="text-green-900">
-                  {selectedIntake.attorney_attested_at 
-                    ? `Attorney confirmation recorded on ${new Date(selectedIntake.attorney_attested_at).toLocaleString()}.`
-                    : 'Attorney confirmation recorded.'}
-                </AlertDescription>
-              </Alert>
-              
-              {/* Show receipt if available */}
-              {selectedIntake.intake_json?.compliance?.attorney_confirmation_receipt && (
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <h4 className="font-semibold mb-2">Attorney Confirmation Receipt</h4>
-                  <div className="text-sm space-y-1">
-                    <p><strong>Confirmed at:</strong> {new Date(selectedIntake.intake_json.compliance.attorney_confirmation_receipt.confirmed_at).toLocaleString()}</p>
-                    <p><strong>Confirmed by:</strong> {selectedIntake.intake_json.compliance.attorney_confirmation_receipt.confirmed_by}</p>
-                    <p><strong>Action:</strong> {selectedIntake.intake_json.compliance.attorney_confirmation_receipt.action}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Show declined state when resolved as declined */}
         {resolution === "DECLINED" && (
@@ -540,6 +559,7 @@ export const AttorneyIntakeTracker = () => {
                 </th>
                 <th className="p-2 text-left font-semibold">Client</th>
                 <th className="p-2 text-left font-semibold">Case ID</th>
+                <th className="p-2 text-left font-semibold">Status</th>
                 <th className="p-2 text-left font-semibold">Stage</th>
                 <th className="p-2 text-left font-semibold">Last Activity</th>
                 <th className="p-2 text-left font-semibold">Time Remaining</th>
@@ -552,6 +572,31 @@ export const AttorneyIntakeTracker = () => {
                 const ttl = calculateTTL(row.expires_iso);
                 const risk = getRiskLevel(row.expires_iso);
                 const isSelected = selectedIds.has(row.case_id);
+                
+                // Determine status - hide countdown if deadline is null or attested_at exists
+                const hasDeadline = !!row.attorney_confirm_deadline_at;
+                const isConfirmed = !!row.attorney_attested_at;
+                const isDeclined = row.stage === 'Declined' || !hasDeadline && !isConfirmed;
+                const isExpired = !isConfirmed && !isDeclined &&
+                  hasDeadline &&
+                  new Date(row.attorney_confirm_deadline_at!).getTime() < Date.now();
+                
+                // Status badge
+                let statusLabel = 'Pending';
+                let statusVariant: 'default' | 'destructive' | 'secondary' | 'outline' = 'secondary';
+                if (isConfirmed) {
+                  statusLabel = 'Confirmed';
+                  statusVariant = 'default';
+                } else if (isDeclined) {
+                  statusLabel = 'Declined';
+                  statusVariant = 'outline';
+                } else if (isExpired) {
+                  statusLabel = 'Expired';
+                  statusVariant = 'destructive';
+                }
+                
+                // Show countdown only if deadline exists, not confirmed, and not declined
+                const shouldShowCountdown = hasDeadline && !isConfirmed && !isDeclined;
 
                 return (
                   <tr key={row.case_id} className="border-b hover:bg-muted/30">
@@ -580,14 +625,23 @@ export const AttorneyIntakeTracker = () => {
                       </Button>
                     </td>
                     <td className="p-2">
+                      <Badge variant={statusVariant}>{statusLabel}</Badge>
+                    </td>
+                    <td className="p-2">
                       <Badge variant="outline">{row.stage}</Badge>
                     </td>
                     <td className="p-2 text-sm text-muted-foreground">
                       {new Date(row.last_activity_iso).toLocaleString()}
                     </td>
-                    <td className={`p-2 font-bold ${ttl.className}`}>{ttl.label}</td>
+                    <td className={`p-2 font-bold ${ttl.className}`}>
+                      {shouldShowCountdown ? (
+                        ttl.label
+                      ) : (
+                        <Badge variant={statusVariant}>{statusLabel}</Badge>
+                      )}
+                    </td>
                     <td className="p-2">
-                      <Badge variant={risk.variant}>{risk.level}</Badge>
+                      {shouldShowCountdown && <Badge variant={risk.variant}>{risk.level}</Badge>}
                     </td>
                     <td className="p-2">
                       <div className="flex gap-2">
@@ -597,18 +651,22 @@ export const AttorneyIntakeTracker = () => {
                           onClick={() => handleViewIntake(row.case_id)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
-                          View/Attest
+                          {isConfirmed ? 'View' : 'View/Attest'}
                         </Button>
-                        <Button size="sm" onClick={() => handleNudge(row.case_id)}>
-                          Nudge
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEscalate(row.case_id)}
-                        >
-                          Escalate
-                        </Button>
+                        {!isConfirmed && (
+                          <>
+                            <Button size="sm" onClick={() => handleNudge(row.case_id)}>
+                              Nudge
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEscalate(row.case_id)}
+                            >
+                              Escalate
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -616,8 +674,8 @@ export const AttorneyIntakeTracker = () => {
               })}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    No pending intakes found
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    No intakes found
                   </td>
                 </tr>
               )}

@@ -26,7 +26,24 @@ import { supabase } from "@/integrations/supabase/client";
  * @returns Array of case objects with latest released/closed/ready version per revision chain
  */
 export async function getAttorneyCases() {
-  console.log('getAttorneyCases: About to fetch cases');
+  console.log('=== getAttorneyCases: About to fetch cases ===');
+  
+  // Get authenticated user for logging
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  console.log('getAttorneyCases: Authenticated user ID:', authUser?.id);
+  
+  // If user is authenticated, try to get their rc_user ID to log what attorney_id will be used
+  let attorneyRcUserId: string | null = null;
+  if (authUser?.id) {
+    const { data: rcUser } = await supabase
+      .from('rc_users')
+      .select('id, role')
+      .eq('auth_user_id', authUser.id)
+      .maybeSingle();
+    attorneyRcUserId = rcUser?.id || null;
+    console.log('getAttorneyCases: Attorney rc_user ID:', attorneyRcUserId);
+    console.log('getAttorneyCases: User role:', rcUser?.role);
+  }
   
   // Query rc_cases directly - RLS policies will automatically enforce:
   // 1. Only cases where attorney_id matches the authenticated attorney's rc_users.id
@@ -34,7 +51,10 @@ export async function getAttorneyCases() {
   // We filter for released/closed/ready status to ensure no drafts
   // 'ready' status is needed for attorneys to perform attestation
   const statusFilter = ['released', 'closed', 'ready'];
-  console.log('getAttorneyCases: Applying case_status filter:', statusFilter);
+  console.log('getAttorneyCases: Query details:');
+  console.log('  - Table: rc_cases');
+  console.log('  - Filter: case_status IN', statusFilter);
+  console.log('  - RLS will filter by attorney_id:', attorneyRcUserId || '(from authenticated user)');
   
   const { data, error } = await supabase
     .from('rc_cases')
