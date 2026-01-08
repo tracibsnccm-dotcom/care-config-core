@@ -77,14 +77,18 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      console.log('STEP 1: About to test supabase client');
-      console.log('STEP 2: Supabase client exists:', !!supabase);
+      // Check supabase client initialization BEFORE any await
+      console.log('STEP 0: Supabase client check');
+      console.log('Supabase object:', supabase);
+      console.log('Supabase from function:', typeof supabase?.from);
+
+      // Test auth (doesn't hit database) - use .then() instead of await to avoid hanging
+      supabase.auth.getSession().then(({ data, error }) => {
+        console.log('Auth session result:', { data, error });
+      });
+
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
-
-      // Test auth first - this doesn't hit database
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('STEP 3: Auth works, user:', user?.id);
 
       // Now test database
       console.log('STEP 4: About to query database');
