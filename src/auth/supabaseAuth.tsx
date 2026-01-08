@@ -109,15 +109,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       console.log('=== Auth: init() function called ===');
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      console.log('=== Auth: getSession() completed, session =', !!session);
-      setSession(session ?? null);
-      setUser(session?.user ?? null);
-      console.log('=== Auth: About to set authLoading to false ===');
-      setAuthLoading(false);
-      console.log('=== Auth: authLoading set to false ===');
+      try {
+        console.log('=== Auth: About to call getSession() ===');
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log('=== Auth: getSession() returned, session:', !!session);
+        setSession(session ?? null);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('=== Auth: getSession() ERROR:', error);
+      } finally {
+        console.log('=== Auth: Setting authLoading to false ===');
+        setAuthLoading(false);
+      }
     };
 
     void init();
