@@ -78,19 +78,24 @@ export const AttorneyIntakeTracker = () => {
   };
 
   const loadData = async () => {
+    console.log('loadData: START');
     try {
       // Get current user's auth ID and look up their rc_user ID
       let attorneyRcUserId: string | null = null;
       
       // Get current user's auth ID for lookup
+      console.log('loadData: About to call getSession');
       const { data: { session } } = await supabase.auth.getSession();
       const authUserId = session?.user?.id;
+      console.log('loadData: getSession returned', { session: !!session, authUserId });
       
       if (scope === 'mine' && user && authUserId) {
         try {
           // Look up their rc_users.id using REST helper
           const rcUsersQuery = `auth_user_id=eq.${authUserId}&select=id`;
+          console.log('loadData: About to query rc_users');
           const { data: rcUsers, error: rcUsersError } = await supabaseGet('rc_users', rcUsersQuery);
+          console.log('loadData: rc_users result', { rcUsers, error: rcUsersError });
           if (rcUsersError) {
             throw rcUsersError;
           }
@@ -108,7 +113,9 @@ export const AttorneyIntakeTracker = () => {
       }
       
       // Use REST helper for RLS-protected queries
+      console.log('loadData: About to query intakes with', queryString);
       const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', queryString);
+      console.log('loadData: intakes result', { count: intakes?.length, error: intakesError });
       
       if (intakesError) {
         throw intakesError;
