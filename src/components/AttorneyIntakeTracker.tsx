@@ -108,12 +108,11 @@ export const AttorneyIntakeTracker = () => {
       if (scope === 'mine' && user) {
         // TEMPORARY DEBUG: Hardcode attorney ID to test intake query
         const hardcodedAttorneyId = 'e995aad3-e8f5-4845-b3db-259d0321287e';
-        console.log('AttorneyIntakeTracker: Using hardcoded attorney ID:', hardcodedAttorneyId);
+        console.log('Using hardcoded attorney ID:', hardcodedAttorneyId);
         
-        // Use hardcoded ID instead of querying
+        // Use hardcoded ID instead of querying rc_users
         attorneyRcUserId = hardcodedAttorneyId;
         query = query.eq('rc_cases.attorney_id', hardcodedAttorneyId);
-        console.log('AttorneyIntakeTracker: Filtering by hardcoded attorney_id:', hardcodedAttorneyId);
         
         // TEMPORARY: Skip the actual query - commented out for debugging
         /*
