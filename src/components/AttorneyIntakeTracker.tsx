@@ -83,11 +83,9 @@ export const AttorneyIntakeTracker = () => {
       // Get current user's auth ID and look up their rc_user ID
       let attorneyRcUserId: string | null = null;
       
-      // Get current user's auth ID for lookup
-      console.log('loadData: About to call getSession');
-      const { data: { session } } = await supabase.auth.getSession();
-      const authUserId = session?.user?.id;
-      console.log('loadData: getSession returned', { session: !!session, authUserId });
+      // User is already available from useAuth hook - use it directly
+      const authUserId = user?.id;
+      console.log('loadData: Using user from useAuth', { authUserId });
       
       if (scope === 'mine' && user && authUserId) {
         try {
