@@ -16,14 +16,14 @@ import { useAuth } from '@/auth/supabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 // Helper function for direct fetch to Supabase REST API
-async function supabaseFetch(table: string, query: string = '') {
+async function supabaseFetch(table: string, query: string = '', accessToken?: string) {
   const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
     headers: {
       'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
+      'Authorization': `Bearer ${accessToken || supabaseKey}`,
       'Content-Type': 'application/json',
     }
   });
@@ -101,17 +101,16 @@ export const AttorneyIntakeTracker = () => {
       // Get current user's auth ID and look up their rc_user ID
       let attorneyRcUserId: string | null = null;
       
-      if (scope === 'mine' && user) {
+      // Get session token for RLS-protected queries
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      const authUserId = session?.user?.id;
+      
+      if (scope === 'mine' && user && authUserId) {
         try {
-          // Get current user's auth ID
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          const authUserId = authUser?.id;
-          
-          if (authUserId) {
-            // Look up their rc_users.id using direct fetch
-            const rcUsers = await supabaseFetch('rc_users', `auth_user_id=eq.${authUserId}&select=id`);
-            attorneyRcUserId = Array.isArray(rcUsers) ? (rcUsers[0]?.id || null) : (rcUsers?.id || null);
-          }
+          // Look up their rc_users.id using direct fetch with access token
+          const rcUsers = await supabaseFetch('rc_users', `auth_user_id=eq.${authUserId}&select=id`, accessToken);
+          attorneyRcUserId = Array.isArray(rcUsers) ? (rcUsers[0]?.id || null) : (rcUsers?.id || null);
         } catch (err) {
           console.error('Failed to get attorney rc_user ID:', err);
         }
@@ -124,7 +123,8 @@ export const AttorneyIntakeTracker = () => {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
       }
       
-      const intakes = await supabaseFetch('rc_client_intakes', queryString);
+      // Use access token for RLS-protected queries
+      const intakes = await supabaseFetch('rc_client_intakes', queryString, accessToken);
 
       if (!Array.isArray(intakes)) {
         throw new Error('Expected array from Supabase query');
@@ -179,12 +179,16 @@ export const AttorneyIntakeTracker = () => {
   const loadIntakeForCase = async (caseId: string, intakeId?: string) => {
     setLoadingIntake(true);
     try {
+      // Get session token for RLS-protected queries
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
       // Load intake with case data for the attestation modal
       // If intakeId is provided, load by id; otherwise load by case_id
       const queryFilter = intakeId 
         ? `id=eq.${intakeId}` 
         : `case_id=eq.${caseId}&order=created_at.desc&limit=1`;
-      const intakeData = await supabaseFetch('rc_client_intakes', `select=*,rc_cases(id,attorney_id,case_type,client_id)&${queryFilter}`);
+      const intakeData = await supabaseFetch('rc_client_intakes', `select=*,rc_cases(id,attorney_id,case_type,client_id)&${queryFilter}`, accessToken);
       const updatedIntake = (Array.isArray(intakeData) ? intakeData[0] : intakeData) as PendingIntake | null;
       setSelectedIntake(updatedIntake);
       

@@ -7,17 +7,18 @@ import { AlertTriangle, Clock, Shield, CheckCircle2, Printer } from 'lucide-reac
 import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
+import { supabase } from '@/auth/supabaseAuth';
 import { audit } from '@/lib/supabaseOperations';
 
 // Helper function for direct fetch to Supabase REST API (GET)
-async function supabaseFetch(table: string, query: string = '') {
+async function supabaseFetch(table: string, query: string = '', accessToken?: string) {
   const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
     headers: {
       'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
+      'Authorization': `Bearer ${accessToken || supabaseKey}`,
       'Content-Type': 'application/json',
     }
   });
@@ -30,7 +31,7 @@ async function supabaseFetch(table: string, query: string = '') {
 }
 
 // Helper function for UPDATE operations (PATCH)
-async function supabaseUpdate(table: string, filter: string, updates: object) {
+async function supabaseUpdate(table: string, filter: string, updates: object, accessToken?: string) {
   const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
@@ -38,7 +39,7 @@ async function supabaseUpdate(table: string, filter: string, updates: object) {
     method: 'PATCH',
     headers: {
       'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
+      'Authorization': `Bearer ${accessToken || supabaseKey}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     },
@@ -463,12 +464,16 @@ export function AttorneyAttestationCard({
     setIsSubmitting(true);
     
     try {
+      // Get session token for RLS-protected queries
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
       
-      // Get attorney ID using direct fetch
+      // Get attorney ID using direct fetch with access token
       try {
-        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`, accessToken);
         const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
         if (rcUser?.id) {
           attorneyId = rcUser.id;
@@ -477,8 +482,8 @@ export function AttorneyAttestationCard({
         console.log('Using fallback attorney identifier');
       }
 
-      // Fetch current intake_json using direct fetch
-      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      // Fetch current intake_json using direct fetch with access token
+      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`, accessToken);
       const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
 
       if (!currentIntake) {
@@ -507,13 +512,13 @@ export function AttorneyAttestationCard({
         },
       };
 
-      // Update ALL required fields in a single update using direct fetch
+      // Update ALL required fields in a single update using direct fetch with access token
       await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
         attorney_attested_at: now,
         attorney_confirm_deadline_at: null,
         intake_status: 'attorney_confirmed',
         intake_json: updatedIntakeJson,
-      });
+      }, accessToken);
 
       // Success - show success message and refresh
       // The UI will update based on the refreshed attorneyAttestedAt value
@@ -537,11 +542,15 @@ export function AttorneyAttestationCard({
     setIsSubmitting(true);
 
     try {
+      // Get session token for RLS-protected queries
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
       
       try {
-        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`, accessToken);
         const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
         if (rcUser?.id) {
           attorneyId = rcUser.id;
@@ -550,8 +559,8 @@ export function AttorneyAttestationCard({
         console.log('Using fallback attorney identifier');
       }
 
-      // Fetch current intake_json using direct fetch
-      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      // Fetch current intake_json using direct fetch with access token
+      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`, accessToken);
       const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
 
       if (!currentIntake) {
@@ -585,7 +594,7 @@ export function AttorneyAttestationCard({
         intake_status: 'attorney_declined_not_client',
         attorney_confirm_deadline_at: null,
         intake_json: updatedIntakeJson,
-      });
+      }, accessToken);
 
       // 5. Notify parent of resolution to stop countdown
       if (onResolved) {
