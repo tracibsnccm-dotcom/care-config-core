@@ -107,22 +107,35 @@ export const AttorneyIntakeTracker = () => {
       let attorneyRcUserId: string | null = null;
       if (scope === 'mine' && user) {
         console.log('AttorneyIntakeTracker: Fetching attorney rc_user ID for scope="mine"');
+        console.log('AttorneyIntakeTracker: Querying rc_users for auth_user_id:', user.id);
+        console.log('AttorneyIntakeTracker: Query will use column: auth_user_id');
+        
         // Get attorney rc_user id if available
         const { data: rcUser, error: rcUserError } = await supabase
           .from('rc_users')
-          .select('id')
+          .select('id, auth_user_id, role')
           .eq('auth_user_id', user.id)
           .eq('role', 'attorney')
-          .single();
+          .maybeSingle();
 
         console.log('AttorneyIntakeTracker: rc_users query result:', { rcUser, error: rcUserError });
+        console.log('AttorneyIntakeTracker: rc_users query - data:', rcUser);
+        console.log('AttorneyIntakeTracker: rc_users query - error:', rcUserError);
         
-        if (rcUser?.id) {
+        if (!rcUser || !rcUser.id) {
+          console.log('AttorneyIntakeTracker: No rc_user found for this auth_user_id!');
+          console.log('AttorneyIntakeTracker: Searched for auth_user_id:', user.id);
+          console.log('AttorneyIntakeTracker: Check if:');
+          console.log('  - rc_users table has a row with auth_user_id =', user.id);
+          console.log('  - The role column equals "attorney"');
+          console.log('  - The column name is correct (auth_user_id, not user_id or auth_uid)');
+          console.warn('AttorneyIntakeTracker: No rc_user found for attorney, cannot filter by attorney_id');
+        } else {
           attorneyRcUserId = rcUser.id;
           query = query.eq('rc_cases.attorney_id', rcUser.id);
+          console.log('AttorneyIntakeTracker: Successfully found rc_user ID:', rcUser.id);
+          console.log('AttorneyIntakeTracker: rc_user details:', { id: rcUser.id, auth_user_id: rcUser.auth_user_id, role: rcUser.role });
           console.log('AttorneyIntakeTracker: Filtering by attorney_id:', rcUser.id);
-        } else {
-          console.warn('AttorneyIntakeTracker: No rc_user found for attorney, cannot filter by attorney_id');
         }
       } else {
         console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
