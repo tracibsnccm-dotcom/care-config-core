@@ -81,29 +81,24 @@ export const AttorneyIntakeTracker = () => {
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
       
-      // Query rc_client_intakes - include pending, confirmed, and declined
-      // Show all intakes that need attorney attention (pending) or have been resolved
+      // Query rc_client_intakes with join to rc_cases to filter by attorney_id
+      // rc_client_intakes.case_id -> rc_cases.id -> rc_cases.attorney_id
       let query = supabase
         .from('rc_client_intakes')
         .select(`
-          id,
-          case_id,
-          intake_submitted_at,
-          attorney_confirm_deadline_at,
-          attorney_attested_at,
-          intake_status,
-          intake_json,
-          created_at,
+          *,
           rc_cases!inner (
+            id,
+            attorney_id,
             client_id,
-            attorney_id
+            case_type
           )
         `)
         .in('intake_status', ['submitted_pending_attorney', 'attorney_confirmed', 'attorney_declined_not_client']);
 
-      console.log('AttorneyIntakeTracker: Base query built - table: rc_client_intakes, status filter: submitted_pending_attorney, attorney_confirmed, attorney_declined_not_client');
+      console.log('AttorneyIntakeTracker: Base query built - table: rc_client_intakes with inner join to rc_cases');
 
-      // If "mine" scope, filter by attorney_id in cases
+      // If "mine" scope, filter by attorney_id in rc_cases
       let attorneyRcUserId: string | null = null;
       if (scope === 'mine' && user) {
         // TEMPORARY DEBUG: Hardcode attorney ID to test intake query
@@ -112,6 +107,7 @@ export const AttorneyIntakeTracker = () => {
         
         // Use hardcoded ID instead of querying rc_users
         attorneyRcUserId = hardcodedAttorneyId;
+        // Filter where rc_cases.attorney_id equals the attorney's rc_user ID
         query = query.eq('rc_cases.attorney_id', hardcodedAttorneyId);
         
         // TEMPORARY: Skip the actual query - commented out for debugging
