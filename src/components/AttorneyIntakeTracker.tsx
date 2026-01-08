@@ -106,11 +106,19 @@ export const AttorneyIntakeTracker = () => {
       const accessToken = session?.access_token;
       const authUserId = session?.user?.id;
       
+      console.log('Session:', session);
+      console.log('Access token exists:', !!accessToken);
+      console.log('Auth user ID:', authUserId);
+      
       if (scope === 'mine' && user && authUserId) {
         try {
           // Look up their rc_users.id using direct fetch with access token
-          const rcUsers = await supabaseFetch('rc_users', `auth_user_id=eq.${authUserId}&select=id`, accessToken);
+          const rcUsersQuery = `auth_user_id=eq.${authUserId}&select=id`;
+          console.log('RC Users query:', rcUsersQuery);
+          const rcUsers = await supabaseFetch('rc_users', rcUsersQuery, accessToken);
+          console.log('RC Users result:', rcUsers);
           attorneyRcUserId = Array.isArray(rcUsers) ? (rcUsers[0]?.id || null) : (rcUsers?.id || null);
+          console.log('Attorney RC User ID:', attorneyRcUserId);
         } catch (err) {
           console.error('Failed to get attorney rc_user ID:', err);
         }
@@ -122,6 +130,8 @@ export const AttorneyIntakeTracker = () => {
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
       }
+      
+      console.log('Full query string:', queryString);
       
       // Use access token for RLS-protected queries
       const intakes = await supabaseFetch('rc_client_intakes', queryString, accessToken);
