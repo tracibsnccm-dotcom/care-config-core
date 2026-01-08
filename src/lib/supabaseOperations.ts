@@ -33,20 +33,25 @@ export interface AuditEvent {
  * Write a single audit log entry directly to Supabase
  */
 export async function audit(ev: AuditEvent) {
-  const entry = {
-    ts: ev.ts || new Date().toISOString(),
-    actor_role: ev.actorRole,
-    actor_id: ev.actorId,
-    action: ev.action,
-    case_id: ev.caseId || null,
-    meta: ev.meta || null,
-  };
+  try {
+    const entry = {
+      ts: ev.ts || new Date().toISOString(),
+      actor_role: ev.actorRole,
+      actor_id: ev.actorId,
+      action: ev.action,
+      case_id: ev.caseId || null,
+      meta: ev.meta || null,
+    };
 
-  const { error } = await supabase.from("audit_logs").insert(entry);
+    const { error } = await supabase.from("audit_logs").insert(entry);
 
-  if (error) {
-    console.error("[audit] Failed to log audit event:", error);
-    throw new Error(`Audit logging failed: ${error.message}`);
+    if (error) {
+      console.error("[audit] Failed to log audit event:", error);
+      // Don't throw - just log the error so it doesn't block the main flow
+    }
+  } catch (error) {
+    console.error("[audit] Exception logging audit event:", error);
+    // Don't throw - just log the error so it doesn't block the main flow
   }
 }
 

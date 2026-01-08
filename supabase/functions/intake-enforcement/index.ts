@@ -77,6 +77,11 @@ serve(async (req: Request) => {
     console.log("[intake-enforcement] Starting enforcement job...");
 
     // Step 1: Find all pending intakes that need processing
+    // Query for intakes that could need reminders OR expiration:
+    // - intake_status === 'submitted_pending_attorney'
+    // - attorney_attested_at IS NULL
+    // - attorney_confirm_deadline_at IS NOT NULL
+    // We'll check expiration and reminder thresholds in the loop below
     const { data: pendingIntakes, error: queryError } = await supabase
       .from("rc_client_intakes")
       .select(`
@@ -132,11 +137,18 @@ serve(async (req: Request) => {
         const clientId = caseData?.client_id;
         const attorneyId = caseData?.attorney_id || (typeof intake.attorney_id === 'string' ? intake.attorney_id : undefined);
 
+        // Double-check expiration (already filtered in query, but verify)
         const deadlineDate = new Date(intake.attorney_confirm_deadline_at);
         const msRemaining = deadlineDate.getTime() - now.getTime();
 
-        // Check if expired
-        if (msRemaining <= 0) {
+        // Only expire if still in pending status, not attested, and deadline passed
+        // (These should already be filtered by the query, but verify for safety)
+        const shouldExpire = 
+          intake.intake_status === 'submitted_pending_attorney' &&
+          !intake.attorney_attested_at &&
+          msRemaining <= 0;
+
+        if (shouldExpire) {
           console.log(`[intake-enforcement] Intake ${intake.id} has expired, processing deletion...`);
           
           // Handle expiry: create tombstone, scrub PHI, send expired notices

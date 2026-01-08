@@ -64,7 +64,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
-import { CLIENT_INTAKE_WINDOW_HOURS, formatHMS } from "@/constants/compliance";
+import { CLIENT_INTAKE_WINDOW_HOURS, formatHMS, CLIENT_DOCUMENTS } from "@/constants/compliance";
+import { Input } from "@/components/ui/input";
+import { Printer } from "lucide-react";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
@@ -89,6 +91,17 @@ export default function IntakeWizard() {
   const [sensitiveProgress, setSensitiveProgress] = useState<SensitiveExperiencesProgress | null>(null);
   const [intakeStartedAt, setIntakeStartedAt] = useState<Date | null>(null); // Track when intake was first started
   const [clientWindowExpired, setClientWindowExpired] = useState(false);
+  
+  // Electronic signature state
+  const [clientEsign, setClientEsign] = useState<{
+    agreed: boolean;
+    signerFullName: string;
+    signerInitials: string;
+  }>({
+    agreed: false,
+    signerFullName: "",
+    signerInitials: "",
+  });
   
   // Mental health screening
   const [mentalHealth, setMentalHealth] = useState({
@@ -243,6 +256,17 @@ export default function IntakeWizard() {
         description: "Your 7-day intake window has expired. Please restart the intake process.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check if e-signature is completed
+    if (!clientEsign.agreed || !clientEsign.signerFullName.trim()) {
+      toast({
+        title: "E-Signature Required",
+        description: "Please complete the Consent & Privacy step and provide your electronic signature before submitting.",
+        variant: "destructive",
+      });
+      setStep(5); // Navigate to consent step
       return;
     }
 
@@ -485,6 +509,7 @@ export default function IntakeWizard() {
 
         // Record intake completion in rc_client_intakes table (MVP: gates Client Portal access per-case)
         // Build intake_json payload with all intake data
+        const nowISO = new Date().toISOString();
         const intakeJson = {
           client: {
             ...client,
@@ -513,6 +538,29 @@ export default function IntakeWizard() {
           status: newCase.status,
           createdAt: newCase.created_at,
           updatedAt: newCase.updated_at,
+          compliance: {
+            client_esign: {
+              signed: true,
+              signed_at: nowISO,
+              signer_full_name: clientEsign.signerFullName.trim(),
+              signer_initials: clientEsign.signerInitials.trim() || null,
+              signature_method: "typed_name",
+              documents: {
+                privacy_policy: {
+                  version: "v1.0",
+                  text: CLIENT_DOCUMENTS.clientPrivacyPolicyText,
+                },
+                hipaa_notice: {
+                  version: "v1.0",
+                  text: CLIENT_DOCUMENTS.clientHipaaNoticeText,
+                },
+                consent_to_care: {
+                  version: "v1.0",
+                  text: CLIENT_DOCUMENTS.clientConsentToCareText,
+                },
+              },
+            },
+          },
         };
 
         // Get attorney_id from rc_cases if available, otherwise use attorneyCode as text
@@ -1547,8 +1595,216 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        {/* Step 5: Review */}
+        {/* Step 5: Consent & Privacy */}
         {step === 5 && (
+          <Card className="p-6 border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-4">{CLIENT_DOCUMENTS.clientConsentTitle}</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Please review and electronically sign the following documents before submitting your intake.
+            </p>
+
+            {/* Document Sections - Scrollable */}
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 mb-6 border rounded-lg p-4">
+              {/* Privacy Policy */}
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-foreground mb-3">Privacy Policy</h4>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {CLIENT_DOCUMENTS.clientPrivacyPolicyText}
+                </div>
+              </div>
+
+              {/* HIPAA Notice */}
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-foreground mb-3">HIPAA Notice of Privacy Practices</h4>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {CLIENT_DOCUMENTS.clientHipaaNoticeText}
+                </div>
+              </div>
+
+              {/* Consent to Care Coordination */}
+              <div className="pb-4">
+                <h4 className="font-semibold text-foreground mb-3">Consent to Care Coordination</h4>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {CLIENT_DOCUMENTS.clientConsentToCareText}
+                </div>
+              </div>
+            </div>
+
+            {/* E-signature Section */}
+            <div className="space-y-4 border-t pt-6">
+              <p className="text-sm text-muted-foreground italic">
+                {CLIENT_DOCUMENTS.clientEsignDisclosureText}
+              </p>
+
+              {/* Agreement Checkbox */}
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="consent-agreement"
+                  checked={clientEsign.agreed}
+                  onCheckedChange={(checked) =>
+                    setClientEsign((prev) => ({ ...prev, agreed: checked as boolean }))
+                  }
+                  className="mt-1"
+                />
+                <Label htmlFor="consent-agreement" className="cursor-pointer text-sm leading-relaxed">
+                  I have read and agree to the Privacy Policy, HIPAA Notice, and Consent to Care Coordination.
+                </Label>
+              </div>
+
+              {/* Full Legal Name */}
+              <div>
+                <Label htmlFor="signer-full-name" className="text-sm font-medium">
+                  Full Legal Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="signer-full-name"
+                  value={clientEsign.signerFullName}
+                  onChange={(e) =>
+                    setClientEsign((prev) => ({ ...prev, signerFullName: e.target.value }))
+                  }
+                  placeholder="Enter your full legal name"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Initials (Optional) */}
+              <div>
+                <Label htmlFor="signer-initials" className="text-sm font-medium">
+                  Initials (Optional)
+                </Label>
+                <Input
+                  id="signer-initials"
+                  value={clientEsign.signerInitials}
+                  onChange={(e) =>
+                    setClientEsign((prev) => ({ ...prev, signerInitials: e.target.value }))
+                  }
+                  placeholder="Enter your initials"
+                  className="mt-1 max-w-[200px]"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => {
+                  // Helper to escape HTML
+                  const escapeHtml = (s: string) => s
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+
+                  // Open print view
+                  const signedDate = new Date().toLocaleString();
+                  const signatureName = clientEsign.signerFullName.trim() || "[Not yet signed]";
+                  const signatureMethod = "Signed electronically (typed name)";
+                  
+                  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Client Consent Documents</title>
+    <style>
+      @page { size: Letter; margin: 0.75in; }
+      body { 
+        font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        color: #0f172a;
+        line-height: 1.6;
+      }
+      .header { margin-bottom: 24px; }
+      .title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+      .hr { height: 1px; background: #e2e8f0; margin: 16px 0; }
+      .document-section { margin-bottom: 32px; }
+      .document-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+      .document-text { font-size: 12px; white-space: pre-wrap; line-height: 1.6; }
+      .signature-block { margin-top: 32px; padding-top: 24px; border-top: 2px solid #0f172a; }
+      .signature-info { margin-bottom: 16px; font-size: 12px; }
+      .signature-line { margin-top: 24px; }
+      .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #64748b; text-align: center; }
+      @media print { .no-print { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title">Client Consent Documents</div>
+    </div>
+    <div class="hr"></div>
+    
+    <div class="document-section">
+      <div class="document-title">Privacy Policy</div>
+      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientPrivacyPolicyText).replace(/\n/g, '<br>')}</div>
+    </div>
+    
+    <div class="document-section">
+      <div class="document-title">HIPAA Notice of Privacy Practices</div>
+      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientHipaaNoticeText).replace(/\n/g, '<br>')}</div>
+    </div>
+    
+    <div class="document-section">
+      <div class="document-title">Consent to Care Coordination</div>
+      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientConsentToCareText).replace(/\n/g, '<br>')}</div>
+    </div>
+    
+    <div class="signature-block">
+      <div class="signature-info">
+        <div><strong>Signed by:</strong> ${escapeHtml(signatureName)}</div>
+        <div><strong>Signed at:</strong> ${escapeHtml(signedDate)}</div>
+        <div><strong>Signature Method:</strong> ${escapeHtml(signatureMethod)}</div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      Confidential — Client Record
+    </div>
+    
+    <div class="no-print" style="margin-top:16px;">
+      <button onclick="window.print()" style="padding: 8px 16px; font-size: 14px; cursor: pointer; background: #0f172a; color: white; border: none; border-radius: 4px;">
+        Print / Save as PDF
+      </button>
+    </div>
+    <script>window.onload = () => setTimeout(() => window.print(), 250);</script>
+  </body>
+</html>`;
+
+                  const w = window.open("", "_blank");
+                  if (!w) {
+                    toast({
+                      title: "Print Preview Failed",
+                      description: "Please allow pop-ups to print these documents.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  w.document.open();
+                  w.document.write(html);
+                  w.document.close();
+                }}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Print / Save Copy
+              </Button>
+              <Button
+                onClick={() => setStep(6)}
+                disabled={!clientEsign.agreed || !clientEsign.signerFullName.trim()}
+                className="flex-1"
+              >
+                Sign & Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button variant="secondary" onClick={() => setStep(4)}>
+                Back
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Step 6: Review */}
+        {step === 6 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
@@ -1841,15 +2097,18 @@ export default function IntakeWizard() {
             <WizardNav 
               step={step} 
               setStep={setStep} 
-              last={5}
+              last={6}
               canAdvance={
                 step === 2 ? hasMeds !== '' : 
                 step === 3 ? (sensitiveProgress ? !sensitiveProgress.blockNavigation : true) :
+                step === 5 ? (clientEsign.agreed && clientEsign.signerFullName.trim().length > 0) :
                 true
               }
               blockReason={
                 step === 3 && sensitiveProgress?.blockNavigation 
                   ? 'Please complete consent choices in the Sensitive Experiences section'
+                  : step === 5 && (!clientEsign.agreed || !clientEsign.signerFullName.trim())
+                  ? 'Please agree to the documents and provide your full legal name'
                   : undefined
               }
             />

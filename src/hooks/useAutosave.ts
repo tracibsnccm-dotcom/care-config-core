@@ -34,37 +34,48 @@ export function useAutosave({
       // Don't save if data hasn't changed
       if (currentData === lastSavedRef.current) return;
 
+      const draftJson = { formData, step };
+      const updateData: any = {
+        draft_json: draftJson,
+        status: 'draft',
+        updated_at: new Date().toISOString(),
+      };
+
       if (draftIdRef.current) {
         // Update existing draft
         const { error } = await supabase
           .from('intake_drafts')
-          .update({
-            form_data: formData,
-            step: step,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updateData)
           .eq('id', draftIdRef.current);
 
         if (error) throw error;
+        console.debug('Autosave: draft updated');
       } else {
         // Create new draft
+        const insertData: any = {
+          owner_user_id: user.id,
+          draft_json: draftJson,
+          status: 'draft',
+        };
+
+        if (caseId) {
+          insertData.case_id = caseId;
+        }
+
         const { data, error } = await supabase
           .from('intake_drafts')
-          .insert({
-            user_id: user.id,
-            case_id: caseId,
-            form_data: formData,
-            step: step,
-          })
+          .insert(insertData)
           .select()
           .single();
 
         if (error) throw error;
-        if (data) draftIdRef.current = data.id;
+        if (data) {
+          draftIdRef.current = data.id;
+          console.debug('Autosave: draft created');
+        }
       }
 
       lastSavedRef.current = currentData;
-      console.log('Draft autosaved:', new Date().toLocaleTimeString());
     } catch (error) {
       console.error('Autosave failed:', error);
     }
@@ -89,22 +100,28 @@ export function useAutosave({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('intake_drafts')
         .select('*')
-        .eq('user_id', user.id)
-        .gt('expires_at', new Date().toISOString())
+        .eq('owner_user_id', user.id)
         .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      if (caseId) {
+        query = query.eq('case_id', caseId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
       
-      if (data) {
+      if (data && data.draft_json) {
         draftIdRef.current = data.id;
+        const { formData, step } = data.draft_json;
+        console.debug('Autosave: draft loaded');
         return {
-          formData: data.form_data,
-          step: data.step,
+          formData,
+          step,
           updatedAt: data.updated_at,
         };
       }
@@ -114,7 +131,7 @@ export function useAutosave({
       console.error('Failed to load draft:', error);
       return null;
     }
-  }, [enabled]);
+  }, [enabled, caseId]);
 
   const deleteDraft = useCallback(async () => {
     if (!draftIdRef.current) return;

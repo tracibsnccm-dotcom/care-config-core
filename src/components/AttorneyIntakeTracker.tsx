@@ -36,6 +36,7 @@ async function supabaseFetch(table: string, query: string = '') {
 }
 
 interface IntakeRow {
+  intake_id?: string;
   case_id: string;
   client: string;
   stage: string;
@@ -131,6 +132,7 @@ export const AttorneyIntakeTracker = () => {
         }
         
         return {
+          intake_id: intake.id,
           case_id: intake.case_id,
           client: 'Client', // Will need to fetch client name separately if needed
           stage,
@@ -157,13 +159,16 @@ export const AttorneyIntakeTracker = () => {
     }
   };
 
-  const loadIntakeForCase = async (caseId: string) => {
+  const loadIntakeForCase = async (caseId: string, intakeId?: string) => {
     setLoadingIntake(true);
     try {
-      const queryString = `select=id,case_id,intake_submitted_at,attorney_confirm_deadline_at,attorney_attested_at,intake_status,intake_json,created_at,rc_cases(id,client_id,attorney_id)&case_id=eq.${caseId}&order=created_at.desc&limit=1`;
-      const results = await supabaseFetch('rc_client_intakes', queryString);
-      
-      const updatedIntake = (Array.isArray(results) ? results[0] : results) as PendingIntake | null;
+      // Load intake with case data for the attestation modal
+      // If intakeId is provided, load by id; otherwise load by case_id
+      const queryFilter = intakeId 
+        ? `id=eq.${intakeId}` 
+        : `case_id=eq.${caseId}&order=created_at.desc&limit=1`;
+      const intakeData = await supabaseFetch('rc_client_intakes', `select=*,rc_cases(id,attorney_id,case_type,client_id)&${queryFilter}`);
+      const updatedIntake = (Array.isArray(intakeData) ? intakeData[0] : intakeData) as PendingIntake | null;
       setSelectedIntake(updatedIntake);
       
       if (updatedIntake?.attorney_attested_at) {
@@ -178,10 +183,10 @@ export const AttorneyIntakeTracker = () => {
     }
   };
 
-  const handleViewIntake = (caseId: string) => {
+  const handleViewIntake = (caseId: string, intakeId?: string) => {
     setSelectedCaseId(caseId);
     setResolution(null); // Reset resolution when viewing a new intake
-    loadIntakeForCase(caseId);
+    loadIntakeForCase(caseId, intakeId);
   };
 
   const handleNudge = async (caseId: string) => {
@@ -328,7 +333,11 @@ export const AttorneyIntakeTracker = () => {
               }
               // Re-fetch latest intake after a short delay to ensure consistency
               setTimeout(() => {
-                loadIntakeForCase(selectedCaseId);
+                if (selectedIntake?.id) {
+                  loadIntakeForCase(selectedCaseId, selectedIntake.id);
+                } else {
+                  loadIntakeForCase(selectedCaseId);
+                }
               }, 500);
             }}
             onAttested={(attestedAt, updatedJson) => {
@@ -344,9 +353,15 @@ export const AttorneyIntakeTracker = () => {
                 ? 'Attestation complete. You can now view case details.'
                 : 'Action complete.');
               // Re-fetch the latest intake to ensure state is up to date
-              loadIntakeForCase(selectedCaseId).then(() => {
-                loadData();
-              });
+              if (selectedIntake?.id) {
+                loadIntakeForCase(selectedCaseId, selectedIntake.id).then(() => {
+                  loadData();
+                });
+              } else {
+                loadIntakeForCase(selectedCaseId).then(() => {
+                  loadData();
+                });
+              }
             }}
           />
         )}
@@ -569,7 +584,7 @@ export const AttorneyIntakeTracker = () => {
                     <td className="p-2">
                       <Button
                         variant="link"
-                        onClick={() => handleViewIntake(row.case_id)}
+                        onClick={() => handleViewIntake(row.case_id, row.intake_id)}
                         className="p-0 h-auto text-primary hover:underline"
                       >
                         {row.case_id}
@@ -599,7 +614,7 @@ export const AttorneyIntakeTracker = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleViewIntake(row.case_id)}
+                          onClick={() => handleViewIntake(row.case_id, row.intake_id)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
                           {isConfirmed ? 'View' : 'View/Attest'}
