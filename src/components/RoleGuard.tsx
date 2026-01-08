@@ -30,11 +30,30 @@ export function RoleGuard({
   console.log(`RoleGuard[${requiredRole}]: Starting role check`);
   console.log(`RoleGuard[${requiredRole}]: Loading:`, loading);
   console.log(`RoleGuard[${requiredRole}]: User:`, user);
-  console.log(`RoleGuard[${requiredRole}]: Roles:`, roles);
+  console.log(`RoleGuard[${requiredRole}]: Roles array:`, roles);
   console.log(`RoleGuard[${requiredRole}]: PrimaryRole:`, primaryRole);
+  console.log(`RoleGuard[${requiredRole}]: Required role (lowercase):`, requiredRole.toLowerCase());
+  console.log(`RoleGuard[${requiredRole}]: Required role (uppercase):`, requiredRole.toUpperCase());
+  
+  // Show detailed comparison
+  if (roles && roles.length > 0) {
+    console.log(`RoleGuard[${requiredRole}]: Comparing roles array:`, roles.map(r => ({
+      original: r,
+      uppercase: r.toUpperCase(),
+      matches: r.toUpperCase() === requiredRole.toUpperCase()
+    })));
+  }
+  if (primaryRole) {
+    console.log(`RoleGuard[${requiredRole}]: Comparing primaryRole:`, {
+      original: primaryRole,
+      uppercase: primaryRole.toUpperCase(),
+      requiredUppercase: requiredRole.toUpperCase(),
+      matches: primaryRole.toUpperCase() === requiredRole.toUpperCase()
+    });
+  }
 
   useEffect(() => {
-    console.log(`RoleGuard[${requiredRole}]: useEffect triggered - loading:`, loading, 'user:', !!user);
+    console.log(`RoleGuard[${requiredRole}]: useEffect triggered - loading:`, loading, 'user:', !!user, 'roles:', roles, 'primaryRole:', primaryRole);
     
     // Wait for auth to load
     if (loading) {
@@ -49,26 +68,63 @@ export function RoleGuard({
       return;
     }
 
-    // Check if user has the required role
-    const hasRole = roles.some(role => 
-      role.toUpperCase() === requiredRole.toUpperCase()
-    ) || primaryRole?.toUpperCase() === requiredRole.toUpperCase();
+    // Wait for roles to be loaded (roles array might be empty initially)
+    // If roles is empty and primaryRole is null, wait a bit more
+    if (roles.length === 0 && !primaryRole) {
+      console.log(`RoleGuard[${requiredRole}]: Roles not loaded yet (empty array, no primaryRole), waiting...`);
+      // Don't redirect yet - roles might still be loading
+      return;
+    }
 
-    console.log(`RoleGuard[${requiredRole}]: Has role check - roles:`, roles, 'primaryRole:', primaryRole, 'hasRole:', hasRole);
+    // Check if user has the required role
+    // Note: roles come from supabaseAuth as uppercase (e.g., 'ATTORNEY'), 
+    // but requiredRole is lowercase (e.g., 'attorney')
+    // We compare case-insensitively
+    const requiredUpper = requiredRole.toUpperCase();
+    console.log(`RoleGuard[${requiredRole}]: Comparing against required role (uppercase):`, requiredUpper);
+    
+    const rolesMatch = roles.some(role => {
+      const roleUpper = role.toUpperCase();
+      const matches = roleUpper === requiredUpper;
+      console.log(`RoleGuard[${requiredRole}]: Checking role "${role}" (${roleUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+      return matches;
+    });
+    
+    const primaryRoleMatch = primaryRole ? (() => {
+      const primaryUpper = primaryRole.toUpperCase();
+      const matches = primaryUpper === requiredUpper;
+      console.log(`RoleGuard[${requiredRole}]: Checking primaryRole "${primaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+      return matches;
+    })() : false;
+    
+    const hasRole = rolesMatch || primaryRoleMatch;
+
+    console.log(`RoleGuard[${requiredRole}]: Final role check result:`, {
+      rolesMatch,
+      primaryRoleMatch,
+      hasRole,
+      rolesArray: roles,
+      primaryRole,
+      requiredRole,
+      requiredUpper
+    });
 
     if (!hasRole) {
       console.log(`RoleGuard[${requiredRole}]: Access denied - redirecting to`, redirectTo);
+      console.log(`RoleGuard[${requiredRole}]: DEBUG - roles array:`, JSON.stringify(roles));
+      console.log(`RoleGuard[${requiredRole}]: DEBUG - primaryRole:`, primaryRole);
+      console.log(`RoleGuard[${requiredRole}]: DEBUG - requiredRole:`, requiredRole);
       // Show error briefly, then redirect
       if (showError) {
         // Store error message in sessionStorage for display on redirect page
         sessionStorage.setItem(
           'roleError',
-          `Access denied: This page requires ${requiredRole} role. Your current role: ${primaryRole || 'unknown'}`
+          `Access denied: This page requires ${requiredRole} role. Your current role: ${primaryRole || 'unknown'}. Roles array: ${JSON.stringify(roles)}`
         );
       }
       navigate(redirectTo, { replace: true });
     } else {
-      console.log(`RoleGuard[${requiredRole}]: Access granted`);
+      console.log(`RoleGuard[${requiredRole}]: Access granted - user has required role`);
     }
   }, [user, loading, roles, primaryRole, requiredRole, navigate, redirectTo, showError]);
 
@@ -95,12 +151,31 @@ export function RoleGuard({
     );
   }
 
-  // Check role
-  const hasRole = roles.some(role => 
-    role.toUpperCase() === requiredRole.toUpperCase()
-  ) || primaryRole?.toUpperCase() === requiredRole.toUpperCase();
+  // Check role (same logic as in useEffect)
+  const rolesMatch = roles.some(role => {
+    const roleUpper = role.toUpperCase();
+    const requiredUpper = requiredRole.toUpperCase();
+    const matches = roleUpper === requiredUpper;
+    console.log(`RoleGuard[${requiredRole}]: Render - Checking role "${role}" (${roleUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+    return matches;
+  });
+  
+  const primaryRoleMatch = primaryRole ? (() => {
+    const primaryUpper = primaryRole.toUpperCase();
+    const requiredUpper = requiredRole.toUpperCase();
+    const matches = primaryUpper === requiredUpper;
+    console.log(`RoleGuard[${requiredRole}]: Render - Checking primaryRole "${primaryRole}" (${primaryUpper}) === "${requiredRole}" (${requiredUpper}):`, matches);
+    return matches;
+  })() : false;
+  
+  const hasRole = rolesMatch || primaryRoleMatch;
 
-  console.log(`RoleGuard[${requiredRole}]: Render check - hasRole:`, hasRole);
+  console.log(`RoleGuard[${requiredRole}]: Render check - hasRole:`, hasRole, {
+    rolesMatch,
+    primaryRoleMatch,
+    rolesArray: roles,
+    primaryRole
+  });
 
   if (!hasRole) {
     console.log(`RoleGuard[${requiredRole}]: Rendering access denied`);
