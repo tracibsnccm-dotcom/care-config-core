@@ -2,13 +2,14 @@ import { useAuth } from "../auth/supabaseAuth";
 import { Navigate } from "react-router-dom";
 
 export default function RoleLandingRedirect() {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
   
   // Wait for auth to fully load before making routing decisions
   if (loading) return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
   if (!user) return <Navigate to="/access" replace />;
 
-  const r = new Set((user.roles || []).map(x => x.toUpperCase()));
+  // Use roles from auth context (fetched from rc_users table)
+  const r = new Set((roles || []).map(x => x.toUpperCase()));
 
   // Priority 1: Clinical Management roles (Supervisor/Manager/Director) - redirect to management portal
   if (r.has("RN_CM_SUPERVISOR") || r.has("RN_CM_MANAGER") || r.has("RN_CM_DIRECTOR")) {

@@ -19,10 +19,53 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Map rc_users role values to app role names
+function mapRcUserRoleToAppRole(rcRole: string): string {
+  const roleMap: Record<string, string> = {
+    'attorney': 'ATTORNEY',
+    'rn_cm': 'RN_CM',
+    'rn': 'RN_CM', // alias
+    'provider': 'PROVIDER',
+    'client': 'CLIENT',
+    'supervisor': 'RN_CM_SUPERVISOR',
+  };
+  return roleMap[rcRole.toLowerCase()] || rcRole.toUpperCase();
+}
+
+// Fetch user roles from rc_users table
+async function fetchUserRoles(authUserId: string): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('rc_users')
+      .select('role')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching user roles from rc_users:', error);
+      return [];
+    }
+
+    if (!data || !data.role) {
+      console.warn(`No role found in rc_users for user ${authUserId}`);
+      return [];
+    }
+
+    // Map the role to app role format
+    const appRole = mapRcUserRoleToAppRole(data.role);
+    return [appRole];
+  } catch (error) {
+    console.error('Exception fetching user roles:', error);
+    return [];
+  }
+}
+
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  roles: string[];
+  primaryRole: string | null;
   signInWithEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -32,7 +75,22 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Fetch roles when user changes
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (user?.id) {
+        const userRoles = await fetchUserRoles(user.id);
+        setRoles(userRoles);
+      } else {
+        setRoles([]);
+      }
+    };
+
+    void fetchRoles();
+  }, [user?.id]);
 
   useEffect(() => {
     const init = async () => {
@@ -48,9 +106,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session ?? null);
       setUser(session?.user ?? null);
+      // Fetch roles when auth state changes
+      if (session?.user?.id) {
+        const userRoles = await fetchUserRoles(session.user.id);
+        setRoles(userRoles);
+      } else {
+        setRoles([]);
+      }
     });
 
     return () => {
@@ -67,10 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const primaryRole = roles.length > 0 ? roles[0] : null;
+
   const value: AuthContextValue = {
     user,
     session,
     loading,
+    roles,
+    primaryRole,
     signInWithEmail,
     signOut,
   };
