@@ -44,7 +44,6 @@ interface PendingIntake {
 }
 
 export const AttorneyIntakeTracker = () => {
-  console.log('=== AttorneyIntakeTracker RENDER ===');
   const { user } = useAuth();
   const [rows, setRows] = useState<IntakeRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,42 +78,23 @@ export const AttorneyIntakeTracker = () => {
   };
 
   const loadData = async () => {
-    console.log('=== AttorneyIntakeTracker loadData FIRST LINE ===');
     try {
-      // Test if Supabase client works now
-      console.log('Testing Supabase client...');
-      const testStart = Date.now();
-      const { data: testData, error: testError } = await supabase
-        .from('rc_cases')
-        .select('id')
-        .limit(1);
-      console.log('Supabase client test completed in', Date.now() - testStart, 'ms');
-      console.log('Test result:', { testData, testError });
-      
       // Get current user's auth ID and look up their rc_user ID
       let attorneyRcUserId: string | null = null;
       
-      // Get session token for RLS-protected queries
+      // Get current user's auth ID for lookup
       const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
       const authUserId = session?.user?.id;
-      
-      console.log('Session:', session);
-      console.log('Access token exists:', !!accessToken);
-      console.log('Auth user ID:', authUserId);
       
       if (scope === 'mine' && user && authUserId) {
         try {
           // Look up their rc_users.id using REST helper
           const rcUsersQuery = `auth_user_id=eq.${authUserId}&select=id`;
-          console.log('RC Users query:', rcUsersQuery);
           const { data: rcUsers, error: rcUsersError } = await supabaseGet('rc_users', rcUsersQuery);
           if (rcUsersError) {
             throw rcUsersError;
           }
-          console.log('RC Users result:', rcUsers);
           attorneyRcUserId = Array.isArray(rcUsers) ? (rcUsers[0]?.id || null) : (rcUsers?.id || null);
-          console.log('Attorney RC User ID:', attorneyRcUserId);
         } catch (err) {
           console.error('Failed to get attorney rc_user ID:', err);
         }
@@ -126,8 +106,6 @@ export const AttorneyIntakeTracker = () => {
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
       }
-      
-      console.log('Full query string:', queryString);
       
       // Use REST helper for RLS-protected queries
       const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', queryString);
@@ -292,7 +270,6 @@ export const AttorneyIntakeTracker = () => {
   });
 
   useEffect(() => {
-    console.log('=== AttorneyIntakeTracker useEffect - about to call loadData ===');
     loadData();
     const interval = setInterval(() => {
       loadData();
