@@ -21,7 +21,6 @@ import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-
 import { ExportButton } from "@/components/AttorneyActions";
 import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettlementDossier";
 import { useAuth } from "@/auth/supabaseAuth";
-import { RoleGuard } from "@/components/RoleGuard";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
 import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
@@ -224,9 +223,7 @@ export default function AttorneyLanding() {
 
   console.log('=== AttorneyLanding: About to render RoleGuard ===');
   return (
-    <RoleGuard requiredRole="attorney" redirectTo="/attorney-login">
-      {(() => { console.log('=== AttorneyLanding: Inside RoleGuard, rendering content ==='); return null; })()}
-      <AppLayout>
+    <AppLayout>
       <PolicyAcknowledgmentBanner />
       
       <div className="p-8 pb-24 lg:pb-8">
@@ -689,7 +686,6 @@ export default function AttorneyLanding() {
         <MobileQuickActions />
       </div>
     </AppLayout>
-    </RoleGuard>
   );
 }
 
