@@ -15,13 +15,13 @@ interface RequireAuthProps {
  * Attorneys are redirected to /attorney-login, others to /auth.
  */
 export function RequireAuth({ children }: RequireAuthProps) {
-  const { user, loading } = useAuth();
-  console.log('=== RequireAuth: loading =', loading, 'user =', !!user);
+  const { user, authLoading } = useAuth();
+  console.log('=== RequireAuth: loading =', authLoading, 'user =', !!user);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Show nothing while checking auth
-  if (loading) {
+  if (authLoading) {
     console.log('=== RequireAuth: Returning loading state ===');
     return (
       <div className="min-h-screen bg-rcms-white flex items-center justify-center">

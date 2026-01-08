@@ -64,7 +64,9 @@ async function fetchUserRoles(authUserId: string): Promise<string[]> {
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
-  loading: boolean;
+  loading: boolean; // Backwards compatibility: authLoading || rolesLoading
+  authLoading: boolean; // True while checking if user is logged in
+  rolesLoading: boolean; // True while fetching roles
   roles: string[];
   primaryRole: string | null;
   signInWithEmail: (email: string) => Promise<void>;
@@ -77,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(true);
   const lastLoadedUserIdRef = useRef<string | null>(null);
 
@@ -110,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } = await supabase.auth.getSession();
       setSession(session ?? null);
       setUser(session?.user ?? null);
-      setLoading(false);
+      setAuthLoading(false);
     };
 
     void init();
@@ -162,14 +164,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const primaryRole = roles.length > 0 ? roles[0] : null;
 
-  // Loading is true if EITHER auth is loading OR roles are loading
+  // Backwards compatibility: loading is true if EITHER auth is loading OR roles are loading
   // This prevents race conditions where components see empty roles before they're fetched
-  const isLoading = loading || rolesLoading;
+  const loading = authLoading || rolesLoading;
 
   const value: AuthContextValue = {
     user,
     session,
-    loading: isLoading,
+    loading, // Backwards compatibility
+    authLoading,
+    rolesLoading,
     roles,
     primaryRole,
     signInWithEmail,
