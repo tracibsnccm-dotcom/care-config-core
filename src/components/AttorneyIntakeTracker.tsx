@@ -77,19 +77,21 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      console.log('=== AttorneyIntakeTracker: loadData called ===');
+      console.log('STEP 1: loadData started');
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
       
       // Test simplest possible rc_cases query BEFORE any other queries
-      console.log('AttorneyIntakeTracker: Testing simplest possible rc_cases query');
+      console.log('STEP 2: About to query supabase');
       const { data: testData, error: testError } = await supabase
         .from('rc_cases')
         .select('id')
         .limit(1);
 
+      console.log('STEP 3: Query completed', { data: testData, error: testError });
       console.log('Simple rc_cases test:', { testData, testError });
       
+      console.log('STEP 4: About to build main query');
       // Query rc_client_intakes with join to rc_cases to filter by attorney_id
       // rc_client_intakes.case_id -> rc_cases.id -> rc_cases.attorney_id
       let query = supabase
@@ -105,11 +107,12 @@ export const AttorneyIntakeTracker = () => {
         `)
         .in('intake_status', ['submitted_pending_attorney', 'attorney_confirmed', 'attorney_declined_not_client']);
 
-      console.log('AttorneyIntakeTracker: Base query built - table: rc_client_intakes with inner join to rc_cases');
+      console.log('STEP 5: Base query built - table: rc_client_intakes with inner join to rc_cases');
 
       // If "mine" scope, filter by attorney_id in rc_cases
       let attorneyRcUserId: string | null = null;
       if (scope === 'mine' && user) {
+        console.log('STEP 6: Scope is "mine", applying attorney filter');
         // TEMPORARY DEBUG: Hardcode attorney ID to test intake query
         const hardcodedAttorneyId = 'e995aad3-e8f5-4845-b3db-259d0321287e';
         console.log('Using hardcoded attorney ID:', hardcodedAttorneyId);
@@ -118,67 +121,15 @@ export const AttorneyIntakeTracker = () => {
         attorneyRcUserId = hardcodedAttorneyId;
         // Filter where rc_cases.attorney_id equals the attorney's rc_user ID
         query = query.eq('rc_cases.attorney_id', hardcodedAttorneyId);
-        
-        // TEMPORARY: Skip the actual query - commented out for debugging
-        /*
-        console.log('AttorneyIntakeTracker: Fetching attorney rc_user ID for scope="mine"');
-        console.log('AttorneyIntakeTracker: Querying rc_users for auth_user_id:', user.id);
-        console.log('AttorneyIntakeTracker: Query will use column: auth_user_id');
-        console.log('AttorneyIntakeTracker: supabase client:', supabase);
-        console.log('AttorneyIntakeTracker: About to execute rc_users query NOW');
-        
-        // Get attorney rc_user id if available
-        let rcUser: any = null;
-        let rcUserError: any = null;
-        
-        try {
-          const result = await supabase
-            .from('rc_users')
-            .select('id, auth_user_id, role')
-            .eq('auth_user_id', user.id)
-            .eq('role', 'attorney')
-            .maybeSingle();
-          
-          rcUser = result.data;
-          rcUserError = result.error;
-        } catch (e) {
-          console.error('AttorneyIntakeTracker: Query exception:', e);
-          console.error('AttorneyIntakeTracker: Exception details:', {
-            message: (e as Error)?.message,
-            stack: (e as Error)?.stack,
-            name: (e as Error)?.name,
-          });
-          rcUserError = e;
-        }
-
-        console.log('AttorneyIntakeTracker: rc_users query result:', { rcUser, error: rcUserError });
-        console.log('AttorneyIntakeTracker: rc_users query - data:', rcUser);
-        console.log('AttorneyIntakeTracker: rc_users query - error:', rcUserError);
-        
-        if (!rcUser || !rcUser.id) {
-          console.log('AttorneyIntakeTracker: No rc_user found for this auth_user_id!');
-          console.log('AttorneyIntakeTracker: Searched for auth_user_id:', user.id);
-          console.log('AttorneyIntakeTracker: Check if:');
-          console.log('  - rc_users table has a row with auth_user_id =', user.id);
-          console.log('  - The role column equals "attorney"');
-          console.log('  - The column name is correct (auth_user_id, not user_id or auth_uid)');
-          console.warn('AttorneyIntakeTracker: No rc_user found for attorney, cannot filter by attorney_id');
-        } else {
-          attorneyRcUserId = rcUser.id;
-          query = query.eq('rc_cases.attorney_id', rcUser.id);
-          console.log('AttorneyIntakeTracker: Successfully found rc_user ID:', rcUser.id);
-          console.log('AttorneyIntakeTracker: rc_user details:', { id: rcUser.id, auth_user_id: rcUser.auth_user_id, role: rcUser.role });
-          console.log('AttorneyIntakeTracker: Filtering by attorney_id:', rcUser.id);
-        }
-        */
+        console.log('STEP 7: Applied attorney filter to query');
       } else {
-        console.log('AttorneyIntakeTracker: Scope is "all", not filtering by attorney_id');
+        console.log('STEP 6: Scope is "all", not filtering by attorney_id');
       }
 
-      console.log('AttorneyIntakeTracker: Executing final query with attorney ID filter:', attorneyRcUserId);
+      console.log('STEP 8: Executing final query with attorney ID filter:', attorneyRcUserId);
       const { data: intakes, error } = await query;
       
-      console.log('AttorneyIntakeTracker: Query executed');
+      console.log('STEP 9: Query executed');
       console.log('AttorneyIntakeTracker: Supabase query result:', JSON.stringify({ data: intakes, error }, null, 2));
       console.log('AttorneyIntakeTracker: Query returned data:', intakes);
       console.log('AttorneyIntakeTracker: Query returned error:', error);
