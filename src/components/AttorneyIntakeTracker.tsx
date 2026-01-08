@@ -8,12 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { HelpCircle, Clock, ArrowLeft, Eye, AlertTriangle, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { AttorneyAttestationCard } from '@/components/AttorneyAttestationCard';
 import { formatHMS, COMPLIANCE_COPY } from '@/constants/compliance';
 import { useAuth } from '@/auth/supabaseAuth';
+// Do NOT import supabase at module level to avoid circular dependency issues
+// Use dynamic import instead
+
+// Helper function to safely get supabase client with error handling
+// Uses dynamic import to avoid initialization order issues
+async function getSupabaseClient() {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    if (!supabase) {
+      console.error('Supabase client is not initialized');
+      return null;
+    }
+    return supabase;
+  } catch (err) {
+    console.error('Error loading supabase client:', err);
+    return null;
+  }
+}
 
 interface IntakeRow {
   case_id: string;
@@ -77,22 +94,35 @@ export const AttorneyIntakeTracker = () => {
 
   const loadData = async () => {
     try {
-      // Check supabase client initialization BEFORE any await
+      // Get supabase client using lazy loader to avoid initialization errors
       console.log('STEP 0: Supabase client check');
-      console.log('Supabase object:', supabase);
-      console.log('Supabase from function:', typeof supabase?.from);
+      const supabaseClient = await getSupabaseClient();
+      
+      if (!supabaseClient) {
+        console.error('ERROR: Supabase client is not initialized!');
+        toast.error('Failed to initialize database connection');
+        return;
+      }
+      console.log('Supabase object:', supabaseClient);
+      console.log('Supabase from function:', typeof supabaseClient?.from);
 
       // Test auth (doesn't hit database) - use .then() instead of await to avoid hanging
-      supabase.auth.getSession().then(({ data, error }) => {
-        console.log('Auth session result:', { data, error });
-      });
+      if (supabaseClient?.auth) {
+        supabaseClient.auth.getSession().then(({ data, error }) => {
+          console.log('Auth session result:', { data, error });
+        }).catch((err) => {
+          console.error('Auth session error:', err);
+        });
+      } else {
+        console.error('ERROR: supabase.auth is not available!');
+      }
 
       console.log('AttorneyIntakeTracker: Scope:', scope);
       console.log('AttorneyIntakeTracker: User ID:', user?.id);
 
       // Now test database
       console.log('STEP 4: About to query database');
-      const { data: testData, error: testError } = await supabase
+      const { data: testData, error: testError } = await supabaseClient
         .from('rc_cases')
         .select('id')
         .limit(1);
@@ -102,7 +132,7 @@ export const AttorneyIntakeTracker = () => {
       console.log('STEP 4: About to build main query');
       // Query rc_client_intakes with join to rc_cases to filter by attorney_id
       // rc_client_intakes.case_id -> rc_cases.id -> rc_cases.attorney_id
-      let query = supabase
+      let query = supabaseClient
         .from('rc_client_intakes')
         .select(`
           *,
@@ -201,8 +231,12 @@ export const AttorneyIntakeTracker = () => {
   const loadIntakeForCase = async (caseId: string) => {
     setLoadingIntake(true);
     try {
+      const supabaseClient = await getSupabaseClient();
+      if (!supabaseClient) {
+        throw new Error('Database connection not available');
+      }
       // Fetch the latest intake record for this case (regardless of status)
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('rc_client_intakes')
         .select(`
           id,
@@ -250,7 +284,12 @@ export const AttorneyIntakeTracker = () => {
 
   const handleNudge = async (caseId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('attorney-intake-tracker', {
+      const supabaseClient = await getSupabaseClient();
+      if (!supabaseClient) {
+        toast.error('Database connection not available');
+        return;
+      }
+      const { error } = await supabaseClient.functions.invoke('attorney-intake-tracker', {
         body: { action: 'nudge', case_id: caseId }
       });
       if (error) throw error;
@@ -266,7 +305,12 @@ export const AttorneyIntakeTracker = () => {
     if (!confirm('Escalate this intake to RN CM now?')) return;
 
     try {
-      const { error } = await supabase.functions.invoke('attorney-intake-tracker', {
+      const supabaseClient = await getSupabaseClient();
+      if (!supabaseClient) {
+        toast.error('Database connection not available');
+        return;
+      }
+      const { error } = await supabaseClient.functions.invoke('attorney-intake-tracker', {
         body: { action: 'escalate', case_id: caseId }
       });
       if (error) throw error;
