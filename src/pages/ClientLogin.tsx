@@ -58,6 +58,10 @@ export default function ClientLogin() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log('ClientLogin: handleSubmit called');
+    console.log('ClientLogin: caseNumber =', caseNumber);
+    console.log('ClientLogin: pin =', pin);
+    
     setLoading(true);
     setError(null);
     setLockedUntil(null);
@@ -74,10 +78,12 @@ export default function ClientLogin() {
     try {
       // Look up case by case_number (URL encode the case number for the query)
       const encodedCaseNumber = encodeURIComponent(trimmedCaseNumber);
+      console.log('ClientLogin: About to fetch case');
       const { data: cases, error: casesError } = await publicSupabaseGet(
         'rc_cases',
         `select=id,client_id,client_pin,pin_failed_attempts,pin_locked_until&case_number=eq.${encodedCaseNumber}&limit=1`
       );
+      console.log('ClientLogin: Fetch result', { data: cases, error: casesError });
 
       if (casesError) {
         throw new Error(`Failed to look up case: ${casesError.message}`);
