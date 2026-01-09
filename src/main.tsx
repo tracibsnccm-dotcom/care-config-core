@@ -34,6 +34,7 @@ import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyLogin from "./pages/AttorneyLogin";
+import ClientLogin from "./pages/ClientLogin";
 import Access from "./pages/Access";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
@@ -140,6 +141,12 @@ function Root() {
     // Separate login flow for attorneys (NOT through /auth)
     if (pathname === "/attorney-login" || pathname.startsWith("/attorney-login")) {
       return <AttorneyLogin />;
+    }
+
+    // MVP Client Login: "/client-login" routes to ClientLogin component
+    // Separate login flow for clients using case_number + PIN
+    if (pathname === "/client-login" || pathname.startsWith("/client-login")) {
+      return <ClientLogin />;
     }
 
     // MVP Attorney Console: "/attorney-console" routes to AttorneyLanding component
