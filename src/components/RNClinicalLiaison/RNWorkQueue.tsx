@@ -53,29 +53,33 @@ export function RNWorkQueue() {
 
       const workItems: WorkQueueItem[] = [];
 
-      // Fetch diary entries
-      const { data: entries } = await supabase
-        .from("rn_diary_entries")
-        .select("*")
-        .eq("rn_id", user.id);
+      // Fetch cases ready for RN review (attorney_confirmed intakes)
+      const { data: confirmedIntakes } = await supabase
+        .from("rc_client_intakes")
+        .select("case_id, intake_submitted_at, intake_json")
+        .eq("intake_status", "attorney_confirmed");
+
+      const caseIds = confirmedIntakes?.map(i => i.case_id) || [];
+
+      if (caseIds.length === 0) {
+        return [];
+      }
+
+      // Fetch case data from rc_cases
+      const { data: cases } = await supabase
+        .from("rc_cases")
+        .select("id, case_status, case_type, created_at")
+        .in("id", caseIds);
 
       // Fetch case alerts for emergency detection
       const { data: alerts } = await supabase
         .from("case_alerts")
         .select("case_id, severity, message, alert_type")
         .eq("severity", "high")
-        .is("acknowledged_at", null);
+        .is("acknowledged_at", null)
+        .in("case_id", caseIds);
 
-      // Fetch cases assigned to this RN
-      const { data: assignments } = await supabase
-        .from("case_assignments")
-        .select("case_id")
-        .eq("user_id", user.id)
-        .eq("role", "RN_CCM");
-
-      const caseIds = assignments?.map(a => a.case_id) || [];
-      
-      // Fetch tasks for assigned cases
+      // Fetch tasks for these cases (keep case_tasks for now)
       const { data: tasks } = await supabase
         .from("case_tasks")
         .select("*")
@@ -87,19 +91,22 @@ export function RNWorkQueue() {
         alerts?.filter(a => a.severity === "high").map(a => a.case_id) || []
       );
 
-      // Process diary entries
-      entries?.forEach(entry => {
-        const isEmergency = emergencyCases.has(entry.case_id) || entry.priority === "urgent";
+      // Process cases as work items
+      cases?.forEach(caseItem => {
+        const intake = confirmedIntakes?.find(i => i.case_id === caseItem.id);
+        const isEmergency = emergencyCases.has(caseItem.id);
+        
+        // Create work item for the case itself
         workItems.push({
-          id: entry.id,
-          case_id: entry.case_id,
-          type: entry.entry_type || "diary_entry",
-          description: entry.description || "No description",
-          due_date: entry.scheduled_date,
-          priority: entry.priority,
-          status: entry.completion_status,
+          id: caseItem.id,
+          case_id: caseItem.id,
+          type: "case_review",
+          description: `Case review required - ${caseItem.case_type || "N/A"}`,
+          due_date: intake?.intake_submitted_at || caseItem.created_at || new Date().toISOString(),
+          priority: isEmergency ? "urgent" : "high",
+          status: "pending",
           is_emergency: isEmergency,
-          alert_message: isEmergency ? alerts?.find(a => a.case_id === entry.case_id)?.message : undefined
+          alert_message: isEmergency ? alerts?.find(a => a.case_id === caseItem.id)?.message : undefined
         });
       });
 
