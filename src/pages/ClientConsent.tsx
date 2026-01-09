@@ -297,6 +297,8 @@ export default function ClientConsent() {
         await saveConsentStep(sessionId, 5, {
           signature: hipaaSignature,
         });
+        // Mark consents as completed in sessionStorage
+        sessionStorage.setItem("rcms_consents_completed", "true");
         // All steps complete - redirect to intake
         navigate("/client-intake");
       } catch (err: any) {

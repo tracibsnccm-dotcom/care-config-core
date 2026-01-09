@@ -70,6 +70,18 @@ import { Printer } from "lucide-react";
 export default function IntakeWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Check if consents were completed before allowing intake access
+  useEffect(() => {
+    const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
+    const consentsCompleted = sessionStorage.getItem("rcms_consents_completed");
+    
+    if (!consentSessionId || !consentsCompleted) {
+      // Redirect to consent flow
+      window.location.href = "/client-consent";
+    }
+  }, []);
+  
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
   const [sensitiveTag, setSensitiveTag] = useState(false);
