@@ -24,7 +24,7 @@
 // src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import AppShell from "./AppShell";
 import DemoHub from "./pages/DemoHub.tsx";
@@ -218,6 +218,17 @@ function Root() {
   }
 }
 
+// Protected routes wrapper - wraps Root component in AuthProvider and AppProvider
+function ProtectedRoutes() {
+  return (
+    <AuthProvider>
+      <AppProvider>
+        <Root />
+      </AppProvider>
+    </AuthProvider>
+  );
+}
+
 // Wrap entire app with BrowserRouter, ErrorBoundary, AuthProvider, and AppProvider
 // BrowserRouter provides Router context for useNavigate() and other React Router hooks
 // ErrorBoundary catches render errors and prevents blank screens
@@ -225,47 +236,22 @@ function Root() {
 // AppProvider provides app context for useApp() hook (used by ClientCheckins)
 // 
 // Public pages (ClientLogin, AttorneyLogin, Access) are rendered OUTSIDE AuthProvider
-// to avoid hanging issues with Supabase client initialization
-function App() {
-  const pathname = typeof window !== "undefined" ? window.location.pathname || "/" : "/";
-  
-  // Public pages that don't need AuthProvider (no Supabase auth required)
-  const publicPages = [
-    "/client-login",
-    "/attorney-login", 
-    "/auth",
-    "/access"
-  ];
-  
-  const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + "/"));
-  
-  if (isPublicPage) {
-    // Render public pages outside AuthProvider to avoid hanging
-    return (
-      <BrowserRouter>
-        <ErrorBoundary>
-          <Root />
-        </ErrorBoundary>
-      </BrowserRouter>
-    );
-  }
-  
-  // All other pages need AuthProvider and AppProvider
-  return (
-    <BrowserRouter>
-      <ErrorBoundary>
-        <AuthProvider>
-          <AppProvider>
-            <Root />
-          </AppProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </BrowserRouter>
-  );
-}
-
+// using React Router Routes/Route structure to avoid hanging issues with Supabase client initialization
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <ErrorBoundary>
+        <Routes>
+          {/* Public routes - no AuthProvider */}
+          <Route path="/client-login" element={<ClientLogin />} />
+          <Route path="/attorney-login" element={<AttorneyLogin />} />
+          <Route path="/auth" element={<Access />} />
+          <Route path="/access" element={<Access />} />
+          
+          {/* Protected routes - wrapped in AuthProvider */}
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
+      </ErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>
 );
