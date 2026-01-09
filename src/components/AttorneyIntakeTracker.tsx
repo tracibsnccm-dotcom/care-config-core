@@ -125,8 +125,16 @@ export const AttorneyIntakeTracker = () => {
         throw new Error('Expected array from Supabase query');
       }
 
+      // Filter out intakes where rc_cases doesn't match the attorney
+      const filteredIntakes = scope === 'mine' && attorneyRcUserId
+        ? intakes.filter((intake: any) => {
+            const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+            return caseData && caseData.attorney_id === attorneyRcUserId;
+          })
+        : intakes;
+
       // Transform to IntakeRow format for display
-      const transformedRows: IntakeRow[] = (intakes || []).map((intake: any) => {
+      const transformedRows: IntakeRow[] = (filteredIntakes || []).map((intake: any) => {
         const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
         const isConfirmed = !!intake.attorney_attested_at;
         const isDeclined = intake.intake_status === 'attorney_declined_not_client';
