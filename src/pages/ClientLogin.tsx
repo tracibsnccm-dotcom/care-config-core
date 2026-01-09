@@ -97,6 +97,8 @@ export default function ClientLogin() {
         return;
       }
 
+      console.log('ClientLogin: Case found, checking PIN');
+
       // Check if account is locked
       if (caseData.pin_locked_until) {
         const lockedUntilDate = new Date(caseData.pin_locked_until);
@@ -122,7 +124,10 @@ export default function ClientLogin() {
         return;
       }
 
-      if (trimmedPin !== storedPin) {
+      const pinMatches = trimmedPin === storedPin;
+      console.log('ClientLogin: PIN match result', pinMatches);
+
+      if (!pinMatches) {
         // Increment failed attempts
         const currentAttempts = caseData.pin_failed_attempts || 0;
         const newAttempts = currentAttempts + 1;
@@ -165,6 +170,7 @@ export default function ClientLogin() {
       sessionStorage.setItem('client_case_id', caseData.id);
       sessionStorage.setItem('client_case_number', trimmedCaseNumber);
 
+      console.log('ClientLogin: About to redirect to /client-portal');
       // Redirect to client portal
       navigate('/client-portal', { replace: true });
     } catch (err: any) {
