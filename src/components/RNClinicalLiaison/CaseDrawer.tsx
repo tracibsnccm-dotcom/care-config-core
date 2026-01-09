@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet } from "@/lib/supabaseRest";
 import {
   User,
   FileText,
@@ -35,12 +36,17 @@ interface CaseDrawerProps {
 
 interface CaseData {
   id: string;
-  client_label: string | null;
-  status: string | null;
+  case_number?: string | null;
+  case_status: string | null;
+  case_type?: string | null;
   created_at: string | null;
-  client_type?: string | null;
-  atty_ref?: string | null;
-  attorney_code?: string | null;
+  client_id?: string | null;
+  attorney_id?: string | null;
+  intake_data?: {
+    fourPs?: any;
+    sdoh?: any;
+    intake?: any;
+  } | null;
 }
 
 interface Task {
@@ -66,8 +72,7 @@ interface Note {
   id: string;
   note_text: string;
   created_at: string;
-  created_by: string;
-  visibility: string;
+  created_by: string | null;
 }
 
 export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
@@ -90,17 +95,33 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
     try {
       setLoading(true);
 
-      // Fetch case data
+      // Fetch case data from rc_cases
       const { data: caseInfo, error: caseError } = await supabase
-        .from("cases")
+        .from("rc_cases")
         .select("*")
         .eq("id", caseId)
         .single();
 
       if (caseError) throw caseError;
-      setCaseData(caseInfo);
 
-      // Fetch tasks
+      // Fetch intake data from rc_client_intakes
+      const { data: intakeData } = await supabase
+        .from("rc_client_intakes")
+        .select("intake_json")
+        .eq("case_id", caseId)
+        .eq("intake_status", "attorney_confirmed")
+        .order("intake_submitted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Combine case data with intake data
+      const combinedCaseData: CaseData = {
+        ...caseInfo,
+        intake_data: intakeData?.intake_json || null,
+      };
+      setCaseData(combinedCaseData);
+
+      // Fetch tasks (keep case_tasks for now as specified)
       const { data: tasksData } = await supabase
         .from("case_tasks")
         .select("*")
@@ -109,7 +130,7 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
 
       setTasks(tasksData || []);
 
-      // Fetch documents
+      // Fetch documents (keep documents table for now)
       const { data: docsData } = await supabase
         .from("documents")
         .select("*")
@@ -119,15 +140,24 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
 
       setDocuments(docsData || []);
 
-      // Fetch notes
-      const { data: notesData } = await supabase
-        .from("case_notes")
+      // Fetch clinical notes from rc_clinical_notes
+      const { data: notesData, error: notesError } = await supabase
+        .from("rc_clinical_notes")
         .select("*")
         .eq("case_id", caseId)
         .order("created_at", { ascending: false })
         .limit(10);
 
-      setNotes(notesData || []);
+      if (notesError) {
+        console.error("Error fetching notes:", notesError);
+        // Fallback to empty array if notes fail
+        setNotes([]);
+      } else {
+        setNotes(notesData || []);
+      }
+
+      // Fetch activity log from rc_activity_log
+      // Note: We can add this later if needed for the UI
     } catch (error) {
       console.error("Error fetching case data:", error);
       toast({
@@ -188,8 +218,8 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
       <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between">
-            <span>Case: {caseData.client_label || "N/A"}</span>
-            <Badge variant="outline">{caseData.status || "N/A"}</Badge>
+            <span>Case: {caseData.case_number || caseData.id || "N/A"}</span>
+            <Badge variant="outline">{caseData.case_status || "N/A"}</Badge>
           </SheetTitle>
           <SheetDescription>
             Complete case information and management tools
@@ -218,12 +248,12 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Client ID</p>
-                    <p className="font-medium">{caseData.client_label || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">Case Number</p>
+                    <p className="font-medium">{caseData.case_number || caseData.id || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Case Status</p>
-                    <p className="font-medium">{caseData.status || "N/A"}</p>
+                    <p className="font-medium">{caseData.case_status || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Created</p>
@@ -233,9 +263,27 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Type</p>
-                    <p className="font-medium">{caseData.client_type || "Standard"}</p>
+                    <p className="font-medium">{caseData.case_type || "Standard"}</p>
                   </div>
                 </div>
+                {caseData.intake_data && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm font-semibold mb-2">Intake Assessment</p>
+                    {caseData.intake_data.fourPs && (
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <p>4Ps: Physical: {caseData.intake_data.fourPs.physical || "N/A"}, 
+                           Psychological: {caseData.intake_data.fourPs.psychological || "N/A"}, 
+                           Psychosocial: {caseData.intake_data.fourPs.psychosocial || "N/A"}, 
+                           Professional: {caseData.intake_data.fourPs.professional || "N/A"}</p>
+                      </div>
+                    )}
+                    {caseData.intake_data.sdoh && (
+                      <div className="text-sm text-muted-foreground">
+                        <p>SDOH data available</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -255,7 +303,7 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                     {notes.slice(0, 3).map((note) => (
                       <div key={note.id} className="border-l-2 border-primary pl-3 py-2">
                         <div className="flex items-center justify-between mb-1">
-                          <Badge variant="outline">Note</Badge>
+                          <Badge variant="outline">Clinical Note</Badge>
                           <span className="text-xs text-muted-foreground">
                             {format(parseISO(note.created_at), "MMM d, h:mm a")}
                           </span>
