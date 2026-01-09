@@ -250,6 +250,8 @@ export default function IntakeWizard() {
   };
 
   async function submit() {
+    console.log('IntakeWizard: Submit started');
+    
     // Check if client window has expired
     if (clientWindowExpired) {
       toast({
@@ -318,6 +320,7 @@ export default function IntakeWizard() {
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     
     // First, create the case in rc_cases table
+    console.log('IntakeWizard: About to insert rc_cases');
     const { error: caseError } = await supabaseInsert("rc_cases", {
       id: newCase.id,
       client_id: null, // Will be linked later
@@ -326,6 +329,8 @@ export default function IntakeWizard() {
       case_status: 'intake_pending',
       created_at: new Date().toISOString(),
     });
+
+    console.log('IntakeWizard: rc_cases result', { error: caseError });
 
     if (caseError) {
       console.error("Error creating case:", caseError);
@@ -611,12 +616,15 @@ export default function IntakeWizard() {
         const attorneyConfirmDeadlineAt = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(); // +48 hours
 
         // Insert intake record with compliance workflow fields
+        console.log('IntakeWizard: About to insert rc_client_intakes');
         const { error: intakeCompletionError } = await supabaseInsert("rc_client_intakes", {
           case_id: newCase.id,
           intake_json: intakeJson,
           intake_submitted_at: submittedAt,
           attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
         });
+        
+        console.log('IntakeWizard: rc_client_intakes result', { error: intakeCompletionError });
         
         if (intakeCompletionError) {
           console.error("Error recording intake completion:", intakeCompletionError);
