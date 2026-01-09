@@ -284,7 +284,7 @@ export default function IntakeWizard() {
     }
     
     const newCase: Case = {
-      id: "C-" + Math.random().toString(36).slice(2, 7).toUpperCase(),
+      id: crypto.randomUUID(),
       firmId: "firm-001",
       client: { ...client, displayNameMasked: masked },
       intake: {
