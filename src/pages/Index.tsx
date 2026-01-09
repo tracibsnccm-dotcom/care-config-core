@@ -182,7 +182,7 @@ const Index = () => {
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 }}
               />
-              <a href="/auth?redirect=/client-portal" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
+              <a href="/client-login" className="rcms-btn btn-secondary btn-client-portal">Client Portal</a>
             </div>
 
             {/* Bottom row (TERTIARY) */}
@@ -495,7 +495,7 @@ const Index = () => {
           </div>
           <div className="flex flex-wrap gap-3">
             <a href="/attorney-login" className="inline-block bg-[#ff8c42] hover:bg-[#ff9f5c] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Attorney Portal</a>
-            <a href="/auth?redirect=/client-portal"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</a>
+            <a href="/client-login"   className="inline-block bg-[#0f2a6a] hover:bg-[#1a3f8b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Portal</a>
             <a 
               href="#"
               onClick={(e) => {
@@ -531,7 +531,7 @@ const Index = () => {
             <h4 className="text-white font-semibold mb-3">Portals &amp; Access</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/client-intake" className="hover:underline">Client Intake</a></li>
-              <li><a href="/auth?redirect=/client-portal" className="hover:underline">Client Portal</a></li>
+              <li><a href="/client-login" className="hover:underline">Client Portal</a></li>
               <li><a href="/attorney-login" className="hover:underline">Attorney Portal</a></li>
               <li><span className="text-white/60">Provider Portal (Coming Soon)</span></li>
               <li><span className="text-white/60">RN Portal (coming soon)</span></li>
