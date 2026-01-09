@@ -13,7 +13,7 @@ import {
   SdohSummary,
   CrisisSummary,
 } from "../constants/reconcileFramework";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet } from "@/lib/supabaseRest";
 // RNCaseEngine renders all required RN screens:
 // - FourPsScreen, TenVsScreen, SDOHScreen, CrisisModeScreen (via tabs)
 // - RNPublishPanel (at bottom, accessible via "Publish / Review Drafts" button)
@@ -80,6 +80,7 @@ interface RCCaseOption {
   id: string;
   case_status: string | null;
   created_at: string;
+  case_number: string | null;
 }
 
 const RNConsole: React.FC = () => {
@@ -111,11 +112,10 @@ const RNConsole: React.FC = () => {
   useEffect(() => {
     const loadCases = async () => {
       try {
-        const { data, error } = await supabase
-          .from("rc_cases")
-          .select("id, case_status, created_at")
-          .order("created_at", { ascending: false })
-          .limit(25);
+        const { data, error } = await supabaseGet<RCCaseOption[]>(
+          'rc_cases',
+          'select=id,case_status,created_at,case_number&order=created_at.desc&limit=25'
+        );
 
         if (error) throw error;
         setRcCases(data || []);
@@ -272,7 +272,7 @@ const RNConsole: React.FC = () => {
           <option value="">Select a case...</option>
           {rcCases.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.id.slice(0, 8)}… — {c.case_status ?? "unknown"} — {new Date(c.created_at).toLocaleDateString()}
+              {c.case_number || c.id.slice(0, 8) + '…'} — {c.case_status ?? "unknown"} — {new Date(c.created_at).toLocaleDateString()}
             </option>
           ))}
         </select>
