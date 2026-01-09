@@ -122,10 +122,8 @@ function Root() {
     }
 
     // MVP Client Intake: "/client-intake" routes to IntakeWizard component
-    // This is the full wizard that inserts into rc_client_intakes with compliance workflow
-    if (pathname === "/client-intake" || pathname.startsWith("/client-intake")) {
-      return <IntakeWizard />;
-    }
+    // This route is now handled by React Router as a public route (outside AuthProvider)
+    // No longer handled here - moved to Routes structure above
 
     // MVP Client Portal: "/client-portal" routes to ClientPortalSimple component
     // This route is now handled by React Router as a public route (outside AuthProvider)
@@ -245,6 +243,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Routes>
           {/* Public routes - no AuthProvider */}
           <Route path="/client-consent" element={<ClientConsent />} />
+          <Route path="/client-intake" element={<IntakeWizard />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
