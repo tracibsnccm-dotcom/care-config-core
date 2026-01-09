@@ -382,18 +382,12 @@ export const AttorneyIntakeTracker = () => {
             }}
             onAttestationComplete={() => {
               toast.success(resolution === "CONFIRMED" 
-                ? 'Attestation complete. You can now view case details.'
+                ? 'Attestation complete. Case number and PIN generated.'
                 : 'Action complete.');
-              // Re-fetch the latest intake to ensure state is up to date
-              if (selectedIntake?.id) {
-                loadIntakeForCase(selectedCaseId, selectedIntake.id).then(() => {
-                  loadData();
-                });
-              } else {
-                loadIntakeForCase(selectedCaseId).then(() => {
-                  loadData();
-                });
-              }
+              // Force page reload to show updated data
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
             }}
           />
         )}
