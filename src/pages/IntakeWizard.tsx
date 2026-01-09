@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/Stepper";
@@ -959,11 +958,11 @@ export default function IntakeWizard() {
   }, [mentalHealth.selfHarm, createdCaseId]);
 
   return (
-    <AppLayout>
+    <div className="min-h-screen bg-gray-50">
       {!showWelcome && (
         <IntakeSaveBar formData={formData} onSaveExit={() => navigate('/dashboard')} />
       )}
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto py-8 px-4">
         {showWelcome ? (
           <IntakeWelcome
             client={client}
@@ -2155,6 +2154,6 @@ export default function IntakeWizard() {
         )}
       </div>
       <CaraFloatingButton />
-    </AppLayout>
+    </div>
   );
 }
