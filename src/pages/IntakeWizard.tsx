@@ -316,6 +316,28 @@ export default function IntakeWizard() {
     };
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     
+    // First, create the case in rc_cases table
+    const { error: caseError } = await supabase
+      .from("rc_cases")
+      .insert({
+        id: newCase.id,
+        client_id: null, // Will be linked later
+        attorney_id: null, // Will be assigned when attorney attests
+        case_type: intake.incidentType || 'MVA',
+        case_status: 'intake_pending',
+        created_at: new Date().toISOString(),
+      });
+
+    if (caseError) {
+      console.error("Error creating case:", caseError);
+      toast({
+        title: "Error",
+        description: "Failed to create case. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Store case ID for sensitive disclosures
     setCreatedCaseId(newCase.id);
     
