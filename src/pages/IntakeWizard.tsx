@@ -329,7 +329,7 @@ export default function IntakeWizard() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
-        const { error: checkinError } = await supabase.from("client_checkins").insert({
+        const { error: checkinError } = await supabase.from("rc_client_checkins").insert({
           case_id: newCase.id,
           client_id: userData.user.id,
           pain_scale: 5,
@@ -386,7 +386,7 @@ export default function IntakeWizard() {
 
         if (allMeds.length > 0) {
           const { error: medsError } = await supabase
-            .from("client_medications")
+            .from("rc_client_medications")
             .insert(allMeds);
           
           if (medsError) {

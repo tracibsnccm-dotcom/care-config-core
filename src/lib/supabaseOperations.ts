@@ -43,7 +43,7 @@ export async function audit(ev: AuditEvent) {
       meta: ev.meta || null,
     };
 
-    const { error } = await supabase.from("audit_logs").insert(entry);
+    const { error } = await supabase.from("rc_audit_logs").insert(entry);
 
     if (error) {
       console.error("[audit] Failed to log audit event:", error);
