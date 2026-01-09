@@ -9,49 +9,28 @@ import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { audit } from '@/lib/supabaseOperations';
+import { supabaseGet, supabaseUpdate } from '@/lib/supabaseRest';
 
-// Helper function for direct fetch to Supabase REST API (GET)
-async function supabaseFetch(table: string, query: string = '', accessToken?: string) {
-  const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
-    headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${accessToken || supabaseKey}`,
-      'Content-Type': 'application/json',
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Supabase fetch error: ${response.status}`);
-  }
-  
-  return response.json();
+// Helper function to generate case number
+function generateCaseNumber(attorneyCode: string, sequenceToday: number): string {
+  const today = new Date();
+  const yy = today.getFullYear().toString().slice(-2);
+  const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+  const dd = today.getDate().toString().padStart(2, '0');
+  const seq = sequenceToday.toString().padStart(2, '0');
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Exclude I and O
+  const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+  return `${attorneyCode}-${yy}${mm}${dd}-${seq}${randomLetter}`;
 }
 
-// Helper function for UPDATE operations (PATCH)
-async function supabaseUpdate(table: string, filter: string, updates: object, accessToken?: string) {
-  const supabaseUrl = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${filter}`, {
-    method: 'PATCH',
-    headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${accessToken || supabaseKey}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify(updates)
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Update error: ${response.status} - ${errorText}`);
-  }
-  
-  return true;
+// Helper function to generate secure PIN
+function generatePIN(): string {
+  const excluded = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
+  let pin: string;
+  do {
+    pin = Math.floor(1000 + Math.random() * 9000).toString();
+  } while (excluded.includes(pin));
+  return pin;
 }
 import {
   AlertDialog,
@@ -464,30 +443,84 @@ export function AttorneyAttestationCard({
     setIsSubmitting(true);
     
     try {
-      // Get session token for RLS-protected queries
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
+      let attorneyCode: string | null = null;
       
-      // Get attorney ID using direct fetch with access token
-      try {
-        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`, accessToken);
-        const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
-        if (rcUser?.id) {
-          attorneyId = rcUser.id;
-        }
-      } catch (err) {
-        console.log('Using fallback attorney identifier');
+      // Get attorney ID and attorney_code from rc_users
+      const { data: rcUsers, error: rcUsersError } = await supabaseGet('rc_users', `select=id,attorney_code&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+      if (rcUsersError) {
+        throw new Error(`Failed to get attorney info: ${rcUsersError.message}`);
+      }
+      
+      const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
+      if (rcUser?.id) {
+        attorneyId = rcUser.id;
+        attorneyCode = rcUser.attorney_code;
+      } else {
+        throw new Error('Attorney record not found');
       }
 
-      // Fetch current intake_json using direct fetch with access token
-      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`, accessToken);
-      const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
+      if (!attorneyCode) {
+        throw new Error('Attorney code not assigned. Please contact support.');
+      }
 
+      // Fetch current intake_json
+      const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      if (intakesError) {
+        throw new Error(`Failed to get intake: ${intakesError.message}`);
+      }
+      
+      const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
       if (!currentIntake) {
         throw new Error('Intake not found');
+      }
+
+      if (!currentIntake.case_id) {
+        throw new Error('Case ID not found in intake');
+      }
+
+      // Count how many cases this attorney has attested TODAY (for sequence number)
+      const today = new Date();
+      const yy = today.getFullYear().toString().slice(-2);
+      const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+      const dd = today.getDate().toString().padStart(2, '0');
+      const todayDatePattern = `${yy}${mm}${dd}`;
+      const todayPrefix = `${attorneyCode}-${todayDatePattern}-`;
+      
+      // Get all cases with case_number for this attorney, then filter by today's date pattern
+      const { data: allCases, error: casesError } = await supabaseGet(
+        'rc_cases',
+        `select=id,case_number&attorney_id=eq.${attorneyId}&case_number=not.is.null`
+      );
+      
+      if (casesError) {
+        throw new Error(`Failed to count today's cases: ${casesError.message}`);
+      }
+      
+      // Filter cases that match today's date pattern
+      const todayCases = Array.isArray(allCases) 
+        ? allCases.filter((c: any) => c.case_number?.startsWith(todayPrefix))
+        : [];
+      
+      const sequenceToday = todayCases.length + 1;
+
+      // Generate case_number and PIN
+      const caseNumber = generateCaseNumber(attorneyCode, sequenceToday);
+      const clientPin = generatePIN();
+
+      // Update rc_cases with case_number and client_pin
+      const { error: caseUpdateError } = await supabaseUpdate(
+        'rc_cases',
+        `id=eq.${currentIntake.case_id}`,
+        {
+          case_number: caseNumber,
+          client_pin: clientPin, // TODO: Hash PIN before storing (use backend function)
+        }
+      );
+
+      if (caseUpdateError) {
+        throw new Error(`Failed to update case: ${caseUpdateError.message}`);
       }
 
       // Build receipt for "confirmed"
@@ -512,17 +545,35 @@ export function AttorneyAttestationCard({
         },
       };
 
-      // Update ALL required fields in a single update using direct fetch with access token
-      await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
+      // Update intake status
+      const { error: intakeUpdateError } = await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
         attorney_attested_at: now,
         attorney_confirm_deadline_at: null,
         intake_status: 'attorney_confirmed',
         intake_json: updatedIntakeJson,
-      }, accessToken);
+      });
+
+      if (intakeUpdateError) {
+        throw new Error(`Failed to update intake: ${intakeUpdateError.message}`);
+      }
+
+      // Send notification to client with case_number and PIN
+      try {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            type: 'case-number-issued',
+            case_id: currentIntake.case_id,
+            case_number: caseNumber,
+            client_pin: clientPin, // Send unhashed PIN (one-time only)
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send notification:', notifError);
+        // Don't fail the attestation if notification fails
+      }
 
       // Success - show success message and refresh
-      // The UI will update based on the refreshed attorneyAttestedAt value
-      toast.success('Client relationship confirmed.');
+      toast.success('Client relationship confirmed. Case number and PIN generated.');
       onAttestationComplete();
     } catch (error: any) {
       console.error('Attestation error', error);
@@ -542,27 +593,25 @@ export function AttorneyAttestationCard({
     setIsSubmitting(true);
 
     try {
-      // Get session token for RLS-protected queries
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
       
-      try {
-        const rcUsers = await supabaseFetch('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`, accessToken);
+      // Get attorney ID
+      const { data: rcUsers, error: rcUsersError } = await supabaseGet('rc_users', `select=id&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+      if (!rcUsersError && rcUsers) {
         const rcUser = Array.isArray(rcUsers) ? rcUsers[0] : rcUsers;
         if (rcUser?.id) {
           attorneyId = rcUser.id;
         }
-      } catch (err) {
-        console.log('Using fallback attorney identifier');
       }
 
-      // Fetch current intake_json using direct fetch with access token
-      const intakes = await supabaseFetch('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`, accessToken);
+      // Fetch current intake_json
+      const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      if (intakesError) {
+        throw new Error(`Failed to get intake: ${intakesError.message}`);
+      }
+      
       const currentIntake = Array.isArray(intakes) ? intakes[0] : intakes;
-
       if (!currentIntake) {
         throw new Error('Intake not found');
       }
@@ -590,11 +639,15 @@ export function AttorneyAttestationCard({
       };
 
       // Update intake: set status, clear deadline, do NOT set attorney_attested_at
-      await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
+      const { error: updateError } = await supabaseUpdate('rc_client_intakes', `id=eq.${intakeId}`, {
         intake_status: 'attorney_declined_not_client',
         attorney_confirm_deadline_at: null,
         intake_json: updatedIntakeJson,
-      }, accessToken);
+      });
+
+      if (updateError) {
+        throw new Error(`Failed to update intake: ${updateError.message}`);
+      }
 
       // 5. Notify parent of resolution to stop countdown
       if (onResolved) {
