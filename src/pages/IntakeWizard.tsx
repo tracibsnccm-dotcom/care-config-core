@@ -61,6 +61,7 @@ import { FileUploadZone } from "@/components/FileUploadZone";
 import { InactivityModal } from "@/components/InactivityModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet, supabaseInsert, supabaseUpdate } from '@/lib/supabaseRest';
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
@@ -317,16 +318,14 @@ export default function IntakeWizard() {
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     
     // First, create the case in rc_cases table
-    const { error: caseError } = await supabase
-      .from("rc_cases")
-      .insert({
-        id: newCase.id,
-        client_id: null, // Will be linked later
-        attorney_id: null, // Will be assigned when attorney attests
-        case_type: intake.incidentType || 'MVA',
-        case_status: 'intake_pending',
-        created_at: new Date().toISOString(),
-      });
+    const { error: caseError } = await supabaseInsert("rc_cases", {
+      id: newCase.id,
+      client_id: null, // Will be linked later
+      attorney_id: null, // Will be assigned when attorney attests
+      case_type: intake.incidentType || 'MVA',
+      case_status: 'intake_pending',
+      created_at: new Date().toISOString(),
+    });
 
     if (caseError) {
       console.error("Error creating case:", caseError);
@@ -351,7 +350,7 @@ export default function IntakeWizard() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
-        const { error: checkinError } = await supabase.from("rc_client_checkins").insert({
+        const { error: checkinError } = await supabaseInsert("rc_client_checkins", {
           case_id: newCase.id,
           client_id: userData.user.id,
           pain_scale: 5,
@@ -407,12 +406,12 @@ export default function IntakeWizard() {
         ];
 
         if (allMeds.length > 0) {
-          const { error: medsError } = await supabase
-            .from("rc_client_medications")
-            .insert(allMeds);
-          
-          if (medsError) {
-            console.error("Error saving medications:", medsError);
+          // Insert medications one by one since supabaseInsert handles single objects
+          for (const med of allMeds) {
+            const { error: medsError } = await supabaseInsert("rc_client_medications", med);
+            if (medsError) {
+              console.error("Error saving medication:", medsError);
+            }
           }
         }
 
@@ -499,12 +498,12 @@ export default function IntakeWizard() {
             }
           }));
 
-          const { error: alertsError } = await supabase
-            .from("case_alerts")
-            .insert(alertsData);
-          
-          if (alertsError) {
-            console.error("Error creating safety alerts:", alertsError);
+          // Insert alerts one by one since supabaseInsert handles single objects
+          for (const alert of alertsData) {
+            const { error: alertsError } = await supabaseInsert("case_alerts", alert);
+            if (alertsError) {
+              console.error("Error creating safety alert:", alertsError);
+            }
           }
 
           // Update SDOH flags in cases table
@@ -518,10 +517,11 @@ export default function IntakeWizard() {
               sensitive_experiences_detected_at: new Date().toISOString()
             };
 
-            const { error: sdohError } = await supabase
-              .from("cases")
-              .update({ sdoh: updatedSdoh })
-              .eq("id", newCase.id);
+            const { error: sdohError } = await supabaseUpdate(
+              "rc_cases",
+              `id=eq.${newCase.id}`,
+              { sdoh: updatedSdoh }
+            );
             
             if (sdohError) {
               console.error("Error updating SDOH flags:", sdohError);
@@ -591,14 +591,13 @@ export default function IntakeWizard() {
         // Try to get actual attorney_id from rc_cases
         if (newCase.id) {
           try {
-            const { data: caseData } = await supabase
-              .from('rc_cases')
-              .select('attorney_id')
-              .eq('id', newCase.id)
-              .maybeSingle();
+            const { data: caseData } = await supabaseGet<any>(
+              'rc_cases',
+              `select=attorney_id&id=eq.${newCase.id}`
+            );
             
-            if (caseData?.attorney_id) {
-              attorneyIdText = caseData.attorney_id;
+            if (caseData && Array.isArray(caseData) && caseData.length > 0 && caseData[0]?.attorney_id) {
+              attorneyIdText = caseData[0].attorney_id;
             }
           } catch (err) {
             // If rc_cases doesn't exist or query fails, use attorneyCode as fallback
@@ -612,14 +611,12 @@ export default function IntakeWizard() {
         const attorneyConfirmDeadlineAt = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(); // +48 hours
 
         // Insert intake record with compliance workflow fields
-        const { error: intakeCompletionError } = await supabase
-          .from("rc_client_intakes")
-          .insert({
-            case_id: newCase.id,
-            intake_json: intakeJson,
-            intake_submitted_at: submittedAt,
-            attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
-          });
+        const { error: intakeCompletionError } = await supabaseInsert("rc_client_intakes", {
+          case_id: newCase.id,
+          intake_json: intakeJson,
+          intake_submitted_at: submittedAt,
+          attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
+        });
         
         if (intakeCompletionError) {
           console.error("Error recording intake completion:", intakeCompletionError);
@@ -926,7 +923,7 @@ export default function IntakeWizard() {
           }
 
           // Create alert in database
-          const { error } = await supabase.from('case_alerts').insert({
+          const { error } = await supabaseInsert('case_alerts', {
             case_id: createdCaseId || null, // Will be associated when case is created
             alert_type: 'mental_health_crisis',
             severity: 'high',
