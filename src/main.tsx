@@ -35,6 +35,7 @@ import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyLogin from "./pages/AttorneyLogin";
 import ClientLogin from "./pages/ClientLogin";
+import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
@@ -124,18 +125,10 @@ function Root() {
       return <IntakeWizard />;
     }
 
-    // MVP Client Portal: "/client-portal" routes directly to ClientPortal component
-    // This is the MVP client portal entry point - uses Supabase-backed APIs only
-    // No demo dependencies: ClientPortal uses Supabase, ClientCheckins writes to client_checkins and case_alerts
-    // ClientPortal requires AuthProvider (for useAuth) and AppProvider (for useApp)
-    // REQUIRES AUTHENTICATION - gate at route level
-    if (pathname === "/client-portal" || pathname.startsWith("/client-portal")) {
-      return (
-        <RequireAuth>
-          <ClientPortal />
-        </RequireAuth>
-      );
-    }
+    // MVP Client Portal: "/client-portal" routes to ClientPortalSimple component
+    // This route is now handled by React Router as a public route (outside AuthProvider)
+    // ClientPortalSimple uses public fetch functions and reads case_id from sessionStorage
+    // No longer handled here - moved to Routes structure above
 
     // MVP Attorney Login: "/attorney-login" routes to AttorneyLogin component
     // Separate login flow for attorneys (NOT through /auth)
@@ -244,6 +237,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Routes>
           {/* Public routes - no AuthProvider */}
           <Route path="/client-login" element={<ClientLogin />} />
+          <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />
