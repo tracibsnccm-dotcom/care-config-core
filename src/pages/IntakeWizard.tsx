@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import {
   Client,
@@ -71,7 +70,6 @@ import { Printer } from "lucide-react";
 
 export default function IntakeWizard() {
   const navigate = useNavigate();
-  const { setCases, log } = useApp();
   const { toast } = useToast();
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
@@ -345,8 +343,9 @@ export default function IntakeWizard() {
     // Store case ID for sensitive disclosures
     setCreatedCaseId(newCase.id);
     
-    setCases((arr) => [newCase, ...arr]);
-    log("INTAKE_SUBMIT", newCase.id);
+    // Note: setCases and log removed - IntakeWizard is now public and doesn't use AppContext
+    // setCases((arr) => [newCase, ...arr]);
+    console.log("INTAKE_SUBMIT", newCase.id);
     
     // Schedule client reminders via Supabase edge function
     scheduleClientReminders(undefined, newCase as any);
