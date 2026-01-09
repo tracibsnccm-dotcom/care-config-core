@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+// Using REST helper only - no Supabase client to avoid hanging
 import { supabaseGet, supabaseUpdate } from "@/lib/supabaseRest";
 import { RCMS, btn } from "../constants/brand";
 import { Alert, AlertDescription } from "@/components/ui/alert";
