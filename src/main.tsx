@@ -223,8 +223,35 @@ function Root() {
 // ErrorBoundary catches render errors and prevents blank screens
 // AuthProvider provides auth context for useAuth() hook (required by AppProvider)
 // AppProvider provides app context for useApp() hook (used by ClientCheckins)
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+// 
+// Public pages (ClientLogin, AttorneyLogin, Access) are rendered OUTSIDE AuthProvider
+// to avoid hanging issues with Supabase client initialization
+function App() {
+  const pathname = typeof window !== "undefined" ? window.location.pathname || "/" : "/";
+  
+  // Public pages that don't need AuthProvider (no Supabase auth required)
+  const publicPages = [
+    "/client-login",
+    "/attorney-login", 
+    "/auth",
+    "/access"
+  ];
+  
+  const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + "/"));
+  
+  if (isPublicPage) {
+    // Render public pages outside AuthProvider to avoid hanging
+    return (
+      <BrowserRouter>
+        <ErrorBoundary>
+          <Root />
+        </ErrorBoundary>
+      </BrowserRouter>
+    );
+  }
+  
+  // All other pages need AuthProvider and AppProvider
+  return (
     <BrowserRouter>
       <ErrorBoundary>
         <AuthProvider>
@@ -234,5 +261,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </AuthProvider>
       </ErrorBoundary>
     </BrowserRouter>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
   </React.StrictMode>
 );
