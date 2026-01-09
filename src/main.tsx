@@ -35,6 +35,7 @@ import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyLogin from "./pages/AttorneyLogin";
 import ClientLogin from "./pages/ClientLogin";
+import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -236,6 +237,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ErrorBoundary>
         <Routes>
           {/* Public routes - no AuthProvider */}
+          <Route path="/client-consent" element={<ClientConsent />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />

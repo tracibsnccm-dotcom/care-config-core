@@ -166,7 +166,7 @@ const Index = () => {
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 }}
               />
-              <a href="/client-intake" className="rcms-btn cta-intake">Client Intake</a>
+              <a href="/client-consent" className="rcms-btn cta-intake">Client Intake</a>
             </div>
 
             {/* Client Portal path (SECONDARY) */}
@@ -506,7 +506,7 @@ const Index = () => {
             >
               Provider Portal
             </a>
-            <a href="/client-intake"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
+            <a href="/client-consent"          className="inline-block bg-[#00695c] hover:bg-[#00897b] text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-md transition">Client Intake</a>
           </div>
         </div>
 
@@ -530,7 +530,7 @@ const Index = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">Portals &amp; Access</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/client-intake" className="hover:underline">Client Intake</a></li>
+              <li><a href="/client-consent" className="hover:underline">Client Intake</a></li>
               <li><a href="/client-login" className="hover:underline">Client Portal</a></li>
               <li><a href="/attorney-login" className="hover:underline">Attorney Portal</a></li>
               <li><span className="text-white/60">Provider Portal (Coming Soon)</span></li>
