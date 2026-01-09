@@ -19,6 +19,7 @@ import { supabaseGet } from '@/lib/supabaseRest';
 interface IntakeRow {
   intake_id?: string;
   case_id: string;
+  case_number?: string | null;
   client: string;
   stage: string;
   last_activity_iso: string;
@@ -104,7 +105,7 @@ export const AttorneyIntakeTracker = () => {
       }
       
       // Build query string for Supabase REST API
-      let queryString = 'select=*,rc_cases(id,attorney_id,case_type)&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number)&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
       
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
@@ -145,6 +146,7 @@ export const AttorneyIntakeTracker = () => {
         return {
           intake_id: intake.id,
           case_id: intake.case_id,
+          case_number: caseData?.case_number || null,
           client: 'Client', // Will need to fetch client name separately if needed
           stage,
           last_activity_iso: intake.intake_submitted_at || new Date().toISOString(),
@@ -604,13 +606,20 @@ export const AttorneyIntakeTracker = () => {
                     </td>
                     <td className="p-2">{row.client}</td>
                     <td className="p-2">
-                      <Button
-                        variant="link"
-                        onClick={() => handleViewIntake(row.case_id, row.intake_id)}
-                        className="p-0 h-auto text-primary hover:underline"
-                      >
-                        {row.case_id}
-                      </Button>
+                      <div className="flex flex-col gap-1">
+                        {isConfirmed && row.case_number && (
+                          <div className="font-mono font-bold text-primary">
+                            {row.case_number}
+                          </div>
+                        )}
+                        <Button
+                          variant="link"
+                          onClick={() => handleViewIntake(row.case_id, row.intake_id)}
+                          className="p-0 h-auto text-primary hover:underline text-xs"
+                        >
+                          {row.case_id}
+                        </Button>
+                      </div>
                     </td>
                     <td className="p-2">
                       <Badge variant={statusVariant}>{statusLabel}</Badge>
