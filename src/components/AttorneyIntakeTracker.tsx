@@ -262,6 +262,9 @@ export const AttorneyIntakeTracker = () => {
     }
   };
 
+  // Count pending intakes for banner (only "Pending Attorney Confirmation" stage)
+  const pendingCount = rows.filter(row => row.stage === 'Pending Attorney Confirmation').length;
+
   const filteredRows = rows.filter(row => {
     // Search filter
     const q = searchQuery.toLowerCase().trim();
@@ -449,7 +452,7 @@ export const AttorneyIntakeTracker = () => {
       <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-accent rounded-lg">
         <Clock className="w-5 h-5 text-primary" />
         <strong className="text-foreground">Pending Intakes:</strong>
-        <span className="font-bold text-primary">{filteredRows.length}</span>
+        <span className="font-bold text-primary">{pendingCount}</span>
         <span className="text-sm text-muted-foreground">
           Clients who haven't finished intake yet.
         </span>
