@@ -159,39 +159,39 @@ export default function IntakeWizard() {
   });
 
   const [fourPs, setFourPs] = useState<FourPs>({
-    physical: 0,
-    psychological: 0,
-    psychosocial: 0,
-    professional: 0,
+    physical: 3,
+    psychological: 3,
+    psychosocial: 3,
+    professional: 3,
   });
 
   const [sdoh, setSdoh] = useState<SDOH>({
-    housing: 0,
-    food: 0,
-    transport: 0,
-    insuranceGap: 0,
-    financial: 0,
-    employment: 0,
-    social_support: 0,
-    safety: 0,
-    healthcare_access: 0,
+    housing: 3,
+    food: 3,
+    transport: 3,
+    insuranceGap: 3,
+    financial: 3,
+    employment: 3,
+    social_support: 3,
+    safety: 3,
+    healthcare_access: 3,
     income_range: undefined,
   });
 
   // Client-friendly score labels
   const scoreLabels: Record<number, string> = {
-    0: "Doing just fine - No problems with my daily activities",
-    1: "A little tricky sometimes - Mostly able to do what I need to",
-    2: "Pretty difficult at times - Have to push through to get things done",
-    3: "Really hard most days - Struggle with regular tasks and activities",
-    4: "Extremely difficult - Can't do normal daily things without help"
+    1: "Extremely difficult - Can't do normal daily things without help",
+    2: "Really hard most days - Struggle with regular tasks and activities",
+    3: "Pretty difficult at times - Have to push through to get things done",
+    4: "A little tricky sometimes - Mostly able to do what I need to",
+    5: "Doing just fine - No problems with my daily activities"
   };
 
   // Auto-create RN tasks for high-severity SDOH
   const handleSDOHChange = async (domain: string, severity: number) => {
     setSdoh((s) => ({ ...s, [domain]: severity }));
     
-    if (severity >= 3 && draftId) {
+    if (severity <= 2 && draftId) {
       try {
         await supabase.functions.invoke('rn-task-automation', {
           body: {
@@ -335,19 +335,19 @@ export default function IntakeWizard() {
           pain_scale: 5,
           depression_scale: 0,
           anxiety_scale: 0,
-          p_physical: fourPs.physical * 25,
-          p_psychological: fourPs.psychological * 25,
-          p_psychosocial: fourPs.psychosocial * 25,
-          p_purpose: fourPs.professional * 25,
-          sdoh_housing: sdoh.housing || 0,
-          sdoh_food: sdoh.food || 0,
-          sdoh_transport: sdoh.transport || 0,
-          sdoh_insurance: sdoh.insuranceGap || 0,
-          sdoh_financial: sdoh.financial || 0,
-          sdoh_employment: sdoh.employment || 0,
-          sdoh_social_support: sdoh.social_support || 0,
-          sdoh_safety: sdoh.safety || 0,
-          sdoh_healthcare_access: sdoh.healthcare_access || 0,
+          p_physical: (fourPs.physical - 1) * 25,
+          p_psychological: (fourPs.psychological - 1) * 25,
+          p_psychosocial: (fourPs.psychosocial - 1) * 25,
+          p_purpose: (fourPs.professional - 1) * 25,
+          sdoh_housing: sdoh.housing || 3,
+          sdoh_food: sdoh.food || 3,
+          sdoh_transport: sdoh.transport || 3,
+          sdoh_insurance: sdoh.insuranceGap || 3,
+          sdoh_financial: sdoh.financial || 3,
+          sdoh_employment: sdoh.employment || 3,
+          sdoh_social_support: sdoh.social_support || 3,
+          sdoh_safety: sdoh.safety || 3,
+          sdoh_healthcare_access: sdoh.healthcare_access || 3,
           sdoh_income_range: sdoh.income_range || null,
           note: "Baseline from intake assessment"
         } as any);
@@ -667,20 +667,20 @@ export default function IntakeWizard() {
     
     const allValues = [
       fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
-      typeof sdoh.housing === 'number' ? sdoh.housing : 0,
-      typeof sdoh.transport === 'number' ? sdoh.transport : 0,
-      typeof sdoh.food === 'number' ? sdoh.food : 0,
-      typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
-      typeof sdoh.financial === 'number' ? sdoh.financial : 0,
-      typeof sdoh.employment === 'number' ? sdoh.employment : 0,
-      typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
-      typeof sdoh.safety === 'number' ? sdoh.safety : 0,
-      typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+      typeof sdoh.housing === 'number' ? sdoh.housing : 3,
+      typeof sdoh.transport === 'number' ? sdoh.transport : 3,
+      typeof sdoh.food === 'number' ? sdoh.food : 3,
+      typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 3,
+      typeof sdoh.financial === 'number' ? sdoh.financial : 3,
+      typeof sdoh.employment === 'number' ? sdoh.employment : 3,
+      typeof sdoh.social_support === 'number' ? sdoh.social_support : 3,
+      typeof sdoh.safety === 'number' ? sdoh.safety : 3,
+      typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
     ];
     const avgScore = (allValues.reduce((a, b) => a + b, 0) / allValues.length).toFixed(1);
-    const severity = parseFloat(avgScore) < 1 ? 'Stable' :
-                     parseFloat(avgScore) < 2 ? 'Mild' :
-                     parseFloat(avgScore) < 3 ? 'Moderate' : 'Critical';
+    const severity = parseFloat(avgScore) >= 4.5 ? 'Stable' :
+                     parseFloat(avgScore) >= 3.5 ? 'Mild' :
+                     parseFloat(avgScore) >= 2.5 ? 'Moderate' : 'Critical';
     
     doc.setFontSize(10);
     doc.text(`Overall Score: ${avgScore} (${severity})`, 20, yPos);
@@ -744,11 +744,11 @@ export default function IntakeWizard() {
       consent: consent.signed,
     },
     optional: {
-      fourPs: fourPs.physical !== 0 || fourPs.psychological !== 0 || fourPs.psychosocial !== 0 || fourPs.professional !== 0,
-      sdoh: (typeof sdoh.housing === 'number' && sdoh.housing > 0) || 
-            (typeof sdoh.food === 'number' && sdoh.food > 0) || 
-            (typeof sdoh.transport === 'number' && sdoh.transport > 0) || 
-            (typeof sdoh.insuranceGap === 'number' && sdoh.insuranceGap > 0) ||
+      fourPs: fourPs.physical !== 3 || fourPs.psychological !== 3 || fourPs.psychosocial !== 3 || fourPs.professional !== 3,
+      sdoh: (typeof sdoh.housing === 'number' && sdoh.housing !== 3) || 
+            (typeof sdoh.food === 'number' && sdoh.food !== 3) || 
+            (typeof sdoh.transport === 'number' && sdoh.transport !== 3) || 
+            (typeof sdoh.insuranceGap === 'number' && sdoh.insuranceGap !== 3) ||
             !!(sdoh.financial || sdoh.employment || sdoh.social_support || sdoh.safety || sdoh.healthcare_access),
     },
   }), [intake, consent, fourPs, sdoh]);
@@ -799,18 +799,20 @@ export default function IntakeWizard() {
     timeoutMs: 15 * 60 * 1000, // 15 minutes
   });
 
-  // Normalize legacy 0-100 fourPs values to 0-4 scale
+  // Normalize legacy 0-100 fourPs values to 1-5 scale
   const normalizeFourPs = (fp: FourPs): FourPs => {
-    const to04 = (v: number) => {
-      if (v <= 4) return Math.max(0, Math.min(4, Math.round(v)));
-      // Legacy 0-100 -> map to 0-4
-      return Math.max(0, Math.min(4, Math.round(v / 25)));
+    const to15 = (v: number) => {
+      if (v >= 1 && v <= 5) return Math.max(1, Math.min(5, Math.round(v)));
+      // Legacy 0-4 -> map to 1-5 (0->1, 1->2, 2->3, 3->4, 4->5)
+      if (v <= 4) return Math.max(1, Math.min(5, Math.round(v) + 1));
+      // Legacy 0-100 -> map to 1-5
+      return Math.max(1, Math.min(5, Math.round((v / 25) + 1)));
     };
     return {
-      physical: to04(fp.physical as number),
-      psychological: to04(fp.psychological as number),
-      psychosocial: to04(fp.psychosocial as number),
-      professional: to04(fp.professional as number),
+      physical: to15(fp.physical as number),
+      psychological: to15(fp.psychological as number),
+      psychosocial: to15(fp.psychosocial as number),
+      professional: to15(fp.professional as number),
     };
   };
 
@@ -1442,20 +1444,20 @@ export default function IntakeWizard() {
               </p>
               <div className="space-y-2 text-sm">
                 <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 items-start">
-                  <span className="font-semibold">0</span>
-                  <span className="text-muted-foreground">Doing just fine - No problems with my daily activities</span>
-
                   <span className="font-semibold">1</span>
-                  <span className="text-muted-foreground">A little tricky sometimes - Mostly able to do what I need to</span>
+                  <span className="text-muted-foreground">Extremely difficult - Can't do normal daily things without help</span>
 
                   <span className="font-semibold">2</span>
-                  <span className="text-muted-foreground">Pretty difficult at times - Have to push through to get things done</span>
-
-                  <span className="font-semibold">3</span>
                   <span className="text-muted-foreground">Really hard most days - Struggle with regular tasks and activities</span>
 
+                  <span className="font-semibold">3</span>
+                  <span className="text-muted-foreground">Pretty difficult at times - Have to push through to get things done</span>
+
                   <span className="font-semibold">4</span>
-                  <span className="text-muted-foreground">Extremely difficult - Can't do normal daily things without help</span>
+                  <span className="text-muted-foreground">A little tricky sometimes - Mostly able to do what I need to</span>
+
+                  <span className="font-semibold">5</span>
+                  <span className="text-muted-foreground">Doing just fine - No problems with my daily activities</span>
                 </div>
               </div>
             </div>
@@ -1479,11 +1481,11 @@ export default function IntakeWizard() {
                     };
                     
                     const scoreLabels: Record<number, string> = {
-                      0: "Doing just fine - No problems with my daily activities",
-                      1: "A little tricky sometimes - Mostly able to do what I need to",
-                      2: "Pretty difficult at times - Have to push through to get things done",
-                      3: "Really hard most days - Struggle with regular tasks and activities",
-                      4: "Extremely difficult - Can't do normal daily things without help"
+                      1: "Extremely difficult - Can't do normal daily things without help",
+                      2: "Really hard most days - Struggle with regular tasks and activities",
+                      3: "Pretty difficult at times - Have to push through to get things done",
+                      4: "A little tricky sometimes - Mostly able to do what I need to",
+                      5: "Doing just fine - No problems with my daily activities"
                     };
                     
                      return (
@@ -1506,7 +1508,8 @@ export default function IntakeWizard() {
                           onValueChange={([value]) =>
                             setFourPs((p) => ({ ...p, [k]: value }))
                           }
-                          max={4}
+                          min={1}
+                          max={5}
                           step={1}
                           className="w-full"
                         />
@@ -1520,7 +1523,7 @@ export default function IntakeWizard() {
               </div>
             </TooltipProvider>
 
-            {/* SDOH Domains with 0-4 Scale */}
+            {/* SDOH Domains with 1-5 Scale */}
             <div className="space-y-6">
               <h4 className="font-semibold text-foreground">Social Determinants of Health (SDOH)</h4>
               <p className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md border border-border/50">
@@ -1542,18 +1545,19 @@ export default function IntakeWizard() {
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">{label}</Label>
                     <span className="text-sm font-semibold text-primary">
-                      {(sdoh as any)[key]}/4
+                      {(sdoh as any)[key] || 3}/5
                     </span>
                   </div>
                   <Slider
-                    value={[(sdoh as any)[key] || 0]}
+                    value={[(sdoh as any)[key] || 3]}
                     onValueChange={([value]) => handleSDOHChange(key, value)}
-                    max={4}
+                    min={1}
+                    max={5}
                     step={1}
                     className="w-full"
                   />
                   <p className="text-xs text-muted-foreground italic">
-                    {scoreLabels[(sdoh as any)[key] || 0]}
+                    {scoreLabels[(sdoh as any)[key] || 3]}
                   </p>
                 </div>
               ))}
@@ -1822,7 +1826,7 @@ export default function IntakeWizard() {
               <IntakeCompletionChecklist
                 hasPersonalInfo={!!(client.rcmsId && client.dobMasked)}
                 hasIncidentDetails={!!(intake.incidentDate && intake.incidentType && intake.injuries.length > 0)}
-                hasAssessment={fourPs.physical !== 0 || fourPs.psychological !== 0 || fourPs.psychosocial !== 0 || fourPs.professional !== 0}
+                hasAssessment={fourPs.physical !== 3 || fourPs.psychological !== 3 || fourPs.psychosocial !== 3 || fourPs.professional !== 3}
                 hasMedications={preInjuryMeds.length > 0 || postInjuryMeds.length > 0}
                 hasConsent={consent.signed}
               />
@@ -1849,10 +1853,10 @@ export default function IntakeWizard() {
                     { label: 'Psychosocial', value: fourPs.psychosocial },
                     { label: 'Professional', value: fourPs.professional }
                   ].map(({ label, value }) => {
-                    const bgColor = value === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                                   value === 1 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
-                                   value === 2 ? 'bg-amber-50 border-amber-300 text-amber-800' :
-                                   value === 3 ? 'bg-red-50 border-red-300 text-red-800' :
+                    const bgColor = value === 5 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                                   value === 4 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
+                                   value === 3 ? 'bg-amber-50 border-amber-300 text-amber-800' :
+                                   value === 2 ? 'bg-red-50 border-red-300 text-red-800' :
                                    'bg-red-100 border-red-400 text-red-900';
                     return (
                       <div key={label} className={`rounded-full px-4 py-2 border-2 font-extrabold ${bgColor}`}>
@@ -1878,11 +1882,11 @@ export default function IntakeWizard() {
                     { label: 'Safety', value: sdoh.safety },
                     { label: 'Access', value: sdoh.healthcare_access }
                   ].map(({ label, value }) => {
-                    const v = value ?? 0;
-                    const bgColor = v === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                                   v === 1 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
-                                   v === 2 ? 'bg-amber-50 border-amber-300 text-amber-800' :
-                                   v === 3 ? 'bg-red-50 border-red-300 text-red-800' :
+                    const v = value ?? 3;
+                    const bgColor = v === 5 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                                   v === 4 ? 'bg-emerald-100 border-emerald-300 text-emerald-900' :
+                                   v === 3 ? 'bg-amber-50 border-amber-300 text-amber-800' :
+                                   v === 2 ? 'bg-red-50 border-red-300 text-red-800' :
                                    'bg-red-100 border-red-400 text-red-900';
                     return (
                       <div key={label} className={`rounded-full px-4 py-2 border-2 font-extrabold ${bgColor}`}>
@@ -1895,7 +1899,7 @@ export default function IntakeWizard() {
 
               {/* Case Health Meter */}
               <div className="mb-2">
-                <h5 className="text-sm font-extrabold mb-3 text-foreground">Overall Health Indicator (0–4)</h5>
+                <h5 className="text-sm font-extrabold mb-3 text-foreground">Overall Health Indicator (1–5)</h5>
                 <div className="flex items-center gap-4">
                   <div className="flex-1 relative h-3 rounded-full bg-muted overflow-hidden">
                     <div 
@@ -1904,20 +1908,20 @@ export default function IntakeWizard() {
                         width: `${Math.min(100, (((() => {
                           const allValues = [
                             fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
-                            typeof sdoh.housing === 'number' ? sdoh.housing : 0,
-                            typeof sdoh.food === 'number' ? sdoh.food : 0,
-                            typeof sdoh.transport === 'number' ? sdoh.transport : 0,
-                            typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
-                            typeof sdoh.financial === 'number' ? sdoh.financial : 0,
-                            typeof sdoh.employment === 'number' ? sdoh.employment : 0,
-                            typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
-                            typeof sdoh.safety === 'number' ? sdoh.safety : 0,
-                            typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                            typeof sdoh.housing === 'number' ? sdoh.housing : 3,
+                            typeof sdoh.food === 'number' ? sdoh.food : 3,
+                            typeof sdoh.transport === 'number' ? sdoh.transport : 3,
+                            typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 3,
+                            typeof sdoh.financial === 'number' ? sdoh.financial : 3,
+                            typeof sdoh.employment === 'number' ? sdoh.employment : 3,
+                            typeof sdoh.social_support === 'number' ? sdoh.social_support : 3,
+                            typeof sdoh.safety === 'number' ? sdoh.safety : 3,
+                            typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
                           ];
                           const sum = allValues.reduce((a, b) => a + b, 0);
                           return sum / allValues.length;
-                        })()) / 4) * 100)}%`,
-                        background: 'linear-gradient(90deg, #18a05f, #b09837, #c62828)'
+                        })() - 1) / 4) * 100)}%`,
+                        background: 'linear-gradient(90deg, #c62828, #b09837, #18a05f)'
                       }}
                     />
                   </div>
@@ -1925,15 +1929,15 @@ export default function IntakeWizard() {
                     {(() => {
                       const allValues = [
                         fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
-                        typeof sdoh.housing === 'number' ? sdoh.housing : 0,
-                        typeof sdoh.food === 'number' ? sdoh.food : 0,
-                        typeof sdoh.transport === 'number' ? sdoh.transport : 0,
-                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
-                        typeof sdoh.financial === 'number' ? sdoh.financial : 0,
-                        typeof sdoh.employment === 'number' ? sdoh.employment : 0,
-                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
-                        typeof sdoh.safety === 'number' ? sdoh.safety : 0,
-                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                        typeof sdoh.housing === 'number' ? sdoh.housing : 3,
+                        typeof sdoh.food === 'number' ? sdoh.food : 3,
+                        typeof sdoh.transport === 'number' ? sdoh.transport : 3,
+                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 3,
+                        typeof sdoh.financial === 'number' ? sdoh.financial : 3,
+                        typeof sdoh.employment === 'number' ? sdoh.employment : 3,
+                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 3,
+                        typeof sdoh.safety === 'number' ? sdoh.safety : 3,
+                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
                       ];
                       const sum = allValues.reduce((a, b) => a + b, 0);
                       return (sum / allValues.length).toFixed(1);
@@ -1941,7 +1945,7 @@ export default function IntakeWizard() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  0–0.9 Stable · 1–1.9 Mild · 2–2.9 Moderate · 3–4 Critical
+                  4.5–5.0 Stable · 3.5–4.4 Mild · 2.5–3.4 Moderate · 1.0–2.4 Critical
                 </p>
               </div>
             </div>
@@ -1988,22 +1992,22 @@ export default function IntakeWizard() {
                     {(() => {
                       const allValues = [
                         fourPs.physical, fourPs.psychological, fourPs.psychosocial, fourPs.professional,
-                        typeof sdoh.housing === 'number' ? sdoh.housing : 0,
-                        typeof sdoh.transport === 'number' ? sdoh.transport : 0,
-                        typeof sdoh.food === 'number' ? sdoh.food : 0,
-                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 0,
-                        typeof sdoh.financial === 'number' ? sdoh.financial : 0,
-                        typeof sdoh.employment === 'number' ? sdoh.employment : 0,
-                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 0,
-                        typeof sdoh.safety === 'number' ? sdoh.safety : 0,
-                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 0
+                        typeof sdoh.housing === 'number' ? sdoh.housing : 3,
+                        typeof sdoh.transport === 'number' ? sdoh.transport : 3,
+                        typeof sdoh.food === 'number' ? sdoh.food : 3,
+                        typeof sdoh.insuranceGap === 'number' ? sdoh.insuranceGap : 3,
+                        typeof sdoh.financial === 'number' ? sdoh.financial : 3,
+                        typeof sdoh.employment === 'number' ? sdoh.employment : 3,
+                        typeof sdoh.social_support === 'number' ? sdoh.social_support : 3,
+                        typeof sdoh.safety === 'number' ? sdoh.safety : 3,
+                        typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
                       ];
                       const sum = allValues.reduce((a, b) => a + b, 0);
                       const score = (sum / allValues.length).toFixed(1);
                       return `${score} — ${
-                        parseFloat(score) < 1 ? 'Stable' :
-                        parseFloat(score) < 2 ? 'Mild' :
-                        parseFloat(score) < 3 ? 'Moderate' : 'Critical'
+                        parseFloat(score) >= 4.5 ? 'Stable' :
+                        parseFloat(score) >= 3.5 ? 'Mild' :
+                        parseFloat(score) >= 2.5 ? 'Moderate' : 'Critical'
                       }`;
                     })()}
                   </span>
