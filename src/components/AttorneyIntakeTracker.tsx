@@ -114,6 +114,7 @@ export const AttorneyIntakeTracker = () => {
       console.log('loadData: About to query intakes with', queryString);
       const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', queryString);
       console.log('loadData: intakes result', { count: intakes?.length, error: intakesError });
+      console.log('loadData: Raw intakes from API:', intakes);
       
       if (intakesError) {
         throw intakesError;
@@ -154,6 +155,8 @@ export const AttorneyIntakeTracker = () => {
           my_client: true,
         };
       });
+
+      console.log('loadData: Transformed rows:', transformedRows);
 
       setRows(transformedRows);
 
