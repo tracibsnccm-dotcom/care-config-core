@@ -34,6 +34,7 @@ import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyLogin from "./pages/AttorneyLogin";
+import RNLogin from "./pages/RNLogin";
 import ClientLogin from "./pages/ClientLogin";
 import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
@@ -135,6 +136,12 @@ function Root() {
     // Separate login flow for attorneys (NOT through /auth)
     if (pathname === "/attorney-login" || pathname.startsWith("/attorney-login")) {
       return <AttorneyLogin />;
+    }
+
+    // MVP RN Login: "/rn-login" routes to RNLogin component
+    // Separate login flow for RN users (NOT through /auth)
+    if (pathname === "/rn-login" || pathname.startsWith("/rn-login")) {
+      return <RNLogin />;
     }
 
     // MVP Client Login: "/client-login" routes to ClientLogin component
@@ -241,6 +248,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
+          <Route path="/rn-login" element={<RNLogin />} />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />
           
