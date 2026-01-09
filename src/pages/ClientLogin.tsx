@@ -1,11 +1,52 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// Using REST helper only - no Supabase client to avoid hanging
-import { supabaseGet, supabaseUpdate } from "@/lib/supabaseRest";
 import { RCMS, btn } from "../constants/brand";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
+
+// Public fetch functions for unauthenticated requests (no auth token needed)
+async function publicSupabaseGet(table: string, query: string) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    return { data: null, error: new Error(`${response.status}`) };
+  }
+  
+  const data = await response.json();
+  return { data, error: null };
+}
+
+async function publicSupabaseUpdate(table: string, filter: string, updates: object) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${filter}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(updates)
+  });
+  
+  if (!response.ok) {
+    return { error: new Error(`${response.status}`) };
+  }
+  
+  return { error: null };
+}
 
 export default function ClientLogin() {
   const [caseNumber, setCaseNumber] = useState("");
@@ -33,7 +74,7 @@ export default function ClientLogin() {
     try {
       // Look up case by case_number (URL encode the case number for the query)
       const encodedCaseNumber = encodeURIComponent(trimmedCaseNumber);
-      const { data: cases, error: casesError } = await supabaseGet(
+      const { data: cases, error: casesError } = await publicSupabaseGet(
         'rc_cases',
         `select=id,client_id,client_pin,pin_failed_attempts,pin_locked_until&case_number=eq.${encodedCaseNumber}&limit=1`
       );
@@ -60,7 +101,7 @@ export default function ClientLogin() {
           return;
         } else {
           // Lock expired, reset it
-          await supabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
+          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
             pin_failed_attempts: 0,
             pin_locked_until: null,
           });
@@ -86,7 +127,7 @@ export default function ClientLogin() {
           const lockUntil = new Date();
           lockUntil.setHours(lockUntil.getHours() + 24);
           
-          await supabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
+          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
             pin_failed_attempts: newAttempts,
             pin_locked_until: lockUntil.toISOString(),
           });
@@ -96,7 +137,7 @@ export default function ClientLogin() {
           
           // TODO: Notify attorney about lockout
         } else {
-          await supabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
+          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
             pin_failed_attempts: newAttempts,
           });
 
@@ -108,7 +149,7 @@ export default function ClientLogin() {
       }
 
       // PIN is correct - reset failed attempts
-      await supabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
+      await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
         pin_failed_attempts: 0,
         pin_locked_until: null,
       });
