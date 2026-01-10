@@ -902,11 +902,18 @@ export default function IntakeWizard() {
     
     // Clear data if: different attorney OR previous intake was submitted
     if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
+      // Clear storage
       sessionStorage.clear();
       deleteDraft();
+      
+      // Set the new attorney ID before reload
       if (urlAttorneyId) {
         sessionStorage.setItem('rcms_current_attorney_id', urlAttorneyId);
       }
+      
+      // Reload to get fresh React state
+      window.location.reload();
+      return;
     }
   }, [searchParams, deleteDraft]);
 
