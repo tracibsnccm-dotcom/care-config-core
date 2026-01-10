@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/Stepper";
@@ -71,6 +71,7 @@ import { Printer } from "lucide-react";
 export default function IntakeWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   // Check if consents were completed before allowing intake access
   useEffect(() => {
@@ -106,14 +107,14 @@ export default function IntakeWizard() {
     loadAttorneys();
   }, []);
 
-  // Read attorney selection from localStorage (set in ClientConsent)
+  // Read attorney selection from URL parameters (set in ClientConsent)
   useEffect(() => {
-    const storedAttorneyId = localStorage.getItem('rcms_selected_attorney_id');
-    const storedAttorneyCode = localStorage.getItem('rcms_attorney_code');
-    console.log('IntakeWizard: Read from localStorage', { storedAttorneyId, storedAttorneyCode });
-    if (storedAttorneyId) setSelectedAttorneyId(storedAttorneyId);
-    if (storedAttorneyCode) setAttorneyCode(storedAttorneyCode);
-  }, []);
+    const urlAttorneyId = searchParams.get('attorney_id');
+    const urlAttorneyCode = searchParams.get('attorney_code');
+    console.log('IntakeWizard: Read from URL params', { urlAttorneyId, urlAttorneyCode });
+    if (urlAttorneyId) setSelectedAttorneyId(urlAttorneyId);
+    if (urlAttorneyCode) setAttorneyCode(urlAttorneyCode);
+  }, [searchParams]);
   
   const [showWelcome, setShowWelcome] = useState(false); // Skip welcome - consents already signed
   const [step, setStep] = useState(0); // Step 0 is now Incident Details (was Step 1)
@@ -690,9 +691,6 @@ export default function IntakeWizard() {
       title: "Intake Submitted Successfully",
       description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
     });
-    // Clear attorney selection after successful submission
-    localStorage.removeItem('rcms_selected_attorney_id');
-    localStorage.removeItem('rcms_attorney_code');
     // Navigate to client portal (will show pending confirmation screen)
     navigate("/client-portal");
   }

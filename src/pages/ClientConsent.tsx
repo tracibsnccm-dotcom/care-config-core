@@ -184,15 +184,6 @@ export default function ClientConsent() {
     loadAttorneys();
   }, []);
 
-  // Store attorney selection in localStorage whenever it changes
-  useEffect(() => {
-    if (selectedAttorneyId) {
-      localStorage.setItem('rcms_selected_attorney_id', selectedAttorneyId);
-    }
-    if (attorneyCode) {
-      localStorage.setItem('rcms_attorney_code', attorneyCode);
-    }
-  }, [selectedAttorneyId, attorneyCode]);
 
   const handleDecline = async () => {
     setIsSaving(true);
@@ -224,7 +215,6 @@ export default function ClientConsent() {
         setError("Please select your attorney or enter an attorney code.");
         return;
       }
-      // Attorney selection is saved to localStorage via useEffect
       setStep(1);
     } else if (step === 1) {
       // Service Agreement
@@ -341,8 +331,10 @@ export default function ClientConsent() {
         });
         // Mark consents as completed in sessionStorage
         sessionStorage.setItem("rcms_consents_completed", "true");
-        // All steps complete - redirect to intake
-        navigate("/client-intake");
+        // All steps complete - redirect to intake with attorney info in URL params
+        const attorneyParam = selectedAttorneyId || '';
+        const codeParam = attorneyCode || '';
+        navigate(`/client-intake?attorney_id=${encodeURIComponent(attorneyParam)}&attorney_code=${encodeURIComponent(codeParam)}`);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
         setIsSaving(false);
