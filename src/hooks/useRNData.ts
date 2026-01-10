@@ -44,9 +44,9 @@ export function useRNAssignments() {
 
     const fetchAssignments = async () => {
       const { data, error } = await supabase
-        .from("rn_case_assignments")
+        .from("rc_case_assignments")
         .select("*")
-        .eq("rn_id", user.id)
+        .eq("user_id", user.id)
         .eq("status", "active")
         .order("assigned_at", { ascending: false });
 
@@ -66,8 +66,8 @@ export function useRNAssignments() {
         {
           event: "*",
           schema: "public",
-          table: "rn_case_assignments",
-          filter: `rn_id=eq.${user.id}`,
+          table: "rc_case_assignments",
+          filter: `user_id=eq.${user.id}`,
         },
         () => fetchAssignments()
       )
