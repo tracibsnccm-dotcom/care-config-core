@@ -44,8 +44,10 @@ export function RNWorkQueue() {
   // Load user on mount
   useEffect(() => {
     const loadUser = async () => {
+      console.log('RNWorkQueue: Loading user...');
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        console.log('RNWorkQueue: User loaded', user?.id);
         setUser(user);
       } catch (error) {
         console.error('Failed to load user:', error);
@@ -64,6 +66,7 @@ export function RNWorkQueue() {
     const loadWorkQueue = async () => {
       setIsLoading(true);
       try {
+        console.log('RNWorkQueue: Loading work queue for user', user.id);
         const workItems: WorkQueueItem[] = [];
 
         // Fetch cases ready for RN review (attorney_confirmed intakes)
@@ -78,10 +81,12 @@ export function RNWorkQueue() {
           return;
         }
 
+        console.log('RNWorkQueue: Confirmed intakes', confirmedIntakesData);
         const confirmedIntakes = Array.isArray(confirmedIntakesData) ? confirmedIntakesData : (confirmedIntakesData ? [confirmedIntakesData] : []);
         const caseIds = confirmedIntakes?.map(i => i.case_id) || [];
 
         if (caseIds.length === 0) {
+          console.log('RNWorkQueue: No confirmed intakes found');
           setWorkQueue([]);
           return;
         }
@@ -101,6 +106,7 @@ export function RNWorkQueue() {
           return;
         }
 
+        console.log('RNWorkQueue: Cases data', casesData);
         const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
 
         // Fetch case alerts for emergency detection
@@ -167,6 +173,7 @@ export function RNWorkQueue() {
           });
         });
 
+        console.log('RNWorkQueue: Final work items', workItems);
         setWorkQueue(workItems);
       } catch (error) {
         console.error('Failed to load work queue:', error);
