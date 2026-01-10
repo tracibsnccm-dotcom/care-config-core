@@ -2,21 +2,20 @@
  * MVP Routing Configuration
  * 
  * MVP Entry Route: "/" → Index (Lovable landing page)
- * MVP Attorney Route: "/attorney-portal" → AppShell with "attorney" tab active
- * MVP RN Route: "/rn-console" → AppShell with "rn" tab active (RNConsole component)
+ * MVP Attorney Route: "/attorney-portal" → AttorneyLanding component
+ * MVP RN Route: "/rn-console" → RNConsolePage (uses RNWorkQueue from Lovable)
  * MVP Client Route: "/client-portal" → ClientPortal component (direct mount)
  * /demo Guard: VITE_ENABLE_DEMO env var (default: disabled)
  * 
  * Summary:
  * - "/" routes to MVP landing page (Index component)
- * - "/rn-console" routes to MVP RN portal (AppShell with RNConsole component)
- *   - RNConsole uses Supabase-backed APIs (no demo/mock data)
- *   - RNConsole enforces released snapshot immutability
- *   - RNConsole supports post-release draft creation
- * - "/attorney-portal" routes to MVP attorney portal (AppShell with AttorneyConsole component)
+ * - "/rn-console" routes to MVP RN portal (RNConsolePage with RNWorkQueue)
+ *   - Uses Lovable RN components directly (no ChatGPT demo shell)
+ *   - RNWorkQueue shows cases ready for RN review with intake data
+ * - "/attorney-portal" routes to MVP attorney portal (AttorneyLanding component)
  * - "/client-portal" routes to MVP client portal (ClientPortal component)
  *   - ClientPortal uses Supabase-backed APIs (no demo/mock data)
- *   - ClientCheckins writes directly to client_checkins and case_alerts tables
+ *   - ClientCheckins writes directly to rc_client_checkins and case_alerts tables
  * - "/demo" is blocked unless VITE_ENABLE_DEMO === "true"
  * - Demo features are quarantined, not improved
  */
@@ -26,7 +25,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import AppShell from "./AppShell";
 import DemoHub from "./pages/DemoHub.tsx";
 import Index from "./pages/Index";
 import ClientPortal from "./pages/ClientPortal";
@@ -39,6 +37,7 @@ import ClientLogin from "./pages/ClientLogin";
 import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
+import RNConsolePage from "./pages/RNConsolePage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -160,31 +159,34 @@ function Root() {
       );
     }
 
-    // MVP Attorney Portal: "/attorney-portal" routes to AttorneyConsole component
-    // AppShell defaults to "attorney" tab
+    // MVP Attorney Portal: "/attorney-portal" routes to AttorneyLanding component
     // Check more specific route first
     if (pathname === "/attorney-portal" || pathname.startsWith("/attorney-portal")) {
-      return <AppShell defaultTab="attorney" />;
+      return (
+        <RequireAuth>
+          <AttorneyLanding />
+        </RequireAuth>
+      );
     }
 
-    // MVP Attorney Portal: "/attorney" routes to AttorneyConsole component via AppShell
+    // MVP Attorney Portal: "/attorney" routes to AttorneyLanding component
     // Explicit route for attorney portal (must come after /attorney-portal to avoid matching it)
     if (pathname === "/attorney") {
-      return <AppShell defaultTab="attorney" />;
+      return (
+        <RequireAuth>
+          <AttorneyLanding />
+        </RequireAuth>
+      );
     }
 
-    // MVP RN Portal: "/rn-console" routes directly to RNConsole component
-    // This is the MVP RN portal entry point - uses Supabase-backed APIs only
-    // No demo dependencies: RNConsole uses Supabase, enforces released snapshot immutability,
-    // and supports post-release draft creation via RNPublishPanel
+    // MVP RN Portal: "/rn-console" routes to RNConsolePage (uses RNWorkQueue)
+    // This is the MVP RN portal entry point - uses Lovable RN components
     if (pathname === "/rn-console" || pathname === "/rn-portal-landing") {
-      return <AppShell defaultTab="rn" />;
-    }
-
-    // Handle RN case-specific routes (e.g., /rn/case/:caseId/4ps)
-    // These routes are handled by RNCaseRouter within RNConsole
-    if (pathname.startsWith("/rn/case/")) {
-      return <AppShell defaultTab="rn" />;
+      return (
+        <RequireAuth>
+          <RNConsolePage />
+        </RequireAuth>
+      );
     }
 
     // Sign-in/Access route: "/auth" routes to Access component (sign-in page)
@@ -207,8 +209,8 @@ function Root() {
       }
     }
 
-    // All other routes go to AppShell (defaults to attorney tab)
-    return <AppShell />;
+    // All other routes go to landing page
+    return <Index />;
   } catch (error) {
     // Catch any routing errors and log them
     console.error("[Root] Routing error:", error);
