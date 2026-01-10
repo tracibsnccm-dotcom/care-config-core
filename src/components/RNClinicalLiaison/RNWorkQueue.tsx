@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet } from '@/lib/supabaseRest';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Search, 
   Clock, 
@@ -38,124 +37,147 @@ export function RNWorkQueue() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [workQueue, setWorkQueue] = useState<WorkQueueItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: user } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
-
-  const { data: workQueue, isLoading } = useQuery({
-    queryKey: ["work-queue", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const workItems: WorkQueueItem[] = [];
-
-      // Fetch cases ready for RN review (attorney_confirmed intakes)
-      const { data: confirmedIntakesData, error: intakesError } = await supabaseGet(
-        'rc_client_intakes',
-        'select=case_id,intake_submitted_at,intake_json&intake_status=eq.attorney_confirmed'
-      );
-
-      if (intakesError) {
-        console.error('Failed to load intakes:', intakesError);
-        return [];
+  // Load user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        console.error('Failed to load user:', error);
       }
+    };
+    loadUser();
+  }, []);
 
-      const confirmedIntakes = Array.isArray(confirmedIntakesData) ? confirmedIntakesData : (confirmedIntakesData ? [confirmedIntakesData] : []);
-      const caseIds = confirmedIntakes?.map(i => i.case_id) || [];
+  // Load work queue when user is available
+  useEffect(() => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+    
+    const loadWorkQueue = async () => {
+      setIsLoading(true);
+      try {
+        const workItems: WorkQueueItem[] = [];
 
-      if (caseIds.length === 0) {
-        return [];
-      }
+        // Fetch cases ready for RN review (attorney_confirmed intakes)
+        const { data: confirmedIntakesData, error: intakesError } = await supabaseGet(
+          'rc_client_intakes',
+          'select=case_id,intake_submitted_at,intake_json&intake_status=eq.attorney_confirmed'
+        );
 
-      // Build query for multiple case IDs (PostgREST format: id=in.(id1,id2,id3))
-      const caseIdsQuery = `id=in.(${caseIds.join(',')})`;
+        if (intakesError) {
+          console.error('Failed to load intakes:', intakesError);
+          setWorkQueue([]);
+          return;
+        }
 
-      // Fetch case data from rc_cases
-      const { data: casesData, error: casesError } = await supabaseGet(
-        'rc_cases',
-        `select=id,case_status,case_type,created_at&${caseIdsQuery}`
-      );
+        const confirmedIntakes = Array.isArray(confirmedIntakesData) ? confirmedIntakesData : (confirmedIntakesData ? [confirmedIntakesData] : []);
+        const caseIds = confirmedIntakes?.map(i => i.case_id) || [];
 
-      if (casesError) {
-        console.error('Failed to load cases:', casesError);
-        return [];
-      }
+        if (caseIds.length === 0) {
+          setWorkQueue([]);
+          return;
+        }
 
-      const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
+        // Build query for multiple case IDs (PostgREST format: id=in.(id1,id2,id3))
+        const caseIdsQuery = `id=in.(${caseIds.join(',')})`;
 
-      // Fetch case alerts for emergency detection
-      const { data: alertsData, error: alertsError } = await supabaseGet(
-        'case_alerts',
-        `select=case_id,severity,message,alert_type&severity=eq.high&acknowledged_at=is.null&case_id=in.(${caseIds.join(',')})`
-      );
+        // Fetch case data from rc_cases
+        const { data: casesData, error: casesError } = await supabaseGet(
+          'rc_cases',
+          `select=id,case_status,case_type,created_at&${caseIdsQuery}`
+        );
 
-      if (alertsError) {
-        console.error('Failed to load alerts:', alertsError);
-      }
+        if (casesError) {
+          console.error('Failed to load cases:', casesError);
+          setWorkQueue([]);
+          return;
+        }
 
-      const alerts = Array.isArray(alertsData) ? alertsData : (alertsData ? [alertsData] : []);
+        const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
 
-      // Fetch tasks for these cases (keep case_tasks for now)
-      const { data: tasksData, error: tasksError } = await supabaseGet(
-        'case_tasks',
-        `select=*&case_id=in.(${caseIds.join(',')})&status=neq.completed`
-      );
+        // Fetch case alerts for emergency detection
+        const { data: alertsData, error: alertsError } = await supabaseGet(
+          'case_alerts',
+          `select=case_id,severity,message,alert_type&severity=eq.high&acknowledged_at=is.null&case_id=in.(${caseIds.join(',')})`
+        );
 
-      if (tasksError) {
-        console.error('Failed to load tasks:', tasksError);
-      }
+        if (alertsError) {
+          console.error('Failed to load alerts:', alertsError);
+        }
 
-      const tasks = Array.isArray(tasksData) ? tasksData : (tasksData ? [tasksData] : []);
+        const alerts = Array.isArray(alertsData) ? alertsData : (alertsData ? [alertsData] : []);
 
-      // Build emergency case set
-      const emergencyCases = new Set(
-        alerts?.filter(a => a.severity === "high").map(a => a.case_id) || []
-      );
+        // Fetch tasks for these cases (keep case_tasks for now)
+        const { data: tasksData, error: tasksError } = await supabaseGet(
+          'case_tasks',
+          `select=*&case_id=in.(${caseIds.join(',')})&status=neq.completed`
+        );
 
-      // Process cases as work items
-      cases?.forEach(caseItem => {
-        const intake = confirmedIntakes?.find(i => i.case_id === caseItem.id);
-        const isEmergency = emergencyCases.has(caseItem.id);
-        
-        // Create work item for the case itself
-        workItems.push({
-          id: caseItem.id,
-          case_id: caseItem.id,
-          type: "case_review",
-          description: `Case review required - ${caseItem.case_type || "N/A"}`,
-          due_date: intake?.intake_submitted_at || caseItem.created_at || new Date().toISOString(),
-          priority: isEmergency ? "urgent" : "high",
-          status: "pending",
-          is_emergency: isEmergency,
-          alert_message: isEmergency ? alerts?.find(a => a.case_id === caseItem.id)?.message : undefined
+        if (tasksError) {
+          console.error('Failed to load tasks:', tasksError);
+        }
+
+        const tasks = Array.isArray(tasksData) ? tasksData : (tasksData ? [tasksData] : []);
+
+        // Build emergency case set
+        const emergencyCases = new Set(
+          alerts?.filter(a => a.severity === "high").map(a => a.case_id) || []
+        );
+
+        // Process cases as work items
+        cases?.forEach(caseItem => {
+          const intake = confirmedIntakes?.find(i => i.case_id === caseItem.id);
+          const isEmergency = emergencyCases.has(caseItem.id);
+          
+          // Create work item for the case itself
+          workItems.push({
+            id: caseItem.id,
+            case_id: caseItem.id,
+            type: "case_review",
+            description: `Case review required - ${caseItem.case_type || "N/A"}`,
+            due_date: intake?.intake_submitted_at || caseItem.created_at || new Date().toISOString(),
+            priority: isEmergency ? "urgent" : "high",
+            status: "pending",
+            is_emergency: isEmergency,
+            alert_message: isEmergency ? alerts?.find(a => a.case_id === caseItem.id)?.message : undefined
+          });
         });
-      });
 
-      // Process tasks
-      tasks?.forEach(task => {
-        const isEmergency = emergencyCases.has(task.case_id);
-        workItems.push({
-          id: task.id,
-          case_id: task.case_id,
-          type: "task",
-          description: task.title + (task.description ? ` - ${task.description}` : ""),
-          due_date: task.due_date || new Date().toISOString(),
-          priority: isEmergency ? "urgent" : "medium",
-          status: task.status,
-          is_emergency: isEmergency,
-          alert_message: isEmergency ? alerts?.find(a => a.case_id === task.case_id)?.message : undefined
+        // Process tasks
+        tasks?.forEach(task => {
+          const isEmergency = emergencyCases.has(task.case_id);
+          workItems.push({
+            id: task.id,
+            case_id: task.case_id,
+            type: "task",
+            description: task.title + (task.description ? ` - ${task.description}` : ""),
+            due_date: task.due_date || new Date().toISOString(),
+            priority: isEmergency ? "urgent" : "medium",
+            status: task.status,
+            is_emergency: isEmergency,
+            alert_message: isEmergency ? alerts?.find(a => a.case_id === task.case_id)?.message : undefined
+          });
         });
-      });
 
-      return workItems;
-    },
-    enabled: !!user?.id,
-  });
+        setWorkQueue(workItems);
+      } catch (error) {
+        console.error('Failed to load work queue:', error);
+        setWorkQueue([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadWorkQueue();
+  }, [user?.id]);
 
   // Separate emergency and regular items
   const emergencyItems = workQueue?.filter(item => item.is_emergency) || [];
