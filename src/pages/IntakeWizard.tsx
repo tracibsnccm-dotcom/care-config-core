@@ -1188,6 +1188,19 @@ export default function IntakeWizard() {
               </div>
             )}
 
+            {/* Show Intake ID right after attorney */}
+            {client.rcmsId && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+                <h4 className="text-lg font-semibold text-blue-900 mb-2">📝 Your Intake ID</h4>
+                <p className="text-3xl font-mono font-bold text-blue-900 mb-3">{client.rcmsId}</p>
+                <div className="bg-amber-50 border border-amber-300 rounded p-3">
+                  <p className="text-sm text-amber-900 font-medium">
+                    ⚠️ IMPORTANT: Write this number down or save it in a safe place. You will need it to check the status of your case.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-3 mb-6">
               <LabeledSelect
                 label="Incident Type"
