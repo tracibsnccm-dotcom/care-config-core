@@ -269,17 +269,24 @@ export function AttorneyAttestationCard({
   resolved,
 }: AttorneyAttestationCardProps) {
   const { user } = useAuth();
+  
+  // Check if we just confirmed this intake (survives re-renders)
+  const sessionKey = `attestation_confirmed_${intakeId}`;
+  const sessionConfirmed = typeof window !== 'undefined' ? sessionStorage.getItem(sessionKey) : null;
+  const parsedSessionConfirmed = sessionConfirmed ? JSON.parse(sessionConfirmed) : null;
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [msRemaining, setMsRemaining] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
   const [showNotMyClientDialog, setShowNotMyClientDialog] = useState(false);
   // Local state for immediate confirmation display (before parent state updates)
+  // Initialize from sessionStorage if available to survive re-renders
   const [localConfirmed, setLocalConfirmed] = useState<{
     confirmedAt: string;
     caseNumber: string;
     clientPin: string;
     receipt: any;
-  } | null>(null);
+  } | null>(parsedSessionConfirmed);
 
   // Countdown visibility rule: only show if deadline exists, not attested (locally or via props), and deadline hasn't passed
   const shouldShowCountdown =
@@ -405,7 +412,12 @@ export function AttorneyAttestationCard({
 
           <div className="flex gap-3">
             <Button
-              onClick={onAttestationComplete}
+              onClick={() => {
+                // Clear sessionStorage when user leaves confirmation screen
+                const sessionKey = `attestation_confirmed_${intakeId}`;
+                sessionStorage.removeItem(sessionKey);
+                onAttestationComplete();
+              }}
               className="flex-1"
               variant="default"
             >
@@ -665,8 +677,8 @@ export function AttorneyAttestationCard({
       console.log('=== handleAttest SUCCESS ===');
       // Stop the countdown immediately
       setMsRemaining(0);
-      // Set local confirmation state immediately so UI updates without waiting for parent
-      setLocalConfirmed({
+      
+      const confirmationData = {
         confirmedAt: now,
         caseNumber: caseNumber,
         clientPin: clientPin,
@@ -676,7 +688,14 @@ export function AttorneyAttestationCard({
           confirmed_by: attorneyId,
           attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`
         }
-      });
+      };
+      
+      // Set local confirmation state immediately so UI updates without waiting for parent
+      setLocalConfirmed(confirmationData);
+      
+      // Also save to sessionStorage to survive re-renders
+      const sessionKey = `attestation_confirmed_${intakeId}`;
+      sessionStorage.setItem(sessionKey, JSON.stringify(confirmationData));
       // Notify parent of successful attestation
       if (onResolved) {
         onResolved("CONFIRMED", now, updatedIntakeJson);

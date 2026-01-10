@@ -692,6 +692,12 @@ export default function IntakeWizard() {
       title: "Intake Submitted Successfully",
       description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
     });
+    
+    // Clear draft and session storage after successful submission
+    await deleteDraft();
+    sessionStorage.removeItem("rcms_consent_session_id");
+    sessionStorage.removeItem("rcms_consents_completed");
+    
     // Navigate to client portal (will show pending confirmation screen)
     navigate("/client-portal");
   }
@@ -872,6 +878,19 @@ export default function IntakeWizard() {
     enabled: !showWelcome,
     debounceMs: 3000,
   });
+
+  // Clear old draft if starting fresh intake with new attorney
+  useEffect(() => {
+    const urlAttorneyId = searchParams.get('attorney_id');
+    const storedAttorneyId = sessionStorage.getItem('rcms_current_attorney_id');
+    
+    if (urlAttorneyId && urlAttorneyId !== storedAttorneyId) {
+      // New attorney = new intake, clear old data
+      sessionStorage.clear();
+      deleteDraft();
+      sessionStorage.setItem('rcms_current_attorney_id', urlAttorneyId);
+    }
+  }, [searchParams, deleteDraft]);
 
   // Inactivity detection
   const { isInactive, dismissInactivity } = useInactivityDetection({
