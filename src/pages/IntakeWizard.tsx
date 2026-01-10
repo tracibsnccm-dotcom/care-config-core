@@ -68,6 +68,18 @@ import { CLIENT_INTAKE_WINDOW_HOURS, formatHMS, CLIENT_DOCUMENTS } from "@/const
 import { Input } from "@/components/ui/input";
 import { Printer } from "lucide-react";
 
+// Generate temporary intake ID in INT-YYMMDD-##X format
+function generateIntakeId(attorneyCode: string | null, sequenceToday: number): string {
+  const today = new Date();
+  const yy = today.getFullYear().toString().slice(-2);
+  const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+  const dd = today.getDate().toString().padStart(2, '0');
+  const seq = sequenceToday.toString().padStart(2, '0');
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+  return `INT-${yy}${mm}${dd}-${seq}${randomLetter}`;
+}
+
 export default function IntakeWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -187,7 +199,7 @@ export default function IntakeWizard() {
   const [bhNotes, setBhNotes] = useState("");
 
   const [client, setClient] = useState<Client>({
-    rcmsId: "RCMS-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+    rcmsId: "",
     attyRef: "AT-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
     dobMasked: "1985-XX-XX",
     gender: "prefer_not_to_say",
@@ -897,6 +909,39 @@ export default function IntakeWizard() {
       }
     }
   }, [searchParams, deleteDraft]);
+
+  // Generate intake ID when attorney code is available
+  useEffect(() => {
+    async function generateId() {
+      if (!attorneyCode || client.rcmsId) return;
+      
+      // Count today's intakes to get sequence number
+      const today = new Date();
+      const yy = today.getFullYear().toString().slice(-2);
+      const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+      const dd = today.getDate().toString().padStart(2, '0');
+      const todayPrefix = `INT-${yy}${mm}${dd}-`;
+      
+      try {
+        const { data: todayIntakes } = await supabaseGet(
+          'rc_client_intakes',
+          `select=id,intake_json&intake_json->>rcmsId=like.${todayPrefix}*`
+        );
+        
+        const count = Array.isArray(todayIntakes) ? todayIntakes.length : 0;
+        const newId = generateIntakeId(attorneyCode, count + 1);
+        
+        setClient(prev => ({ ...prev, rcmsId: newId }));
+      } catch (error) {
+        console.error('Error generating intake ID:', error);
+        // Fallback - just use sequence 1
+        const newId = generateIntakeId(attorneyCode, 1);
+        setClient(prev => ({ ...prev, rcmsId: newId }));
+      }
+    }
+    
+    generateId();
+  }, [attorneyCode, client.rcmsId]);
 
   // Inactivity detection
   const { isInactive, dismissInactivity } = useInactivityDetection({
@@ -1772,7 +1817,7 @@ export default function IntakeWizard() {
                 <div className="flex py-2 border-b border-border">
                   <span className="font-medium w-40">RCMS ID:</span>
                   <span className="select-none text-muted-foreground" title="PHI block">
-                    {client.rcmsId}
+                    {client.rcmsId || 'Generating...'}
                   </span>
                 </div>
                 <div className="flex py-2 border-b border-border">
