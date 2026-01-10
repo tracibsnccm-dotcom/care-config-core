@@ -45,6 +45,12 @@ interface CaseData {
   intake_data?: {
     fourPs?: any;
     sdoh?: any;
+    client?: {
+      fullName?: string;
+      email?: string;
+      phone?: string;
+      state?: string;
+    };
     intake?: any;
   } | null;
 }
@@ -268,21 +274,39 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                   </div>
                 </div>
                 {caseData.intake_data && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm font-semibold mb-2">Intake Assessment</p>
-                    {caseData.intake_data.fourPs && (
-                      <div className="text-sm text-muted-foreground mb-2">
-                        <p>4Ps: Physical: {caseData.intake_data.fourPs.physical || "N/A"}, 
-                           Psychological: {caseData.intake_data.fourPs.psychological || "N/A"}, 
-                           Psychosocial: {caseData.intake_data.fourPs.psychosocial || "N/A"}, 
-                           Professional: {caseData.intake_data.fourPs.professional || "N/A"}</p>
+                  <div className="mt-4 pt-4 border-t space-y-4">
+                    {caseData.intake_data.client && (
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-semibold text-blue-900 mb-2">Client Information</h4>
+                        <p><strong>Name:</strong> {caseData.intake_data.client.fullName || "N/A"}</p>
+                        <p><strong>State:</strong> {caseData.intake_data.client.state || "N/A"}</p>
+                        {caseData.intake_data.client.email && <p><strong>Email:</strong> {caseData.intake_data.client.email}</p>}
+                        {caseData.intake_data.client.phone && <p><strong>Phone:</strong> {caseData.intake_data.client.phone}</p>}
                       </div>
                     )}
-                    {caseData.intake_data.sdoh && (
-                      <div className="text-sm text-muted-foreground">
-                        <p>SDOH data available</p>
+                    {caseData.intake_data.intake && (
+                      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold mb-2">Intake Details</h4>
+                        <p><strong>Incident Type:</strong> {caseData.intake_data.intake.incidentType || "N/A"}</p>
+                        <p><strong>Incident Date:</strong> {caseData.intake_data.intake.incidentDate || "N/A"}</p>
                       </div>
                     )}
+                    <div>
+                      <p className="text-sm font-semibold mb-2">Intake Assessment</p>
+                      {caseData.intake_data.fourPs && (
+                        <div className="text-sm text-muted-foreground mb-2">
+                          <p>4Ps: Physical: {caseData.intake_data.fourPs.physical || "N/A"}, 
+                             Psychological: {caseData.intake_data.fourPs.psychological || "N/A"}, 
+                             Psychosocial: {caseData.intake_data.fourPs.psychosocial || "N/A"}, 
+                             Professional: {caseData.intake_data.fourPs.professional || "N/A"}</p>
+                        </div>
+                      )}
+                      {caseData.intake_data.sdoh && (
+                        <div className="text-sm text-muted-foreground">
+                          <p>SDOH data available</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
