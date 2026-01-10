@@ -259,10 +259,18 @@ export function AttorneyAttestationCard({
   const [msRemaining, setMsRemaining] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
   const [showNotMyClientDialog, setShowNotMyClientDialog] = useState(false);
+  // Local state for immediate confirmation display (before parent state updates)
+  const [localConfirmed, setLocalConfirmed] = useState<{
+    confirmedAt: string;
+    caseNumber: string;
+    clientPin: string;
+    receipt: any;
+  } | null>(null);
 
-  // Countdown visibility rule: only show if deadline exists, not attested, and deadline hasn't passed
+  // Countdown visibility rule: only show if deadline exists, not attested (locally or via props), and deadline hasn't passed
   const shouldShowCountdown =
     !!attorneyConfirmDeadlineAt &&
+    !localConfirmed &&
     !attorneyAttestedAt &&
     Date.now() < new Date(attorneyConfirmDeadlineAt).getTime() &&
     resolved === null;
@@ -291,16 +299,17 @@ export function AttorneyAttestationCard({
     return () => clearInterval(interval);
   }, [shouldShowCountdown, attorneyConfirmDeadlineAt, intakeId]);
 
-  // Handle confirmed state (attorney_attested_at exists) - show receipt instead of form
-  // Only rely on DB state, not local-only state
-  if (attorneyAttestedAt || resolved === "CONFIRMED") {
-    // Get receipt from intake_json (DB state) or fallback to attorneyAttestedAt
-    const storedReceipt = intakeJson?.compliance?.attorney_confirmation_receipt;
+  // Handle confirmed state (attorney_attested_at exists OR local confirmation) - show receipt instead of form
+  // Check local state first (immediate), then fall back to props (after parent updates)
+  if (localConfirmed || attorneyAttestedAt || resolved === "CONFIRMED") {
+    // Get receipt from local state (immediate), intake_json (DB state), or fallback
+    const storedReceipt = localConfirmed?.receipt || intakeJson?.compliance?.attorney_confirmation_receipt;
     const receiptData = 
+      (localConfirmed ? { confirmedAt: localConfirmed.confirmedAt, confirmedBy: user?.id || '' } : null) ||
       (storedReceipt ? { confirmedAt: storedReceipt.confirmed_at, confirmedBy: storedReceipt.confirmed_by } : null) ||
       (attorneyAttestedAt ? { confirmedAt: attorneyAttestedAt, confirmedBy: '' } : null);
     
-    const receipt = storedReceipt || (receiptData ? {
+    const receipt = localConfirmed?.receipt || storedReceipt || (receiptData ? {
       action: "CONFIRMED",
       confirmed_at: receiptData.confirmedAt,
       confirmed_by: receiptData.confirmedBy,
@@ -327,9 +336,26 @@ export function AttorneyAttestationCard({
             <div>
               <p className="text-sm text-muted-foreground">Date/time</p>
               <p className="font-medium">
-                {receiptData ? new Date(receiptData.confirmedAt).toLocaleString() : (attorneyAttestedAt ? new Date(attorneyAttestedAt).toLocaleString() : '')}
+                {localConfirmed ? new Date(localConfirmed.confirmedAt).toLocaleString() : (receiptData ? new Date(receiptData.confirmedAt).toLocaleString() : (attorneyAttestedAt ? new Date(attorneyAttestedAt).toLocaleString() : ''))}
               </p>
             </div>
+            {(localConfirmed?.caseNumber || localConfirmed?.clientPin) && (
+              <div className="space-y-2">
+                {localConfirmed.caseNumber && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Case Number</p>
+                    <p className="font-semibold text-lg">{localConfirmed.caseNumber}</p>
+                  </div>
+                )}
+                {localConfirmed.clientPin && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Client PIN</p>
+                    <p className="font-semibold text-lg font-mono">{localConfirmed.clientPin}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Please provide this PIN to the client</p>
+                  </div>
+                )}
+              </div>
+            )}
             {receipt && (
               <div>
                 <p className="text-sm text-muted-foreground mb-2">What was confirmed</p>
@@ -619,6 +645,18 @@ export function AttorneyAttestationCard({
       console.log('=== handleAttest SUCCESS ===');
       // Stop the countdown immediately
       setMsRemaining(0);
+      // Set local confirmation state immediately so UI updates without waiting for parent
+      setLocalConfirmed({
+        confirmedAt: now,
+        caseNumber: caseNumber,
+        clientPin: clientPin,
+        receipt: {
+          action: "CONFIRMED",
+          confirmed_at: now,
+          confirmed_by: attorneyId,
+          attestation_text: `${COMPLIANCE_COPY.attorneyAttestation.title}\n\n${COMPLIANCE_COPY.attorneyAttestation.bodyLines.join('\n\n')}`
+        }
+      });
       // Notify parent of successful attestation
       if (onResolved) {
         onResolved("CONFIRMED", now, updatedIntakeJson);
