@@ -47,6 +47,13 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
   };
 
   const initializeDraft = async () => {
+    // TODO: Re-enable when edge function CORS is fixed
+    // MVP: Skip edge function call due to CORS issues
+    console.log('Draft initialization skipped - edge function disabled for MVP');
+    return;
+
+    // Original code below (commented out for MVP)
+    /*
     const stored = localStorage.getItem('rcms_intake_draft');
     let id = stored;
 
@@ -95,9 +102,17 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
         }
       }
     }
+    */
   };
 
   const saveDraft = async (showToast = false) => {
+    // TODO: Re-enable when edge function CORS is fixed
+    // MVP: Skip edge function call due to CORS issues
+    console.log('Draft save skipped - edge function disabled for MVP');
+    return;
+
+    // Original code below (commented out for MVP)
+    /*
     if (!draftId) return;
 
     try {
@@ -124,9 +139,18 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
+    */
   };
 
   const handleExit = async () => {
+    // TODO: Re-enable when edge function CORS is fixed
+    // MVP: Skip edge function call due to CORS issues
+    console.log('Draft exit skipped - edge function disabled for MVP');
+    await saveDraft();
+    onSaveExit?.();
+    
+    // Original code below (commented out for MVP)
+    /*
     await saveDraft();
     if (draftId) {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
@@ -152,6 +176,7 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
       }
     }
     onSaveExit?.();
+    */
   };
 
   const copyResumeLink = async () => {
