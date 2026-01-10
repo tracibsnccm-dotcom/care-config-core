@@ -44,7 +44,7 @@ import { IntakePhysicalPreDiagnosisSelector } from "@/components/IntakePhysicalP
 import { IntakePhysicalPostDiagnosisSelector } from "@/components/IntakePhysicalPostDiagnosisSelector";
 import { IntakeBehavioralHealthDiagnosisSelector } from "@/components/IntakeBehavioralHealthDiagnosisSelector";
 import { LabeledTextarea } from "@/components/LabeledTextarea";
-import { ClientIdService, type ClientType } from "@/lib/clientIdService";
+import { ClientIdService } from "@/lib/clientIdService";
 import { IntakeSaveBar } from "@/components/IntakeSaveBar";
 import { IntakeCompletionChecklist } from "@/components/IntakeCompletionChecklist";
 import { IntakeNextStepsTimeline } from "@/components/IntakeNextStepsTimeline";
@@ -176,7 +176,6 @@ export default function IntakeWizard() {
   });
 
   const [attorneyCode, setAttorneyCode] = useState("");
-  const [clientType, setClientType] = useState<ClientType>('I');
   const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string}[]>([]);
   const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
 
@@ -303,10 +302,10 @@ export default function IntakeWizard() {
 
     const masked = maskName(client.fullName || "");
     
-    // Generate client ID
+    // Generate client ID - use 'R' (referral) as default type when attorney is involved
     const clientIdResult = await ClientIdService.generateClientId({
-      attorneyCode: clientType !== 'I' ? attorneyCode : undefined,
-      type: clientType
+      attorneyCode: attorneyCode || undefined,
+      type: attorneyCode ? 'R' : 'I' // 'R' for referral with attorney, 'I' for internal if no attorney
     });
     
     if (!clientIdResult.success) {
@@ -1063,48 +1062,38 @@ export default function IntakeWizard() {
               labels={["Incident", "Medical", "Mental Health", "4Ps + SDOH", "E-Sign", "Review"]}
             />
             
-            {/* Client Type & Attorney Code */}
+            {/* Attorney Selection */}
             <Card className="p-4 border-border mt-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <LabeledSelect
-                  label="Intake Type"
-                  value={clientType}
-                  onChange={(v) => setClientType(v as ClientType)}
-                  options={['I', 'D', 'R']}
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-medium">Select Your Attorney</Label>
+                  <Select value={selectedAttorneyId} onValueChange={(val) => {
+                    setSelectedAttorneyId(val);
+                    const attorney = availableAttorneys.find(a => a.id === val);
+                    if (attorney) setAttorneyCode(attorney.attorney_code);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose your attorney..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAttorneys.map(attorney => (
+                        <SelectItem key={attorney.id} value={attorney.id}>
+                          {attorney.full_name} ({attorney.attorney_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">— OR —</div>
+                <LabeledInput
+                  label="Enter Attorney Code"
+                  value={attorneyCode}
+                  onChange={(val) => {
+                    setAttorneyCode(val);
+                    setSelectedAttorneyId(""); // Clear dropdown if typing code
+                  }}
+                  placeholder="e.g., 01, 02"
                 />
-                {clientType !== 'I' && (
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Select Your Attorney</Label>
-                      <Select value={selectedAttorneyId} onValueChange={(val) => {
-                        setSelectedAttorneyId(val);
-                        const attorney = availableAttorneys.find(a => a.id === val);
-                        if (attorney) setAttorneyCode(attorney.attorney_code);
-                      }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose your attorney..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableAttorneys.map(attorney => (
-                            <SelectItem key={attorney.id} value={attorney.id}>
-                              {attorney.full_name} ({attorney.attorney_code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="text-center text-sm text-muted-foreground">— OR —</div>
-                    <LabeledInput
-                      label="Enter Attorney Code"
-                      value={attorneyCode}
-                      onChange={(val) => {
-                        setAttorneyCode(val);
-                        setSelectedAttorneyId(""); // Clear dropdown if typing code
-                      }}
-                      placeholder="e.g., 01, 02"
-                    />
-                  </div>
-                )}
               </div>
             </Card>
 
