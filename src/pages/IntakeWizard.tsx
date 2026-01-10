@@ -677,6 +677,7 @@ export default function IntakeWizard() {
         const { error: intakeCompletionError } = await supabaseInsert("rc_client_intakes", {
           case_id: newCase.id,
           intake_json: intakeJson,
+          intake_status: 'submitted_pending_attorney',
           intake_submitted_at: submittedAt,
           attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
         });
