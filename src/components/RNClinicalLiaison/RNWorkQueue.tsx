@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet } from '@/lib/supabaseRest';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -54,37 +55,62 @@ export function RNWorkQueue() {
       const workItems: WorkQueueItem[] = [];
 
       // Fetch cases ready for RN review (attorney_confirmed intakes)
-      const { data: confirmedIntakes } = await supabase
-        .from("rc_client_intakes")
-        .select("case_id, intake_submitted_at, intake_json")
-        .eq("intake_status", "attorney_confirmed");
+      const { data: confirmedIntakesData, error: intakesError } = await supabaseGet(
+        'rc_client_intakes',
+        'select=case_id,intake_submitted_at,intake_json&intake_status=eq.attorney_confirmed'
+      );
 
+      if (intakesError) {
+        console.error('Failed to load intakes:', intakesError);
+        return [];
+      }
+
+      const confirmedIntakes = Array.isArray(confirmedIntakesData) ? confirmedIntakesData : (confirmedIntakesData ? [confirmedIntakesData] : []);
       const caseIds = confirmedIntakes?.map(i => i.case_id) || [];
 
       if (caseIds.length === 0) {
         return [];
       }
 
+      // Build query for multiple case IDs (PostgREST format: id=in.(id1,id2,id3))
+      const caseIdsQuery = `id=in.(${caseIds.join(',')})`;
+
       // Fetch case data from rc_cases
-      const { data: cases } = await supabase
-        .from("rc_cases")
-        .select("id, case_status, case_type, created_at")
-        .in("id", caseIds);
+      const { data: casesData, error: casesError } = await supabaseGet(
+        'rc_cases',
+        `select=id,case_status,case_type,created_at&${caseIdsQuery}`
+      );
+
+      if (casesError) {
+        console.error('Failed to load cases:', casesError);
+        return [];
+      }
+
+      const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
 
       // Fetch case alerts for emergency detection
-      const { data: alerts } = await supabase
-        .from("case_alerts")
-        .select("case_id, severity, message, alert_type")
-        .eq("severity", "high")
-        .is("acknowledged_at", null)
-        .in("case_id", caseIds);
+      const { data: alertsData, error: alertsError } = await supabaseGet(
+        'case_alerts',
+        `select=case_id,severity,message,alert_type&severity=eq.high&acknowledged_at=is.null&case_id=in.(${caseIds.join(',')})`
+      );
+
+      if (alertsError) {
+        console.error('Failed to load alerts:', alertsError);
+      }
+
+      const alerts = Array.isArray(alertsData) ? alertsData : (alertsData ? [alertsData] : []);
 
       // Fetch tasks for these cases (keep case_tasks for now)
-      const { data: tasks } = await supabase
-        .from("case_tasks")
-        .select("*")
-        .in("case_id", caseIds)
-        .neq("status", "completed");
+      const { data: tasksData, error: tasksError } = await supabaseGet(
+        'case_tasks',
+        `select=*&case_id=in.(${caseIds.join(',')})&status=neq.completed`
+      );
+
+      if (tasksError) {
+        console.error('Failed to load tasks:', tasksError);
+      }
+
+      const tasks = Array.isArray(tasksData) ? tasksData : (tasksData ? [tasksData] : []);
 
       // Build emergency case set
       const emergencyCases = new Set(
