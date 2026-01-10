@@ -38,6 +38,7 @@ import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
+import CheckIntakeStatus from "./pages/CheckIntakeStatus";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -248,6 +249,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/client-intake" element={<IntakeWizard />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/client-portal" element={<ClientPortalSimple />} />
+          <Route path="/check-status" element={<CheckIntakeStatus />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
           <Route path="/rn-login" element={<RNLogin />} />
           <Route path="/auth" element={<Access />} />

@@ -1911,6 +1911,19 @@ export default function IntakeWizard() {
             {/* What Happens Next Timeline */}
             <div className="mt-8">
               <IntakeNextStepsTimeline />
+              
+              <Alert className="bg-blue-50 border-blue-200 mt-4">
+                <AlertDescription className="text-blue-900">
+                  <p className="font-semibold mb-2">📝 Save Your Intake ID</p>
+                  <p className="mb-2">
+                    Your Intake ID is: <span className="font-mono font-bold">{client.rcmsId || 'Generating...'}</span>
+                  </p>
+                  <p>
+                    You can check your status anytime at{' '}
+                    <a href="/check-status" className="underline font-medium">Check Intake Status</a>
+                  </p>
+                </AlertDescription>
+              </Alert>
             </div>
 
             {/* Editable Information Note */}
