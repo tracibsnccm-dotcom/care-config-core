@@ -617,6 +617,8 @@ export function AttorneyAttestationCard({
 
       // Success - show success message and refresh
       console.log('=== handleAttest SUCCESS ===');
+      // Stop the countdown immediately
+      setMsRemaining(0);
       // Notify parent of successful attestation
       if (onResolved) {
         onResolved("CONFIRMED", now, updatedIntakeJson);

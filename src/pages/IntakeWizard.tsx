@@ -135,6 +135,7 @@ export default function IntakeWizard() {
   const [sensitiveProgress, setSensitiveProgress] = useState<SensitiveExperiencesProgress | null>(null);
   const [intakeStartedAt, setIntakeStartedAt] = useState<Date | null>(null); // Track when intake was first started
   const [clientWindowExpired, setClientWindowExpired] = useState(false);
+  const [clientMsRemaining, setClientMsRemaining] = useState<number>(0);
   
   // Electronic signature state
   const [clientEsign, setClientEsign] = useState<{
@@ -964,6 +965,21 @@ export default function IntakeWizard() {
     return () => clearInterval(interval);
   }, [intakeStartedAt]);
 
+  // Update client countdown every second
+  useEffect(() => {
+    if (!intakeStartedAt) return;
+    
+    const updateCountdown = () => {
+      const deadline = new Date(intakeStartedAt.getTime() + CLIENT_INTAKE_WINDOW_HOURS * 60 * 60 * 1000);
+      const remaining = deadline.getTime() - Date.now();
+      setClientMsRemaining(remaining);
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [intakeStartedAt]);
+
   // Monitor mental health responses for risk flagging
   useEffect(() => {
     if (mentalHealth.selfHarm === 'yes' || mentalHealth.selfHarm === 'unsure') {
@@ -1042,15 +1058,13 @@ export default function IntakeWizard() {
                     <div className="text-sm text-muted-foreground mb-1">Time Remaining</div>
                     <div className={`text-lg font-mono font-bold ${clientWindowExpired ? 'text-destructive' : 'text-primary'}`}>
                       {(() => {
-                        const deadline = new Date(intakeStartedAt.getTime() + CLIENT_INTAKE_WINDOW_HOURS * 60 * 60 * 1000);
-                        const msRemaining = deadline.getTime() - Date.now();
-                        if (msRemaining <= 0) {
+                        if (clientMsRemaining <= 0) {
                           return "EXPIRED";
                         }
-                        const days = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                        const seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+                        const days = Math.floor(clientMsRemaining / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((clientMsRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((clientMsRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((clientMsRemaining % (1000 * 60)) / 1000);
                         return `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                       })()}
                     </div>
