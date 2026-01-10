@@ -39,6 +39,7 @@ import { Megaphone, MessageSquare, AlertTriangle, ClipboardCheck, FileText, Cloc
 import { useState, useEffect } from "react";
 import { useCases } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet } from '@/lib/supabaseRest';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientPendingAttorneyConfirmation } from "@/components/ClientPendingAttorneyConfirmation";
 import { COMPLIANCE_COPY } from "@/constants/compliance";
@@ -162,13 +163,8 @@ export default function ClientPortal() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("rc_client_intakes")
-          .select("id, case_id, intake_json, created_at, attorney_attested_at, attorney_confirm_deadline_at, intake_submitted_at")
-          .eq("case_id", caseId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data, error } = await supabaseGet('rc_client_intakes', 
+          `select=id,case_id,intake_json,created_at,attorney_attested_at,attorney_confirm_deadline_at,intake_submitted_at&case_id=eq.${caseId}&order=created_at.desc&limit=1`);
 
         if (error) {
           console.error("Error checking intake completion:", error);
@@ -176,13 +172,15 @@ export default function ClientPortal() {
           setIntakeCompleted(true);
           setIntakeStatus(null);
         } else {
-          setIntakeCompleted(!!data);
-          if (data) {
+          // Handle maybeSingle behavior - get first item if array
+          const intakeData = Array.isArray(data) ? (data.length > 0 ? data[0] : null) : data;
+          setIntakeCompleted(!!intakeData);
+          if (intakeData) {
             setIntakeStatus({
-              attorneyAttestedAt: data.attorney_attested_at,
-              attorneyConfirmDeadlineAt: data.attorney_confirm_deadline_at,
-              intakeId: data.id,
-              intakeJson: data.intake_json,
+              attorneyAttestedAt: intakeData.attorney_attested_at,
+              attorneyConfirmDeadlineAt: intakeData.attorney_confirm_deadline_at,
+              intakeId: intakeData.id,
+              intakeJson: intakeData.intake_json,
             });
           } else {
             setIntakeStatus(null);
@@ -208,15 +206,10 @@ export default function ClientPortal() {
     
     async function checkCrisisIndicators() {
       try {
-        const { data, error } = await supabase
-          .from("client_checkins")
-          .select("pain_scale, depression_scale, anxiety_scale")
-          .eq("client_id", user.id)
-          .eq("case_id", caseId)
-          .order("created_at", { ascending: false })
-          .limit(1);
+        const { data, error } = await supabaseGet('rc_client_checkins',
+          `select=pain_scale,depression_scale,anxiety_scale&client_id=eq.${user.id}&case_id=eq.${caseId}&order=created_at.desc&limit=1`);
 
-        if (!error && data && data.length > 0) {
+        if (!error && data && Array.isArray(data) && data.length > 0) {
           const latest = data[0];
           const hasCrisis = latest.pain_scale >= 8 || 
                            (latest.depression_scale && latest.depression_scale >= 8) || 
