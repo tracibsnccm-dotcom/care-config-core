@@ -72,12 +72,6 @@ export default function IntakeWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Clear previous attorney selection when starting fresh intake
-  useEffect(() => {
-    localStorage.removeItem('rcms_selected_attorney_id');
-    localStorage.removeItem('rcms_attorney_code');
-  }, []);
-
   // Check if consents were completed before allowing intake access
   useEffect(() => {
     const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
@@ -692,6 +686,9 @@ export default function IntakeWizard() {
       title: "Intake Submitted Successfully",
       description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
     });
+    // Clear attorney selection after successful submission
+    localStorage.removeItem('rcms_selected_attorney_id');
+    localStorage.removeItem('rcms_attorney_code');
     // Navigate to client portal (will show pending confirmation screen)
     navigate("/client-portal");
   }
