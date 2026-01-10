@@ -516,6 +516,7 @@ export function AttorneyAttestationCard({
         {
           case_number: caseNumber,
           client_pin: clientPin, // TODO: Hash PIN before storing (use backend function)
+          case_status: 'attorney_confirmed',
         }
       );
 
