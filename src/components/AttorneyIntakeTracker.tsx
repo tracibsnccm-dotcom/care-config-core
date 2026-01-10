@@ -381,13 +381,9 @@ export const AttorneyIntakeTracker = () => {
               } : null);
             }}
             onAttestationComplete={() => {
-              toast.success(resolution === "CONFIRMED" 
-                ? 'Attestation complete. Case number and PIN generated.'
-                : 'Action complete.');
-              // Force page reload to show updated data
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
+              // Don't show toast here - the AttorneyAttestationCard already shows one
+              // Don't reload - let user see and copy the case number and PIN
+              // User can click "Back to Intake List" when ready
             }}
           />
         )}
