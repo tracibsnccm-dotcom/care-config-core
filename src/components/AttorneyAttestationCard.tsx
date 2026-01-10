@@ -62,7 +62,9 @@ function openConfirmationPrintWindow(
     confirmed_at: string;
     confirmed_by?: string;
     attestation_text?: string;
-  }
+  },
+  caseNumber?: string,
+  clientPin?: string
 ) {
   const confirmedDate = new Date(receipt.confirmed_at).toLocaleString();
   const status = receipt.action === "CONFIRMED" ? "Confirmed" : "Not My Client";
@@ -186,6 +188,18 @@ function openConfirmationPrintWindow(
       <div class="meta-row">
         <span class="meta-label">Confirmed By:</span>
         <span>${escapeHtml(receipt.confirmed_by)}</span>
+      </div>
+      ` : ''}
+      ${caseNumber ? `
+      <div class="meta-row">
+        <span class="meta-label">Case Number:</span>
+        <span style="font-weight: 700; font-size: 14px;">${escapeHtml(caseNumber)}</span>
+      </div>
+      ` : ''}
+      ${clientPin ? `
+      <div class="meta-row">
+        <span class="meta-label">Client PIN:</span>
+        <span style="font-weight: 700; font-size: 14px; font-family: monospace;">${escapeHtml(clientPin)}</span>
       </div>
       ` : ''}
     </div>
@@ -403,7 +417,13 @@ export function AttorneyAttestationCard({
                   toast.error("Receipt data not available");
                   return;
                 }
-                openConfirmationPrintWindow(caseId, intakeId, receipt);
+                openConfirmationPrintWindow(
+                  caseId, 
+                  intakeId, 
+                  receipt,
+                  localConfirmed?.caseNumber,
+                  localConfirmed?.clientPin
+                );
               }}
               variant="outline"
               className="flex items-center gap-2"
