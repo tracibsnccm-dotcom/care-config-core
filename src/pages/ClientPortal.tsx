@@ -163,8 +163,12 @@ export default function ClientPortal() {
       }
 
       try {
+        console.log('ClientPortal: Loading intake for caseId', caseId);
         const { data, error } = await supabaseGet('rc_client_intakes', 
           `select=id,case_id,intake_json,created_at,attorney_attested_at,attorney_confirm_deadline_at,intake_submitted_at&case_id=eq.${caseId}&order=created_at.desc&limit=1`);
+
+        console.log('ClientPortal: Intake data received', data);
+        console.log('ClientPortal: attorney_attested_at =', Array.isArray(data) ? data[0]?.attorney_attested_at : data?.attorney_attested_at);
 
         if (error) {
           console.error("Error checking intake completion:", error);
