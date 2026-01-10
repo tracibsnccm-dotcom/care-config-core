@@ -110,6 +110,7 @@ export default function IntakeWizard() {
   useEffect(() => {
     const storedAttorneyId = localStorage.getItem('rcms_selected_attorney_id');
     const storedAttorneyCode = localStorage.getItem('rcms_attorney_code');
+    console.log('IntakeWizard: Read from localStorage', { storedAttorneyId, storedAttorneyCode });
     if (storedAttorneyId) setSelectedAttorneyId(storedAttorneyId);
     if (storedAttorneyCode) setAttorneyCode(storedAttorneyCode);
   }, []);
@@ -352,6 +353,7 @@ export default function IntakeWizard() {
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     
     // Look up attorney by selectedAttorneyId or attorney_code
+    console.log('IntakeWizard handleSubmit: Attorney values', { selectedAttorneyId, attorneyCode });
     let attorneyId: string | null = selectedAttorneyId || null;
     if (!attorneyId && attorneyCode) {
       const { data: attorneyData } = await supabaseGet(
@@ -363,6 +365,8 @@ export default function IntakeWizard() {
         attorneyId = attorney?.id || null;
       }
     }
+
+    console.log('IntakeWizard handleSubmit: Resolved attorneyId', attorneyId);
 
     // First, create the case in rc_cases table
     console.log('IntakeWizard: About to insert rc_cases');
