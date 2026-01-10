@@ -57,6 +57,16 @@ interface CaseData {
       transport?: number;
       transportation?: number;
     };
+    consent?: {
+      scope?: {
+        shareWithAttorney?: boolean;
+        shareWithProviders?: boolean;
+        shareWithRN?: boolean;
+      } | string;
+      signed?: boolean;
+      signedAt?: string;
+      restrictedAccess?: boolean;
+    };
     client?: {
       fullName?: string;
       email?: string;
@@ -482,6 +492,57 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                           </div>
                         </div>
                         <p className="text-xs text-gray-500 mt-2">Scale: 1 (At Risk) to 5 (Stable)</p>
+                      </div>
+                    )}
+
+                    {/* Consent Records */}
+                    {caseData.intake_data?.consent && (
+                      <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200 mt-4">
+                        <h4 className="font-semibold text-emerald-900 mb-3">Consent Records</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${caseData.intake_data.consent.signed ? 'bg-green-500' : 'bg-red-500'} text-white text-xs`}>
+                              {caseData.intake_data.consent.signed ? '✓' : '✗'}
+                            </span>
+                            <span><strong>Consent Signed:</strong> {caseData.intake_data.consent.signed ? 'Yes' : 'No'}</span>
+                          </div>
+                          
+                          {caseData.intake_data.consent.signedAt && (
+                            <p><strong>Signed At:</strong> {new Date(caseData.intake_data.consent.signedAt).toLocaleString()}</p>
+                          )}
+                          
+                          {caseData.intake_data.consent.scope && (
+                            <div className="mt-3 p-3 bg-white rounded border">
+                              <strong>Consent Scope:</strong>
+                              <ul className="mt-1 ml-4 list-disc">
+                                {typeof caseData.intake_data.consent.scope === 'object' ? (
+                                  <>
+                                    {caseData.intake_data.consent.scope.shareWithAttorney && (
+                                      <li>✓ Share with Attorney</li>
+                                    )}
+                                    {caseData.intake_data.consent.scope.shareWithProviders && (
+                                      <li>✓ Share with Healthcare Providers</li>
+                                    )}
+                                    {caseData.intake_data.consent.scope.shareWithRN && (
+                                      <li>✓ Share with RN Case Manager</li>
+                                    )}
+                                  </>
+                                ) : (
+                                  <li>{caseData.intake_data.consent.scope}</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          <p><strong>Restricted Access:</strong> {caseData.intake_data.consent.restrictedAccess ? 'Yes - Limited sharing' : 'No - Standard sharing'}</p>
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-emerald-100 rounded border border-emerald-300">
+                          <p className="text-xs text-emerald-800">
+                            <strong>Note:</strong> This consent was obtained during client intake. 
+                            Copies should be saved to the case file for Client, Attorney, and RN records.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
