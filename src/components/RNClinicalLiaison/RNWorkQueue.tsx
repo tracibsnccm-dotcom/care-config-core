@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet } from '@/lib/supabaseRest';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/supabaseAuth";
 import { 
   Search, 
   Clock, 
@@ -32,29 +32,14 @@ type WorkQueueItem = {
 };
 
 export function RNWorkQueue() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"due_date" | "priority" | "type" | "status">("due_date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [workQueue, setWorkQueue] = useState<WorkQueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Load user on mount
-  useEffect(() => {
-    const loadUser = async () => {
-      console.log('RNWorkQueue: Loading user...');
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        console.log('RNWorkQueue: User loaded', user?.id);
-        setUser(user);
-      } catch (error) {
-        console.error('Failed to load user:', error);
-      }
-    };
-    loadUser();
-  }, []);
 
   // Load work queue when user is available
   useEffect(() => {
