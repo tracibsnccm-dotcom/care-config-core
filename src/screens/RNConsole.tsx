@@ -93,6 +93,7 @@ const RNConsole: React.FC = () => {
   const [rcCases, setRcCases] = useState<RCCaseOption[]>([]);
   const [caseError, setCaseError] = useState<string | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState<string>("");
+  const [intakeData, setIntakeData] = useState<any>(null);
 
   // Sync path with pathname changes
   useEffect(() => {
@@ -136,6 +137,38 @@ const RNConsole: React.FC = () => {
       }
     }
   }, []);
+
+  // Load intake data when a case is selected
+  useEffect(() => {
+    if (!selectedCaseId) {
+      setIntakeData(null);
+      return;
+    }
+    
+    const loadIntakeData = async () => {
+      try {
+        const { data, error } = await supabaseGet(
+          'rc_client_intakes',
+          `select=intake_json,intake_submitted_at,attorney_attested_at&case_id=eq.${selectedCaseId}&limit=1`
+        );
+        
+        if (error) {
+          console.error('RNConsole: Failed to load intake data:', error);
+          setIntakeData(null);
+          return;
+        }
+        
+        const intake = Array.isArray(data) ? data[0] : data;
+        setIntakeData(intake);
+        console.log('RNConsole: Loaded intake data', intake);
+      } catch (err) {
+        console.error('RNConsole: Error loading intake data:', err);
+        setIntakeData(null);
+      }
+    };
+    
+    loadIntakeData();
+  }, [selectedCaseId]);
 
   useEffect(() => {
     setActiveCaseId(loadActiveCaseId());
