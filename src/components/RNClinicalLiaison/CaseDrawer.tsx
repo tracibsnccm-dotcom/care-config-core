@@ -96,23 +96,26 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
       setLoading(true);
 
       // Fetch case data from rc_cases
-      const { data: caseInfo, error: caseError } = await supabase
-        .from("rc_cases")
-        .select("*")
-        .eq("id", caseId)
-        .single();
+      const { data: caseInfoData, error: caseError } = await supabaseGet(
+        'rc_cases',
+        `select=*&id=eq.${caseId}&limit=1`
+      );
 
       if (caseError) throw caseError;
 
+      const caseInfo = Array.isArray(caseInfoData) ? (caseInfoData[0] || null) : caseInfoData;
+
+      if (!caseInfo) {
+        throw new Error('Case not found');
+      }
+
       // Fetch intake data from rc_client_intakes
-      const { data: intakeData } = await supabase
-        .from("rc_client_intakes")
-        .select("intake_json")
-        .eq("case_id", caseId)
-        .eq("intake_status", "attorney_confirmed")
-        .order("intake_submitted_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: intakeDataRaw } = await supabaseGet(
+        'rc_client_intakes',
+        `select=intake_json&case_id=eq.${caseId}&intake_status=eq.attorney_confirmed&order=intake_submitted_at.desc&limit=1`
+      );
+
+      const intakeData = Array.isArray(intakeDataRaw) ? (intakeDataRaw[0] || null) : intakeDataRaw;
 
       // Combine case data with intake data
       const combinedCaseData: CaseData = {
@@ -122,38 +125,36 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
       setCaseData(combinedCaseData);
 
       // Fetch tasks (keep case_tasks for now as specified)
-      const { data: tasksData } = await supabase
-        .from("case_tasks")
-        .select("*")
-        .eq("case_id", caseId)
-        .order("due_date", { ascending: true });
+      const { data: tasksData } = await supabaseGet(
+        'case_tasks',
+        `select=*&case_id=eq.${caseId}&order=due_date.asc`
+      );
 
-      setTasks(tasksData || []);
+      const tasksArray = Array.isArray(tasksData) ? tasksData : (tasksData ? [tasksData] : []);
+      setTasks(tasksArray);
 
       // Fetch documents (keep documents table for now)
-      const { data: docsData } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("case_id", caseId)
-        .order("uploaded_at", { ascending: false })
-        .limit(10);
+      const { data: docsData } = await supabaseGet(
+        'documents',
+        `select=*&case_id=eq.${caseId}&order=uploaded_at.desc&limit=10`
+      );
 
-      setDocuments(docsData || []);
+      const docsArray = Array.isArray(docsData) ? docsData : (docsData ? [docsData] : []);
+      setDocuments(docsArray);
 
       // Fetch clinical notes from rc_clinical_notes
-      const { data: notesData, error: notesError } = await supabase
-        .from("rc_clinical_notes")
-        .select("*")
-        .eq("case_id", caseId)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const { data: notesData, error: notesError } = await supabaseGet(
+        'rc_clinical_notes',
+        `select=*&case_id=eq.${caseId}&order=created_at.desc&limit=10`
+      );
 
       if (notesError) {
         console.error("Error fetching notes:", notesError);
         // Fallback to empty array if notes fail
         setNotes([]);
       } else {
-        setNotes(notesData || []);
+        const notesArray = Array.isArray(notesData) ? notesData : (notesData ? [notesData] : []);
+        setNotes(notesArray);
       }
 
       // Fetch activity log from rc_activity_log
