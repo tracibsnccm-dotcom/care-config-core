@@ -3,15 +3,15 @@
  * 
  * MVP Entry Route: "/" → Index (Lovable landing page)
  * MVP Attorney Route: "/attorney-portal" → AttorneyLanding component
- * MVP RN Route: "/rn-console" → RNConsolePage (uses RNWorkQueue from Lovable)
+ * MVP RN Route: "/rn-console" → RNPortalLanding (full Lovable RN dashboard)
  * MVP Client Route: "/client-portal" → ClientPortal component (direct mount)
  * /demo Guard: VITE_ENABLE_DEMO env var (default: disabled)
  * 
  * Summary:
  * - "/" routes to MVP landing page (Index component)
- * - "/rn-console" routes to MVP RN portal (RNConsolePage with RNWorkQueue)
+ * - "/rn-console" routes to MVP RN portal (RNPortalLanding full dashboard)
  *   - Uses Lovable RN components directly (no ChatGPT demo shell)
- *   - RNWorkQueue shows cases ready for RN review with intake data
+ *   - Full dashboard with stats, to-do lists, case health, and all features
  * - "/attorney-portal" routes to MVP attorney portal (AttorneyLanding component)
  * - "/client-portal" routes to MVP client portal (ClientPortal component)
  *   - ClientPortal uses Supabase-backed APIs (no demo/mock data)
@@ -37,7 +37,7 @@ import ClientLogin from "./pages/ClientLogin";
 import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
-import RNConsolePage from "./pages/RNConsolePage";
+import RNPortalLanding from "./pages/RNPortalLanding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -179,12 +179,12 @@ function Root() {
       );
     }
 
-    // MVP RN Portal: "/rn-console" routes to RNConsolePage (uses RNWorkQueue)
-    // This is the MVP RN portal entry point - uses Lovable RN components
+    // MVP RN Portal: "/rn-console" routes to RNPortalLanding (full dashboard)
+    // This is the MVP RN portal entry point - uses full Lovable RN dashboard
     if (pathname === "/rn-console" || pathname === "/rn-portal-landing") {
       return (
         <RequireAuth>
-          <RNConsolePage />
+          <RNPortalLanding />
         </RequireAuth>
       );
     }
