@@ -363,14 +363,8 @@ export const AttorneyIntakeTracker = () => {
                   intake_json: updatedJson
                 } : null);
               }
-              // Re-fetch latest intake after a short delay to ensure consistency
-              setTimeout(() => {
-                if (selectedIntake?.id) {
-                  loadIntakeForCase(selectedCaseId, selectedIntake.id);
-                } else {
-                  loadIntakeForCase(selectedCaseId);
-                }
-              }, 500);
+              // Don't re-fetch here - it causes the component to re-render and lose localConfirmed state
+              // The user can click "Back to Intake List" when ready, which will refresh the data
             }}
             onAttested={(attestedAt, updatedJson) => {
               // Keep this for backward compatibility, but resolution state is primary
