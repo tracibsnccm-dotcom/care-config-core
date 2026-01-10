@@ -284,11 +284,136 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                         {caseData.intake_data.client.phone && <p><strong>Phone:</strong> {caseData.intake_data.client.phone}</p>}
                       </div>
                     )}
-                    {caseData.intake_data.intake && (
-                      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold mb-2">Intake Details</h4>
-                        <p><strong>Incident Type:</strong> {caseData.intake_data.intake.incidentType || "N/A"}</p>
-                        <p><strong>Incident Date:</strong> {caseData.intake_data.intake.incidentDate || "N/A"}</p>
+                    {caseData.intake_data?.intake && (
+                      <div className="mb-4 space-y-4">
+                        {/* Incident Information */}
+                        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                          <h4 className="font-semibold text-red-900 mb-3">Incident Information</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <p><strong>Type:</strong> {caseData.intake_data.intake.incidentType || "N/A"}</p>
+                            <p><strong>Date:</strong> {caseData.intake_data.intake.incidentDate || "N/A"}</p>
+                            <p><strong>Severity Self-Score:</strong> {caseData.intake_data.intake.severitySelfScore || "N/A"}/10</p>
+                          </div>
+                          {caseData.intake_data.intake.incidentNarrative && (
+                            <div className="mt-3">
+                              <strong>Client's Description:</strong>
+                              <p className="mt-1 p-2 bg-white rounded border">{caseData.intake_data.intake.incidentNarrative}</p>
+                            </div>
+                          )}
+                          {caseData.intake_data.intake.incidentNarrativeExtra && (
+                            <div className="mt-2">
+                              <strong>Additional Details:</strong>
+                              <p className="mt-1 p-2 bg-white rounded border">{caseData.intake_data.intake.incidentNarrativeExtra}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Medical Information */}
+                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <h4 className="font-semibold text-purple-900 mb-3">Medical Information</h4>
+                          
+                          {caseData.intake_data.intake.injuries && caseData.intake_data.intake.injuries.length > 0 && (
+                            <div className="mb-2">
+                              <strong>Injuries:</strong>
+                              <p>{Array.isArray(caseData.intake_data.intake.injuries) ? caseData.intake_data.intake.injuries.join(", ") : caseData.intake_data.intake.injuries}</p>
+                            </div>
+                          )}
+                          
+                          {caseData.intake_data.intake.conditions && (
+                            <div className="mb-2">
+                              <strong>Pre-existing Conditions:</strong>
+                              <p>{Array.isArray(caseData.intake_data.intake.conditions) ? caseData.intake_data.intake.conditions.join(", ") : caseData.intake_data.intake.conditions || "None reported"}</p>
+                            </div>
+                          )}
+                          
+                          {caseData.intake_data.intake.allergies && (
+                            <div className="mb-2">
+                              <strong>Allergies:</strong>
+                              <p>{Array.isArray(caseData.intake_data.intake.allergies) ? caseData.intake_data.intake.allergies.join(", ") : caseData.intake_data.intake.allergies || "None reported"}</p>
+                            </div>
+                          )}
+                          
+                          {caseData.intake_data.intake.medList && (
+                            <div className="mb-2">
+                              <strong>Current Medications:</strong>
+                              <p>{Array.isArray(caseData.intake_data.intake.medList) ? caseData.intake_data.intake.medList.join(", ") : caseData.intake_data.intake.medList || "None reported"}</p>
+                            </div>
+                          )}
+                          
+                          {caseData.intake_data.intake.initialTreatment && (
+                            <div className="mb-2">
+                              <strong>Initial Treatment:</strong>
+                              <p>{caseData.intake_data.intake.initialTreatment}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Physical Health Notes */}
+                        {(caseData.intake_data.intake.physicalPreNotes || caseData.intake_data.intake.physicalPostNotes || 
+                          (caseData.intake_data.intake.physicalPreDiagnoses && caseData.intake_data.intake.physicalPreDiagnoses.length > 0) ||
+                          (caseData.intake_data.intake.physicalPostDiagnoses && caseData.intake_data.intake.physicalPostDiagnoses.length > 0)) && (
+                          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <h4 className="font-semibold text-green-900 mb-3">Physical Health Assessment</h4>
+                            
+                            {caseData.intake_data.intake.physicalPreDiagnoses && caseData.intake_data.intake.physicalPreDiagnoses.length > 0 && (
+                              <div className="mb-3">
+                                <strong>Pre-Incident Diagnoses:</strong>
+                                <p>{Array.isArray(caseData.intake_data.intake.physicalPreDiagnoses) ? caseData.intake_data.intake.physicalPreDiagnoses.join(", ") : caseData.intake_data.intake.physicalPreDiagnoses}</p>
+                              </div>
+                            )}
+                            
+                            {caseData.intake_data.intake.physicalPreNotes && (
+                              <div className="mb-3">
+                                <strong>Pre-Incident Notes:</strong>
+                                <p className="mt-1 p-2 bg-white rounded border">{caseData.intake_data.intake.physicalPreNotes}</p>
+                              </div>
+                            )}
+                            
+                            {caseData.intake_data.intake.physicalPostDiagnoses && caseData.intake_data.intake.physicalPostDiagnoses.length > 0 && (
+                              <div className="mb-3">
+                                <strong>Post-Incident Diagnoses:</strong>
+                                <p>{Array.isArray(caseData.intake_data.intake.physicalPostDiagnoses) ? caseData.intake_data.intake.physicalPostDiagnoses.join(", ") : caseData.intake_data.intake.physicalPostDiagnoses}</p>
+                              </div>
+                            )}
+                            
+                            {caseData.intake_data.intake.physicalPostNotes && (
+                              <div className="mb-2">
+                                <strong>Post-Incident Notes:</strong>
+                                <p className="mt-1 p-2 bg-white rounded border">{caseData.intake_data.intake.physicalPostNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Behavioral Health Notes */}
+                        {(caseData.intake_data.intake.bhNotes || 
+                          (caseData.intake_data.intake.bhPreDiagnoses && caseData.intake_data.intake.bhPreDiagnoses.length > 0) ||
+                          (caseData.intake_data.intake.bhPostDiagnoses && caseData.intake_data.intake.bhPostDiagnoses.length > 0)) && (
+                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <h4 className="font-semibold text-yellow-900 mb-3">Behavioral Health Assessment</h4>
+                            
+                            {caseData.intake_data.intake.bhPreDiagnoses && caseData.intake_data.intake.bhPreDiagnoses.length > 0 && (
+                              <div className="mb-3">
+                                <strong>Pre-Incident Diagnoses:</strong>
+                                <p>{Array.isArray(caseData.intake_data.intake.bhPreDiagnoses) ? caseData.intake_data.intake.bhPreDiagnoses.join(", ") : caseData.intake_data.intake.bhPreDiagnoses}</p>
+                              </div>
+                            )}
+                            
+                            {caseData.intake_data.intake.bhPostDiagnoses && caseData.intake_data.intake.bhPostDiagnoses.length > 0 && (
+                              <div className="mb-3">
+                                <strong>Post-Incident Diagnoses:</strong>
+                                <p>{Array.isArray(caseData.intake_data.intake.bhPostDiagnoses) ? caseData.intake_data.intake.bhPostDiagnoses.join(", ") : caseData.intake_data.intake.bhPostDiagnoses}</p>
+                              </div>
+                            )}
+                            
+                            {caseData.intake_data.intake.bhNotes && (
+                              <div className="mb-2">
+                                <strong>Notes:</strong>
+                                <p className="mt-1 p-2 bg-white rounded border">{caseData.intake_data.intake.bhNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div>
