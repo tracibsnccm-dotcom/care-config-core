@@ -72,6 +72,12 @@ export default function IntakeWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Clear previous attorney selection when starting fresh intake
+  useEffect(() => {
+    localStorage.removeItem('rcms_selected_attorney_id');
+    localStorage.removeItem('rcms_attorney_code');
+  }, []);
+
   // Check if consents were completed before allowing intake access
   useEffect(() => {
     const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
@@ -233,7 +239,7 @@ export default function IntakeWizard() {
 
   // Auto-create RN tasks for high-severity SDOH
   const handleSDOHChange = async (domain: string, severity: number) => {
-    setSdoh((s) => ({ ...s, [domain]: severity }));
+    setSdoh((s) => ({ ...s, [domain]: Math.floor(severity) }));
     
     if (severity <= 2 && draftId) {
       try {
@@ -302,17 +308,6 @@ export default function IntakeWizard() {
         description: "Your 7-day intake window has expired. Please restart the intake process.",
         variant: "destructive",
       });
-      return;
-    }
-
-    // Check if e-signature is completed
-    if (!clientEsign.agreed || !clientEsign.signerFullName.trim()) {
-      toast({
-        title: "E-Signature Required",
-        description: "Please complete the Consent & Privacy step and provide your electronic signature before submitting.",
-        variant: "destructive",
-      });
-      setStep(4); // Navigate to e-signature step (previously step 5)
       return;
     }
 
@@ -762,7 +757,7 @@ export default function IntakeWizard() {
       typeof sdoh.safety === 'number' ? sdoh.safety : 3,
       typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
     ];
-    const avgScore = (allValues.reduce((a, b) => a + b, 0) / allValues.length).toFixed(1);
+    const avgScore = Math.floor(allValues.reduce((a, b) => a + b, 0) / allValues.length);
     const severity = parseFloat(avgScore) >= 4.5 ? 'Stable' :
                      parseFloat(avgScore) >= 3.5 ? 'Mild' :
                      parseFloat(avgScore) >= 2.5 ? 'Moderate' : 'Critical';
@@ -1076,7 +1071,7 @@ export default function IntakeWizard() {
             <Stepper
               step={step}
               setStep={setStep}
-              labels={["Incident", "Medical", "Mental Health", "4Ps + SDOH", "E-Sign", "Review"]}
+              labels={["Incident", "Medical", "Mental Health", "4Ps + SDOH", "Review"]}
             />
             
             {/* Progress Bar */}
@@ -1496,7 +1491,7 @@ export default function IntakeWizard() {
                         <Slider
                           value={[fourPs[k]]}
                           onValueChange={([value]) =>
-                            setFourPs((p) => ({ ...p, [k]: value }))
+                            setFourPs((p) => ({ ...p, [k]: Math.floor(value) }))
                           }
                           min={1}
                           max={5}
@@ -1540,7 +1535,7 @@ export default function IntakeWizard() {
                   </div>
                   <Slider
                     value={[(sdoh as any)[key] || 3]}
-                    onValueChange={([value]) => handleSDOHChange(key, value)}
+                    onValueChange={([value]) => handleSDOHChange(key, Math.floor(value))}
                     min={1}
                     max={5}
                     step={1}
@@ -1582,223 +1577,15 @@ export default function IntakeWizard() {
                 onClick={() => setStep(4)}
                 className="w-full sm:w-auto"
               >
-                Continue to E-Signature
+                Continue to Review
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Step 4: Consent & Privacy / E-Signature (previously Step 5) */}
+        {/* Step 4: Review & Submit */}
         {step === 4 && (
-          <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">{CLIENT_DOCUMENTS.clientConsentTitle}</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Please review and electronically sign the following documents before submitting your intake.
-            </p>
-
-            {/* Document Sections - Scrollable */}
-            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 mb-6 border rounded-lg p-4">
-              {/* Privacy Policy */}
-              <div className="border-b pb-4">
-                <h4 className="font-semibold text-foreground mb-3">Privacy Policy</h4>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {CLIENT_DOCUMENTS.clientPrivacyPolicyText}
-                </div>
-              </div>
-
-              {/* HIPAA Notice */}
-              <div className="border-b pb-4">
-                <h4 className="font-semibold text-foreground mb-3">HIPAA Notice of Privacy Practices</h4>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {CLIENT_DOCUMENTS.clientHipaaNoticeText}
-                </div>
-              </div>
-
-              {/* Consent to Care Coordination */}
-              <div className="pb-4">
-                <h4 className="font-semibold text-foreground mb-3">Consent to Care Coordination</h4>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {CLIENT_DOCUMENTS.clientConsentToCareText}
-                </div>
-              </div>
-            </div>
-
-            {/* E-signature Section */}
-            <div className="space-y-4 border-t pt-6">
-              <p className="text-sm text-muted-foreground italic">
-                {CLIENT_DOCUMENTS.clientEsignDisclosureText}
-              </p>
-
-              {/* Agreement Checkbox */}
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="consent-agreement"
-                  checked={clientEsign.agreed}
-                  onCheckedChange={(checked) =>
-                    setClientEsign((prev) => ({ ...prev, agreed: checked as boolean }))
-                  }
-                  className="mt-1"
-                />
-                <Label htmlFor="consent-agreement" className="cursor-pointer text-sm leading-relaxed">
-                  I have read and agree to the Privacy Policy, HIPAA Notice, and Consent to Care Coordination.
-                </Label>
-              </div>
-
-              {/* Full Legal Name */}
-              <div>
-                <Label htmlFor="signer-full-name" className="text-sm font-medium">
-                  Full Legal Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="signer-full-name"
-                  value={clientEsign.signerFullName}
-                  onChange={(e) =>
-                    setClientEsign((prev) => ({ ...prev, signerFullName: e.target.value }))
-                  }
-                  placeholder="Enter your full legal name"
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Initials (Optional) */}
-              <div>
-                <Label htmlFor="signer-initials" className="text-sm font-medium">
-                  Initials (Optional)
-                </Label>
-                <Input
-                  id="signer-initials"
-                  value={clientEsign.signerInitials}
-                  onChange={(e) =>
-                    setClientEsign((prev) => ({ ...prev, signerInitials: e.target.value }))
-                  }
-                  placeholder="Enter your initials"
-                  className="mt-1 max-w-[200px]"
-                  maxLength={10}
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 mt-6">
-              <Button
-                onClick={() => {
-                  // Helper to escape HTML
-                  const escapeHtml = (s: string) => s
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
-
-                  // Open print view
-                  const signedDate = new Date().toLocaleString();
-                  const signatureName = clientEsign.signerFullName.trim() || "[Not yet signed]";
-                  const signatureMethod = "Signed electronically (typed name)";
-                  
-                  const html = `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Client Consent Documents</title>
-    <style>
-      @page { size: Letter; margin: 0.75in; }
-      body { 
-        font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-        color: #0f172a;
-        line-height: 1.6;
-      }
-      .header { margin-bottom: 24px; }
-      .title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-      .hr { height: 1px; background: #e2e8f0; margin: 16px 0; }
-      .document-section { margin-bottom: 32px; }
-      .document-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
-      .document-text { font-size: 12px; white-space: pre-wrap; line-height: 1.6; }
-      .signature-block { margin-top: 32px; padding-top: 24px; border-top: 2px solid #0f172a; }
-      .signature-info { margin-bottom: 16px; font-size: 12px; }
-      .signature-line { margin-top: 24px; }
-      .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #64748b; text-align: center; }
-      @media print { .no-print { display: none; } }
-    </style>
-  </head>
-  <body>
-    <div class="header">
-      <div class="title">Client Consent Documents</div>
-    </div>
-    <div class="hr"></div>
-    
-    <div class="document-section">
-      <div class="document-title">Privacy Policy</div>
-      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientPrivacyPolicyText).replace(/\n/g, '<br>')}</div>
-    </div>
-    
-    <div class="document-section">
-      <div class="document-title">HIPAA Notice of Privacy Practices</div>
-      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientHipaaNoticeText).replace(/\n/g, '<br>')}</div>
-    </div>
-    
-    <div class="document-section">
-      <div class="document-title">Consent to Care Coordination</div>
-      <div class="document-text">${escapeHtml(CLIENT_DOCUMENTS.clientConsentToCareText).replace(/\n/g, '<br>')}</div>
-    </div>
-    
-    <div class="signature-block">
-      <div class="signature-info">
-        <div><strong>Signed by:</strong> ${escapeHtml(signatureName)}</div>
-        <div><strong>Signed at:</strong> ${escapeHtml(signedDate)}</div>
-        <div><strong>Signature Method:</strong> ${escapeHtml(signatureMethod)}</div>
-      </div>
-    </div>
-    
-    <div class="footer">
-      Confidential — Client Record
-    </div>
-    
-    <div class="no-print" style="margin-top:16px;">
-      <button onclick="window.print()" style="padding: 8px 16px; font-size: 14px; cursor: pointer; background: #0f172a; color: white; border: none; border-radius: 4px;">
-        Print / Save as PDF
-      </button>
-    </div>
-    <script>window.onload = () => setTimeout(() => window.print(), 250);</script>
-  </body>
-</html>`;
-
-                  const w = window.open("", "_blank");
-                  if (!w) {
-                    toast({
-                      title: "Print Preview Failed",
-                      description: "Please allow pop-ups to print these documents.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  w.document.open();
-                  w.document.write(html);
-                  w.document.close();
-                }}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                Print / Save Copy
-              </Button>
-              <Button
-                onClick={() => setStep(5)}
-                disabled={!clientEsign.agreed || !clientEsign.signerFullName.trim()}
-                className="flex-1"
-              >
-                Sign & Continue
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button variant="secondary" onClick={() => setStep(3)}>
-                Back
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Step 5: Review & Submit (previously Step 6) */}
-        {step === 5 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
@@ -1930,12 +1717,12 @@ export default function IntakeWizard() {
                         typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
                       ];
                       const sum = allValues.reduce((a, b) => a + b, 0);
-                      return (sum / allValues.length).toFixed(1);
+                      return Math.floor(sum / allValues.length);
                     })()}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  4.5–5.0 Stable · 3.5–4.4 Mild · 2.5–3.4 Moderate · 1.0–2.4 Critical
+                  5 Stable · 4 Mild · 3 Moderate · 1–2 Critical
                 </p>
               </div>
             </div>
@@ -1993,11 +1780,11 @@ export default function IntakeWizard() {
                         typeof sdoh.healthcare_access === 'number' ? sdoh.healthcare_access : 3
                       ];
                       const sum = allValues.reduce((a, b) => a + b, 0);
-                      const score = (sum / allValues.length).toFixed(1);
+                      const score = Math.floor(sum / allValues.length);
                       return `${score} — ${
-                        parseFloat(score) >= 4.5 ? 'Stable' :
-                        parseFloat(score) >= 3.5 ? 'Mild' :
-                        parseFloat(score) >= 2.5 ? 'Moderate' : 'Critical'
+                        score >= 5 ? 'Stable' :
+                        score >= 4 ? 'Mild' :
+                        score >= 3 ? 'Moderate' : 'Critical'
                       }`;
                     })()}
                   </span>
@@ -2081,7 +1868,7 @@ export default function IntakeWizard() {
                 <Download className="w-4 h-4 mr-2" />
                 Save PDF Summary
               </Button>
-              <Button variant="secondary" onClick={() => setStep(4)}>
+              <Button variant="secondary" onClick={() => setStep(3)}>
                 Back
               </Button>
             </div>
@@ -2091,18 +1878,15 @@ export default function IntakeWizard() {
             <WizardNav 
               step={step} 
               setStep={setStep} 
-              last={5}
+              last={4}
               canAdvance={
                 step === 1 ? hasMeds !== '' : 
                 step === 2 ? (sensitiveProgress ? !sensitiveProgress.blockNavigation : true) :
-                step === 4 ? (clientEsign.agreed && clientEsign.signerFullName.trim().length > 0) :
                 true
               }
               blockReason={
                 step === 2 && sensitiveProgress?.blockNavigation 
                   ? 'Please complete consent choices in the Sensitive Experiences section'
-                  : step === 4 && (!clientEsign.agreed || !clientEsign.signerFullName.trim())
-                  ? 'Please agree to the documents and provide your full legal name'
                   : undefined
               }
             />

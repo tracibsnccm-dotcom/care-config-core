@@ -36,10 +36,13 @@ export function RequireAuth({ children }: RequireAuthProps) {
   if (!user) {
     console.log('=== RequireAuth: User not authenticated ===');
     // Determine redirect based on pathname
-    // Attorney routes go to /attorney-login, others go to /auth
+    // Attorney routes go to /attorney-login, RN routes go to /rn-login, others go to /auth
     const isAttorneyRoute = location.pathname.includes('attorney');
+    const isRNRoute = location.pathname.includes('rn-console') || location.pathname.includes('rn-portal');
     const loginUrl = isAttorneyRoute 
       ? '/attorney-login' 
+      : isRNRoute
+      ? '/rn-login'
       : '/auth?redirect=/client-portal';
 
     return (

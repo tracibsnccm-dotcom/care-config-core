@@ -165,6 +165,12 @@ export default function ClientConsent() {
   const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
   const [attorneyCode, setAttorneyCode] = useState<string>("");
 
+  // Clear previous attorney selection when starting fresh consent flow
+  useEffect(() => {
+    localStorage.removeItem('rcms_selected_attorney_id');
+    localStorage.removeItem('rcms_attorney_code');
+  }, []);
+
   const currentDate = getCurrentDate();
 
   // Load available attorneys on mount
