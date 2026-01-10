@@ -442,6 +442,9 @@ export function AttorneyAttestationCard({
 
     setIsSubmitting(true);
     
+    console.log('=== handleAttest START ===');
+    console.log('User:', user?.id, user?.email);
+    
     try {
       const now = new Date().toISOString();
       let attorneyId: string = user.email || user.id;
@@ -449,6 +452,7 @@ export function AttorneyAttestationCard({
       
       // Get attorney ID and attorney_code from rc_users
       const { data: rcUsers, error: rcUsersError } = await supabaseGet('rc_users', `select=id,attorney_code&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`);
+      console.log('rcUsers result:', { rcUsers, rcUsersError });
       if (rcUsersError) {
         throw new Error(`Failed to get attorney info: ${rcUsersError.message}`);
       }
@@ -464,9 +468,12 @@ export function AttorneyAttestationCard({
       if (!attorneyCode) {
         throw new Error('Attorney code not assigned. Please contact support.');
       }
+      
+      console.log('Attorney info:', { attorneyId, attorneyCode });
 
       // Fetch current intake_json
       const { data: intakes, error: intakesError } = await supabaseGet('rc_client_intakes', `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`);
+      console.log('Intake result:', { intakes, intakesError });
       if (intakesError) {
         throw new Error(`Failed to get intake: ${intakesError.message}`);
       }
@@ -504,10 +511,12 @@ export function AttorneyAttestationCard({
         : [];
       
       const sequenceToday = todayCases.length + 1;
+      console.log('Today cases for sequence:', { todayCases, sequenceToday });
 
       // Generate case_number and PIN
       const caseNumber = generateCaseNumber(attorneyCode, sequenceToday);
       const clientPin = generatePIN();
+      console.log('Generated:', { caseNumber, clientPin });
 
       // Update rc_cases with case_number and client_pin
       const { error: caseUpdateError } = await supabaseUpdate(
@@ -520,6 +529,7 @@ export function AttorneyAttestationCard({
         }
       );
 
+      console.log('Case update result:', { caseUpdateError });
       if (caseUpdateError) {
         throw new Error(`Failed to update case: ${caseUpdateError.message}`);
       }
@@ -554,6 +564,7 @@ export function AttorneyAttestationCard({
         intake_json: updatedIntakeJson,
       });
 
+      console.log('Intake update result:', { intakeUpdateError });
       if (intakeUpdateError) {
         throw new Error(`Failed to update intake: ${intakeUpdateError.message}`);
       }
@@ -605,10 +616,17 @@ export function AttorneyAttestationCard({
       }
 
       // Success - show success message and refresh
+      console.log('=== handleAttest SUCCESS ===');
       toast.success('Client relationship confirmed. Case number and PIN generated.');
       onAttestationComplete();
     } catch (error: any) {
-      console.error('Attestation error', error);
+      console.error('=== handleAttest FAILED ===', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+        fullError: error
+      });
       const errorMsg = error.code ? `${error.code} ${error.message || ''}` : (error.message || 'Failed to submit attestation');
       toast.error(errorMsg.trim() || 'Failed to submit attestation');
     } finally {
