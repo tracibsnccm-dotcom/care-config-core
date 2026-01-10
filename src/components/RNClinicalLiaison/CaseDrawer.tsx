@@ -43,8 +43,20 @@ interface CaseData {
   client_id?: string | null;
   attorney_id?: string | null;
   intake_data?: {
-    fourPs?: any;
-    sdoh?: any;
+    fourPs?: {
+      physical?: number;
+      psychological?: number;
+      psychosocial?: number;
+      professional?: number;
+    };
+    sdoh?: {
+      food?: number;
+      safety?: number;
+      housing?: number;
+      financial?: number;
+      transport?: number;
+      transportation?: number;
+    };
     client?: {
       fullName?: string;
       email?: string;
@@ -416,22 +428,62 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
                         )}
                       </div>
                     )}
-                    <div>
-                      <p className="text-sm font-semibold mb-2">Intake Assessment</p>
-                      {caseData.intake_data.fourPs && (
-                        <div className="text-sm text-muted-foreground mb-2">
-                          <p>4Ps: Physical: {caseData.intake_data.fourPs.physical || "N/A"}, 
-                             Psychological: {caseData.intake_data.fourPs.psychological || "N/A"}, 
-                             Psychosocial: {caseData.intake_data.fourPs.psychosocial || "N/A"}, 
-                             Professional: {caseData.intake_data.fourPs.professional || "N/A"}</p>
+
+                    {/* 4Ps Wellness Scores */}
+                    {caseData.intake_data?.fourPs && (
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mt-4">
+                        <h4 className="font-semibold text-blue-900 mb-3">4Ps Wellness Assessment (Client Self-Report)</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-white rounded border">
+                            <div className="text-2xl font-bold text-blue-600">{caseData.intake_data.fourPs.physical || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Physical</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded border">
+                            <div className="text-2xl font-bold text-purple-600">{caseData.intake_data.fourPs.psychological || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Psychological</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded border">
+                            <div className="text-2xl font-bold text-green-600">{caseData.intake_data.fourPs.psychosocial || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Psychosocial</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded border">
+                            <div className="text-2xl font-bold text-orange-600">{caseData.intake_data.fourPs.professional || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Professional</div>
+                          </div>
                         </div>
-                      )}
-                      {caseData.intake_data.sdoh && (
-                        <div className="text-sm text-muted-foreground">
-                          <p>SDOH data available</p>
+                        <p className="text-xs text-gray-500 mt-2">Scale: 1 (Critical) to 5 (Stable)</p>
+                      </div>
+                    )}
+
+                    {/* SDOH Scores */}
+                    {caseData.intake_data?.sdoh && (
+                      <div className="p-4 bg-teal-50 rounded-lg border border-teal-200 mt-4">
+                        <h4 className="font-semibold text-teal-900 mb-3">Social Determinants of Health (SDOH)</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          <div className="text-center p-2 bg-white rounded border">
+                            <div className="text-xl font-bold text-teal-600">{caseData.intake_data.sdoh.food || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Food Security</div>
+                          </div>
+                          <div className="text-center p-2 bg-white rounded border">
+                            <div className="text-xl font-bold text-teal-600">{caseData.intake_data.sdoh.safety || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Safety</div>
+                          </div>
+                          <div className="text-center p-2 bg-white rounded border">
+                            <div className="text-xl font-bold text-teal-600">{caseData.intake_data.sdoh.housing || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Housing</div>
+                          </div>
+                          <div className="text-center p-2 bg-white rounded border">
+                            <div className="text-xl font-bold text-teal-600">{caseData.intake_data.sdoh.financial || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Financial</div>
+                          </div>
+                          <div className="text-center p-2 bg-white rounded border">
+                            <div className="text-xl font-bold text-teal-600">{caseData.intake_data.sdoh.transport || caseData.intake_data.sdoh.transportation || "N/A"}</div>
+                            <div className="text-xs text-gray-600">Transportation</div>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                        <p className="text-xs text-gray-500 mt-2">Scale: 1 (At Risk) to 5 (Stable)</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
