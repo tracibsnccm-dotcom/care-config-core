@@ -86,13 +86,21 @@ export default function IntakeWizard() {
   // Load available attorneys on mount
   useEffect(() => {
     const loadAttorneys = async () => {
+      console.log('IntakeWizard: Loading attorneys...');
       const { data, error } = await supabaseGet(
         'rc_users',
         'select=id,full_name,attorney_code&role=eq.attorney&order=full_name.asc'
       );
-      if (!error && data) {
+      console.log('IntakeWizard: Attorney load result', { data, error });
+      if (error) {
+        console.error('IntakeWizard: Failed to load attorneys', error);
+        return;
+      }
+      if (data) {
         const attorneys = Array.isArray(data) ? data : [data];
-        setAvailableAttorneys(attorneys.filter(a => a.attorney_code)); // Only show attorneys with codes
+        const filtered = attorneys.filter(a => a.attorney_code);
+        console.log('IntakeWizard: Filtered attorneys', filtered);
+        setAvailableAttorneys(filtered);
       }
     };
     loadAttorneys();
