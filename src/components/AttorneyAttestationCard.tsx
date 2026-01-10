@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { audit } from '@/lib/supabaseOperations';
-import { supabaseGet, supabaseUpdate } from '@/lib/supabaseRest';
+import { supabaseGet, supabaseUpdate, supabaseInsert } from '@/lib/supabaseRest';
 
 // Helper function to generate case number
 function generateCaseNumber(attorneyCode: string, sequenceToday: number): string {
@@ -555,6 +555,37 @@ export function AttorneyAttestationCard({
 
       if (intakeUpdateError) {
         throw new Error(`Failed to update intake: ${intakeUpdateError.message}`);
+      }
+
+      // Create RN assignment so case appears in RN work queue
+      // For MVP, assign to the first available RN
+      try {
+        const { data: rnUser } = await supabaseGet(
+          'rc_users',
+          'select=auth_user_id&role=eq.rn&limit=1'
+        );
+
+        if (rnUser && (Array.isArray(rnUser) ? rnUser[0] : rnUser)?.auth_user_id) {
+          const rnAuthId = Array.isArray(rnUser) ? rnUser[0].auth_user_id : rnUser.auth_user_id;
+          const { error: assignmentError } = await supabaseInsert('rc_case_assignments', {
+            case_id: currentIntake.case_id,
+            user_id: rnAuthId,
+            status: 'active',
+            assigned_at: new Date().toISOString()
+          });
+          
+          if (assignmentError) {
+            console.error('Failed to create RN assignment:', assignmentError);
+            // Don't fail the attestation if assignment creation fails
+          } else {
+            console.log('RN assignment created for case', currentIntake.case_id);
+          }
+        } else {
+          console.log('No RN users found for assignment');
+        }
+      } catch (assignmentErr) {
+        console.error('Error creating RN assignment:', assignmentErr);
+        // Don't fail the attestation if assignment creation fails
       }
 
       // Send notification to client with case_number and PIN
