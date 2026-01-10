@@ -98,7 +98,7 @@ export default function IntakeWizard() {
     loadAttorneys();
   }, []);
   
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false); // Skip welcome - consents already signed
   const [step, setStep] = useState(0); // Step 0 is now Incident Details (was Step 1)
   const [sensitiveTag, setSensitiveTag] = useState(false);
   const [showCaraModal, setShowCaraModal] = useState(false);
@@ -1062,8 +1062,19 @@ export default function IntakeWizard() {
               labels={["Incident", "Medical", "Mental Health", "4Ps + SDOH", "E-Sign", "Review"]}
             />
             
-            {/* Attorney Selection */}
-            <Card className="p-4 border-border mt-4">
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <IntakeProgressBar percent={progressPercent} />
+            </div>
+
+        {/* Step 0: Incident Details (previously Step 1) */}
+        {step === 0 && (
+          <Card className="p-6 border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
+            
+            {/* Attorney Selection - at top of intake form */}
+            <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+              <h4 className="text-sm font-semibold mb-3">Attorney Information</h4>
               <div className="space-y-3">
                 <div>
                   <Label className="text-sm font-medium">Select Your Attorney</Label>
@@ -1095,17 +1106,8 @@ export default function IntakeWizard() {
                   placeholder="e.g., 01, 02"
                 />
               </div>
-            </Card>
-
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <IntakeProgressBar percent={progressPercent} />
             </div>
 
-        {/* Step 0: Incident Details (previously Step 1) */}
-        {step === 0 && (
-          <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
             <div className="grid gap-4 sm:grid-cols-3 mb-6">
               <LabeledSelect
                 label="Incident Type"
