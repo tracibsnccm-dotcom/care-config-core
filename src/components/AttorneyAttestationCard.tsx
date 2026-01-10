@@ -617,6 +617,13 @@ export function AttorneyAttestationCard({
 
       // Success - show success message and refresh
       console.log('=== handleAttest SUCCESS ===');
+      // Notify parent of successful attestation
+      if (onResolved) {
+        onResolved("CONFIRMED", now, updatedIntakeJson);
+      }
+      if (onAttested) {
+        onAttested(now, updatedIntakeJson);
+      }
       toast.success('Client relationship confirmed. Case number and PIN generated.');
       onAttestationComplete();
     } catch (error: any) {
