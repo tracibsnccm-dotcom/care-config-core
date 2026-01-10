@@ -83,7 +83,7 @@ export default function IntakeWizard() {
     }
   }, []);
 
-  // Load available attorneys on mount
+  // Load available attorneys on mount (for dropdown display if needed)
   useEffect(() => {
     const loadAttorneys = async () => {
       console.log('IntakeWizard: Loading attorneys...');
@@ -104,6 +104,14 @@ export default function IntakeWizard() {
       }
     };
     loadAttorneys();
+  }, []);
+
+  // Read attorney selection from localStorage (set in ClientConsent)
+  useEffect(() => {
+    const storedAttorneyId = localStorage.getItem('rcms_selected_attorney_id');
+    const storedAttorneyCode = localStorage.getItem('rcms_attorney_code');
+    if (storedAttorneyId) setSelectedAttorneyId(storedAttorneyId);
+    if (storedAttorneyCode) setAttorneyCode(storedAttorneyCode);
   }, []);
   
   const [showWelcome, setShowWelcome] = useState(false); // Skip welcome - consents already signed
@@ -1080,41 +1088,19 @@ export default function IntakeWizard() {
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
             
-            {/* Attorney Selection - at top of intake form */}
-            <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
-              <h4 className="text-sm font-semibold mb-3">Attorney Information</h4>
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-sm font-medium">Select Your Attorney</Label>
-                  <Select value={selectedAttorneyId} onValueChange={(val) => {
-                    setSelectedAttorneyId(val);
-                    const attorney = availableAttorneys.find(a => a.id === val);
-                    if (attorney) setAttorneyCode(attorney.attorney_code);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose your attorney..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableAttorneys.map(attorney => (
-                        <SelectItem key={attorney.id} value={attorney.id}>
-                          {attorney.full_name} ({attorney.attorney_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="text-center text-sm text-muted-foreground">— OR —</div>
-                <LabeledInput
-                  label="Enter Attorney Code"
-                  value={attorneyCode}
-                  onChange={(val) => {
-                    setAttorneyCode(val);
-                    setSelectedAttorneyId(""); // Clear dropdown if typing code
-                  }}
-                  placeholder="e.g., 01, 02"
-                />
+            {/* Attorney Display (read-only, selected in ClientConsent) */}
+            {(selectedAttorneyId || attorneyCode) && (
+              <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                <h4 className="text-sm font-semibold mb-2">Attorney</h4>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAttorneyId && availableAttorneys.find(a => a.id === selectedAttorneyId)
+                    ? `${availableAttorneys.find(a => a.id === selectedAttorneyId)?.full_name} (${availableAttorneys.find(a => a.id === selectedAttorneyId)?.attorney_code})`
+                    : attorneyCode
+                    ? `Attorney Code: ${attorneyCode}`
+                    : 'Not selected'}
+                </p>
               </div>
-            </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-3 mb-6">
               <LabeledSelect

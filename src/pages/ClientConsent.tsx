@@ -2,7 +2,7 @@
 // 5-screen consent flow that clients must complete before accessing intake form
 // Order: Service Agreement (1), Legal Disclosure (2), Obtain Records (3), Healthcare Coordination (4), HIPAA (5)
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { supabaseGet } from "@/lib/supabaseRest";
 
 // Generate a session ID to track consent before intake exists
 function generateSessionId(): string {
@@ -115,11 +117,11 @@ function getCurrentDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-type ConsentStep = 1 | 2 | 3 | 4 | 5;
+type ConsentStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 export default function ClientConsent() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<ConsentStep>(1);
+  const [step, setStep] = useState<ConsentStep>(0);
   const [sessionId] = useState<string>(() => {
     // Try to get existing session ID from sessionStorage, or generate new one
     const stored = sessionStorage.getItem("rcms_consent_session_id");
@@ -158,7 +160,39 @@ export default function ClientConsent() {
   const [error, setError] = useState<string | null>(null);
   const [showDeclineMessage, setShowDeclineMessage] = useState(false);
 
+  // Attorney selection state
+  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string}[]>([]);
+  const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
+  const [attorneyCode, setAttorneyCode] = useState<string>("");
+
   const currentDate = getCurrentDate();
+
+  // Load available attorneys on mount
+  useEffect(() => {
+    const loadAttorneys = async () => {
+      console.log('ClientConsent: Loading attorneys...');
+      const { data, error } = await supabaseGet(
+        'rc_users',
+        'select=id,full_name,attorney_code&role=eq.attorney&order=full_name.asc'
+      );
+      console.log('ClientConsent: Attorney load result', { data, error });
+      if (!error && data) {
+        const attorneys = Array.isArray(data) ? data : [data];
+        setAvailableAttorneys(attorneys.filter(a => a.attorney_code));
+      }
+    };
+    loadAttorneys();
+  }, []);
+
+  // Store attorney selection in localStorage whenever it changes
+  useEffect(() => {
+    if (selectedAttorneyId) {
+      localStorage.setItem('rcms_selected_attorney_id', selectedAttorneyId);
+    }
+    if (attorneyCode) {
+      localStorage.setItem('rcms_attorney_code', attorneyCode);
+    }
+  }, [selectedAttorneyId, attorneyCode]);
 
   const handleDecline = async () => {
     setIsSaving(true);
@@ -184,7 +218,15 @@ export default function ClientConsent() {
     setError(null);
 
     // Validate current step
-    if (step === 1) {
+    if (step === 0) {
+      // Attorney Selection
+      if (!selectedAttorneyId && !attorneyCode.trim()) {
+        setError("Please select your attorney or enter an attorney code.");
+        return;
+      }
+      // Attorney selection is saved to localStorage via useEffect
+      setStep(1);
+    } else if (step === 1) {
       // Service Agreement
       if (!serviceAgreementAccepted) {
         setError("Please confirm that you have read and agree to the Service Agreement.");
@@ -308,7 +350,7 @@ export default function ClientConsent() {
     }
   };
 
-  const progress = (step / 5) * 100;
+  const progress = (step / 6) * 100;
 
   // Show decline message if user declined Service Agreement
   if (showDeclineMessage) {
@@ -338,7 +380,7 @@ export default function ClientConsent() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-foreground">
-              Step {step} of 5
+              Step {step + 1} of 6
             </h2>
             <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
           </div>
@@ -346,6 +388,60 @@ export default function ClientConsent() {
         </div>
 
         <Card className="p-6 md:p-8">
+          {/* Step 0: Attorney Selection - BEFORE CONSENTS */}
+          {step === 0 && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">
+                  Select Your Attorney
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Please select your attorney before proceeding with the consent forms.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                  <h4 className="text-sm font-semibold mb-3">Attorney Information</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">Select Your Attorney</Label>
+                      <Select value={selectedAttorneyId} onValueChange={(val) => {
+                        setSelectedAttorneyId(val);
+                        const attorney = availableAttorneys.find(a => a.id === val);
+                        if (attorney) setAttorneyCode(attorney.attorney_code);
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose your attorney..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableAttorneys.map(attorney => (
+                            <SelectItem key={attorney.id} value={attorney.id}>
+                              {attorney.full_name} ({attorney.attorney_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground">— OR —</div>
+                    <div>
+                      <Label htmlFor="attorney-code">Enter Attorney Code</Label>
+                      <Input
+                        id="attorney-code"
+                        value={attorneyCode}
+                        onChange={(e) => {
+                          setAttorneyCode(e.target.value);
+                          setSelectedAttorneyId(""); // Clear dropdown if typing code
+                        }}
+                        placeholder="e.g., 01, 02"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Screen 1: Service Agreement - FIRST */}
           {step === 1 && (
             <div className="space-y-6">
@@ -1017,6 +1113,8 @@ export default function ClientConsent() {
             >
               {isSaving
                 ? "Saving..."
+                : step === 0
+                ? "Continue to Consents"
                 : step === 1
                 ? "I Agree - Continue"
                 : step === 5
