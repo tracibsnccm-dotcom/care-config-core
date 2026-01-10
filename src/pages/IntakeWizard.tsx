@@ -99,7 +99,7 @@ export default function IntakeWizard() {
   }, []);
   
   const [showWelcome, setShowWelcome] = useState(true);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0); // Step 0 is now Incident Details (was Step 1)
   const [sensitiveTag, setSensitiveTag] = useState(false);
   const [showCaraModal, setShowCaraModal] = useState(false);
   const [medications, setMedications] = useState<any[]>([]);
@@ -180,9 +180,10 @@ export default function IntakeWizard() {
   const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string}[]>([]);
   const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
 
+  // Consents are already signed at the beginning of the intake process
   const [consent, setConsent] = useState<Consent>({
-    signed: false,
-    scope: { shareWithAttorney: false, shareWithProviders: false },
+    signed: true, // Already signed in consent flow
+    scope: { shareWithAttorney: true, shareWithProviders: true }, // Default to true since already consented
     restrictedAccess: false,
   });
 
@@ -296,7 +297,7 @@ export default function IntakeWizard() {
         description: "Please complete the Consent & Privacy step and provide your electronic signature before submitting.",
         variant: "destructive",
       });
-      setStep(5); // Navigate to consent step
+      setStep(4); // Navigate to e-signature step (previously step 5)
       return;
     }
 
@@ -1059,7 +1060,7 @@ export default function IntakeWizard() {
             <Stepper
               step={step}
               setStep={setStep}
-              labels={["Consent", "Incident", "Medical", "Mental Health", "4Ps + SDOH", "Review"]}
+              labels={["Incident", "Medical", "Mental Health", "4Ps + SDOH", "E-Sign", "Review"]}
             />
             
             {/* Client Type & Attorney Code */}
@@ -1112,98 +1113,8 @@ export default function IntakeWizard() {
               <IntakeProgressBar percent={progressPercent} />
             </div>
 
-        {/* Step 0: Consent */}
+        {/* Step 0: Incident Details (previously Step 1) */}
         {step === 0 && (
-          <Card className="p-6 border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Welcome & Consent Gate</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              You must consent for us to share information with your attorney and providers.
-            </p>
-            
-            <div className="mb-6">
-              <LabeledInput
-                label="Client full name (stored, gated)"
-                value={client.fullName || ""}
-                onChange={(v) => setClient((c) => ({ ...c, fullName: v }))}
-                placeholder="e.g., Sue Smith"
-              />
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="consent-attorney"
-                  checked={consent.scope.shareWithAttorney}
-                  onCheckedChange={(checked) =>
-                    setConsent((c) => ({
-                      ...c,
-                      scope: { ...c.scope, shareWithAttorney: checked as boolean },
-                    }))
-                  }
-                />
-                <Label htmlFor="consent-attorney" className="text-sm font-medium cursor-pointer">
-                  Authorize sharing with attorney
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="consent-providers"
-                  checked={consent.scope.shareWithProviders}
-                  onCheckedChange={(checked) =>
-                    setConsent((c) => ({
-                      ...c,
-                      scope: { ...c.scope, shareWithProviders: checked as boolean },
-                    }))
-                  }
-                />
-                <Label htmlFor="consent-providers" className="text-sm font-medium cursor-pointer">
-                  Authorize sharing with providers
-                </Label>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mb-6">
-              <Button
-                onClick={() => {
-                  setConsent((c) => ({
-                    ...c,
-                    signed: true,
-                    signedAt: new Date().toISOString(),
-                  }));
-                  setStep(1);
-                }}
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Agree & Continue
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setConsent((c) => ({ ...c, signed: false }));
-                  setStep(1);
-                }}
-                title="Data kept 14 days; case = AWAITING_CONSENT"
-              >
-                Not now
-              </Button>
-            </div>
-
-            <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
-              <Checkbox
-                id="sensitive-tag"
-                checked={sensitiveTag}
-                onCheckedChange={(checked) => setSensitiveTag(checked as boolean)}
-              />
-              <Label htmlFor="sensitive-tag" className="text-sm font-medium cursor-pointer">
-                Mark as Sensitive Case (sexual assault, minor, hate-crime)
-              </Label>
-            </div>
-          </Card>
-        )}
-
-        {/* Step 1: Incident Details */}
-        {step === 1 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
             <div className="grid gap-4 sm:grid-cols-3 mb-6">
@@ -1270,7 +1181,7 @@ export default function IntakeWizard() {
             )}
             <div className="mt-6">
               <Button 
-                onClick={() => setStep(2)}
+                onClick={() => setStep(1)}
                 disabled={!requiredIncidentOk}
                 className="w-full sm:w-auto"
               >
@@ -1281,8 +1192,8 @@ export default function IntakeWizard() {
           </Card>
         )}
 
-        {/* Step 2: Medical History */}
-        {step === 2 && (
+        {/* Step 1: Medical History (previously Step 2) */}
+        {step === 1 && (
           <div className="space-y-8">
             {/* Allergies Section */}
             <IntakeMedicationAllergies
@@ -1345,7 +1256,7 @@ export default function IntakeWizard() {
             
             <div className="mt-6">
               <Button 
-                onClick={() => setStep(3)}
+                onClick={() => setStep(2)}
                 className="w-full sm:w-auto"
               >
                 Continue to Mental Health
@@ -1355,8 +1266,8 @@ export default function IntakeWizard() {
           </div>
         )}
 
-        {/* Step 3: Mental Health & Well-Being */}
-        {step === 3 && (
+        {/* Step 2: Mental Health & Well-Being (previously Step 3) */}
+        {step === 2 && (
           <div className="space-y-8">
             {/* Mental Health Screening Section */}
             <Card className="p-6 border-border">
@@ -1509,7 +1420,7 @@ export default function IntakeWizard() {
             
             <div className="mt-6">
               <Button 
-                onClick={() => setStep(4)}
+                onClick={() => setStep(3)}
                 className="w-full sm:w-auto"
               >
                 Continue to 4Ps & SDOH
@@ -1519,8 +1430,8 @@ export default function IntakeWizard() {
           </div>
         )}
 
-        {/* Step 4: 4Ps & SDOH */}
-        {step === 4 && (
+        {/* Step 3: 4Ps & SDOH (previously Step 4) */}
+        {step === 3 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
               Optional 4Ps & SDOH
@@ -1682,18 +1593,18 @@ export default function IntakeWizard() {
             
             <div className="mt-6">
               <Button 
-                onClick={() => setStep(5)}
+                onClick={() => setStep(4)}
                 className="w-full sm:w-auto"
               >
-                Continue to Review
+                Continue to E-Signature
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Step 5: Consent & Privacy */}
-        {step === 5 && (
+        {/* Step 4: Consent & Privacy / E-Signature (previously Step 5) */}
+        {step === 4 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">{CLIENT_DOCUMENTS.clientConsentTitle}</h3>
             <p className="text-sm text-muted-foreground mb-6">
@@ -1886,22 +1797,22 @@ export default function IntakeWizard() {
                 Print / Save Copy
               </Button>
               <Button
-                onClick={() => setStep(6)}
+                onClick={() => setStep(5)}
                 disabled={!clientEsign.agreed || !clientEsign.signerFullName.trim()}
                 className="flex-1"
               >
                 Sign & Continue
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button variant="secondary" onClick={() => setStep(4)}>
+              <Button variant="secondary" onClick={() => setStep(3)}>
                 Back
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Step 6: Review */}
-        {step === 6 && (
+        {/* Step 5: Review & Submit (previously Step 6) */}
+        {step === 5 && (
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Review & Submit</h3>
             {sensitiveTag && <RestrictedBanner />}
@@ -1927,7 +1838,7 @@ export default function IntakeWizard() {
 
             {/* Assessment Snapshot Explainer */}
             <AssessmentSnapshotExplainer 
-              onUpdateSnapshot={() => setStep(4)}
+              onUpdateSnapshot={() => setStep(3)}
               onAskCara={() => setShowCaraModal(true)}
               showUpdateButton={false}
             />
@@ -2194,17 +2105,17 @@ export default function IntakeWizard() {
             <WizardNav 
               step={step} 
               setStep={setStep} 
-              last={6}
+              last={5}
               canAdvance={
-                step === 2 ? hasMeds !== '' : 
-                step === 3 ? (sensitiveProgress ? !sensitiveProgress.blockNavigation : true) :
-                step === 5 ? (clientEsign.agreed && clientEsign.signerFullName.trim().length > 0) :
+                step === 1 ? hasMeds !== '' : 
+                step === 2 ? (sensitiveProgress ? !sensitiveProgress.blockNavigation : true) :
+                step === 4 ? (clientEsign.agreed && clientEsign.signerFullName.trim().length > 0) :
                 true
               }
               blockReason={
-                step === 3 && sensitiveProgress?.blockNavigation 
+                step === 2 && sensitiveProgress?.blockNavigation 
                   ? 'Please complete consent choices in the Sensitive Experiences section'
-                  : step === 5 && (!clientEsign.agreed || !clientEsign.signerFullName.trim())
+                  : step === 4 && (!clientEsign.agreed || !clientEsign.signerFullName.trim())
                   ? 'Please agree to the documents and provide your full legal name'
                   : undefined
               }
