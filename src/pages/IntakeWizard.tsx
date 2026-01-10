@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { fmtDate } from "@/lib/store";
 import {
   Client,
@@ -80,6 +81,21 @@ export default function IntakeWizard() {
       // Redirect to consent flow
       window.location.href = "/client-consent";
     }
+  }, []);
+
+  // Load available attorneys on mount
+  useEffect(() => {
+    const loadAttorneys = async () => {
+      const { data, error } = await supabaseGet(
+        'rc_users',
+        'select=id,full_name,attorney_code&role=eq.attorney&order=full_name.asc'
+      );
+      if (!error && data) {
+        const attorneys = Array.isArray(data) ? data : [data];
+        setAvailableAttorneys(attorneys.filter(a => a.attorney_code)); // Only show attorneys with codes
+      }
+    };
+    loadAttorneys();
   }, []);
   
   const [showWelcome, setShowWelcome] = useState(true);
@@ -161,6 +177,8 @@ export default function IntakeWizard() {
 
   const [attorneyCode, setAttorneyCode] = useState("");
   const [clientType, setClientType] = useState<ClientType>('I');
+  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string}[]>([]);
+  const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
 
   const [consent, setConsent] = useState<Consent>({
     signed: false,
@@ -328,12 +346,25 @@ export default function IntakeWizard() {
     };
     if (sensitiveTag) newCase.flags.push("SENSITIVE");
     
+    // Look up attorney by selectedAttorneyId or attorney_code
+    let attorneyId: string | null = selectedAttorneyId || null;
+    if (!attorneyId && attorneyCode) {
+      const { data: attorneyData } = await supabaseGet(
+        'rc_users',
+        `select=id&attorney_code=eq.${attorneyCode}&role=eq.attorney&limit=1`
+      );
+      if (attorneyData) {
+        const attorney = Array.isArray(attorneyData) ? attorneyData[0] : attorneyData;
+        attorneyId = attorney?.id || null;
+      }
+    }
+
     // First, create the case in rc_cases table
     console.log('IntakeWizard: About to insert rc_cases');
     const { error: caseError } = await supabaseInsert("rc_cases", {
       id: newCase.id,
       client_id: null, // Will be linked later
-      attorney_id: null, // Will be assigned when attorney attests
+      attorney_id: attorneyId, // Assign attorney if found
       case_type: intake.incidentType || 'MVA',
       case_status: 'intake_pending',
       created_at: new Date().toISOString(),
@@ -1041,12 +1072,37 @@ export default function IntakeWizard() {
                   options={['I', 'D', 'R']}
                 />
                 {clientType !== 'I' && (
-                  <LabeledInput
-                    label="Attorney Code"
-                    value={attorneyCode}
-                    onChange={setAttorneyCode}
-                    placeholder="e.g., SMI, JON"
-                  />
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">Select Your Attorney</Label>
+                      <Select value={selectedAttorneyId} onValueChange={(val) => {
+                        setSelectedAttorneyId(val);
+                        const attorney = availableAttorneys.find(a => a.id === val);
+                        if (attorney) setAttorneyCode(attorney.attorney_code);
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose your attorney..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableAttorneys.map(attorney => (
+                            <SelectItem key={attorney.id} value={attorney.id}>
+                              {attorney.full_name} ({attorney.attorney_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground">— OR —</div>
+                    <LabeledInput
+                      label="Enter Attorney Code"
+                      value={attorneyCode}
+                      onChange={(val) => {
+                        setAttorneyCode(val);
+                        setSelectedAttorneyId(""); // Clear dropdown if typing code
+                      }}
+                      placeholder="e.g., 01, 02"
+                    />
+                  </div>
                 )}
               </div>
             </Card>
