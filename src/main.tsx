@@ -211,17 +211,6 @@ function Root() {
       }
     }
 
-    // Case Detail: "/cases/:id" routes to CaseDetail component
-    // Used by attorneys to view individual case details
-    if (pathname.startsWith("/cases/")) {
-      const caseId = pathname.split("/cases/")[1];
-      return (
-        <RequireAuth>
-          <CaseDetail />
-        </RequireAuth>
-      );
-    }
-
     // All other routes go to landing page
     return <Index />;
   } catch (error) {
@@ -266,6 +255,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/rn-login" element={<RNLogin />} />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />
+          
+          {/* Case detail route - needs to be explicit for useParams to work */}
+          <Route path="/cases/:caseId" element={
+            <AuthProvider>
+              <AppProvider>
+                <CaseDetail />
+              </AppProvider>
+            </AuthProvider>
+          } />
           
           {/* Protected routes - wrapped in AuthProvider */}
           <Route path="/*" element={<ProtectedRoutes />} />
