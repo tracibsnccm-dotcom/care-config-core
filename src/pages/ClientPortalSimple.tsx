@@ -22,6 +22,7 @@ import { ClientJournal } from "@/components/ClientJournal";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
 import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
+import { ClientWellnessCheckin } from "@/components/ClientWellnessCheckin";
 
 interface CaseData {
   id: string;
@@ -281,36 +282,7 @@ export default function ClientPortalSimple() {
 
           {/* Wellness Tab */}
           <TabsContent value="wellness">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-amber-500" />
-                  Wellness Check-ins
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="mb-4">Track your daily wellness using the 4Ps framework:</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-slate-700 p-4 rounded-lg text-center">
-                    <p className="text-amber-500 font-bold text-lg">P1</p>
-                    <p className="text-sm">Physical</p>
-                  </div>
-                  <div className="bg-slate-700 p-4 rounded-lg text-center">
-                    <p className="text-amber-500 font-bold text-lg">P2</p>
-                    <p className="text-sm">Psychological</p>
-                  </div>
-                  <div className="bg-slate-700 p-4 rounded-lg text-center">
-                    <p className="text-amber-500 font-bold text-lg">P3</p>
-                    <p className="text-sm">Psychosocial</p>
-                  </div>
-                  <div className="bg-slate-700 p-4 rounded-lg text-center">
-                    <p className="text-amber-500 font-bold text-lg">P4</p>
-                    <p className="text-sm">Professional</p>
-                  </div>
-                </div>
-                <p className="text-slate-400 text-sm">Wellness check-in form coming soon. You'll be able to rate how you're feeling and track your progress over time.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientWellnessCheckin caseId={caseId} />}
           </TabsContent>
 
           {/* Journal Tab */}
