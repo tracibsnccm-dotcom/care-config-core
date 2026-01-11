@@ -160,7 +160,10 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     onChange: (v: number) => void;
   }) {
     return (
-      <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border border-slate-200 rounded-lg">
+      <div 
+        className="space-y-3 p-4 border border-slate-200 rounded-lg"
+        style={{ background: 'linear-gradient(135deg, rgba(79, 185, 175, 0.1) 0%, rgba(129, 205, 198, 0.15) 100%)' }}
+      >
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
@@ -257,7 +260,10 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
           />
 
           {/* Pain Level - Same scale as 4Ps: 1=Bad, 5=Good */}
-          <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border border-slate-200 rounded-lg">
+          <div 
+            className="space-y-3 p-4 border border-slate-200 rounded-lg"
+            style={{ background: 'linear-gradient(135deg, rgba(79, 185, 175, 0.1) 0%, rgba(129, 205, 198, 0.15) 100%)' }}
+          >
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-slate-800 font-medium">Pain Level</span>
