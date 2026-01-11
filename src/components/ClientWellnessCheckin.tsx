@@ -215,13 +215,13 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         </Alert>
       )}
 
-      <Card className="bg-white border-slate-200 shadow-sm">
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
-          <CardTitle className="text-slate-800 flex items-center gap-2">
+          <CardTitle className="text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-amber-500" />
             Daily Wellness Check-in
           </CardTitle>
-          <p className="text-slate-500 text-sm">
+          <p className="text-white/80 text-sm">
             Rate how you're feeling in each area (1 = Struggling, 5 = Thriving)
           </p>
         </CardHeader>
