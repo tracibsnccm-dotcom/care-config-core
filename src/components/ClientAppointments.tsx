@@ -129,17 +129,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // Get client_id from session storage
-      const clientCaseId = sessionStorage.getItem('client_case_id');
-      if (!clientCaseId) {
-        throw new Error("Session expired. Please log in again.");
-      }
-
-      const finalAppointmentType = appointmentType === "Specialist" && specialistType 
-        ? `Specialist - ${specialistType}`
-        : appointmentType;
-      const appointmentTitle = `${finalAppointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
-      
       // Combine date and time into ISO timestamp
       const scheduledAt = appointmentTime 
         ? new Date(`${appointmentDate}T${appointmentTime}`).toISOString()
@@ -147,13 +136,11 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       
       const appointmentData = {
         case_id: caseId,
-        client_id: clientCaseId, // This will need to be the actual client_id from auth, but using case_id for now
-        title: appointmentTitle,
-        provider_name: providerName.trim() || null,
-        appointment_type: finalAppointmentType || null,
+        provider_name: providerName,
+        appointment_type: appointmentType === "Specialist" ? `Specialist - ${specialistType}` : appointmentType,
         scheduled_at: scheduledAt,
-        location: location.trim() || null,
-        notes: notes.trim() || null,
+        location: location || null,
+        notes: notes || null,
         status: 'scheduled'
       };
 
