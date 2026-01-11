@@ -133,7 +133,6 @@ export function AttorneyAttestationCard({
   }, [viewState, attorneyConfirmDeadlineAt]);
 
   const handleConfirm = async () => {
-    console.log('handleConfirm: START');
     if (!user) {
       toast.error('Not authenticated');
       return;
@@ -228,8 +227,6 @@ export function AttorneyAttestationCard({
       
       if (intakeError) throw new Error(`Failed to update intake: ${intakeError.message}`);
       
-      console.log('handleConfirm: DB updates complete');
-      
       // SUCCESS - Update UI immediately
       const confirmation: ConfirmationData = {
         caseNumber,
@@ -238,9 +235,6 @@ export function AttorneyAttestationCard({
       };
       
       sessionStorage.setItem(`attestation_${intakeId}`, JSON.stringify(confirmation));
-      
-      console.log('handleConfirm: Setting confirmation state');
-      
       setConfirmationData(confirmation);
       setViewState('confirmed');
       
@@ -249,29 +243,32 @@ export function AttorneyAttestationCard({
       
       toast.success('Case confirmed! Case number and PIN generated.');
       
-      // TEMPORARILY DISABLED - may be causing hang
-      // Fire-and-forget: audit and notes (don't block UI)
-      // setTimeout(() => {
-      //   audit({
-      //     action: 'attorney_confirmed',
-      //     actorRole: 'attorney',
-      //     actorId: user?.id || '',
-      //     caseId: intake.case_id,
-      //     meta: { intake_id: intakeId, case_number: caseNumber }
-      //   }).catch(e => console.error('Audit failed:', e));
-      //   
-      //   createAutoNote({
-      //     caseId: intake.case_id,
-      //     noteType: 'attestation',
-      //     title: 'Attorney Confirmation',
-      //     content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
-      //     createdBy: user?.id || '',
-      //     createdByRole: 'attorney',
-      //     visibility: 'all',
-      //   }).catch(e => console.error('Auto note failed:', e));
-      // }, 100);
-      
-      console.log('handleConfirm: DONE');
+      // Fire-and-forget: audit and notes (completely non-blocking)
+      try {
+        setTimeout(() => {
+          Promise.resolve().then(() => {
+            audit({
+              action: 'attorney_confirmed',
+              actorRole: 'attorney',
+              actorId: user?.id || '',
+              caseId: intake.case_id,
+              meta: { intake_id: intakeId, case_number: caseNumber }
+            }).catch(() => {});
+            
+            createAutoNote({
+              caseId: intake.case_id,
+              noteType: 'attestation',
+              title: 'Attorney Confirmation',
+              content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
+              createdBy: user?.id || '',
+              createdByRole: 'attorney',
+              visibility: 'all',
+            }).catch(() => {});
+          });
+        }, 0);
+      } catch (e) {
+        // Ignore any errors - UI is already updated
+      }
       
     } catch (error: any) {
       console.error('Attestation failed:', error);
