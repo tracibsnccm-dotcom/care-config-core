@@ -13,6 +13,7 @@ interface Appointment {
   id: string;
   title: string;
   provider_name: string | null;
+  appointment_type?: string | null;
   scheduled_at: string;
   location: string | null;
   notes: string | null;
@@ -618,17 +619,27 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
             return (
               <Card key={appointment.id} className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
                 <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-white">{appointment.title}</h3>
-                        {getStatusBadge(appointment.status)}
+                      <h3 className="font-semibold text-white mb-2">{appointment.title}</h3>
+                      <div className="flex justify-between items-center mb-2">
+                        <div>
+                          {appointment.provider_name && (
+                            <p className={`text-sm font-medium mb-1 ${appointment.status === 'cancelled' ? 'text-red-500 line-through' : 'text-white/80'}`}>
+                              Provider: {appointment.provider_name}
+                            </p>
+                          )}
+                          <p className="text-white/60 text-sm">
+                            {format(new Date(appointment.scheduled_at), "MMM d, yyyy")} - {appointment.appointment_type || 'Appointment'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {appointment.status === 'cancelled' && barrierReasons[appointment.id] && (
+                            <p className="text-red-500 font-medium text-sm">{barrierReasons[appointment.id]}</p>
+                          )}
+                          {getStatusBadge(appointment.status)}
+                        </div>
                       </div>
-                      {appointment.provider_name && (
-                        <p className="text-sm text-white/80 mb-1">
-                          Provider: {appointment.provider_name}
-                        </p>
-                      )}
                       <p className="text-sm text-white/80 mb-1">
                         <Calendar className="w-4 h-4 inline mr-1" />
                         {formatAppointmentDateTime(appointment)}
@@ -638,9 +649,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                       )}
                       {appointment.notes && (
                         <p className="text-sm text-white/80 mt-2 italic">{appointment.notes}</p>
-                      )}
-                      {appointment.status === 'cancelled' && barrierReasons[appointment.id] && (
-                        <p className="text-white/60 text-xs mt-1">Reason: {barrierReasons[appointment.id]}</p>
                       )}
                     </div>
                     {appointment.status === 'scheduled' && isWithin72Hours(appointment.scheduled_at) && (
