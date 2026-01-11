@@ -1029,6 +1029,19 @@ export default function IntakeWizard() {
   // Load draft on mount and set intake started time
   useEffect(() => {
     async function loadSavedDraft() {
+      // Don't load draft if we're about to clear
+      const urlAttorneyId = new URLSearchParams(window.location.search).get('attorney_id');
+      const storedAttorneyId = sessionStorage.getItem('rcms_current_attorney_id');
+      const intakeSubmitted = sessionStorage.getItem('rcms_intake_submitted');
+      
+      if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
+        // Skip loading - form will be cleared
+        if (!intakeStartedAt) {
+          setIntakeStartedAt(new Date());
+        }
+        return;
+      }
+      
       const draft = await loadDraft();
       
       // Set intake started time from draft or now
