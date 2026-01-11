@@ -61,6 +61,8 @@ import { InactivityModal } from "@/components/InactivityModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet, supabaseInsert, supabaseUpdate } from '@/lib/supabaseRest';
+import { audit } from '@/lib/supabaseOperations';
+import { createAutoNote, generateIntakeNote } from '@/lib/autoNotes';
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
@@ -681,7 +683,7 @@ export default function IntakeWizard() {
 
         // Insert intake record with compliance workflow fields
         console.log('IntakeWizard: About to insert rc_client_intakes');
-        const { error: intakeCompletionError } = await supabaseInsert("rc_client_intakes", {
+        const { data: intakeResult, error: intakeCompletionError } = await supabaseInsert("rc_client_intakes", {
           case_id: newCase.id,
           intake_json: intakeJson,
           intake_status: 'submitted_pending_attorney',
@@ -689,7 +691,7 @@ export default function IntakeWizard() {
           attorney_confirm_deadline_at: attorneyConfirmDeadlineAt,
         });
         
-        console.log('IntakeWizard: rc_client_intakes result', { error: intakeCompletionError });
+        console.log('IntakeWizard: rc_client_intakes result', { data: intakeResult, error: intakeCompletionError });
         
         if (intakeCompletionError) {
           console.error("Error recording intake completion:", intakeCompletionError);
@@ -704,6 +706,36 @@ export default function IntakeWizard() {
       title: "Intake Submitted Successfully",
       description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
     });
+    
+    // Audit: Intake submitted
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await audit({
+        action: 'intake_submitted',
+        actorRole: 'client',
+        actorId: user?.id || 'anonymous',
+        caseId: newCase.id,
+        meta: { intake_id: intakeResult?.id, attorney_code: attorneyCode }
+      });
+    } catch (e) {
+      console.error('Failed to audit intake submission:', e);
+    }
+    
+    // Create auto-generated intake note
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await createAutoNote({
+        caseId: newCase.id,
+        noteType: 'intake',
+        title: 'Intake Submitted',
+        content: generateIntakeNote(client.fullName || 'Client', client.rcmsId || '', attorneyCode || ''),
+        createdBy: user?.id || 'system',
+        createdByRole: 'client',
+        visibility: 'all',
+      });
+    } catch (e) {
+      console.error('Failed to create intake note:', e);
+    }
     
     // Clear draft and session storage after successful submission
     await deleteDraft();

@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { supabaseGet } from "@/lib/supabaseRest";
+import { audit } from '@/lib/supabaseOperations';
 
 // Generate a session ID to track consent before intake exists
 function generateSessionId(): string {
@@ -329,6 +330,20 @@ export default function ClientConsent() {
         await saveConsentStep(sessionId, 5, {
           signature: hipaaSignature,
         });
+        
+        // Audit: All consents signed
+        try {
+          await audit({
+            action: 'consents_signed',
+            actorRole: 'client',
+            actorId: 'pre-auth',
+            caseId: null,
+            meta: { session_id: sessionId }
+          });
+        } catch (e) {
+          console.error('Failed to audit consent signing:', e);
+        }
+        
         // Mark consents as completed in sessionStorage
         sessionStorage.setItem("rcms_consents_completed", "true");
         // All steps complete - redirect to intake with attorney info in URL params

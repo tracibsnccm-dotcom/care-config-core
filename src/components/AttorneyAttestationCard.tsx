@@ -8,6 +8,8 @@ import { COMPLIANCE_COPY, formatHMS } from '@/constants/compliance';
 import { toast } from 'sonner';
 import { useAuth } from '@/auth/supabaseAuth';
 import { supabaseGet, supabaseUpdate, supabaseInsert } from '@/lib/supabaseRest';
+import { audit } from '@/lib/supabaseOperations';
+import { createAutoNote, generateAttestationNote } from '@/lib/autoNotes';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -263,6 +265,34 @@ export function AttorneyAttestationCard({
       
       if (intakeError) throw new Error(`Failed to update intake: ${intakeError.message}`);
       
+      // Audit: Attorney confirmed
+      try {
+        await audit({
+          action: 'attorney_confirmed',
+          actorRole: 'attorney',
+          actorId: user?.id || '',
+          caseId: intake.case_id,
+          meta: { intake_id: intakeId, case_number: caseNumber }
+        });
+      } catch (e) {
+        console.error('Failed to audit attorney confirmation:', e);
+      }
+      
+      // Create auto-generated attestation note
+      try {
+        await createAutoNote({
+          caseId: intake.case_id,
+          noteType: 'attestation',
+          title: 'Attorney Confirmation',
+          content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
+          createdBy: user?.id || '',
+          createdByRole: 'attorney',
+          visibility: 'all',
+        });
+      } catch (e) {
+        console.error('Failed to create attestation note:', e);
+      }
+      
       // 7. Try to create RN assignment (don't fail if this fails)
       try {
         const { data: rnUser } = await supabaseGet('rc_users', 'select=auth_user_id&role=eq.rn&limit=1');
@@ -350,6 +380,34 @@ export function AttorneyAttestationCard({
       );
       
       if (error) throw new Error(error.message);
+      
+      // Audit: Attorney declined
+      try {
+        await audit({
+          action: 'attorney_declined',
+          actorRole: 'attorney',
+          actorId: user?.id || '',
+          caseId: caseId,
+          meta: { intake_id: intakeId }
+        });
+      } catch (e) {
+        console.error('Failed to audit attorney decline:', e);
+      }
+      
+      // Create auto-generated decline note
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'attestation',
+          title: 'Attorney Declined',
+          content: generateAttestationNote(user?.id || '', '', 'declined'),
+          createdBy: user?.id || '',
+          createdByRole: 'attorney',
+          visibility: 'all',
+        });
+      } catch (e) {
+        console.error('Failed to create decline note:', e);
+      }
       
       setViewState('declined');
       if (onResolved) onResolved('DECLINED', now, updatedJson);
