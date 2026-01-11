@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Plus, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,12 +11,11 @@ import { format } from "date-fns";
 interface JournalEntry {
   id: string;
   case_id: string;
-  content: string;
-  mood: string | null;
-  p1_physical: boolean;
-  p2_psychological: boolean;
-  p3_psychosocial: boolean;
-  p4_professional: boolean;
+  content: string | null;
+  p1_physical_text: string | null;
+  p2_psychological_text: string | null;
+  p3_psychosocial_text: string | null;
+  p4_professional_text: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -27,29 +24,13 @@ interface ClientJournalProps {
   caseId: string;
 }
 
-const MOOD_OPTIONS = [
-  { value: "excellent", label: "Excellent", icon: "😄" },
-  { value: "good", label: "Good", icon: "😊" },
-  { value: "okay", label: "Okay", icon: "😐" },
-  { value: "poor", label: "Poor", icon: "😔" },
-  { value: "very_poor", label: "Very Poor", icon: "😢" }
-];
-
-const FOUR_PS = [
-  { id: "p1_physical", label: "Physical", description: "Pain, mobility, energy, sleep" },
-  { id: "p2_psychological", label: "Psychological", description: "Mood, anxiety, stress, coping" },
-  { id: "p3_psychosocial", label: "Psychosocial", description: "Family, friends, resources, barriers" },
-  { id: "p4_professional", label: "Professional", description: "Work, daily activities, productivity" }
-];
-
 export function ClientJournal({ caseId }: ClientJournalProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [newEntry, setNewEntry] = useState("");
-  const [mood, setMood] = useState<string>("");
-  const [p1_physical, setP1_physical] = useState(false);
-  const [p2_psychological, setP2_psychological] = useState(false);
-  const [p3_psychosocial, setP3_psychosocial] = useState(false);
-  const [p4_professional, setP4_professional] = useState(false);
+  const [p1Physical, setP1Physical] = useState("");
+  const [p2Psychological, setP2Psychological] = useState("");
+  const [p3Psychosocial, setP3Psychosocial] = useState("");
+  const [p4Professional, setP4Professional] = useState("");
+  const [generalEntry, setGeneralEntry] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,8 +70,16 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
   }
 
   async function handleSubmit() {
-    if (!newEntry.trim()) {
-      toast.error("Please write something first");
+    // Check if at least one field has content
+    const hasContent = 
+      p1Physical.trim() || 
+      p2Psychological.trim() || 
+      p3Psychosocial.trim() || 
+      p4Professional.trim() || 
+      generalEntry.trim();
+
+    if (!hasContent) {
+      toast.error("Please write something in at least one section");
       return;
     }
 
@@ -109,12 +98,16 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
       const entryData = {
         case_id: caseId,
         client_id: clientId,
-        content: newEntry.trim(),
-        mood: mood || null,
-        p1_physical,
-        p2_psychological,
-        p3_psychosocial,
-        p4_professional
+        content: generalEntry.trim() || null,
+        p1_physical_text: p1Physical.trim() || null,
+        p2_psychological_text: p2Psychological.trim() || null,
+        p3_psychosocial_text: p3Psychosocial.trim() || null,
+        p4_professional_text: p4Professional.trim() || null,
+        // Set boolean flags based on whether text exists
+        p1_physical: !!p1Physical.trim(),
+        p2_psychological: !!p2Psychological.trim(),
+        p3_psychosocial: !!p3Psychosocial.trim(),
+        p4_professional: !!p4Professional.trim()
       };
 
       const response = await fetch(
@@ -137,12 +130,11 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
       }
 
       toast.success("Journal entry saved");
-      setNewEntry("");
-      setMood("");
-      setP1_physical(false);
-      setP2_psychological(false);
-      setP3_psychosocial(false);
-      setP4_professional(false);
+      setP1Physical("");
+      setP2Psychological("");
+      setP3Psychosocial("");
+      setP4Professional("");
+      setGeneralEntry("");
       fetchEntries();
     } catch (err: any) {
       console.error("Error saving entry:", err);
@@ -157,18 +149,6 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
     return format(date, 'MMM d, yyyy') + " at " + format(date, 'h:mm a');
   };
 
-  const getMoodEmoji = (moodValue: string | null) => {
-    if (!moodValue) return null;
-    const moodOption = MOOD_OPTIONS.find(m => m.value === moodValue);
-    return moodOption ? moodOption.icon : null;
-  };
-
-  const getMoodLabel = (moodValue: string | null) => {
-    if (!moodValue) return null;
-    const moodOption = MOOD_OPTIONS.find(m => m.value === moodValue);
-    return moodOption ? moodOption.label : null;
-  };
-
   return (
     <Card className="bg-white border-slate-200 shadow-sm">
       <CardHeader>
@@ -178,103 +158,109 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Intro Text */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-sm text-slate-700">
+            Use this journal to document your recovery journey. Share your thoughts and experiences in any or all of the sections below. 
+            Your entries are shared with your care team (RN Case Manager and attorney) to help support your treatment and legal case.
+          </p>
+        </div>
+
         {/* New Entry Form */}
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* 4Ps Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* P1 Physical */}
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-medium">Physical (P1)</Label>
+              <p className="text-xs text-slate-500 mb-2">Pain, mobility, energy, sleep</p>
+              <Textarea
+                value={p1Physical}
+                onChange={(e) => setP1Physical(e.target.value)}
+                placeholder="How is your body feeling? Pain levels, mobility, energy, sleep quality..."
+                className="min-h-[100px] resize-none"
+                maxLength={5000}
+              />
+              <p className="text-xs text-slate-400 text-right">
+                {p1Physical.length} / 5,000
+              </p>
+            </div>
+
+            {/* P2 Psychological */}
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-medium">Psychological (P2)</Label>
+              <p className="text-xs text-slate-500 mb-2">Mood, anxiety, stress, coping</p>
+              <Textarea
+                value={p2Psychological}
+                onChange={(e) => setP2Psychological(e.target.value)}
+                placeholder="How are you feeling emotionally? Mood, anxiety, stress, coping strategies..."
+                className="min-h-[100px] resize-none"
+                maxLength={5000}
+              />
+              <p className="text-xs text-slate-400 text-right">
+                {p2Psychological.length} / 5,000
+              </p>
+            </div>
+
+            {/* P3 Psychosocial */}
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-medium">Psychosocial (P3)</Label>
+              <p className="text-xs text-slate-500 mb-2">Family, friends, resources, barriers</p>
+              <Textarea
+                value={p3Psychosocial}
+                onChange={(e) => setP3Psychosocial(e.target.value)}
+                placeholder="How is your support system? Family, friends, resources, barriers..."
+                className="min-h-[100px] resize-none"
+                maxLength={5000}
+              />
+              <p className="text-xs text-slate-400 text-right">
+                {p3Psychosocial.length} / 5,000
+              </p>
+            </div>
+
+            {/* P4 Professional */}
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-medium">Professional (P4)</Label>
+              <p className="text-xs text-slate-500 mb-2">Work, daily activities, productivity</p>
+              <Textarea
+                value={p4Professional}
+                onChange={(e) => setP4Professional(e.target.value)}
+                placeholder="How is your ability to work and function? Daily activities, productivity, goals..."
+                className="min-h-[100px] resize-none"
+                maxLength={5000}
+              />
+              <p className="text-xs text-slate-400 text-right">
+                {p4Professional.length} / 5,000
+              </p>
+            </div>
+          </div>
+
+          {/* General Entry */}
           <div className="space-y-2">
-            <Label className="text-slate-700">Journal Entry</Label>
+            <Label className="text-slate-700 font-medium">General Entry</Label>
+            <p className="text-xs text-slate-500 mb-2">Additional thoughts, reflections, or notes</p>
             <Textarea
-              value={newEntry}
+              value={generalEntry}
               onChange={(e) => {
                 const value = e.target.value;
                 if (value.length <= 10000) {
-                  setNewEntry(value);
+                  setGeneralEntry(value);
                 }
               }}
-              placeholder="Write your thoughts, reflections, or notes here... Document your progress and experiences for your care team."
+              placeholder="Any additional thoughts, reflections, or notes..."
               className="min-h-[120px] resize-none"
               maxLength={10000}
             />
-            <p className="text-xs text-slate-500 text-right">
-              {newEntry.length} / 10,000 characters
+            <p className="text-xs text-slate-400 text-right">
+              {generalEntry.length} / 10,000
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Mood Selection */}
-            <div className="space-y-2">
-              <Label className="text-slate-700">How are you feeling? (Optional)</Label>
-              <Select value={mood} onValueChange={setMood}>
-                <SelectTrigger className="bg-white border-slate-200">
-                  <SelectValue placeholder="Select your mood..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {MOOD_OPTIONS.map((moodOption) => (
-                    <SelectItem key={moodOption.value} value={moodOption.value}>
-                      <span className="flex items-center gap-2">
-                        <span>{moodOption.icon}</span>
-                        <span>{moodOption.label}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 4Ps Tags */}
-            <div className="space-y-2">
-              <Label className="text-slate-700">Tag with 4Ps (Optional)</Label>
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="p1_physical"
-                    checked={p1_physical}
-                    onCheckedChange={(checked) => setP1_physical(checked === true)}
-                  />
-                  <Label htmlFor="p1_physical" className="text-sm cursor-pointer">
-                    Physical
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="p2_psychological"
-                    checked={p2_psychological}
-                    onCheckedChange={(checked) => setP2_psychological(checked === true)}
-                  />
-                  <Label htmlFor="p2_psychological" className="text-sm cursor-pointer">
-                    Psychological
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="p3_psychosocial"
-                    checked={p3_psychosocial}
-                    onCheckedChange={(checked) => setP3_psychosocial(checked === true)}
-                  />
-                  <Label htmlFor="p3_psychosocial" className="text-sm cursor-pointer">
-                    Psychosocial
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="p4_professional"
-                    checked={p4_professional}
-                    onCheckedChange={(checked) => setP4_professional(checked === true)}
-                  />
-                  <Label htmlFor="p4_professional" className="text-sm cursor-pointer">
-                    Professional
-                  </Label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <p className="text-xs text-slate-500">
-              Journal entries are part of your secure case file and shared with your care team (RN Case Manager and attorney) to support your treatment and legal case.
-            </p>
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
             <Button
               onClick={handleSubmit}
-              disabled={submitting || !newEntry.trim()}
+              disabled={submitting || (!p1Physical.trim() && !p2Psychological.trim() && !p3Psychosocial.trim() && !p4Professional.trim() && !generalEntry.trim())}
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
               {submitting ? (
@@ -285,7 +271,7 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Entry
+                  Save Entry
                 </>
               )}
             </Button>
@@ -308,7 +294,7 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
               Your Journal is Empty
             </h3>
             <p className="text-sm text-slate-600 max-w-md mx-auto">
-              Start documenting your journey! Journal entries help your care team understand your progress and experiences better.
+              Start documenting your journey! Use the sections above to share your experiences with your care team.
             </p>
           </div>
         ) : (
@@ -316,37 +302,71 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
             {entries.map((entry) => (
               <Card key={entry.id} className="border-slate-200 shadow-sm">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Clock className="w-3 h-3" />
-                      {formatTimestamp(entry.created_at)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {entry.mood && (
-                        <span className="text-sm text-slate-600 flex items-center gap-1">
-                          {getMoodEmoji(entry.mood)}
-                          <span>{getMoodLabel(entry.mood)}</span>
-                        </span>
-                      )}
-                      {(entry.p1_physical || entry.p2_psychological || entry.p3_psychosocial || entry.p4_professional) && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {entry.p1_physical && (
-                            <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">P1</span>
-                          )}
-                          {entry.p2_psychological && (
-                            <span className="px-2 py-1 text-xs rounded bg-purple-100 text-purple-800">P2</span>
-                          )}
-                          {entry.p3_psychosocial && (
-                            <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">P3</span>
-                          )}
-                          {entry.p4_professional && (
-                            <span className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">P4</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+                    <Clock className="w-3 h-3" />
+                    {formatTimestamp(entry.created_at)}
                   </div>
-                  <p className="text-sm text-slate-800 whitespace-pre-wrap">{entry.content}</p>
+                  
+                  <div className="space-y-4">
+                    {/* 4Ps Sections */}
+                    {entry.p1_physical_text && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">Physical (P1)</span>
+                          <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">P1</span>
+                        </div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap bg-blue-50 p-3 rounded">
+                          {entry.p1_physical_text}
+                        </p>
+                      </div>
+                    )}
+
+                    {entry.p2_psychological_text && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">Psychological (P2)</span>
+                          <span className="px-2 py-1 text-xs rounded bg-purple-100 text-purple-800">P2</span>
+                        </div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap bg-purple-50 p-3 rounded">
+                          {entry.p2_psychological_text}
+                        </p>
+                      </div>
+                    )}
+
+                    {entry.p3_psychosocial_text && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">Psychosocial (P3)</span>
+                          <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">P3</span>
+                        </div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap bg-green-50 p-3 rounded">
+                          {entry.p3_psychosocial_text}
+                        </p>
+                      </div>
+                    )}
+
+                    {entry.p4_professional_text && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">Professional (P4)</span>
+                          <span className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">P4</span>
+                        </div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap bg-orange-50 p-3 rounded">
+                          {entry.p4_professional_text}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* General Entry */}
+                    {entry.content && (
+                      <div>
+                        <span className="text-sm font-semibold text-slate-700 mb-2 block">General Entry</span>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap bg-slate-50 p-3 rounded">
+                          {entry.content}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
