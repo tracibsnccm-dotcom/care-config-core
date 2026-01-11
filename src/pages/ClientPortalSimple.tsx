@@ -288,17 +288,7 @@ export default function ClientPortalSimple() {
 
           {/* Journal Tab */}
           <TabsContent value="journal">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-amber-500" />
-                  My Journal
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-600">
-                <p className="text-slate-500">Journal feature coming soon. You'll be able to write private entries about your recovery journey.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientJournal caseId={caseId} />}
           </TabsContent>
 
           {/* Medications Tab */}
