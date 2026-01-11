@@ -57,6 +57,7 @@ export const AttorneyIntakeTracker = () => {
   const [selectedIntake, setSelectedIntake] = useState<PendingIntake | null>(null);
   const [loadingIntake, setLoadingIntake] = useState(false);
   const [resolution, setResolution] = useState<null | "CONFIRMED" | "DECLINED">(null);
+  const [attestationKey, setAttestationKey] = useState(0);
 
   const calculateTTL = (expiresIso: string) => {
     const ms = Math.max(0, new Date(expiresIso).getTime() - Date.now());
@@ -339,6 +340,7 @@ export const AttorneyIntakeTracker = () => {
         {/* Show attestation card if needed, or receipt if already confirmed */}
         {(needsAttestation || isConfirmed) && (
           <AttorneyAttestationCard
+            key={`attestation-${attestationKey}`}
             intakeId={selectedIntake.id}
             caseId={selectedIntake.case_id}
             intakeSubmittedAt={selectedIntake.intake_submitted_at}
@@ -349,6 +351,7 @@ export const AttorneyIntakeTracker = () => {
             onResolved={(res, timestamp, updatedJson) => {
               // Immediately set resolution to stop countdown
               setResolution(res);
+              setAttestationKey(prev => prev + 1);
               if (res === "CONFIRMED") {
                 // Immediately update state with attorney_attested_at to stop countdown
                 setSelectedIntake(prev => prev ? {
