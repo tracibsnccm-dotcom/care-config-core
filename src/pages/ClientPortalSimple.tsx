@@ -23,6 +23,7 @@ import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
 import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { ClientWellnessCheckin } from "@/components/ClientWellnessCheckin";
+import { ClientAppointments } from "@/components/ClientAppointments";
 
 interface CaseData {
   id: string;
@@ -332,17 +333,7 @@ export default function ClientPortalSimple() {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-amber-500" />
-                  Appointments
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-600">
-                <p className="text-slate-500">Appointment calendar coming soon. You'll be able to view upcoming appointments and confirm your attendance.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientAppointments caseId={caseId} />}
           </TabsContent>
 
           {/* Messages Tab */}
