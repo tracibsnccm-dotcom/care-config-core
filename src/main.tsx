@@ -39,6 +39,7 @@ import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
+import CaseDetail from "@/pages/CaseDetail";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -208,6 +209,17 @@ function Root() {
         window.location.replace("/");
         return null;
       }
+    }
+
+    // Case Detail: "/cases/:id" routes to CaseDetail component
+    // Used by attorneys to view individual case details
+    if (pathname.startsWith("/cases/")) {
+      const caseId = pathname.split("/cases/")[1];
+      return (
+        <RequireAuth>
+          <CaseDetail />
+        </RequireAuth>
+      );
     }
 
     // All other routes go to landing page
