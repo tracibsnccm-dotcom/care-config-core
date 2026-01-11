@@ -161,20 +161,20 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   }) {
     return (
       <div 
-        className="space-y-3 p-4 border border-slate-200 rounded-lg"
-        style={{ background: 'linear-gradient(135deg, rgba(79, 185, 175, 0.1) 0%, rgba(129, 205, 198, 0.15) 100%)' }}
+        className="space-y-3 p-4 border border-teal-300 rounded-lg"
+        style={{ backgroundColor: '#4fb9af' }}
       >
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{code}</span>
-              <span className="text-slate-800 font-medium">{label}</span>
+              <span className="text-white font-medium">{label}</span>
             </div>
-            <p className="text-slate-500 text-sm mt-1">{description}</p>
+            <p className="text-white/80 text-sm mt-1">{description}</p>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-bold text-amber-500">{value}</span>
-            <p className="text-xs text-slate-500">{SCALE_LABELS[value as keyof typeof SCALE_LABELS]}</p>
+            <span className="text-2xl font-bold text-white">{value}</span>
+            <p className="text-xs text-white/80">{SCALE_LABELS[value as keyof typeof SCALE_LABELS]}</p>
           </div>
         </div>
         <Slider
@@ -185,7 +185,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
           step={1}
           className="mt-2"
         />
-        <div className="flex justify-between text-xs text-slate-400">
+        <div className="flex justify-between text-xs text-white/70">
           <span>1 - Struggling</span>
           <span>5 - Thriving</span>
         </div>
@@ -261,17 +261,17 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
 
           {/* Pain Level - Same scale as 4Ps: 1=Bad, 5=Good */}
           <div 
-            className="space-y-3 p-4 border border-slate-200 rounded-lg"
-            style={{ background: 'linear-gradient(135deg, rgba(79, 185, 175, 0.1) 0%, rgba(129, 205, 198, 0.15) 100%)' }}
+            className="space-y-3 p-4 border border-teal-300 rounded-lg"
+            style={{ backgroundColor: '#4fb9af' }}
           >
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-slate-800 font-medium">Pain Level</span>
-                <p className="text-slate-500 text-sm mt-1">How would you rate your pain today?</p>
+                <span className="text-white font-medium">Pain Level</span>
+                <p className="text-white/80 text-sm mt-1">How would you rate your pain today?</p>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-bold text-amber-500">{painLevel}</span>
-                <p className="text-xs text-slate-500">
+                <span className="text-2xl font-bold text-white">{painLevel}</span>
+                <p className="text-xs text-white/80">
                   {painLevel === 1 ? "Extreme Pain" : 
                    painLevel === 2 ? "Severe Pain" : 
                    painLevel === 3 ? "Moderate Pain" : 
@@ -286,7 +286,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
               max={5}
               step={1}
             />
-            <div className="flex justify-between text-xs text-slate-400">
+            <div className="flex justify-between text-xs text-white/70">
               <span>1 - Extreme Pain</span>
               <span>5 - No Pain</span>
             </div>
