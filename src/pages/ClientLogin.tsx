@@ -58,10 +58,6 @@ export default function ClientLogin() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log('ClientLogin: handleSubmit called');
-    console.log('ClientLogin: caseNumber =', caseNumber);
-    console.log('ClientLogin: pin =', pin);
-    
     setLoading(true);
     setError(null);
     setLockedUntil(null);
@@ -76,101 +72,43 @@ export default function ClientLogin() {
     }
 
     try {
-      // Look up case by case_number (URL encode the case number for the query)
-      const encodedCaseNumber = encodeURIComponent(trimmedCaseNumber);
-      console.log('ClientLogin: About to fetch case');
-      const { data: cases, error: casesError } = await publicSupabaseGet(
-        'rc_cases',
-        `select=id,client_id,client_pin,pin_failed_attempts,pin_locked_until&case_number=eq.${encodedCaseNumber}&limit=1`
+      // Call secure Edge Function for authentication
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-sign-in`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            caseNumber: trimmedCaseNumber, 
+            pin: trimmedPin 
+          }),
+        }
       );
-      console.log('ClientLogin: Fetch result', { data: cases, error: casesError });
 
-      if (casesError) {
-        throw new Error(`Failed to look up case: ${casesError.message}`);
-      }
+      const result = await response.json();
 
-      const caseData = Array.isArray(cases) ? cases[0] : cases;
-
-      if (!caseData) {
-        setError("Invalid case number. Please check and try again.");
-        setLoading(false);
-        return;
-      }
-
-      console.log('ClientLogin: Case found, checking PIN');
-
-      // Check if account is locked
-      if (caseData.pin_locked_until) {
-        const lockedUntilDate = new Date(caseData.pin_locked_until);
-        if (lockedUntilDate > new Date()) {
-          setLockedUntil(lockedUntilDate);
-          setError(`Account is locked due to too many failed attempts. Please try again after ${lockedUntilDate.toLocaleString()}`);
-          setLoading(false);
-          return;
+      if (!response.ok) {
+        if (result.locked_until) {
+          const lockTime = new Date(result.locked_until);
+          setLockedUntil(lockTime);
+          setError(`Account locked until ${lockTime.toLocaleTimeString()}`);
+        } else if (result.attempts_remaining !== undefined) {
+          setError(`Invalid PIN. ${result.attempts_remaining} attempts remaining.`);
         } else {
-          // Lock expired, reset it
-          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
-            pin_failed_attempts: 0,
-            pin_locked_until: null,
-          });
+          setError(result.error || 'Login failed');
         }
-      }
-
-      // Verify PIN (currently stored as plaintext - TODO: hash comparison)
-      const storedPin = caseData.client_pin;
-      if (!storedPin) {
-        setError("PIN not set for this case. Please contact your attorney.");
         setLoading(false);
         return;
       }
 
-      const pinMatches = trimmedPin === storedPin;
-      console.log('ClientLogin: PIN match result', pinMatches);
-
-      if (!pinMatches) {
-        // Increment failed attempts
-        const currentAttempts = caseData.pin_failed_attempts || 0;
-        const newAttempts = currentAttempts + 1;
-        const remainingAttempts = 3 - newAttempts;
-
-        if (newAttempts >= 3) {
-          // Lock account for 24 hours
-          const lockUntil = new Date();
-          lockUntil.setHours(lockUntil.getHours() + 24);
-          
-          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
-            pin_failed_attempts: newAttempts,
-            pin_locked_until: lockUntil.toISOString(),
-          });
-
-          setLockedUntil(lockUntil);
-          setError(`Incorrect PIN. Account locked due to too many failed attempts. Please try again after ${lockUntil.toLocaleString()}`);
-          
-          // TODO: Notify attorney about lockout
-        } else {
-          await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
-            pin_failed_attempts: newAttempts,
-          });
-
-          setError(`Incorrect PIN. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining before account is locked.`);
-        }
-        
-        setLoading(false);
-        return;
-      }
-
-      // PIN is correct - reset failed attempts
-      await publicSupabaseUpdate('rc_cases', `id=eq.${caseData.id}`, {
-        pin_failed_attempts: 0,
-        pin_locked_until: null,
-      });
-
-      // Store case_id in sessionStorage for client identification
-      // TODO: Implement proper Supabase auth session for client
-      sessionStorage.setItem('client_case_id', caseData.id);
-      sessionStorage.setItem('client_case_number', trimmedCaseNumber);
-
-      console.log('ClientLogin: About to redirect to /client-portal');
+      // Success - store session info
+      sessionStorage.setItem('client_case_id', result.case_id);
+      sessionStorage.setItem('client_case_number', result.case_number);
+      sessionStorage.setItem('client_name', result.client_name || '');
+      
+      console.log('ClientLogin: Login successful, redirecting to portal');
       // Redirect to client portal
       navigate('/client-portal', { replace: true });
     } catch (err: any) {
