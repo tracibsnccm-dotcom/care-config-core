@@ -59,13 +59,13 @@ function DocumentLink({ title, description, onClick }: { title: string; descript
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-4 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors group"
+      className="w-full text-left p-4 bg-white border border-slate-200 hover:bg-blue-50 rounded-lg transition-colors group shadow-sm"
     >
       <div className="flex items-center gap-3">
         <FileText className="w-8 h-8 text-amber-500 group-hover:text-amber-400" />
         <div>
-          <p className="text-white font-medium">{title}</p>
-          <p className="text-slate-400 text-sm">{description}</p>
+          <p className="text-slate-800 font-medium">{title}</p>
+          <p className="text-slate-500 text-sm">{description}</p>
         </div>
       </div>
     </button>
@@ -129,8 +129,8 @@ export default function ClientPortalSimple() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="text-center text-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-white">
+        <div className="text-center text-slate-600">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
           <p>Loading your portal...</p>
         </div>
@@ -140,7 +140,7 @@ export default function ClientPortalSimple() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-white p-4">
         <Alert variant="destructive" className="max-w-md">
           <AlertDescription>{error}</AlertDescription>
           <Button onClick={() => navigate('/client-login')} className="mt-4">
@@ -152,17 +152,17 @@ export default function ClientPortalSimple() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-white">
       {/* Header */}
-      <header className="bg-slate-800/50 border-b border-slate-700 px-4 py-3">
+      <header className="bg-white/80 border-b border-slate-200 shadow-sm px-4 py-3">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-amber-500">C.A.S.E. Portal</h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-600 text-sm">
               Welcome{clientName ? `, ${clientName}` : ''} • Case: {caseNumber || 'N/A'}
             </p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="text-slate-300 border-slate-600">
+          <Button variant="outline" onClick={handleLogout} className="text-slate-600 border-slate-300 hover:bg-slate-100">
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
@@ -172,40 +172,40 @@ export default function ClientPortalSimple() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-slate-800 border border-slate-700 p-1 flex flex-wrap gap-1">
-            <TabsTrigger value="home" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+          <TabsList className="bg-white border border-slate-200 shadow-sm p-1 flex flex-wrap gap-1">
+            <TabsTrigger value="home" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Home className="w-4 h-4 mr-2" />
               Home
             </TabsTrigger>
-            <TabsTrigger value="wellness" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="wellness" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Activity className="w-4 h-4 mr-2" />
               Wellness
             </TabsTrigger>
-            <TabsTrigger value="journal" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="journal" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <BookOpen className="w-4 h-4 mr-2" />
               Journal
             </TabsTrigger>
-            <TabsTrigger value="medications" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="medications" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Pill className="w-4 h-4 mr-2" />
               Medications
             </TabsTrigger>
-            <TabsTrigger value="treatments" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="treatments" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Stethoscope className="w-4 h-4 mr-2" />
               Treatments
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="appointments" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Calendar className="w-4 h-4 mr-2" />
               Appointments
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="messages" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4 mr-2" />
               Messages
             </TabsTrigger>
-            <TabsTrigger value="documents" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="documents" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <FileText className="w-4 h-4 mr-2" />
               Documents
             </TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="profile" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <User className="w-4 h-4 mr-2" />
               Profile
             </TabsTrigger>
@@ -213,40 +213,40 @@ export default function ClientPortalSimple() {
 
           {/* Home Tab */}
           <TabsContent value="home" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white">Case Information</CardTitle>
+                <CardTitle className="text-slate-800">Case Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-slate-300">
+              <CardContent className="space-y-3 text-slate-600">
                 <div>
-                  <p className="text-slate-400 text-sm">Case Number</p>
+                  <p className="text-slate-500 text-sm">Case Number</p>
                   <p className="text-amber-500 font-mono">{caseData?.case_number || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 text-sm">Status</p>
+                  <p className="text-slate-500 text-sm">Status</p>
                   <p className="capitalize">{caseData?.case_status?.replace(/_/g, ' ') || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 text-sm">Case Type</p>
+                  <p className="text-slate-500 text-sm">Case Type</p>
                   <p>{caseData?.case_type || 'N/A'}</p>
                 </div>
                 {caseData?.date_of_injury && (
                   <div>
-                    <p className="text-slate-400 text-sm">Date of Injury</p>
+                    <p className="text-slate-500 text-sm">Date of Injury</p>
                     <p>{new Date(caseData.date_of_injury).toLocaleDateString()}</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white">Quick Actions</CardTitle>
+                <CardTitle className="text-slate-800">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <Button 
                   variant="outline" 
-                  className="h-20 flex flex-col items-center justify-center border-slate-600 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-600"
+                  className="h-20 flex flex-col items-center justify-center border-slate-200 text-slate-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 bg-white"
                   onClick={() => setActiveTab("wellness")}
                 >
                   <Activity className="w-6 h-6 mb-1" />
@@ -254,7 +254,7 @@ export default function ClientPortalSimple() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-20 flex flex-col items-center justify-center border-slate-600 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-600"
+                  className="h-20 flex flex-col items-center justify-center border-slate-200 text-slate-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 bg-white"
                   onClick={() => setActiveTab("journal")}
                 >
                   <BookOpen className="w-6 h-6 mb-1" />
@@ -262,7 +262,7 @@ export default function ClientPortalSimple() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-20 flex flex-col items-center justify-center border-slate-600 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-600"
+                  className="h-20 flex flex-col items-center justify-center border-slate-200 text-slate-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 bg-white"
                   onClick={() => setActiveTab("appointments")}
                 >
                   <Calendar className="w-6 h-6 mb-1" />
@@ -270,7 +270,7 @@ export default function ClientPortalSimple() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-20 flex flex-col items-center justify-center border-slate-600 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-600"
+                  className="h-20 flex flex-col items-center justify-center border-slate-200 text-slate-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 bg-white"
                   onClick={() => setActiveTab("messages")}
                 >
                   <MessageSquare className="w-6 h-6 mb-1" />
@@ -287,91 +287,91 @@ export default function ClientPortalSimple() {
 
           {/* Journal Tab */}
           <TabsContent value="journal">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-amber-500" />
                   My Journal
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="text-slate-400">Journal feature coming soon. You'll be able to write private entries about your recovery journey.</p>
+              <CardContent className="text-slate-600">
+                <p className="text-slate-500">Journal feature coming soon. You'll be able to write private entries about your recovery journey.</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Medications Tab */}
           <TabsContent value="medications">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <Pill className="w-5 h-5 text-amber-500" />
                   Medication Tracker
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="text-slate-400">Medication tracker coming soon. You'll be able to log your medications and track when you take them.</p>
+              <CardContent className="text-slate-600">
+                <p className="text-slate-500">Medication tracker coming soon. You'll be able to log your medications and track when you take them.</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Treatments Tab */}
           <TabsContent value="treatments">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <Stethoscope className="w-5 h-5 text-amber-500" />
                   Treatment Tracker
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="text-slate-400">Treatment tracker coming soon. You'll be able to log your treatments and therapy sessions.</p>
+              <CardContent className="text-slate-600">
+                <p className="text-slate-500">Treatment tracker coming soon. You'll be able to log your treatments and therapy sessions.</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-amber-500" />
                   Appointments
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="text-slate-400">Appointment calendar coming soon. You'll be able to view upcoming appointments and confirm your attendance.</p>
+              <CardContent className="text-slate-600">
+                <p className="text-slate-500">Appointment calendar coming soon. You'll be able to view upcoming appointments and confirm your attendance.</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Messages Tab */}
           <TabsContent value="messages">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-amber-500" />
                   Messages
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
-                <p className="text-slate-400">Secure messaging coming soon. You'll be able to communicate with your care team.</p>
+              <CardContent className="text-slate-600">
+                <p className="text-slate-500">Secure messaging coming soon. You'll be able to communicate with your care team.</p>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Documents Tab */}
           <TabsContent value="documents">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-amber-500" />
                   My Documents
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
+              <CardContent className="text-slate-600">
                 <div className="space-y-3">
-                  <p className="text-slate-400 text-sm mb-4">Click on a document to view and print.</p>
+                  <p className="text-slate-500 text-sm mb-4">Click on a document to view and print.</p>
                   
                   {/* Document List */}
                   <div className="space-y-2">
@@ -385,14 +385,14 @@ export default function ClientPortalSimple() {
                 
                 {/* Consent Viewer Modal */}
                 {showConsentViewer && caseId && (
-                  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-                    <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                      <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
-                        <h3 className="text-lg font-semibold text-white">Signed Consent Documents</h3>
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+                      <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center">
+                        <h3 className="text-lg font-semibold text-slate-800">Signed Consent Documents</h3>
                         <Button 
                           variant="ghost" 
                           onClick={() => setShowConsentViewer(false)}
-                          className="text-slate-400 hover:text-white"
+                          className="text-slate-500 hover:text-slate-800"
                         >
                           ✕ Close
                         </Button>
@@ -409,25 +409,25 @@ export default function ClientPortalSimple() {
 
           {/* Profile Tab */}
           <TabsContent value="profile">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-800 flex items-center gap-2">
                   <User className="w-5 h-5 text-amber-500" />
                   My Profile
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-300">
+              <CardContent className="text-slate-600">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-slate-400 text-sm">Name</p>
+                    <p className="text-slate-500 text-sm">Name</p>
                     <p>{clientName || 'Not available'}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400 text-sm">Case Number</p>
+                    <p className="text-slate-500 text-sm">Case Number</p>
                     <p className="font-mono text-amber-500">{caseNumber || 'N/A'}</p>
                   </div>
                 </div>
-                <p className="text-slate-400 text-sm mt-6">Profile editing coming soon.</p>
+                <p className="text-slate-500 text-sm mt-6">Profile editing coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>
