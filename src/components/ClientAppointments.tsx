@@ -69,6 +69,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [checkInAppointment, setCheckInAppointment] = useState<Appointment | null>(null);
+  const [barrierReasons, setBarrierReasons] = useState<Record<string, string>>({});
   
   // Add form state
   const [providerName, setProviderName] = useState("");
@@ -112,6 +113,31 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
 
       const data = await response.json();
       setAppointments(data || []);
+
+      // Fetch barrier reasons for cancelled appointments
+      const cancelledIds = data.filter((a: Appointment) => a.status === 'cancelled').map((a: Appointment) => a.id);
+      if (cancelledIds.length > 0) {
+        const checkinsResponse = await fetch(
+          `${supabaseUrl}/rest/v1/rc_appointment_checkins?appointment_id=in.(${cancelledIds.join(',')})&can_attend=eq.false`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            }
+          }
+        );
+        if (checkinsResponse.ok) {
+          const checkinsData = await checkinsResponse.json();
+          const reasons: Record<string, string> = {};
+          checkinsData.forEach((checkin: any) => {
+            const barrier = BARRIER_TYPES.find(b => b.value === checkin.barrier_type);
+            if (barrier) {
+              reasons[checkin.appointment_id] = barrier.label;
+            }
+          });
+          setBarrierReasons(reasons);
+        }
+      }
     } catch (err: any) {
       console.error("Error loading appointments:", err);
       toast.error("Failed to load appointments");
@@ -233,8 +259,8 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       resetCheckInForm();
       loadAppointments();
     } catch (err: any) {
-      console.error("Error checking in to appointment:", err);
-      toast.error(err.message || "Failed to process check-in");
+      console.error("Error confirming attendance:", err);
+      toast.error(err.message || "Failed to process attendance confirmation");
     } finally {
       setIsSubmitting(false);
     }
@@ -294,6 +320,13 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
     return `${dateStr} at ${timeStr}`;
   }
 
+  const isWithin72Hours = (scheduledAt: string) => {
+    const appointmentTime = new Date(scheduledAt).getTime();
+    const now = Date.now();
+    const hoursUntil = (appointmentTime - now) / (1000 * 60 * 60);
+    return hoursUntil <= 72 && hoursUntil > 0;
+  };
+
   if (loading) {
     return (
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
@@ -315,7 +348,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-amber-500" />
-            Appointment Check-in
+            Confirm Attendance
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -401,7 +434,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                       Processing...
                     </>
                   ) : (
-                    "Submit Check-in"
+                    "Confirm Attendance"
                   )}
                 </Button>
                 <Button
@@ -606,15 +639,17 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                       {appointment.notes && (
                         <p className="text-sm text-white/80 mt-2 italic">{appointment.notes}</p>
                       )}
+                      {appointment.status === 'cancelled' && barrierReasons[appointment.id] && (
+                        <p className="text-white/60 text-xs mt-1">Reason: {barrierReasons[appointment.id]}</p>
+                      )}
                     </div>
-                    {isUpcoming && (
+                    {appointment.status === 'scheduled' && isWithin72Hours(appointment.scheduled_at) && (
                       <Button
                         onClick={() => setCheckInAppointment(appointment)}
-                        variant="outline"
                         size="sm"
-                        className="ml-4"
+                        className="bg-amber-600 hover:bg-amber-700 text-white text-xs ml-4"
                       >
-                        Check In
+                        Confirm Attendance
                       </Button>
                     )}
                   </div>
