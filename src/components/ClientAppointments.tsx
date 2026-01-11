@@ -14,7 +14,7 @@ interface Appointment {
   id: string;
   title: string;
   provider_name: string | null;
-  appointment_date: string;
+  scheduled_at: string;
   appointment_time: string | null;
   location: string | null;
   notes: string | null;
@@ -29,13 +29,30 @@ interface ClientAppointmentsProps {
 const APPOINTMENT_TYPES = [
   "Primary Care",
   "Specialist",
-  "Physical Therapy",
+  "Physical Therapy", 
+  "Chiropractic",
   "Mental Health",
   "Imaging/X-Ray",
   "Lab Work",
   "Surgery",
   "Follow-up",
   "Other"
+];
+
+const SPECIALIST_TYPES = [
+  "Orthopedic",
+  "Neurologist",
+  "Pain Management",
+  "Cardiologist",
+  "Gastroenterologist",
+  "Pulmonologist",
+  "Rheumatologist",
+  "Dermatologist",
+  "ENT (Ear, Nose, Throat)",
+  "Urologist",
+  "Endocrinologist",
+  "Oncologist",
+  "Other Specialist"
 ];
 
 const BARRIER_TYPES = [
@@ -58,6 +75,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   // Add form state
   const [providerName, setProviderName] = useState("");
   const [appointmentType, setAppointmentType] = useState("");
+  const [specialistType, setSpecialistType] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [location, setLocation] = useState("");
@@ -80,7 +98,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_appointments?case_id=eq.${caseId}&order=appointment_date.asc,appointment_time.asc`,
+        `${supabaseUrl}/rest/v1/rc_appointments?case_id=eq.${caseId}&order=scheduled_at.asc,appointment_time.asc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -118,13 +136,17 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
         throw new Error("Session expired. Please log in again.");
       }
 
-      const appointmentTitle = `${appointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
+      const finalAppointmentType = appointmentType === "Specialist" && specialistType 
+        ? `Specialist - ${specialistType}`
+        : appointmentType;
+      const appointmentTitle = `${finalAppointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
       const appointmentData = {
         case_id: caseId,
         client_id: clientCaseId, // This will need to be the actual client_id from auth, but using case_id for now
         title: appointmentTitle,
         provider_name: providerName.trim() || null,
-        appointment_date: appointmentDate,
+        appointment_type: finalAppointmentType || null,
+        scheduled_at: appointmentDate,
         appointment_time: appointmentTime || null,
         location: location.trim() || null,
         notes: notes.trim() || null,
@@ -165,6 +187,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   function resetAddForm() {
     setProviderName("");
     setAppointmentType("");
+    setSpecialistType("");
     setAppointmentDate("");
     setAppointmentTime("");
     setLocation("");
@@ -293,7 +316,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   }
 
   function formatAppointmentDateTime(appointment: Appointment) {
-    const date = new Date(appointment.appointment_date);
+    const date = new Date(appointment.scheduled_at);
     const dateStr = format(date, 'MMM d, yyyy');
     
     if (appointment.appointment_time) {
@@ -324,7 +347,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
 
   // Check-in modal
   if (checkInAppointment) {
-    const upcomingDate = new Date(checkInAppointment.appointment_date);
+    const upcomingDate = new Date(checkInAppointment.scheduled_at);
     const isUpcoming = upcomingDate >= new Date(new Date().setHours(0, 0, 0, 0));
 
     return (
@@ -486,6 +509,22 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                   </Select>
                 </div>
 
+                {appointmentType === "Specialist" && (
+                  <div className="space-y-2">
+                    <Label className="text-slate-700">Specialist Type *</Label>
+                    <Select value={specialistType} onValueChange={setSpecialistType}>
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-800">
+                        <SelectValue placeholder="Select specialist type..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SPECIALIST_TYPES.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-slate-700">Provider Name</Label>
                   <Input
@@ -588,7 +627,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       ) : (
         <div className="space-y-3">
           {appointments.map((appointment) => {
-            const appointmentDate = new Date(appointment.appointment_date);
+            const appointmentDate = new Date(appointment.scheduled_at);
             const isUpcoming = appointment.status === 'scheduled' && appointmentDate >= new Date(new Date().setHours(0, 0, 0, 0));
             const isPast = appointmentDate < new Date(new Date().setHours(0, 0, 0, 0));
 
