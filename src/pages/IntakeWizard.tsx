@@ -900,7 +900,11 @@ export default function IntakeWizard() {
     const storedAttorneyId = sessionStorage.getItem('rcms_current_attorney_id');
     const intakeSubmitted = sessionStorage.getItem('rcms_intake_submitted');
     
-    if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
+    // Only clear if:
+    // 1. Previous intake was submitted, OR
+    // 2. There IS a stored attorney AND it's different from URL
+    // Don't clear on first visit (when storedAttorneyId is null)
+    if (intakeSubmitted === 'true' || (storedAttorneyId && urlAttorneyId && urlAttorneyId !== storedAttorneyId)) {
       // Clear all session storage
       sessionStorage.clear();
       
@@ -926,6 +930,9 @@ export default function IntakeWizard() {
         window.location.reload();
       })();
       return;
+    } else if (urlAttorneyId && !storedAttorneyId) {
+      // First visit - just set the attorney ID, no reload needed
+      sessionStorage.setItem('rcms_current_attorney_id', urlAttorneyId);
     }
   }, [searchParams]);
 
@@ -1034,7 +1041,11 @@ export default function IntakeWizard() {
       const storedAttorneyId = sessionStorage.getItem('rcms_current_attorney_id');
       const intakeSubmitted = sessionStorage.getItem('rcms_intake_submitted');
       
-      if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
+      // Only skip loading if:
+      // 1. Previous intake was submitted, OR
+      // 2. There IS a stored attorney AND it's different from URL
+      // Don't skip on first visit (when storedAttorneyId is null)
+      if (intakeSubmitted === 'true' || (storedAttorneyId && urlAttorneyId && urlAttorneyId !== storedAttorneyId)) {
         // Skip loading - form will be cleared
         if (!intakeStartedAt) {
           setIntakeStartedAt(new Date());
