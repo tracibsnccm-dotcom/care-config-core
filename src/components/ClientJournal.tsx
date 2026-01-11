@@ -116,7 +116,7 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
         case_id: caseId,
         client_id: clientId,
         content: generalEntry.trim() || null,
-        mood: MOOD_LABELS[mood as keyof typeof MOOD_LABELS].toLowerCase().replace(' ', '_'),
+        mood: mood,
         p1_physical_text: p1Physical.trim() || null,
         p2_psychological_text: p2Psychological.trim() || null,
         p3_psychosocial_text: p3Psychosocial.trim() || null,
