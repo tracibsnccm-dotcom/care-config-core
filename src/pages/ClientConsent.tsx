@@ -344,11 +344,17 @@ export default function ClientConsent() {
           console.error('Failed to audit consent signing:', e);
         }
         
-        // Mark consents as completed in sessionStorage
-        sessionStorage.setItem("rcms_consents_completed", "true");
         // All steps complete - redirect to intake with attorney info in URL params
         const attorneyParam = selectedAttorneyId || '';
         const codeParam = attorneyCode || '';
+        
+        // Clear any previous intake submission flag to prevent reload loop
+        sessionStorage.removeItem("rcms_intake_submitted");
+        // Set attorney ID before navigation
+        sessionStorage.setItem("rcms_current_attorney_id", attorneyParam);
+        // Mark consents as completed
+        sessionStorage.setItem("rcms_consents_completed", "true");
+        
         navigate(`/client-intake?attorney_id=${encodeURIComponent(attorneyParam)}&attorney_code=${encodeURIComponent(codeParam)}`);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
