@@ -27,6 +27,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { CarePlansViewer } from "@/components/CarePlansViewer";
 import CareCoordinationDashboard from "./CareCoordinationDashboard";
+import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 
 interface CaseDrawerProps {
   caseId: string | null;
@@ -256,12 +257,13 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
         </SheetHeader>
 
         <Tabs defaultValue="overview" className="mt-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="careplans">Care Plans</TabsTrigger>
             <TabsTrigger value="coordination">Coordination</TabsTrigger>
+            <TabsTrigger value="consents">Consents</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -697,6 +699,11 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
           {/* Coordination Tab */}
           <TabsContent value="coordination" className="mt-4">
             <CareCoordinationDashboard caseId={caseId!} />
+          </TabsContent>
+
+          {/* Consents Tab */}
+          <TabsContent value="consents" className="mt-4">
+            <ConsentDocumentViewer caseId={caseId!} showPrintButton={true} />
           </TabsContent>
         </Tabs>
       </SheetContent>

@@ -27,6 +27,7 @@ import { SupportFooter } from "@/components/SupportFooter";
 import { ClientProfileSettings } from "@/components/ClientProfileSettings";
 import { ClientIntakeReview } from "@/components/ClientIntakeReview";
 import { ClientConsentManagement } from "@/components/ClientConsentManagement";
+import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/supabaseAuth";
@@ -836,7 +837,10 @@ export default function ClientPortal() {
                     Privacy & Consent Management
                   </h2>
                 </div>
-                <ClientConsentManagement caseId={caseId || ""} />
+                <div className="space-y-6">
+                  <ClientConsentManagement caseId={caseId || ""} />
+                  <ConsentDocumentViewer caseId={caseId || ""} showPrintButton={true} />
+                </div>
               </TabsContent>
 
               <TabsContent value="settings" className="mt-0">

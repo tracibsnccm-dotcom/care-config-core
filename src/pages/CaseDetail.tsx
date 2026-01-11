@@ -17,6 +17,7 @@ import { AICaseSummarizer } from "@/components/AICaseSummarizer";
 import { SensitiveDataAuditView } from "@/components/SensitiveDataAuditView";
 import { ProviderNotesDisplay } from "@/components/cases/ProviderNotesDisplay";
 import { DocumentShareRequest } from "@/components/rn/DocumentShareRequest";
+import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { 
   ArrowLeft, 
   User, 
@@ -460,6 +461,13 @@ export default function CaseDetail() {
         {canView && caseId && (role === "RN_CM" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
           <div className="mt-6 flex justify-end">
             <DocumentShareRequest caseId={caseId} clientId={caseData.client.rcmsId} />
+          </div>
+        )}
+
+        {/* Consent Documents - Attorney and RN */}
+        {canView && caseId && (role === "ATTORNEY" || role === "RN_CM" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6">
+            <ConsentDocumentViewer caseId={caseId} showPrintButton={true} />
           </div>
         )}
       </div>
