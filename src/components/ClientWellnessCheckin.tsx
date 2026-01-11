@@ -160,18 +160,18 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     onChange: (v: number) => void;
   }) {
     return (
-      <div className="space-y-3 p-4 bg-slate-700/50 rounded-lg">
+      <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border border-slate-200 rounded-lg">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{code}</span>
-              <span className="text-white font-medium">{label}</span>
+              <span className="text-slate-800 font-medium">{label}</span>
             </div>
-            <p className="text-slate-400 text-sm mt-1">{description}</p>
+            <p className="text-slate-500 text-sm mt-1">{description}</p>
           </div>
           <div className="text-right">
             <span className="text-2xl font-bold text-amber-500">{value}</span>
-            <p className="text-xs text-slate-400">{SCALE_LABELS[value as keyof typeof SCALE_LABELS]}</p>
+            <p className="text-xs text-slate-500">{SCALE_LABELS[value as keyof typeof SCALE_LABELS]}</p>
           </div>
         </div>
         <Slider
@@ -182,7 +182,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
           step={1}
           className="mt-2"
         />
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-xs text-slate-400">
           <span>1 - Struggling</span>
           <span>5 - Thriving</span>
         </div>
@@ -192,11 +192,11 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
 
   if (submitted) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-white border-slate-200 shadow-sm">
         <CardContent className="p-8 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">Check-in Complete!</h3>
-          <p className="text-slate-400">Thank you for sharing how you're feeling today.</p>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Check-in Complete!</h3>
+          <p className="text-slate-500">Thank you for sharing how you're feeling today.</p>
         </CardContent>
       </Card>
     );
@@ -205,20 +205,20 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   return (
     <div className="space-y-4">
       {lastCheckin && (
-        <Alert className="bg-slate-700 border-slate-600">
-          <AlertDescription className="text-slate-300">
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertDescription className="text-slate-600">
             Last check-in: {lastCheckin.toLocaleDateString()} at {lastCheckin.toLocaleTimeString()}
           </AlertDescription>
         </Alert>
       )}
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-white border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-slate-800 flex items-center gap-2">
             <Activity className="w-5 h-5 text-amber-500" />
             Daily Wellness Check-in
           </CardTitle>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 text-sm">
             Rate how you're feeling in each area (1 = Struggling, 5 = Thriving)
           </p>
         </CardHeader>
@@ -257,15 +257,15 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
           />
 
           {/* Pain Level - Same scale as 4Ps: 1=Bad, 5=Good */}
-          <div className="space-y-3 p-4 bg-slate-700/50 rounded-lg">
+          <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border border-slate-200 rounded-lg">
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-white font-medium">Pain Level</span>
-                <p className="text-slate-400 text-sm mt-1">How would you rate your pain today?</p>
+                <span className="text-slate-800 font-medium">Pain Level</span>
+                <p className="text-slate-500 text-sm mt-1">How would you rate your pain today?</p>
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold text-amber-500">{painLevel}</span>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   {painLevel === 1 ? "Extreme Pain" : 
                    painLevel === 2 ? "Severe Pain" : 
                    painLevel === 3 ? "Moderate Pain" : 
@@ -280,7 +280,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
               max={5}
               step={1}
             />
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-slate-400">
               <span>1 - Extreme Pain</span>
               <span>5 - No Pain</span>
             </div>
@@ -288,12 +288,12 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label className="text-white">Notes (optional)</Label>
+            <Label className="text-slate-700">Notes (optional)</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Anything else you'd like to share about how you're feeling today?"
-              className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+              className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400"
               rows={3}
             />
           </div>
