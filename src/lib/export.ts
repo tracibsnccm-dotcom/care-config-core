@@ -1,5 +1,6 @@
 // src/lib/export.ts
 import { AppState, Flag, Task } from "./models";
+import { Case } from "@/config/rcms";
 
 /** Safely wrap CSV fields (quotes, commas, newlines). */
 function csvEscape(v: any): string {
@@ -109,6 +110,49 @@ export function exportCurrentAuditCSV(state: AppState) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   const filename = `rcms_audit_${todayISO()}_${(state.client.name || "client").replace(/\s+/g, "_")}.csv`;
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
+}
+
+/** Export a single case to CSV format. */
+export function exportCSV(caseData: Case) {
+  const header = [
+    "CaseID",
+    "Status",
+    "ClientName",
+    "OnsetOfService",
+    "CreatedAt",
+    "UpdatedAt",
+    "RiskLevel",
+    "Flags",
+    "SDOHFlags",
+    "CheckinsCount",
+  ];
+
+  const row = [
+    caseData.id,
+    caseData.status,
+    caseData.client?.displayNameMasked || caseData.client?.fullName || "",
+    caseData.onsetOfService || "",
+    caseData.createdAt || "",
+    caseData.updatedAt || "",
+    caseData.riskLevel || "",
+    (caseData.flags || []).join("; "),
+    (caseData.sdohFlags || []).join("; "),
+    (caseData.checkins || []).length.toString(),
+  ];
+
+  const csv = [header, row].map((r) => r.map(csvEscape).join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const clientName = (caseData.client?.displayNameMasked || caseData.client?.fullName || "case").replace(/\s+/g, "_");
+  const filename = `rcms_case_${todayISO()}_${caseData.id}_${clientName}.csv`;
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
