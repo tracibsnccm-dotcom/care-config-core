@@ -696,6 +696,26 @@ export default function IntakeWizard() {
         if (intakeCompletionError) {
           console.error("Error recording intake completion:", intakeCompletionError);
           // Don't block submission if this fails, but log it
+        } else {
+          // Link consent record to this intake
+          try {
+            const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
+            if (consentSessionId && intakeResult?.id) {
+              console.log('IntakeWizard: Linking consent to intake', { consentSessionId, intakeId: intakeResult.id });
+              const { error: consentLinkError } = await supabaseUpdate(
+                'rc_client_consents',
+                `session_id=eq.${consentSessionId}`,
+                { client_intake_id: intakeResult.id }
+              );
+              if (consentLinkError) {
+                console.error('Failed to link consent to intake:', consentLinkError);
+              } else {
+                console.log('IntakeWizard: Consent linked to intake successfully');
+              }
+            }
+          } catch (e) {
+            console.error('Error linking consent to intake:', e);
+          }
         }
       }
     } catch (error) {
