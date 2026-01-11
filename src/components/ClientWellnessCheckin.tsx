@@ -58,7 +58,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   const [professional, setProfessional] = useState(3);
   
   // Additional tracking
-  const [painLevel, setPainLevel] = useState(1);
+  const [painLevel, setPainLevel] = useState(5);
   const [notes, setNotes] = useState("");
 
   // Check for recent check-in
@@ -256,7 +256,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
             onChange={setProfessional}
           />
 
-          {/* Pain Level - Note: Pain scale is INVERSE (1=good/no pain, 5=bad/severe pain) */}
+          {/* Pain Level - Same scale as 4Ps: 1=Bad, 5=Good */}
           <div className="space-y-3 p-4 bg-slate-700/50 rounded-lg">
             <div className="flex justify-between items-start">
               <div>
@@ -266,10 +266,10 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
               <div className="text-right">
                 <span className="text-2xl font-bold text-amber-500">{painLevel}</span>
                 <p className="text-xs text-slate-400">
-                  {painLevel === 1 ? "No Pain" : 
-                   painLevel === 2 ? "Mild" : 
-                   painLevel === 3 ? "Moderate" : 
-                   painLevel === 4 ? "Severe" : "Extreme"}
+                  {painLevel === 1 ? "Extreme Pain" : 
+                   painLevel === 2 ? "Severe Pain" : 
+                   painLevel === 3 ? "Moderate Pain" : 
+                   painLevel === 4 ? "Mild Pain" : "No Pain"}
                 </p>
               </div>
             </div>
@@ -281,8 +281,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
               step={1}
             />
             <div className="flex justify-between text-xs text-slate-500">
-              <span>1 - No Pain</span>
-              <span>5 - Extreme Pain</span>
+              <span>1 - Extreme Pain</span>
+              <span>5 - No Pain</span>
             </div>
           </div>
 
