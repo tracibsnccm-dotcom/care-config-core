@@ -902,17 +902,21 @@ export default function IntakeWizard() {
     
     // Clear data if: different attorney OR previous intake was submitted
     if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
-      // Clear storage
+      // Clear storage first
       sessionStorage.clear();
-      deleteDraft();
       
-      // Set the new attorney ID before reload
+      // Set new attorney ID before anything else
       if (urlAttorneyId) {
         sessionStorage.setItem('rcms_current_attorney_id', urlAttorneyId);
       }
       
-      // Reload to get fresh React state
-      window.location.reload();
+      // Delete draft and reload after it completes
+      deleteDraft().then(() => {
+        window.location.reload();
+      }).catch(() => {
+        // Reload even if delete fails
+        window.location.reload();
+      });
       return;
     }
   }, [searchParams, deleteDraft]);
@@ -920,7 +924,9 @@ export default function IntakeWizard() {
   // Generate intake ID when attorney code is available
   useEffect(() => {
     async function generateId() {
-      if (!attorneyCode || client.rcmsId) return;
+      // Regenerate if no ID, or if ID is in old RCMS-XXXX format (not INT- format)
+      const needsNewId = !client.rcmsId || (client.rcmsId && !client.rcmsId.startsWith('INT-'));
+      if (!attorneyCode || !needsNewId) return;
       
       // Count today's intakes to get sequence number
       const today = new Date();
