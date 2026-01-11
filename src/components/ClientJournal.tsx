@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { BookOpen, Plus, Clock, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { BookOpen, Plus, Clock, Loader2, ChevronUp, ChevronDown, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -209,8 +209,29 @@ export function ClientJournal({ caseId }: ClientJournalProps) {
                 <li>Feel seen and validated—your experience is real, and it matters</li>
               </ul>
             </div>
-            <p className="italic">
+            <p className="italic text-center">
               There is no "right" or "wrong" way to use this journal. What you feel is legitimate, and no one gets to tell you otherwise.
+            </p>
+            <p>
+              With your permission, your journal can help others better understand your experience and the impact your injury has on your everyday life.
+            </p>
+            <div>
+              <p className="font-medium mb-2">This may include:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>How your injury affects your daily routines</li>
+                <li>What activities are harder than they used to be</li>
+                <li>Emotional or mental strain related to pain, recovery, or uncertainty</li>
+                <li>Concerns or questions you want remembered over time</li>
+              </ul>
+            </div>
+            <div className="bg-amber-100 border border-amber-300 rounded-lg p-4 flex items-start gap-3">
+              <Lock className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+              <p className="text-slate-800">
+                Your journal entries remain private unless you choose to share them. You stay in control of what is visible, when it is shared, and with whom.
+              </p>
+            </div>
+            <p>
+              The Reconcile C.A.R.E. Journal is here to support you—not just your case or your care, but your voice throughout the process.
             </p>
           </CardContent>
         </Card>
