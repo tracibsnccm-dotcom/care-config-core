@@ -236,6 +236,40 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
         successMessage = `Appointment cancelled. ${pFlag} flag triggered for RN follow-up.`;
       }
 
+      // Insert check-in record
+      const checkinData: any = {
+        appointment_id: checkInAppointment.id,
+        can_attend: canAttend
+      };
+      
+      // Add barrier info if they cannot attend
+      if (!canAttend && barrierType) {
+        const selectedBarrier = BARRIER_TYPES.find(b => b.value === barrierType);
+        checkinData.barrier_type = barrierType;
+        checkinData.barrier_notes = barrierNotes || null;
+        checkinData.p_flag_triggered = selectedBarrier?.pFlag || 'P3';
+      }
+      
+      // Save check-in to database
+      const checkinResponse = await fetch(
+        `${supabaseUrl}/rest/v1/rc_appointment_checkins`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(checkinData)
+        }
+      );
+      
+      if (!checkinResponse.ok) {
+        const errorText = await checkinResponse.text();
+        console.error('Failed to save check-in:', errorText);
+        throw new Error('Failed to save attendance confirmation');
+      }
+
       // Update appointment status
       const response = await fetch(
         `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
@@ -623,13 +657,13 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                     <div className="flex-1">
                       <h3 className="font-semibold text-white mb-2">{appointment.title}</h3>
                       <div className="flex justify-between items-center mb-2">
-                        <div>
+                        <div className={appointment.status === 'cancelled' ? 'line-through' : ''}>
                           {appointment.provider_name && (
-                            <p className={`text-sm font-medium mb-1 ${appointment.status === 'cancelled' ? 'text-red-500 line-through' : 'text-white/80'}`}>
+                            <p className={`text-sm font-medium mb-1 ${appointment.status === 'cancelled' ? 'text-red-500' : 'text-white/80'}`}>
                               Provider: {appointment.provider_name}
                             </p>
                           )}
-                          <p className="text-white/60 text-sm">
+                          <p className={`text-sm ${appointment.status === 'cancelled' ? 'text-red-400' : 'text-white/60'}`}>
                             {format(new Date(appointment.scheduled_at), "MMM d, yyyy")} - {appointment.appointment_type || 'Appointment'}
                           </p>
                         </div>
@@ -640,16 +674,18 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                           {getStatusBadge(appointment.status)}
                         </div>
                       </div>
-                      <p className="text-sm text-white/80 mb-1">
-                        <Calendar className="w-4 h-4 inline mr-1" />
-                        {formatAppointmentDateTime(appointment)}
-                      </p>
-                      {appointment.location && (
-                        <p className="text-sm text-white/80 mb-1">Location: {appointment.location}</p>
-                      )}
-                      {appointment.notes && (
-                        <p className="text-sm text-white/80 mt-2 italic">{appointment.notes}</p>
-                      )}
+                      <div className={appointment.status === 'cancelled' ? 'line-through' : ''}>
+                        <p className={`text-sm mb-1 ${appointment.status === 'cancelled' ? 'text-red-400' : 'text-white/80'}`}>
+                          <Calendar className="w-4 h-4 inline mr-1" />
+                          {formatAppointmentDateTime(appointment)}
+                        </p>
+                        {appointment.location && (
+                          <p className={`text-sm mb-1 ${appointment.status === 'cancelled' ? 'text-red-400' : 'text-white/80'}`}>Location: {appointment.location}</p>
+                        )}
+                        {appointment.notes && (
+                          <p className={`text-sm mt-2 italic ${appointment.status === 'cancelled' ? 'text-red-400' : 'text-white/80'}`}>{appointment.notes}</p>
+                        )}
+                      </div>
                     </div>
                     {appointment.status === 'scheduled' && isWithin72Hours(appointment.scheduled_at) && (
                       <Button
