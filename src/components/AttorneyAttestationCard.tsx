@@ -103,6 +103,9 @@ export function AttorneyAttestationCard({
   // ============================================================================
   
   useEffect(() => {
+    // Only run on mount - don't re-run when props change
+    // This prevents parent state updates from overriding our local confirmation state
+    
     // Check sessionStorage first (survives re-renders)
     const sessionKey = `attestation_${intakeId}`;
     const stored = sessionStorage.getItem(sessionKey);
@@ -114,7 +117,7 @@ export function AttorneyAttestationCard({
       return;
     }
     
-    // Check props
+    // Check props for initial state
     if (attorneyAttestedAt || resolved === 'CONFIRMED') {
       setViewState('confirmed');
       return;
@@ -134,7 +137,8 @@ export function AttorneyAttestationCard({
     
     // Otherwise pending
     setViewState('pending');
-  }, [intakeId, attorneyAttestedAt, resolved, attorneyConfirmDeadlineAt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intakeId]); // Only re-run if intakeId changes, not other props
 
   // ============================================================================
   // COUNTDOWN TIMER
