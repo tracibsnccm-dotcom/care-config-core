@@ -169,6 +169,7 @@ export function AttorneyAttestationCard({
   // ============================================================================
   
   const handleConfirm = async () => {
+    console.log('handleConfirm: START');
     if (!user) {
       toast.error('Not authenticated');
       return;
@@ -269,33 +270,37 @@ export function AttorneyAttestationCard({
       
       if (intakeError) throw new Error(`Failed to update intake: ${intakeError.message}`);
       
-      // Audit: Attorney confirmed
-      try {
-        await audit({
-          action: 'attorney_confirmed',
-          actorRole: 'attorney',
-          actorId: user?.id || '',
-          caseId: intake.case_id,
-          meta: { intake_id: intakeId, case_number: caseNumber }
-        });
-      } catch (e) {
-        console.error('Failed to audit attorney confirmation:', e);
-      }
+      console.log('handleConfirm: DB updates complete');
       
+      // TEMPORARILY DISABLED - may be causing hang
+      // Audit: Attorney confirmed
+      // try {
+      //   await audit({
+      //     action: 'attorney_confirmed',
+      //     actorRole: 'attorney',
+      //     actorId: user?.id || '',
+      //     caseId: intake.case_id,
+      //     meta: { intake_id: intakeId, case_number: caseNumber }
+      //   });
+      // } catch (e) {
+      //   console.error('Failed to audit attorney confirmation:', e);
+      // }
+      
+      // TEMPORARILY DISABLED - may be causing hang
       // Create auto-generated attestation note
-      try {
-        await createAutoNote({
-          caseId: intake.case_id,
-          noteType: 'attestation',
-          title: 'Attorney Confirmation',
-          content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
-          createdBy: user?.id || '',
-          createdByRole: 'attorney',
-          visibility: 'all',
-        });
-      } catch (e) {
-        console.error('Failed to create attestation note:', e);
-      }
+      // try {
+      //   await createAutoNote({
+      //     caseId: intake.case_id,
+      //     noteType: 'attestation',
+      //     title: 'Attorney Confirmation',
+      //     content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
+      //     createdBy: user?.id || '',
+      //     createdByRole: 'attorney',
+      //     visibility: 'all',
+      //   });
+      // } catch (e) {
+      //   console.error('Failed to create attestation note:', e);
+      // }
       
       // 7. Try to create RN assignment (don't fail if this fails)
       try {
@@ -324,6 +329,8 @@ export function AttorneyAttestationCard({
       // Save to sessionStorage so it survives any re-renders
       sessionStorage.setItem(`attestation_${intakeId}`, JSON.stringify(confirmation));
       
+      console.log('handleConfirm: Setting confirmation state');
+      
       // Update local state
       setConfirmationData(confirmation);
       setViewState('confirmed');
@@ -333,6 +340,8 @@ export function AttorneyAttestationCard({
       if (onAttested) onAttested(now, updatedJson);
       
       toast.success('Case confirmed! Case number and PIN generated.');
+      
+      console.log('handleConfirm: DONE');
       
     } catch (error: any) {
       console.error('Attestation failed:', error);
