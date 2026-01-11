@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Activity, CheckCircle, Loader2 } from "lucide-react";
+import { Activity, CheckCircle, Loader2, ArrowLeft, ArrowRight, Plus, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface WellnessCheckinProps {
@@ -45,23 +48,53 @@ const FOUR_PS = {
   }
 };
 
+interface AllergyEntry {
+  id: string;
+  medication: string;
+  reaction: string;
+  severity: string;
+}
+
+interface MedicationEntry {
+  id: string;
+  brandName: string;
+  genericName: string;
+  dose: string;
+  frequency: string;
+  route: string;
+  purpose: string;
+  prescriber: string;
+  startDate: string;
+  endDate: string;
+  pharmacy: string;
+  notes: string;
+}
+
 export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastCheckin, setLastCheckin] = useState<Date | null>(null);
   
-  // 4Ps scores (1-5 scale)
+  // Step 1: Allergies
+  const [hasAllergies, setHasAllergies] = useState<string>("");
+  const [allergies, setAllergies] = useState<AllergyEntry[]>([]);
+  const [allergiesAttested, setAllergiesAttested] = useState(false);
+  
+  // Step 2: Medication Reconciliation
+  const [preInjuryMeds, setPreInjuryMeds] = useState<MedicationEntry[]>([]);
+  const [postInjuryMeds, setPostInjuryMeds] = useState<MedicationEntry[]>([]);
+  const [medsAttested, setMedsAttested] = useState(false);
+  
+  // Step 3: Wellness Check-in
   const [physical, setPhysical] = useState(3);
   const [psychological, setPsychological] = useState(3);
   const [psychosocial, setPsychosocial] = useState(3);
   const [professional, setProfessional] = useState(3);
-  
-  // Additional tracking
   const [painLevel, setPainLevel] = useState(5);
   const [notes, setNotes] = useState("");
 
-  // Check for recent check-in
   useEffect(() => {
     loadLastCheckin();
   }, [caseId]);
@@ -92,6 +125,87 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     }
   }
 
+  const addAllergy = () => {
+    setAllergies([...allergies, { 
+      id: crypto.randomUUID(), 
+      medication: '', 
+      reaction: '', 
+      severity: 'mild' 
+    }]);
+  };
+
+  const removeAllergy = (id: string) => {
+    setAllergies(allergies.filter(a => a.id !== id));
+  };
+
+  const updateAllergy = (id: string, field: keyof AllergyEntry, value: string) => {
+    setAllergies(allergies.map(a => a.id === id ? { ...a, [field]: value } : a));
+  };
+
+  const addPreInjuryMed = () => {
+    setPreInjuryMeds([...preInjuryMeds, { 
+      id: crypto.randomUUID(), 
+      brandName: '', 
+      genericName: '', 
+      dose: '', 
+      frequency: '', 
+      route: '', 
+      purpose: '', 
+      prescriber: '', 
+      startDate: '', 
+      endDate: '', 
+      pharmacy: '', 
+      notes: '' 
+    }]);
+  };
+
+  const removePreInjuryMed = (id: string) => {
+    setPreInjuryMeds(preInjuryMeds.filter(m => m.id !== id));
+  };
+
+  const updatePreInjuryMed = (id: string, field: keyof MedicationEntry, value: string) => {
+    setPreInjuryMeds(preInjuryMeds.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  const addPostInjuryMed = () => {
+    setPostInjuryMeds([...postInjuryMeds, { 
+      id: crypto.randomUUID(), 
+      brandName: '', 
+      genericName: '', 
+      dose: '', 
+      frequency: '', 
+      route: '', 
+      purpose: '', 
+      prescriber: '', 
+      startDate: '', 
+      endDate: '', 
+      pharmacy: '', 
+      notes: '' 
+    }]);
+  };
+
+  const removePostInjuryMed = (id: string) => {
+    setPostInjuryMeds(postInjuryMeds.filter(m => m.id !== id));
+  };
+
+  const updatePostInjuryMed = (id: string, field: keyof MedicationEntry, value: string) => {
+    setPostInjuryMeds(postInjuryMeds.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  const canProceedStep1 = () => {
+    if (hasAllergies === "") return false;
+    if (hasAllergies === "yes" && allergies.length === 0) return false;
+    return allergiesAttested;
+  };
+
+  const canProceedStep2 = () => {
+    return medsAttested;
+  };
+
+  const canProceedStep3 = () => {
+    return true; // Wellness check-in is always optional
+  };
+
   async function handleSubmit() {
     setIsSubmitting(true);
     setError(null);
@@ -100,7 +214,17 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // Convert 1-5 scale to 0-100 for storage (matching existing schema)
+      // Save allergies if provided
+      if (hasAllergies === "yes" && allergies.length > 0) {
+        // TODO: Save allergies to database
+      }
+      
+      // Save medications if provided
+      if (preInjuryMeds.length > 0 || postInjuryMeds.length > 0) {
+        // TODO: Save medications to database
+      }
+      
+      // Save wellness check-in
       const checkinData = {
         case_id: caseId,
         pain_scale: painLevel,
@@ -134,7 +258,19 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       // Reset form after 3 seconds
       setTimeout(() => {
         setSubmitted(false);
+        setCurrentStep(1);
+        setHasAllergies("");
+        setAllergies([]);
+        setAllergiesAttested(false);
+        setPreInjuryMeds([]);
+        setPostInjuryMeds([]);
+        setMedsAttested(false);
         setNotes("");
+        setPhysical(3);
+        setPsychological(3);
+        setPsychosocial(3);
+        setProfessional(3);
+        setPainLevel(5);
       }, 3000);
       
     } catch (err: any) {
@@ -221,88 +357,364 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
             <Activity className="w-5 h-5 text-amber-500" />
             Daily Wellness Check-in
           </CardTitle>
-          <p className="text-white/80 text-sm">
-            Rate how you're feeling in each area (1 = Struggling, 5 = Thriving)
+          <div className="flex items-center gap-2 mt-2">
+            <div className={`flex-1 h-2 rounded-full ${currentStep >= 1 ? 'bg-amber-500' : 'bg-white/30'}`} />
+            <div className={`flex-1 h-2 rounded-full ${currentStep >= 2 ? 'bg-amber-500' : 'bg-white/30'}`} />
+            <div className={`flex-1 h-2 rounded-full ${currentStep >= 3 ? 'bg-amber-500' : 'bg-white/30'}`} />
+          </div>
+          <p className="text-white/80 text-sm mt-2">
+            Step {currentStep} of 3: {
+              currentStep === 1 ? "Allergies" :
+              currentStep === 2 ? "Medication Reconciliation" :
+              "Wellness Check-in"
+            }
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* 4Ps Sliders */}
-          <ScoreSlider
-            label={FOUR_PS.physical.label}
-            code={FOUR_PS.physical.code}
-            description={FOUR_PS.physical.description}
-            value={physical}
-            onChange={setPhysical}
-          />
-          
-          <ScoreSlider
-            label={FOUR_PS.psychological.label}
-            code={FOUR_PS.psychological.code}
-            description={FOUR_PS.psychological.description}
-            value={psychological}
-            onChange={setPsychological}
-          />
-          
-          <ScoreSlider
-            label={FOUR_PS.psychosocial.label}
-            code={FOUR_PS.psychosocial.code}
-            description={FOUR_PS.psychosocial.description}
-            value={psychosocial}
-            onChange={setPsychosocial}
-          />
-          
-          <ScoreSlider
-            label={FOUR_PS.professional.label}
-            code={FOUR_PS.professional.code}
-            description={FOUR_PS.professional.description}
-            value={professional}
-            onChange={setProfessional}
-          />
+          {/* Step 1: Allergies */}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div className="bg-white/20 border border-white/30 rounded-lg p-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">Medication Allergies & Sensitivities</h4>
+                    <p className="text-white/80 text-sm">
+                      This information is critical for your safety. Please list any medications you are allergic to or have had negative reactions with.
+                    </p>
+                  </div>
+                </div>
 
-          {/* Pain Level - Same scale as 4Ps: 1=Bad, 5=Good */}
-          <div 
-            className="space-y-3 p-4 border border-teal-300 rounded-lg"
-            style={{ backgroundColor: '#4fb9af' }}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-white font-medium">Pain Level</span>
-                <p className="text-white/80 text-sm mt-1">How would you rate your pain today?</p>
-              </div>
-              <div className="text-right">
-                <span className="text-2xl font-bold text-white">{painLevel}</span>
-                <p className="text-xs text-white/80">
-                  {painLevel === 1 ? "Extreme Pain" : 
-                   painLevel === 2 ? "Severe Pain" : 
-                   painLevel === 3 ? "Moderate Pain" : 
-                   painLevel === 4 ? "Mild Pain" : "No Pain"}
-                </p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-white font-medium">Do you have any medication allergies or sensitivities?</Label>
+                    <RadioGroup value={hasAllergies} onValueChange={setHasAllergies}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="allergies-no" />
+                        <Label htmlFor="allergies-no" className="text-white cursor-pointer font-normal">No</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="allergies-yes" />
+                        <Label htmlFor="allergies-yes" className="text-white cursor-pointer font-normal">Yes</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {hasAllergies === "yes" && (
+                    <div className="space-y-3">
+                      {allergies.map((allergy) => (
+                        <div key={allergy.id} className="bg-white/10 border border-white/20 rounded-lg p-3 space-y-2 relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 h-6 w-6 p-0 text-white hover:bg-white/20"
+                            onClick={() => removeAllergy(allergy.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                              <Label className="text-white text-sm">Medication/Substance*</Label>
+                              <Input
+                                value={allergy.medication}
+                                onChange={(e) => updateAllergy(allergy.id, 'medication', e.target.value)}
+                                placeholder="e.g., Penicillin"
+                                className="bg-white border-slate-200"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-white text-sm">Reaction</Label>
+                              <Input
+                                value={allergy.reaction}
+                                onChange={(e) => updateAllergy(allergy.id, 'reaction', e.target.value)}
+                                placeholder="e.g., Hives, swelling"
+                                className="bg-white border-slate-200"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-white text-sm">Severity</Label>
+                              <select
+                                value={allergy.severity}
+                                onChange={(e) => updateAllergy(allergy.id, 'severity', e.target.value)}
+                                className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                              >
+                                <option value="mild">Mild</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="severe">Severe</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addAllergy}
+                        className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Allergy
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex items-start space-x-2 pt-2">
+                    <Checkbox
+                      id="allergies-attest"
+                      checked={allergiesAttested}
+                      onCheckedChange={(checked) => setAllergiesAttested(checked === true)}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="allergies-attest" className="text-white text-sm cursor-pointer">
+                      I attest that the allergy information provided above is accurate and complete to the best of my knowledge.
+                    </Label>
+                  </div>
+                </div>
               </div>
             </div>
-            <Slider
-              value={[painLevel]}
-              onValueChange={(v) => setPainLevel(v[0])}
-              min={1}
-              max={5}
-              step={1}
-            />
-            <div className="flex justify-between text-xs text-white/70">
-              <span>1 - Extreme Pain</span>
-              <span>5 - No Pain</span>
-            </div>
-          </div>
+          )}
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label className="text-slate-700">Notes (optional)</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything else you'd like to share about how you're feeling today?"
-              className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400"
-              rows={3}
-            />
-          </div>
+          {/* Step 2: Medication Reconciliation */}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div className="bg-white/20 border border-white/30 rounded-lg p-4 space-y-4">
+                <div className="flex items-start gap-3">
+                  <Activity className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">Medication Reconciliation</h4>
+                    <p className="text-white/80 text-sm">
+                      Please list all medications you are currently taking or have taken related to your injury.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-white font-medium mb-2">Pre-Injury Medications</h5>
+                    <p className="text-white/80 text-sm mb-3">Medications you were taking before the incident occurred.</p>
+                    {preInjuryMeds.map((med) => (
+                      <div key={med.id} className="bg-white/10 border border-white/20 rounded-lg p-3 space-y-2 mb-2 relative">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-white hover:bg-white/20"
+                          onClick={() => removePreInjuryMed(med.id)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-white text-sm">Brand Name</Label>
+                            <Input
+                              value={med.brandName}
+                              onChange={(e) => updatePreInjuryMed(med.id, 'brandName', e.target.value)}
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Generic Name</Label>
+                            <Input
+                              value={med.genericName}
+                              onChange={(e) => updatePreInjuryMed(med.id, 'genericName', e.target.value)}
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Dose</Label>
+                            <Input
+                              value={med.dose}
+                              onChange={(e) => updatePreInjuryMed(med.id, 'dose', e.target.value)}
+                              placeholder="e.g., 200mg"
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Frequency</Label>
+                            <Input
+                              value={med.frequency}
+                              onChange={(e) => updatePreInjuryMed(med.id, 'frequency', e.target.value)}
+                              placeholder="e.g., Twice daily"
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPreInjuryMed}
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Pre-Injury Medication
+                    </Button>
+                  </div>
+
+                  <div>
+                    <h5 className="text-white font-medium mb-2">Post-Injury Medications</h5>
+                    <p className="text-white/80 text-sm mb-3">Medications prescribed or started after the incident.</p>
+                    {postInjuryMeds.map((med) => (
+                      <div key={med.id} className="bg-white/10 border border-white/20 rounded-lg p-3 space-y-2 mb-2 relative">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-white hover:bg-white/20"
+                          onClick={() => removePostInjuryMed(med.id)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-white text-sm">Brand Name</Label>
+                            <Input
+                              value={med.brandName}
+                              onChange={(e) => updatePostInjuryMed(med.id, 'brandName', e.target.value)}
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Generic Name</Label>
+                            <Input
+                              value={med.genericName}
+                              onChange={(e) => updatePostInjuryMed(med.id, 'genericName', e.target.value)}
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Dose</Label>
+                            <Input
+                              value={med.dose}
+                              onChange={(e) => updatePostInjuryMed(med.id, 'dose', e.target.value)}
+                              placeholder="e.g., 200mg"
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm">Frequency</Label>
+                            <Input
+                              value={med.frequency}
+                              onChange={(e) => updatePostInjuryMed(med.id, 'frequency', e.target.value)}
+                              placeholder="e.g., Twice daily"
+                              className="bg-white border-slate-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPostInjuryMed}
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Post-Injury Medication
+                    </Button>
+                  </div>
+
+                  <div className="flex items-start space-x-2 pt-2">
+                    <Checkbox
+                      id="meds-attest"
+                      checked={medsAttested}
+                      onCheckedChange={(checked) => setMedsAttested(checked === true)}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="meds-attest" className="text-white text-sm cursor-pointer">
+                      I attest that the medication information provided above is accurate and complete to the best of my knowledge.
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Wellness Check-in */}
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <p className="text-white/80 text-sm mb-4">
+                Rate how you're feeling in each area (1 = Struggling, 5 = Thriving)
+              </p>
+              
+              <ScoreSlider
+                label={FOUR_PS.physical.label}
+                code={FOUR_PS.physical.code}
+                description={FOUR_PS.physical.description}
+                value={physical}
+                onChange={setPhysical}
+              />
+              
+              <ScoreSlider
+                label={FOUR_PS.psychological.label}
+                code={FOUR_PS.psychological.code}
+                description={FOUR_PS.psychological.description}
+                value={psychological}
+                onChange={setPsychological}
+              />
+              
+              <ScoreSlider
+                label={FOUR_PS.psychosocial.label}
+                code={FOUR_PS.psychosocial.code}
+                description={FOUR_PS.psychosocial.description}
+                value={psychosocial}
+                onChange={setPsychosocial}
+              />
+              
+              <ScoreSlider
+                label={FOUR_PS.professional.label}
+                code={FOUR_PS.professional.code}
+                description={FOUR_PS.professional.description}
+                value={professional}
+                onChange={setProfessional}
+              />
+
+              <div 
+                className="space-y-3 p-4 border border-teal-300 rounded-lg"
+                style={{ backgroundColor: '#4fb9af' }}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-white font-medium">Pain Level</span>
+                    <p className="text-white/80 text-sm mt-1">How would you rate your pain today?</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-white">{painLevel}</span>
+                    <p className="text-xs text-white/80">
+                      {painLevel === 1 ? "Extreme Pain" : 
+                       painLevel === 2 ? "Severe Pain" : 
+                       painLevel === 3 ? "Moderate Pain" : 
+                       painLevel === 4 ? "Mild Pain" : "No Pain"}
+                    </p>
+                  </div>
+                </div>
+                <Slider
+                  value={[painLevel]}
+                  onValueChange={(v) => setPainLevel(v[0])}
+                  min={1}
+                  max={5}
+                  step={1}
+                />
+                <div className="flex justify-between text-xs text-white/70">
+                  <span>1 - Extreme Pain</span>
+                  <span>5 - No Pain</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Notes (optional)</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Anything else you'd like to share about how you're feeling today?"
+                  className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
 
           {error && (
             <Alert variant="destructive">
@@ -310,24 +722,56 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
             </Alert>
           )}
 
-          {/* Submit Button */}
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-white/20">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1}
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </Button>
+            
+            {currentStep < 3 ? (
+              <Button
+                onClick={() => {
+                  if (currentStep === 1 && canProceedStep1()) {
+                    setCurrentStep(2);
+                  } else if (currentStep === 2 && canProceedStep2()) {
+                    setCurrentStep(3);
+                  }
+                }}
+                disabled={
+                  (currentStep === 1 && !canProceedStep1()) ||
+                  (currentStep === 2 && !canProceedStep2())
+                }
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             ) : (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Submit Check-in
-              </>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Submit Check-in
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
