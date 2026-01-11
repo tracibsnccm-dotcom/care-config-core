@@ -11,6 +11,7 @@ import { HelpCircle, Clock, ArrowLeft, Eye, AlertTriangle, Shield } from 'lucide
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { AttorneyAttestationCard } from '@/components/AttorneyAttestationCard';
+import { ConsentDocumentViewer } from '@/components/ConsentDocumentViewer';
 import { formatHMS, COMPLIANCE_COPY } from '@/constants/compliance';
 import { useAuth } from '@/auth/supabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -428,16 +429,21 @@ export const AttorneyIntakeTracker = () => {
         )}
 
         {isConfirmed && !isExpired && (
-          <Card>
-            <CardContent className="p-6">
-              <Button
-                onClick={() => window.location.href = `/cases/${selectedCaseId}`}
-                className="mt-4"
-              >
-                View Case Details
-              </Button>
-            </CardContent>
-          </Card>
+          <>
+            {/* Consent Documents */}
+            <ConsentDocumentViewer caseId={selectedCaseId!} showPrintButton={true} />
+            
+            <Card>
+              <CardContent className="p-6">
+                <Button
+                  onClick={() => window.location.href = `/cases/${selectedCaseId}`}
+                  className="mt-4"
+                >
+                  View Case Details
+                </Button>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     );
