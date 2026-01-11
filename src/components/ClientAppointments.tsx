@@ -15,7 +15,6 @@ interface Appointment {
   title: string;
   provider_name: string | null;
   scheduled_at: string;
-  appointment_time: string | null;
   location: string | null;
   notes: string | null;
   status: string | null;
@@ -98,7 +97,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_appointments?case_id=eq.${caseId}&order=scheduled_at.asc,appointment_time.asc`,
+        `${supabaseUrl}/rest/v1/rc_appointments?case_id=eq.${caseId}&order=scheduled_at.asc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -140,14 +139,19 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
         ? `Specialist - ${specialistType}`
         : appointmentType;
       const appointmentTitle = `${finalAppointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
+      
+      // Combine date and time into ISO timestamp
+      const scheduledAt = appointmentTime 
+        ? new Date(`${appointmentDate}T${appointmentTime}`).toISOString()
+        : new Date(`${appointmentDate}T00:00:00`).toISOString();
+      
       const appointmentData = {
         case_id: caseId,
         client_id: clientCaseId, // This will need to be the actual client_id from auth, but using case_id for now
         title: appointmentTitle,
         provider_name: providerName.trim() || null,
         appointment_type: finalAppointmentType || null,
-        scheduled_at: appointmentDate,
-        appointment_time: appointmentTime || null,
+        scheduled_at: scheduledAt,
         location: location.trim() || null,
         notes: notes.trim() || null,
         status: 'scheduled'
@@ -319,19 +323,15 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
     const date = new Date(appointment.scheduled_at);
     const dateStr = format(date, 'MMM d, yyyy');
     
-    if (appointment.appointment_time) {
-      try {
-        const [hours, minutes] = appointment.appointment_time.split(':');
-        const hour = parseInt(hours);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 || 12;
-        const timeStr = `${displayHour}:${minutes} ${ampm}`;
-        return `${dateStr} at ${timeStr}`;
-      } catch (e) {
-        return `${dateStr} at ${appointment.appointment_time}`;
-      }
-    }
-    return dateStr;
+    // Extract time from scheduled_at timestamp
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const timeStr = `${displayHour}:${minutesStr} ${ampm}`;
+    
+    return `${dateStr} at ${timeStr}`;
   }
 
   if (loading) {
