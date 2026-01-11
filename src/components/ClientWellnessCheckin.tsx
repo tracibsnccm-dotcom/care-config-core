@@ -95,6 +95,17 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   const [painLevel, setPainLevel] = useState(5);
   const [notes, setNotes] = useState("");
 
+  // Vital Signs
+  const [bloodPressureSystolic, setBloodPressureSystolic] = useState("");
+  const [bloodPressureDiastolic, setBloodPressureDiastolic] = useState("");
+  const [heartRate, setHeartRate] = useState("");
+  const [oxygenSaturation, setOxygenSaturation] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [bloodSugar, setBloodSugar] = useState("");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
+  const [weight, setWeight] = useState("");
+
   useEffect(() => {
     loadLastCheckin();
   }, [caseId]);
@@ -206,6 +217,32 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     return true; // Wellness check-in is always optional
   };
 
+  // Calculate BMI
+  const calculateBMI = () => {
+    const weightNum = parseFloat(weight);
+    const feetNum = parseFloat(heightFeet);
+    const inchesNum = parseFloat(heightInches);
+    
+    if (!weightNum || !feetNum || !inchesNum) {
+      return null;
+    }
+    
+    const totalInches = feetNum * 12 + inchesNum;
+    if (totalInches <= 0) return null;
+    
+    const bmi = (weightNum * 703) / (totalInches * totalInches);
+    return bmi;
+  };
+
+  const getBMICategory = (bmi: number) => {
+    if (bmi < 18.5) return { label: "Underweight", color: "bg-blue-100 text-blue-800" };
+    if (bmi < 25.0) return { label: "Normal", color: "bg-green-100 text-green-800" };
+    if (bmi < 30.0) return { label: "Overweight", color: "bg-amber-100 text-amber-800" };
+    if (bmi < 35.0) return { label: "Obese (Class 1)", color: "bg-orange-100 text-orange-800" };
+    if (bmi < 40.0) return { label: "Obese (Class 2)", color: "bg-red-100 text-red-800" };
+    return { label: "Morbidly Obese (Class 3)", color: "bg-red-200 text-red-900" };
+  };
+
   async function handleSubmit() {
     setIsSubmitting(true);
     setError(null);
@@ -224,8 +261,14 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         // TODO: Save medications to database
       }
       
-      // Save wellness check-in
-      const checkinData = {
+      // Calculate BMI if height and weight are provided
+      const bmi = calculateBMI();
+      const totalInches = heightFeet && heightInches 
+        ? parseFloat(heightFeet) * 12 + parseFloat(heightInches) 
+        : null;
+      
+      // Save wellness check-in with vital signs
+      const checkinData: any = {
         case_id: caseId,
         pain_scale: painLevel,
         p_physical: (physical - 1) * 25,
@@ -233,6 +276,18 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         p_psychosocial: (psychosocial - 1) * 25,
         p_professional: (professional - 1) * 25,
         note: notes || null,
+        // Vital signs
+        blood_pressure_systolic: bloodPressureSystolic ? parseInt(bloodPressureSystolic) : null,
+        blood_pressure_diastolic: bloodPressureDiastolic ? parseInt(bloodPressureDiastolic) : null,
+        heart_rate: heartRate ? parseInt(heartRate) : null,
+        oxygen_saturation: oxygenSaturation ? parseInt(oxygenSaturation) : null,
+        temperature: temperature ? parseFloat(temperature) : null,
+        blood_sugar: bloodSugar ? parseFloat(bloodSugar) : null,
+        height_feet: heightFeet ? parseInt(heightFeet) : null,
+        height_inches: heightInches ? parseInt(heightInches) : null,
+        height_total_inches: totalInches,
+        weight_lbs: weight ? parseFloat(weight) : null,
+        bmi: bmi,
       };
       
       const response = await fetch(`${supabaseUrl}/rest/v1/rc_client_checkins`, {
@@ -271,6 +326,15 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         setPsychosocial(3);
         setProfessional(3);
         setPainLevel(5);
+        setBloodPressureSystolic("");
+        setBloodPressureDiastolic("");
+        setHeartRate("");
+        setOxygenSaturation("");
+        setTemperature("");
+        setBloodSugar("");
+        setHeightFeet("");
+        setHeightInches("");
+        setWeight("");
       }, 3000);
       
     } catch (err: any) {
@@ -639,68 +703,214 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                 Rate how you're feeling in each area (1 = Struggling, 5 = Thriving)
               </p>
               
-              <ScoreSlider
-                label={FOUR_PS.physical.label}
-                code={FOUR_PS.physical.code}
-                description={FOUR_PS.physical.description}
-                value={physical}
-                onChange={setPhysical}
-              />
-              
-              <ScoreSlider
-                label={FOUR_PS.psychological.label}
-                code={FOUR_PS.psychological.code}
-                description={FOUR_PS.psychological.description}
-                value={psychological}
-                onChange={setPsychological}
-              />
-              
-              <ScoreSlider
-                label={FOUR_PS.psychosocial.label}
-                code={FOUR_PS.psychosocial.code}
-                description={FOUR_PS.psychosocial.description}
-                value={psychosocial}
-                onChange={setPsychosocial}
-              />
-              
-              <ScoreSlider
-                label={FOUR_PS.professional.label}
-                code={FOUR_PS.professional.code}
-                description={FOUR_PS.professional.description}
-                value={professional}
-                onChange={setProfessional}
-              />
+          <ScoreSlider
+            label={FOUR_PS.physical.label}
+            code={FOUR_PS.physical.code}
+            description={FOUR_PS.physical.description}
+            value={physical}
+            onChange={setPhysical}
+          />
+          
+          <ScoreSlider
+            label={FOUR_PS.psychological.label}
+            code={FOUR_PS.psychological.code}
+            description={FOUR_PS.psychological.description}
+            value={psychological}
+            onChange={setPsychological}
+          />
+          
+          <ScoreSlider
+            label={FOUR_PS.psychosocial.label}
+            code={FOUR_PS.psychosocial.code}
+            description={FOUR_PS.psychosocial.description}
+            value={psychosocial}
+            onChange={setPsychosocial}
+          />
+          
+          <ScoreSlider
+            label={FOUR_PS.professional.label}
+            code={FOUR_PS.professional.code}
+            description={FOUR_PS.professional.description}
+            value={professional}
+            onChange={setProfessional}
+          />
 
-              <div 
-                className="space-y-3 p-4 border border-teal-300 rounded-lg"
-                style={{ backgroundColor: '#4fb9af' }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-white font-medium">Pain Level</span>
-                    <p className="text-white/80 text-sm mt-1">How would you rate your pain today?</p>
+          <div 
+            className="space-y-3 p-4 border border-teal-300 rounded-lg"
+            style={{ backgroundColor: '#4fb9af' }}
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-white font-medium">Pain Level</span>
+                <p className="text-white/80 text-sm mt-1">How would you rate your pain today?</p>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-bold text-white">{painLevel}</span>
+                <p className="text-xs text-white/80">
+                  {painLevel === 1 ? "Extreme Pain" : 
+                   painLevel === 2 ? "Severe Pain" : 
+                   painLevel === 3 ? "Moderate Pain" : 
+                   painLevel === 4 ? "Mild Pain" : "No Pain"}
+                </p>
+              </div>
+            </div>
+            <Slider
+              value={[painLevel]}
+              onValueChange={(v) => setPainLevel(v[0])}
+              min={1}
+              max={5}
+              step={1}
+            />
+            <div className="flex justify-between text-xs text-white/70">
+              <span>1 - Extreme Pain</span>
+              <span>5 - No Pain</span>
+            </div>
+          </div>
+
+              {/* Vital Signs Section */}
+              <div className="bg-white/20 border border-white/30 rounded-lg p-4 space-y-4">
+                <h4 className="font-semibold text-white mb-2">Vital Signs (Optional)</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Blood Pressure */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Blood Pressure</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={bloodPressureSystolic}
+                        onChange={(e) => setBloodPressureSystolic(e.target.value)}
+                        placeholder="120"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white">/</span>
+                      <Input
+                        type="number"
+                        value={bloodPressureDiastolic}
+                        onChange={(e) => setBloodPressureDiastolic(e.target.value)}
+                        placeholder="80"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">mmHg</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-white">{painLevel}</span>
-                    <p className="text-xs text-white/80">
-                      {painLevel === 1 ? "Extreme Pain" : 
-                       painLevel === 2 ? "Severe Pain" : 
-                       painLevel === 3 ? "Moderate Pain" : 
-                       painLevel === 4 ? "Mild Pain" : "No Pain"}
-                    </p>
+
+                  {/* Heart Rate */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Heart Rate</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={heartRate}
+                        onChange={(e) => setHeartRate(e.target.value)}
+                        placeholder="72"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">bpm</span>
+                    </div>
+                  </div>
+
+                  {/* Oxygen Saturation */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Oxygen Saturation (SpO2)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={oxygenSaturation}
+                        onChange={(e) => setOxygenSaturation(e.target.value)}
+                        placeholder="98"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">%</span>
+                    </div>
+                    <p className="text-white/70 text-xs">Normal is 95-100%</p>
+                  </div>
+
+                  {/* Temperature */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Temperature</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={temperature}
+                        onChange={(e) => setTemperature(e.target.value)}
+                        placeholder="98.6"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">°F</span>
+                    </div>
+                  </div>
+
+                  {/* Blood Sugar */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Blood Sugar</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={bloodSugar}
+                        onChange={(e) => setBloodSugar(e.target.value)}
+                        placeholder="100"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">mg/dL</span>
+                    </div>
+                  </div>
+
+                  {/* Height */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Height</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={heightFeet}
+                        onChange={(e) => setHeightFeet(e.target.value)}
+                        placeholder="5"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">ft</span>
+                      <Input
+                        type="number"
+                        value={heightInches}
+                        onChange={(e) => setHeightInches(e.target.value)}
+                        placeholder="8"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">in</span>
+                    </div>
+                  </div>
+
+                  {/* Weight */}
+                  <div className="space-y-2">
+                    <Label className="text-white text-sm">Weight</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        placeholder="150"
+                        className="bg-white border-slate-200 text-slate-800"
+                      />
+                      <span className="text-white text-sm">lbs</span>
+                    </div>
                   </div>
                 </div>
-                <Slider
-                  value={[painLevel]}
-                  onValueChange={(v) => setPainLevel(v[0])}
-                  min={1}
-                  max={5}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-white/70">
-                  <span>1 - Extreme Pain</span>
-                  <span>5 - No Pain</span>
-                </div>
+
+                {/* BMI Display */}
+                {calculateBMI() && (
+                  <div className="mt-4">
+                    {(() => {
+                      const bmi = calculateBMI()!;
+                      const category = getBMICategory(bmi);
+                      return (
+                        <div className={`inline-block px-4 py-2 rounded-lg ${category.color}`}>
+                          <span className="font-semibold">BMI: {bmi.toFixed(1)} - {category.label}</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -753,23 +963,23 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
+          <Button 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Submit Check-in
-                  </>
-                )}
-              </Button>
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Submit Check-in
+              </>
+            )}
+          </Button>
             )}
           </div>
         </CardContent>
