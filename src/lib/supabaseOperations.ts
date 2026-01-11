@@ -35,12 +35,11 @@ export interface AuditEvent {
 export async function audit(ev: AuditEvent) {
   try {
     const entry = {
-      ts: ev.ts || new Date().toISOString(),
-      actor_role: ev.actorRole,
-      actor_id: ev.actorId,
+      created_at: ev.ts || new Date().toISOString(),
+      user_id: ev.actorId,
       action: ev.action,
       case_id: ev.caseId || null,
-      meta: ev.meta || null,
+      details: ev.meta ? JSON.stringify(ev.meta) : null,
     };
 
     const { error } = await supabase.from("rc_audit_logs").insert(entry);
