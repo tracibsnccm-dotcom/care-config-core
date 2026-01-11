@@ -21,10 +21,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
 function generateCaseNumber(attorneyCode: string, sequenceToday: number): string {
   const today = new Date();
   const yy = today.getFullYear().toString().slice(-2);
@@ -44,10 +40,6 @@ function generatePIN(): string {
   } while (excluded.includes(pin));
   return pin;
 }
-
-// ============================================================================
-// COMPONENT TYPES
-// ============================================================================
 
 type ViewState = 'loading' | 'pending' | 'confirmed' | 'declined' | 'expired';
 
@@ -70,10 +62,6 @@ interface AttorneyAttestationCardProps {
   resolved?: null | "CONFIRMED" | "DECLINED";
 }
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
 export function AttorneyAttestationCard({
   intakeId,
   caseId,
@@ -88,25 +76,13 @@ export function AttorneyAttestationCard({
 }: AttorneyAttestationCardProps) {
   const { user } = useAuth();
   
-  // ============================================================================
-  // STATE
-  // ============================================================================
-  
   const [viewState, setViewState] = useState<ViewState>('loading');
   const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
   const [msRemaining, setMsRemaining] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
 
-  // ============================================================================
-  // DETERMINE INITIAL STATE
-  // ============================================================================
-  
   useEffect(() => {
-    // Only run on mount - don't re-run when props change
-    // This prevents parent state updates from overriding our local confirmation state
-    
-    // Check sessionStorage first (survives re-renders)
     const sessionKey = `attestation_${intakeId}`;
     const stored = sessionStorage.getItem(sessionKey);
     
@@ -117,7 +93,6 @@ export function AttorneyAttestationCard({
       return;
     }
     
-    // Check props for initial state
     if (attorneyAttestedAt || resolved === 'CONFIRMED') {
       setViewState('confirmed');
       return;
@@ -128,22 +103,15 @@ export function AttorneyAttestationCard({
       return;
     }
     
-    // Check if expired
     const deadline = new Date(attorneyConfirmDeadlineAt).getTime();
     if (Date.now() >= deadline) {
       setViewState('expired');
       return;
     }
     
-    // Otherwise pending
     setViewState('pending');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intakeId]); // Only re-run if intakeId changes, not other props
+  }, [intakeId]);
 
-  // ============================================================================
-  // COUNTDOWN TIMER
-  // ============================================================================
-  
   useEffect(() => {
     if (viewState !== 'pending') return;
     
@@ -164,12 +132,7 @@ export function AttorneyAttestationCard({
     return () => clearInterval(interval);
   }, [viewState, attorneyConfirmDeadlineAt]);
 
-  // ============================================================================
-  // HANDLE CONFIRM
-  // ============================================================================
-  
   const handleConfirm = async () => {
-    console.log('handleConfirm: START');
     if (!user) {
       toast.error('Not authenticated');
       return;
@@ -178,7 +141,6 @@ export function AttorneyAttestationCard({
     setIsSubmitting(true);
     
     try {
-      // 1. Get attorney info
       const { data: rcUsers, error: rcUsersError } = await supabaseGet(
         'rc_users', 
         `select=id,attorney_code&auth_user_id=eq.${user.id}&role=eq.attorney&limit=1`
@@ -194,7 +156,6 @@ export function AttorneyAttestationCard({
       const attorneyId = rcUser.id;
       const attorneyCode = rcUser.attorney_code;
       
-      // 2. Get intake
       const { data: intakes, error: intakesError } = await supabaseGet(
         'rc_client_intakes', 
         `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`
@@ -205,7 +166,6 @@ export function AttorneyAttestationCard({
       const intake = Array.isArray(intakes) ? intakes[0] : intakes;
       if (!intake?.case_id) throw new Error('Intake not found');
       
-      // 3. Count today's cases for sequence
       const today = new Date();
       const dateStr = `${today.getFullYear().toString().slice(-2)}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}`;
       const prefix = `${attorneyCode}-${dateStr}-`;
@@ -221,12 +181,10 @@ export function AttorneyAttestationCard({
       
       const sequence = todayCases.length + 1;
       
-      // 4. Generate case number and PIN
       const caseNumber = generateCaseNumber(attorneyCode, sequence);
       const clientPin = generatePIN();
       const now = new Date().toISOString();
       
-      // 5. Update rc_cases
       const { error: caseError } = await supabaseUpdate(
         'rc_cases',
         `id=eq.${intake.case_id}`,
@@ -239,7 +197,6 @@ export function AttorneyAttestationCard({
       
       if (caseError) throw new Error(`Failed to update case: ${caseError.message}`);
       
-      // 6. Update rc_client_intakes
       const existingJson = intake.intake_json || {};
       const updatedJson = {
         ...existingJson,
@@ -270,78 +227,42 @@ export function AttorneyAttestationCard({
       
       if (intakeError) throw new Error(`Failed to update intake: ${intakeError.message}`);
       
-      console.log('handleConfirm: DB updates complete');
-      
-      // TEMPORARILY DISABLED - may be causing hang
-      // Audit: Attorney confirmed
-      // try {
-      //   await audit({
-      //     action: 'attorney_confirmed',
-      //     actorRole: 'attorney',
-      //     actorId: user?.id || '',
-      //     caseId: intake.case_id,
-      //     meta: { intake_id: intakeId, case_number: caseNumber }
-      //   });
-      // } catch (e) {
-      //   console.error('Failed to audit attorney confirmation:', e);
-      // }
-      
-      // TEMPORARILY DISABLED - may be causing hang
-      // Create auto-generated attestation note
-      // try {
-      //   await createAutoNote({
-      //     caseId: intake.case_id,
-      //     noteType: 'attestation',
-      //     title: 'Attorney Confirmation',
-      //     content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
-      //     createdBy: user?.id || '',
-      //     createdByRole: 'attorney',
-      //     visibility: 'all',
-      //   });
-      // } catch (e) {
-      //   console.error('Failed to create attestation note:', e);
-      // }
-      
-      // 7. Try to create RN assignment (don't fail if this fails)
-      try {
-        const { data: rnUser } = await supabaseGet('rc_users', 'select=auth_user_id&role=eq.rn&limit=1');
-        const rn = Array.isArray(rnUser) ? rnUser[0] : rnUser;
-        
-        if (rn?.auth_user_id) {
-          await supabaseInsert('rc_case_assignments', {
-            case_id: intake.case_id,
-            user_id: rn.auth_user_id,
-            status: 'active',
-            assigned_at: now
-          });
-        }
-      } catch (e) {
-        console.error('RN assignment failed (non-critical):', e);
-      }
-      
-      // 8. SUCCESS - Update UI immediately
+      // SUCCESS - Update UI immediately
       const confirmation: ConfirmationData = {
         caseNumber,
         clientPin,
         confirmedAt: now,
       };
       
-      // Save to sessionStorage so it survives any re-renders
       sessionStorage.setItem(`attestation_${intakeId}`, JSON.stringify(confirmation));
-      
-      console.log('handleConfirm: Setting confirmation state');
-      
-      // Update local state
       setConfirmationData(confirmation);
       setViewState('confirmed');
       
-      // Notify parent
       if (onResolved) onResolved('CONFIRMED', now, updatedJson);
       if (onAttested) onAttested(now, updatedJson);
       
       toast.success('Case confirmed! Case number and PIN generated.');
       
-      console.log('handleConfirm: DONE');
+      // Fire-and-forget: audit and notes (don't block UI)
+      setTimeout(() => {
+        audit({
+          action: 'attorney_confirmed',
+          actorRole: 'attorney',
+          actorId: user?.id || '',
+          caseId: intake.case_id,
+          meta: { intake_id: intakeId, case_number: caseNumber }
+        }).catch(e => console.error('Audit failed:', e));
+        
+        createAutoNote({
+          caseId: intake.case_id,
+          noteType: 'attestation',
+          title: 'Attorney Confirmation',
+          content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
+          createdBy: user?.id || '',
+          createdByRole: 'attorney',
+          visibility: 'all',
+        }).catch(e => console.error('Auto note failed:', e));
+      }, 100);
       
     } catch (error: any) {
       console.error('Attestation failed:', error);
@@ -351,10 +272,6 @@ export function AttorneyAttestationCard({
     }
   };
 
-  // ============================================================================
-  // HANDLE DECLINE
-  // ============================================================================
-  
   const handleDecline = async () => {
     if (!user) return;
     
@@ -364,7 +281,6 @@ export function AttorneyAttestationCard({
     try {
       const now = new Date().toISOString();
       
-      // Get intake
       const { data: intakes } = await supabaseGet(
         'rc_client_intakes', 
         `select=id,intake_json&id=eq.${intakeId}&limit=1`
@@ -394,37 +310,20 @@ export function AttorneyAttestationCard({
       
       if (error) throw new Error(error.message);
       
-      // Audit: Attorney declined
-      try {
-        await audit({
+      setViewState('declined');
+      if (onResolved) onResolved('DECLINED', now, updatedJson);
+      toast.info('Marked as not my client');
+      
+      // Fire-and-forget: audit
+      setTimeout(() => {
+        audit({
           action: 'attorney_declined',
           actorRole: 'attorney',
           actorId: user?.id || '',
           caseId: caseId,
           meta: { intake_id: intakeId }
-        });
-      } catch (e) {
-        console.error('Failed to audit attorney decline:', e);
-      }
-      
-      // Create auto-generated decline note
-      try {
-        await createAutoNote({
-          caseId: caseId,
-          noteType: 'attestation',
-          title: 'Attorney Declined',
-          content: generateAttestationNote(user?.id || '', '', 'declined'),
-          createdBy: user?.id || '',
-          createdByRole: 'attorney',
-          visibility: 'all',
-        });
-      } catch (e) {
-        console.error('Failed to create decline note:', e);
-      }
-      
-      setViewState('declined');
-      if (onResolved) onResolved('DECLINED', now, updatedJson);
-      toast.info('Marked as not my client');
+        }).catch(e => console.error('Audit failed:', e));
+      }, 100);
       
     } catch (error: any) {
       console.error('Decline failed:', error);
@@ -434,10 +333,6 @@ export function AttorneyAttestationCard({
     }
   };
 
-  // ============================================================================
-  // RENDER: LOADING
-  // ============================================================================
-  
   if (viewState === 'loading') {
     return (
       <Card>
@@ -448,10 +343,6 @@ export function AttorneyAttestationCard({
     );
   }
 
-  // ============================================================================
-  // RENDER: CONFIRMED
-  // ============================================================================
-  
   if (viewState === 'confirmed') {
     return (
       <Card className="border-green-500 border-2">
@@ -463,7 +354,6 @@ export function AttorneyAttestationCard({
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           
-          {/* Case Number and PIN - PROMINENT DISPLAY */}
           {confirmationData && (
             <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6">
               <h3 className="text-lg font-bold text-blue-900 mb-4">
@@ -492,7 +382,6 @@ export function AttorneyAttestationCard({
             </div>
           )}
           
-          {/* Confirmation Details */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Status</span>
@@ -508,7 +397,6 @@ export function AttorneyAttestationCard({
             )}
           </div>
           
-          {/* Back Button */}
           <Button 
             onClick={() => {
               sessionStorage.removeItem(`attestation_${intakeId}`);
@@ -524,10 +412,6 @@ export function AttorneyAttestationCard({
     );
   }
 
-  // ============================================================================
-  // RENDER: DECLINED
-  // ============================================================================
-  
   if (viewState === 'declined') {
     return (
       <Card className="border-amber-500">
@@ -548,10 +432,6 @@ export function AttorneyAttestationCard({
     );
   }
 
-  // ============================================================================
-  // RENDER: EXPIRED
-  // ============================================================================
-  
   if (viewState === 'expired') {
     return (
       <Card className="border-red-500">
@@ -573,10 +453,6 @@ export function AttorneyAttestationCard({
     );
   }
 
-  // ============================================================================
-  // RENDER: PENDING (default)
-  // ============================================================================
-  
   return (
     <>
       <Card className="border-amber-500">
@@ -588,7 +464,6 @@ export function AttorneyAttestationCard({
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* Countdown Timer */}
           <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
             <Clock className="w-5 h-5 text-primary" />
             <div className="flex-1">
@@ -601,7 +476,6 @@ export function AttorneyAttestationCard({
             </div>
           </div>
           
-          {/* Attestation Text */}
           <div className="space-y-3">
             <h4 className="font-semibold">{COMPLIANCE_COPY.attorneyAttestation.title}</h4>
             <div className="text-sm text-muted-foreground space-y-2">
@@ -611,7 +485,6 @@ export function AttorneyAttestationCard({
             </div>
           </div>
           
-          {/* Action Buttons */}
           <div className="space-y-3">
             <Button 
               onClick={handleConfirm}
@@ -636,7 +509,6 @@ export function AttorneyAttestationCard({
         </CardContent>
       </Card>
       
-      {/* Decline Confirmation Dialog */}
       <AlertDialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
