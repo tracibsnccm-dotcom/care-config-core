@@ -56,7 +56,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   const [checkInAppointment, setCheckInAppointment] = useState<Appointment | null>(null);
   
   // Add form state
-  const [title, setTitle] = useState("");
   const [providerName, setProviderName] = useState("");
   const [appointmentType, setAppointmentType] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
@@ -81,7 +80,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/client_appointments?case_id=eq.${caseId}&order=appointment_date.asc,appointment_time.asc`,
+        `${supabaseUrl}/rest/v1/rc_appointments?case_id=eq.${caseId}&order=appointment_date.asc,appointment_time.asc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -119,7 +118,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
         throw new Error("Session expired. Please log in again.");
       }
 
-      const appointmentTitle = title.trim() || `${appointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
+      const appointmentTitle = `${appointmentType || 'Appointment'} with ${providerName || 'Provider'}`;
       const appointmentData = {
         case_id: caseId,
         client_id: clientCaseId, // This will need to be the actual client_id from auth, but using case_id for now
@@ -133,7 +132,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       };
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/client_appointments`,
+        `${supabaseUrl}/rest/v1/rc_appointments`,
         {
           method: 'POST',
           headers: {
@@ -164,7 +163,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
   }
 
   function resetAddForm() {
-    setTitle("");
     setProviderName("");
     setAppointmentType("");
     setAppointmentDate("");
@@ -186,7 +184,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       if (canAttend) {
         // Can attend - mark as completed
         const response = await fetch(
-          `${supabaseUrl}/rest/v1/client_appointments?id=eq.${checkInAppointment.id}`,
+          `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
           {
             method: 'PATCH',
             headers: {
@@ -217,7 +215,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
 
         // Update appointment
         const updateResponse = await fetch(
-          `${supabaseUrl}/rest/v1/client_appointments?id=eq.${checkInAppointment.id}`,
+          `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
           {
             method: 'PATCH',
             headers: {
@@ -525,16 +523,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="123 Main St, City, State"
-                    className="bg-white border-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-700">Title (optional)</Label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Auto-generated if left blank"
                     className="bg-white border-slate-200"
                   />
                 </div>
