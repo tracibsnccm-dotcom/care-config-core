@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -387,15 +386,6 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                       rows={3}
                     />
                   </div>
-
-                  {barrierType && (
-                    <Alert className="bg-amber-50 border-amber-200">
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      <AlertDescription className="text-slate-700">
-                        This will trigger a flag for your care team to follow up.
-                      </AlertDescription>
-                    </Alert>
-                  )}
                 </>
               )}
 
