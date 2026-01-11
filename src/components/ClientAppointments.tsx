@@ -39,19 +39,19 @@ const APPOINTMENT_TYPES = [
 ];
 
 const SPECIALIST_TYPES = [
-  "Orthopedic",
-  "Neurologist",
-  "Pain Management",
   "Cardiologist",
+  "Dermatologist",
+  "Endocrinologist",
+  "ENT (Ear, Nose, Throat)",
   "Gastroenterologist",
+  "Neurologist",
+  "Oncologist",
+  "Orthopedic",
+  "Other Specialist",
+  "Pain Management",
   "Pulmonologist",
   "Rheumatologist",
-  "Dermatologist",
-  "ENT (Ear, Nose, Throat)",
-  "Urologist",
-  "Endocrinologist",
-  "Oncologist",
-  "Other Specialist"
+  "Urologist"
 ];
 
 const BARRIER_TYPES = [
@@ -336,10 +336,10 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
 
   if (loading) {
     return (
-      <Card className="bg-white border-slate-200 shadow-sm">
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardContent className="p-8 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-4" />
-          <p className="text-slate-600">Loading appointments...</p>
+          <p className="text-white/80">Loading appointments...</p>
         </CardContent>
       </Card>
     );
@@ -351,25 +351,25 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
     const isUpcoming = upcomingDate >= new Date(new Date().setHours(0, 0, 0, 0));
 
     return (
-      <Card className="bg-white border-slate-200 shadow-sm">
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
-          <CardTitle className="text-slate-800 flex items-center gap-2">
+          <CardTitle className="text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-amber-500" />
             Appointment Check-in
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <p className="font-medium text-slate-800">{checkInAppointment.title}</p>
+            <div className="bg-white/20 border border-white/30 rounded-lg p-4">
+              <p className="font-medium text-white">{checkInAppointment.title}</p>
               {checkInAppointment.provider_name && (
-                <p className="text-sm text-slate-600 mt-1">Provider: {checkInAppointment.provider_name}</p>
+                <p className="text-sm text-white/80 mt-1">Provider: {checkInAppointment.provider_name}</p>
               )}
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="text-sm text-white/80 mt-1">
                 {formatAppointmentDateTime(checkInAppointment)}
               </p>
               {checkInAppointment.location && (
-                <p className="text-sm text-slate-600 mt-1">Location: {checkInAppointment.location}</p>
+                <p className="text-sm text-white/80 mt-1">Location: {checkInAppointment.location}</p>
               )}
             </div>
 
@@ -486,9 +486,9 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       </div>
 
       {showAddForm && (
-        <Card className="bg-white border-slate-200 shadow-sm">
+        <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
           <CardHeader>
-            <CardTitle className="text-slate-800">Add New Appointment</CardTitle>
+            <CardTitle className="text-white">Add New Appointment</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddAppointment} className="space-y-4">
@@ -611,10 +611,10 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       )}
 
       {appointments.length === 0 ? (
-        <Card className="bg-white border-slate-200 shadow-sm">
+        <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
           <CardContent className="p-8 text-center">
-            <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-4">No appointments scheduled</p>
+            <Calendar className="w-12 h-12 text-white/60 mx-auto mb-4" />
+            <p className="text-white/80 mb-4">No appointments scheduled</p>
             <Button
               onClick={() => setShowAddForm(true)}
               className="bg-amber-600 hover:bg-amber-700 text-white"
@@ -632,28 +632,28 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
             const isPast = appointmentDate < new Date(new Date().setHours(0, 0, 0, 0));
 
             return (
-              <Card key={appointment.id} className="bg-white border-slate-200 shadow-sm">
+              <Card key={appointment.id} className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-slate-800">{appointment.title}</h3>
+                        <h3 className="font-semibold text-white">{appointment.title}</h3>
                         {getStatusBadge(appointment.status)}
                       </div>
                       {appointment.provider_name && (
-                        <p className="text-sm text-slate-600 mb-1">
+                        <p className="text-sm text-white/80 mb-1">
                           Provider: {appointment.provider_name}
                         </p>
                       )}
-                      <p className="text-sm text-slate-600 mb-1">
+                      <p className="text-sm text-white/80 mb-1">
                         <Calendar className="w-4 h-4 inline mr-1" />
                         {formatAppointmentDateTime(appointment)}
                       </p>
                       {appointment.location && (
-                        <p className="text-sm text-slate-600 mb-1">Location: {appointment.location}</p>
+                        <p className="text-sm text-white/80 mb-1">Location: {appointment.location}</p>
                       )}
                       {appointment.notes && (
-                        <p className="text-sm text-slate-500 mt-2 italic">{appointment.notes}</p>
+                        <p className="text-sm text-white/80 mt-2 italic">{appointment.notes}</p>
                       )}
                     </div>
                     {isUpcoming && (
