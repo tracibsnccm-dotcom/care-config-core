@@ -53,6 +53,24 @@ async function publicSupabaseGet(table: string, query: string) {
   return { data, error: null };
 }
 
+// Document link component
+function DocumentLink({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left p-4 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors group"
+    >
+      <div className="flex items-center gap-3">
+        <FileText className="w-8 h-8 text-amber-500 group-hover:text-amber-400" />
+        <div>
+          <p className="text-white font-medium">{title}</p>
+          <p className="text-slate-400 text-sm">{description}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function ClientPortalSimple() {
   const navigate = useNavigate();
   const [caseId, setCaseId] = useState<string | null>(null);
@@ -62,6 +80,7 @@ export default function ClientPortalSimple() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("home");
+  const [showConsentViewer, setShowConsentViewer] = useState(false);
 
   useEffect(() => {
     const storedCaseId = sessionStorage.getItem('client_case_id');
@@ -286,7 +305,7 @@ export default function ClientPortalSimple() {
                   </div>
                   <div className="bg-slate-700 p-4 rounded-lg text-center">
                     <p className="text-amber-500 font-bold text-lg">P4</p>
-                    <p className="text-sm">Purpose</p>
+                    <p className="text-sm">Professional</p>
                   </div>
                 </div>
                 <p className="text-slate-400 text-sm">Wellness check-in form coming soon. You'll be able to rate how you're feeling and track your progress over time.</p>
@@ -378,8 +397,40 @@ export default function ClientPortalSimple() {
                   My Documents
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {caseId && <ConsentDocumentViewer caseId={caseId} showPrintButton={true} />}
+              <CardContent className="text-slate-300">
+                <div className="space-y-3">
+                  <p className="text-slate-400 text-sm mb-4">Click on a document to view and print.</p>
+                  
+                  {/* Document List */}
+                  <div className="space-y-2">
+                    <DocumentLink 
+                      title="Signed Consent Documents" 
+                      description="Service Agreement, HIPAA Authorization, and other consent forms"
+                      onClick={() => setShowConsentViewer(true)}
+                    />
+                  </div>
+                </div>
+                
+                {/* Consent Viewer Modal */}
+                {showConsentViewer && caseId && (
+                  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+                    <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                      <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
+                        <h3 className="text-lg font-semibold text-white">Signed Consent Documents</h3>
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => setShowConsentViewer(false)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          ✕ Close
+                        </Button>
+                      </div>
+                      <div className="p-4">
+                        <ConsentDocumentViewer caseId={caseId} showPrintButton={true} />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
