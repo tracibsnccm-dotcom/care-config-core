@@ -55,14 +55,14 @@ const SPECIALIST_TYPES = [
 ];
 
 const BARRIER_TYPES = [
-  { value: "transportation", label: "Transportation issue", pFlag: "P3" },
-  { value: "financial", label: "Financial concern", pFlag: "P3" },
   { value: "childcare", label: "Childcare issue", pFlag: "P3" },
   { value: "fear_anxiety", label: "Fear or anxiety about appointment", pFlag: "P2" },
-  { value: "work_conflict", label: "Work conflict", pFlag: "P3" },
-  { value: "forgot", label: "Forgot about it", pFlag: "P3" },
   { value: "feeling_unwell", label: "Not feeling well enough", pFlag: "P2" },
-  { value: "other", label: "Other reason", pFlag: "P3" }
+  { value: "financial", label: "Financial concern", pFlag: "P3" },
+  { value: "forgot", label: "Forgot about it", pFlag: "P3" },
+  { value: "other", label: "Other reason", pFlag: "P3" },
+  { value: "transportation", label: "Transportation issue", pFlag: "P3" },
+  { value: "work_conflict", label: "Work conflict", pFlag: "P3" }
 ];
 
 export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
@@ -195,66 +195,40 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+      let newStatus: string;
+      let successMessage: string;
+      
       if (canAttend) {
         // Can attend - mark as completed
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-              status: 'completed'
-            })
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to update appointment status');
-        }
-
-        toast.success("Appointment marked as completed");
+        newStatus = 'completed';
+        successMessage = "Appointment marked as completed";
       } else {
         // Cannot attend - update status and trigger P flag
         const selectedBarrier = BARRIER_TYPES.find(b => b.value === barrierType);
         const pFlag = selectedBarrier?.pFlag || "P3";
-        
-        const cancellationReason = barrierNotes.trim() 
-          ? `${selectedBarrier?.label || barrierType}: ${barrierNotes.trim()}`
-          : selectedBarrier?.label || barrierType;
-
-        // Update appointment
-        const updateResponse = await fetch(
-          `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-              status: 'cancelled',
-              cancellation_reason: cancellationReason,
-              notes: barrierNotes.trim() || null
-            })
-          }
-        );
-
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update appointment');
-        }
-
-        // TODO: Trigger P flag for RN intervention
-        // This would typically create a flag in the case system
-        // For now, we'll just show a success message
-        toast.success(`Appointment cancelled. ${pFlag} flag triggered for RN follow-up.`);
+        newStatus = 'cancelled';
+        successMessage = `Appointment cancelled. ${pFlag} flag triggered for RN follow-up.`;
       }
+
+      // Update appointment status
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_appointments?id=eq.${checkInAppointment.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update appointment status');
+      }
+
+      toast.success(successMessage);
 
       setCheckInAppointment(null);
       resetCheckInForm();
@@ -396,7 +370,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                       <SelectContent>
                         {BARRIER_TYPES.map((barrier) => (
                           <SelectItem key={barrier.value} value={barrier.value}>
-                            {barrier.label} ({barrier.pFlag})
+                            {barrier.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -418,7 +392,7 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
                     <Alert className="bg-amber-50 border-amber-200">
                       <AlertTriangle className="w-4 h-4 text-amber-600" />
                       <AlertDescription className="text-slate-700">
-                        This will trigger a {BARRIER_TYPES.find(b => b.value === barrierType)?.pFlag} flag for your care team to follow up.
+                        This will trigger a flag for your care team to follow up.
                       </AlertDescription>
                     </Alert>
                   )}
