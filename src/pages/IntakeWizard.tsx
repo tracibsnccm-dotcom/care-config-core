@@ -900,26 +900,73 @@ export default function IntakeWizard() {
     const storedAttorneyId = sessionStorage.getItem('rcms_current_attorney_id');
     const intakeSubmitted = sessionStorage.getItem('rcms_intake_submitted');
     
-    // Clear data if: different attorney OR previous intake was submitted
     if ((urlAttorneyId && urlAttorneyId !== storedAttorneyId) || intakeSubmitted === 'true') {
-      // Clear storage first
+      // Clear all session storage
       sessionStorage.clear();
       
-      // Set new attorney ID before anything else
+      // Set new attorney ID
       if (urlAttorneyId) {
         sessionStorage.setItem('rcms_current_attorney_id', urlAttorneyId);
       }
       
-      // Delete draft and reload after it completes
-      deleteDraft().then(() => {
+      // Delete drafts directly from database and reload
+      (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('intake_drafts')
+              .delete()
+              .eq('owner_user_id', user.id);
+          }
+        } catch (e) {
+          console.error('Failed to delete drafts:', e);
+        }
+        sessionStorage.setItem('rcms_clear_form', 'true');
         window.location.reload();
-      }).catch(() => {
-        // Reload even if delete fails
-        window.location.reload();
-      });
+      })();
       return;
     }
-  }, [searchParams, deleteDraft]);
+  }, [searchParams]);
+
+  // Reset form state when flagged for clearing
+  useEffect(() => {
+    const needsClear = sessionStorage.getItem('rcms_clear_form');
+    if (needsClear === 'true') {
+      sessionStorage.removeItem('rcms_clear_form');
+      // Reset all form state to defaults
+      setClient({
+        fullName: "",
+        dobMasked: "",
+        rcmsId: "",
+        phone: "",
+        email: "",
+        preferredLanguage: "English",
+        preferredContact: "phone",
+      });
+      setIntake({
+        incidentType: "MVA",
+        incidentDate: "",
+        initialTreatment: "",
+        injuries: [],
+      });
+      setFourPs({ physical: 3, psychological: 3, psychosocial: 3, professional: 3 });
+      setSdoh({
+        housing: 3,
+        food: 3,
+        transportation: 3,
+        utilities: 3,
+        safety: 3,
+        financial: 3,
+        employment: 3,
+        education: 3,
+        socialSupport: 3,
+        communityContext: 3,
+      });
+      setConsent({ signed: false, restrictedAccess: false });
+      setStep(0);
+    }
+  }, []);
 
   // Generate intake ID when attorney code is available
   useEffect(() => {
