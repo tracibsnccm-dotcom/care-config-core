@@ -51,7 +51,11 @@ export default function ClientPortal() {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [selectedCaseId, setSelectedCaseId] = useState<string>("");
-  const caseId = selectedCaseId || (userCases?.[0]?.id as string | undefined);
+  
+  // Check for client login via sessionStorage (case number + PIN login)
+  const sessionCaseId = typeof window !== 'undefined' ? sessionStorage.getItem('client_case_id') : null;
+  
+  const caseId = selectedCaseId || sessionCaseId || (userCases?.[0]?.id as string | undefined);
   const [concernDialogOpen, setConcernDialogOpen] = useState(false);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [voiceConcernsOpen, setVoiceConcernsOpen] = useState(false);
@@ -85,9 +89,17 @@ export default function ClientPortal() {
         }
 
         if (!session) {
-          // No session - gate immediately, don't proceed with intake checks
-          setCheckingAuth(false);
-          return;
+          // Check if client logged in via case number + PIN
+          const clientCaseId = sessionStorage.getItem('client_case_id');
+          if (clientCaseId) {
+            // Client is logged in via case/PIN, proceed with loading
+            setCheckingAuth(false);
+            // Don't return - let the rest of the component load
+          } else {
+            // No session - gate immediately, don't proceed with intake checks
+            setCheckingAuth(false);
+            return;
+          }
         }
 
         // Session exists, proceed with normal flow
@@ -112,7 +124,10 @@ export default function ClientPortal() {
     );
   }
 
-  if (!user) {
+  // Allow through if logged in via sessionStorage (case/PIN login)
+  const isSessionStorageLogin = !!sessionCaseId;
+  
+  if (!user && !isSessionStorageLogin) {
     return (
       <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -153,7 +168,10 @@ export default function ClientPortal() {
     }
 
     async function checkIntakeCompletion() {
-      if (!caseId) {
+      // Use sessionStorage case ID as fallback
+      const targetCaseId = caseId || sessionStorage.getItem('client_case_id');
+      
+      if (!targetCaseId) {
         // If no case selected yet, wait for cases to load
         if (!casesLoading) {
           setCheckingIntake(false);
@@ -164,9 +182,9 @@ export default function ClientPortal() {
       }
 
       try {
-        console.log('ClientPortal: Loading intake for caseId', caseId);
+        console.log('ClientPortal: Loading intake for caseId', targetCaseId);
         const { data, error } = await supabaseGet('rc_client_intakes', 
-          `select=id,case_id,intake_json,created_at,attorney_attested_at,attorney_confirm_deadline_at,intake_submitted_at&case_id=eq.${caseId}&order=created_at.desc&limit=1`);
+          `select=id,case_id,intake_json,created_at,attorney_attested_at,attorney_confirm_deadline_at,intake_submitted_at&case_id=eq.${targetCaseId}&order=created_at.desc&limit=1`);
 
         console.log('ClientPortal: Intake data received', data);
         console.log('ClientPortal: attorney_attested_at =', Array.isArray(data) ? data[0]?.attorney_attested_at : data?.attorney_attested_at);
@@ -240,41 +258,46 @@ export default function ClientPortal() {
   }, [checkingIntake, intakeCompleted, navigate]);
 
   // Show intake gate message if intake not completed
-  if (checkingIntake) {
-    return (
-      <RoleGuard requiredRole="client" redirectTo="/">
+  // Wrap with RoleGuard only if not using sessionStorage login
+  const PortalContent = (
+    <>
+      {checkingIntake && (
         <div className="min-h-screen bg-rcms-white flex items-center justify-center">
           <div className="text-center">
             <p className="text-lg text-muted-foreground">Loading...</p>
           </div>
         </div>
-      </RoleGuard>
-    );
-  }
+      )}
 
-  if (intakeCompleted === false) {
-    return (
-      <RoleGuard requiredRole="client" redirectTo="/">
+      {!checkingIntake && intakeCompleted === false && (
         <div className="min-h-screen bg-rcms-white flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-6 space-y-4">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Please complete Client Intake to access the Client Portal.
-              </AlertDescription>
-            </Alert>
-            <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate("/client-intake")} className="w-full">
-                Go to Client Intake
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Redirecting automatically in a few seconds...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="max-w-md w-full">
+            <CardContent className="p-6 space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Please complete Client Intake to access the Client Portal.
+                </AlertDescription>
+              </Alert>
+              <div className="flex flex-col gap-2">
+                <Button onClick={() => navigate("/client-intake")} className="w-full">
+                  Go to Client Intake
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  Redirecting automatically in a few seconds...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
+  );
+
+  if (checkingIntake || intakeCompleted === false) {
+    return isSessionStorageLogin ? PortalContent : (
+      <RoleGuard requiredRole="client" redirectTo="/">
+        {PortalContent}
       </RoleGuard>
     );
   }
