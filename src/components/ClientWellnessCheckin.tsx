@@ -208,8 +208,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   return (
     <div className="space-y-4">
       {lastCheckin && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <AlertDescription className="text-slate-600">
+        <Alert className="bg-amber-500 border-amber-600">
+          <AlertDescription className="text-white">
             Last check-in: {lastCheckin.toLocaleDateString()} at {lastCheckin.toLocaleTimeString()}
           </AlertDescription>
         </Alert>
