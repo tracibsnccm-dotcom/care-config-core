@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Activity, CheckCircle, Loader2, ArrowLeft, ArrowRight, Plus, X, AlertTriangle } from "lucide-react";
+import { Activity, CheckCircle, Loader2, ArrowLeft, ArrowRight, Plus, X, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 
 interface WellnessCheckinProps {
@@ -103,6 +103,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   const [heartRate, setHeartRate] = useState("");
   const [oxygenSaturation, setOxygenSaturation] = useState("");
   const [temperature, setTemperature] = useState("");
+  const [diabetesStatus, setDiabetesStatus] = useState<"yes" | "no" | "not_sure" | "">("");
   const [bloodSugar, setBloodSugar] = useState("");
   const [bloodSugarNotApplicable, setBloodSugarNotApplicable] = useState(false);
   const [heightFeet, setHeightFeet] = useState("");
@@ -249,40 +250,63 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   };
 
   // Blood Sugar Status
-  const getBloodSugarStatus = (value: string) => {
+  const getBloodSugarStatus = (value: string, hasDiabetes: boolean) => {
     if (bloodSugarNotApplicable) return null;
     if (!value) return null;
     const num = parseFloat(value);
     if (isNaN(num)) return null;
     
+    // Critical Low
     if (num < 70) {
       return {
+        category: "CRITICAL LOW",
         color: "bg-red-100 text-red-800 border-red-300",
-        message: "LOW - Immediately take a sugar or glucose source. Contact your PCP or call 911 if you are alone."
+        isCritical: true,
+        message: "LOW BLOOD SUGAR - Immediately take a sugar or glucose source (juice, candy, glucose tablets). Contact your PCP or call 911 if you are alone or feel faint."
       };
     }
-    if (num <= 100) {
+    
+    // Critical High
+    if (num >= 400) {
       return {
+        category: "CRITICAL HIGH",
+        color: "bg-red-100 text-red-800 border-red-300",
+        isCritical: true,
+        message: "CRITICAL HIGH - If insulin is required, please take now. Contact your PCP for further instructions. If you feel unwell, confused, or are concerned, call 911 or seek emergency help immediately."
+      };
+    }
+    
+    // Normal
+    if (num >= 70 && num <= 99) {
+      return {
+        category: "Normal",
         color: "bg-green-100 text-green-800 border-green-300",
-        message: "Normal (Fasting)"
+        isCritical: false,
+        message: "Your fasting blood sugar is in the normal range."
       };
     }
-    if (num <= 125) {
+    
+    // Pre-diabetic
+    if (num >= 100 && num <= 125) {
       return {
+        category: "Pre-diabetic Range",
         color: "bg-amber-100 text-amber-800 border-amber-300",
-        message: "Pre-diabetic range"
+        isCritical: false,
+        message: "This is in the pre-diabetic range. Monitor regularly and discuss with your healthcare provider."
       };
     }
-    if (num <= 399) {
+    
+    // Diabetic range
+    if (num >= 126 && num <= 399) {
       return {
-        color: "bg-amber-100 text-amber-800 border-amber-300",
-        message: "Diabetic range - Follow your treatment plan"
+        category: "Diabetic Range",
+        color: "bg-orange-100 text-orange-800 border-orange-300",
+        isCritical: false,
+        message: "Follow your diabetes treatment plan. Contact your healthcare provider if readings are consistently in this range."
       };
     }
-    return {
-      color: "bg-red-100 text-red-800 border-red-300",
-      message: "CRITICAL HIGH - If insulin is required, please take now. Contact your PCP for further instructions. If you are concerned, call 911 or seek emergency help."
-    };
+    
+    return null;
   };
 
   // Blood Pressure Status
@@ -1170,17 +1194,26 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
 
                   {/* Blood Sugar */}
                   <div className="space-y-2">
-                    <Label className="text-white text-sm">Blood Sugar</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={bloodSugar}
-                        onChange={(e) => setBloodSugar(e.target.value)}
-                        placeholder="100"
-                        className="bg-white border-slate-200 text-slate-800"
-                        disabled={bloodSugarNotApplicable}
-                      />
-                      <span className="text-white text-sm">mg/dL</span>
+                    <div className="space-y-2">
+                      <Label className="text-white text-sm">Do you have diabetes or pre-diabetes?</Label>
+                      <RadioGroup
+                        value={diabetesStatus}
+                        onValueChange={(value) => setDiabetesStatus(value as "yes" | "no" | "not_sure" | "")}
+                        className="flex flex-row gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="yes" id="diabetes-yes" />
+                          <Label htmlFor="diabetes-yes" className="text-white text-sm cursor-pointer">Yes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="no" id="diabetes-no" />
+                          <Label htmlFor="diabetes-no" className="text-white text-sm cursor-pointer">No</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="not_sure" id="diabetes-not-sure" />
+                          <Label htmlFor="diabetes-not-sure" className="text-white text-sm cursor-pointer">Not Sure</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -1192,13 +1225,77 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                         }}
                       />
                       <Label htmlFor="blood-sugar-na" className="text-white text-sm cursor-pointer">
-                        Not Applicable
+                        Blood sugar monitoring not applicable to me
                       </Label>
                     </div>
-                    {!bloodSugarNotApplicable && getBloodSugarStatus(bloodSugar) && (
-                      <Alert className={`${getBloodSugarStatus(bloodSugar)!.color} border`}>
-                        <AlertDescription className="text-sm">{getBloodSugarStatus(bloodSugar)!.message}</AlertDescription>
-                      </Alert>
+                    {!bloodSugarNotApplicable && (
+                      <>
+                        <div>
+                          <Label className="text-white text-sm">Blood Sugar</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={bloodSugar}
+                              onChange={(e) => setBloodSugar(e.target.value)}
+                              placeholder="100"
+                              className="bg-white border-slate-200 text-slate-800"
+                            />
+                            <span className="text-white text-sm">mg/dL</span>
+                          </div>
+                        </div>
+                        {getBloodSugarStatus(bloodSugar, diabetesStatus === "yes") && (() => {
+                          const status = getBloodSugarStatus(bloodSugar, diabetesStatus === "yes")!;
+                          return (
+                            <Alert className={`${status.color} border`}>
+                              <AlertDescription className="text-sm">{status.message}</AlertDescription>
+                            </Alert>
+                          );
+                        })()}
+                        <details className="mt-3">
+                          <summary className="text-white/80 text-sm cursor-pointer hover:text-white flex items-center gap-2">
+                            <Info className="w-4 h-4" />
+                            Understanding Your Blood Sugar Numbers (American Diabetes Association)
+                          </summary>
+                          <div className="mt-2 bg-white rounded-lg p-3 text-sm">
+                            <table className="w-full text-left">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="py-1 text-slate-700">Category</th>
+                                  <th className="py-1 text-slate-700">Fasting (mg/dL)</th>
+                                  <th className="py-1 text-slate-700">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr className="bg-red-200">
+                                  <td className="py-1 font-medium text-red-900">Critical Low</td>
+                                  <td className="py-1 text-red-900">Below 70</td>
+                                  <td className="py-1 text-red-900">Take glucose, call PCP/911</td>
+                                </tr>
+                                <tr className="bg-green-100">
+                                  <td className="py-1 font-medium text-green-900">Normal</td>
+                                  <td className="py-1 text-green-900">70-99</td>
+                                  <td className="py-1 text-green-900">Maintain healthy lifestyle</td>
+                                </tr>
+                                <tr className="bg-amber-100">
+                                  <td className="py-1 font-medium text-amber-900">Pre-diabetic</td>
+                                  <td className="py-1 text-amber-900">100-125</td>
+                                  <td className="py-1 text-amber-900">Monitor, discuss with provider</td>
+                                </tr>
+                                <tr className="bg-orange-100">
+                                  <td className="py-1 font-medium text-orange-900">Diabetic</td>
+                                  <td className="py-1 text-orange-900">126-399</td>
+                                  <td className="py-1 text-orange-900">Follow treatment plan</td>
+                                </tr>
+                                <tr className="bg-red-200">
+                                  <td className="py-1 font-medium text-red-900">Critical High</td>
+                                  <td className="py-1 text-red-900">400+</td>
+                                  <td className="py-1 text-red-900">Take insulin if needed, call PCP/911</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      </>
                     )}
                   </div>
 
