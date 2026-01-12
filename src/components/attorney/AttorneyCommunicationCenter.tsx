@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Send, ChevronDown, ChevronUp, Calendar, User, FileText, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/supabaseAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -48,6 +49,7 @@ interface CaseMessages {
 
 export function AttorneyCommunicationCenter() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("client-messages");
   const [cases, setCases] = useState<Case[]>([]);
   const [caseMessages, setCaseMessages] = useState<CaseMessages[]>([]);
@@ -274,7 +276,25 @@ export function AttorneyCommunicationCenter() {
   }
 
   async function sendMessage(caseId: string) {
-    if (!newMessage.trim() || !user?.id) return;
+    console.log("Send Reply clicked");
+    console.log("Reply text:", newMessage);
+    console.log("Selected case:", caseId);
+    console.log("User ID:", user?.id);
+
+    if (!newMessage.trim() || !user?.id) {
+      console.log("Validation failed - message empty or no user");
+      return;
+    }
+
+    if (!caseId) {
+      console.error("No case ID provided");
+      toast({
+        title: "Error",
+        description: "No case selected. Please select a case to send a message.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSending(true);
     try {
@@ -291,7 +311,10 @@ export function AttorneyCommunicationCenter() {
         sender_name: attorneyName,
         message_text: newMessage.trim(),
         is_read: false,
+        created_at: new Date().toISOString(),
       };
+
+      console.log("Sending message data:", messageData);
 
       const response = await fetch(
         `${supabaseUrl}/rest/v1/rc_messages`,
@@ -307,16 +330,35 @@ export function AttorneyCommunicationCenter() {
         }
       );
 
+      console.log("Response status:", response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("Error response:", errorText);
         throw new Error(errorText || 'Failed to send message');
       }
 
+      const result = await response.json();
+      console.log("Message sent successfully:", result);
+
+      // Clear the textarea
       setNewMessage("");
+      
+      // Refresh the message thread
       await fetchClientMessages();
+      
+      // Show success toast
+      toast({
+        title: "Message sent",
+        description: "Your reply has been sent successfully.",
+      });
     } catch (err: any) {
       console.error("Error sending message:", err);
-      alert("Failed to send message: " + (err.message || "Unknown error"));
+      toast({
+        title: "Error",
+        description: "Failed to send message: " + (err.message || "Unknown error"),
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
