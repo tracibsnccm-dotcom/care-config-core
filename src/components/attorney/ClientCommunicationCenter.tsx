@@ -38,13 +38,24 @@ export default function ClientCommunicationCenter() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("=== useEffect triggered ===");
+    console.log("User:", user);
     if (user?.id) {
       fetchMessages();
+    } else {
+      console.log("No user, skipping fetch");
     }
   }, [user?.id]);
 
   async function fetchMessages() {
-    if (!user?.id) return;
+    console.log("=== FETCHING MESSAGES ===");
+    console.log("User from auth:", user);
+    console.log("User ID:", user?.id);
+    
+    if (!user?.id) {
+      console.log("No user ID, returning early");
+      return;
+    }
     
     try {
       setLoading(true);
@@ -64,13 +75,19 @@ export default function ClientCommunicationCenter() {
 
       if (!assignmentsResponse.ok) {
         console.error("Failed to fetch case assignments");
+        console.error("Response status:", assignmentsResponse.status);
+        console.error("Response statusText:", assignmentsResponse.statusText);
         return;
       }
 
       const assignments = await assignmentsResponse.json();
+      console.log("Case assignments response:", assignments);
+      
       const caseIds = assignments.map((a: any) => a.case_id);
+      console.log("Case IDs:", caseIds);
 
       if (caseIds.length === 0) {
+        console.log("No case IDs found, setting empty messages");
         setMessages([]);
         return;
       }
@@ -81,6 +98,8 @@ export default function ClientCommunicationCenter() {
         `&sender_type=in.(client,attorney)` +
         `&order=created_at.desc`;
 
+      console.log("Fetching messages from URL:", messagesUrl);
+
       const response = await fetch(messagesUrl, {
         headers: {
           'apikey': supabaseKey,
@@ -88,8 +107,12 @@ export default function ClientCommunicationCenter() {
         },
       });
 
+      console.log("Messages response status:", response.status);
+      console.log("Messages response ok:", response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("Messages response:", data);
         
         // Fetch case info to get client names
         const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
@@ -137,12 +160,19 @@ export default function ClientCommunicationCenter() {
           };
         });
 
+        console.log("Transformed messages:", transformedMessages);
         setMessages(transformedMessages);
+        console.log("Final messages state set to:", transformedMessages.length, "messages");
+      } else {
+        console.error("Messages response not OK, status:", response.status);
+        const errorText = await response.text();
+        console.error("Error response text:", errorText);
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
     } finally {
       setLoading(false);
+      console.log("Loading set to false");
     }
   }
 
