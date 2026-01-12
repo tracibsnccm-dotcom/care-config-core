@@ -72,9 +72,9 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // First, get case to get client_id
+      // a) First fetch the case to get client_id
       const caseResponse = await fetch(
-        `${supabaseUrl}/rest/v1/rc_cases?id=eq.${caseId}&select=*,rc_clients(*),rc_users!rc_cases_attorney_id_fkey(full_name)`,
+        `${supabaseUrl}/rest/v1/rc_cases?id=eq.${caseId}&select=id,case_number,client_id,date_of_injury`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -98,15 +98,15 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
       setCaseData({
         case_number: caseInfo.case_number || null,
         date_of_injury: caseInfo.date_of_injury || null,
-        assigned_rn_name: null, // Would need to join with case_assignments to get RN name
-        attorney_name: caseInfo.rc_users?.full_name || null,
+        assigned_rn_name: null, // Not assigned for now
+        attorney_name: null, // Not assigned for now
       });
 
-      // Get client data
+      // b) Then fetch the client using client_id
       const clientId = caseInfo.client_id;
       if (clientId) {
         const clientResponse = await fetch(
-          `${supabaseUrl}/rest/v1/rc_clients?id=eq.${clientId}`,
+          `${supabaseUrl}/rest/v1/rc_clients?id=eq.${clientId}&select=*`,
           {
             headers: {
               'apikey': supabaseKey,
@@ -115,14 +115,18 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
           }
         );
 
-        if (clientResponse.ok) {
-          const clientDataArray = await clientResponse.json();
-          const client = clientDataArray[0];
-          if (client) {
-            setClientData(client);
-            setFormData(client);
-          }
+        if (!clientResponse.ok) {
+          throw new Error('Failed to fetch client data');
         }
+
+        const clientDataArray = await clientResponse.json();
+        const client = clientDataArray[0];
+        if (client) {
+          setClientData(client);
+          setFormData(client);
+        }
+      } else {
+        throw new Error('Client ID not found in case');
       }
     } catch (err) {
       console.error("Error fetching profile data:", err);
