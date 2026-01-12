@@ -138,6 +138,9 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
   async function saveProfile() {
     if (!clientData) return;
 
+    console.log("Save clicked, formData:", formData);
+    console.log("Client ID:", clientData?.id);
+
     setSaving(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -173,9 +176,12 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
         }
       );
 
+      console.log("Save response status:", response.status);
+      const responseText = await response.text();
+      console.log("Save response:", responseText);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to save profile');
+        throw new Error(responseText || 'Failed to save profile');
       }
 
       // Update local state with saved values
@@ -187,8 +193,8 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
         description: "Your profile information has been saved successfully.",
       });
       
-      // Optionally re-fetch to confirm (in background, doesn't block UI)
-      fetchProfileData().catch((err) => console.error("Error refreshing profile:", err));
+      // Don't re-fetch immediately after save - it might cause issues
+      // fetchProfileData();
     } catch (err: any) {
       console.error("Error saving profile:", err);
       toast({
@@ -196,6 +202,7 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
         description: "Failed to save profile: " + (err.message || "Unknown error"),
         variant: "destructive",
       });
+      // Stay in edit mode on error
     } finally {
       setSaving(false);
     }
