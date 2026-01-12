@@ -63,13 +63,16 @@ export default function ClientCommunicationCenter() {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       // First, get case IDs assigned to this attorney
+      const assignmentsUrl = `${supabaseUrl}/rest/v1/rc_case_assignments?user_id=eq.${user.id}&status=eq.active&select=case_id`;
+      console.log("Assignments URL:", assignmentsUrl);
+      
       const assignmentsResponse = await fetch(
-        `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
+        assignmentsUrl,
         {
           headers: {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
-          },
+          }
         }
       );
 
@@ -77,41 +80,44 @@ export default function ClientCommunicationCenter() {
         console.error("Failed to fetch case assignments");
         console.error("Response status:", assignmentsResponse.status);
         console.error("Response statusText:", assignmentsResponse.statusText);
+        const errorText = await assignmentsResponse.text();
+        console.error("Error response text:", errorText);
+        setLoading(false);
         return;
       }
 
-      const assignments = await assignmentsResponse.json();
-      console.log("Case assignments response:", assignments);
+      const assignmentsData = await assignmentsResponse.json();
+      console.log("Case assignments response:", assignmentsData);
       
-      const caseIds = assignments.map((a: any) => a.case_id);
+      const caseIds = assignmentsData.map((a: any) => a.case_id);
       console.log("Case IDs:", caseIds);
 
       if (caseIds.length === 0) {
-        console.log("No case IDs found, setting empty messages");
+        console.log("No cases assigned to this attorney");
         setMessages([]);
+        setLoading(false);
         return;
       }
 
       // Fetch messages for cases assigned to this attorney
-      const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?` +
-        `case_id=in.(${caseIds.join(',')})` +
-        `&sender_type=in.(client,attorney)` +
-        `&order=created_at.desc`;
-
+      const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?case_id=in.(${caseIds.join(',')})&order=created_at.desc`;
       console.log("Fetching messages from URL:", messagesUrl);
 
-      const response = await fetch(messagesUrl, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-      });
+      const messagesResponse = await fetch(
+        messagesUrl,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          }
+        }
+      );
 
-      console.log("Messages response status:", response.status);
-      console.log("Messages response ok:", response.ok);
+      console.log("Messages response status:", messagesResponse.status);
+      console.log("Messages response ok:", messagesResponse.ok);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (messagesResponse.ok) {
+        const data = await messagesResponse.json();
         console.log("Messages response:", data);
         
         // Fetch case info to get client names
@@ -164,8 +170,8 @@ export default function ClientCommunicationCenter() {
         setMessages(transformedMessages);
         console.log("Final messages state set to:", transformedMessages.length, "messages");
       } else {
-        console.error("Messages response not OK, status:", response.status);
-        const errorText = await response.text();
+        console.error("Messages response not OK, status:", messagesResponse.status);
+        const errorText = await messagesResponse.text();
         console.error("Error response text:", errorText);
       }
     } catch (err) {
