@@ -53,6 +53,7 @@ const navigation = [
   
   // RN Navigation (Consolidated)
   { name: "RN Portal", href: "/rn-portal-landing", icon: Stethoscope, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
+  { name: "RN Dashboard", href: "/rn-dashboard", icon: LayoutDashboard, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "Clinical Management", href: "/clinical-management-portal", icon: Users, roles: [ROLES.RN_CM_DIRECTOR, ROLES.RN_CM_SUPERVISOR, ROLES.RN_CM_MANAGER, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Diary", href: "/rn-diary", icon: ClipboardEdit, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },
   { name: "RN Caseload", href: "/rn/caseload", icon: Users, roles: [ROLES.RN_CM, ROLES.RCMS_CLINICAL_MGMT, ROLES.SUPER_USER, ROLES.SUPER_ADMIN] },

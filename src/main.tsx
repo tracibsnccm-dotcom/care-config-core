@@ -38,6 +38,8 @@ import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
+import RNDashboard from "./pages/RNDashboard";
+import TenVsBuilder from "./components/rn/TenVsBuilder";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
 import CaseDetail from "@/pages/CaseDetail";
 import AttorneyCommunications from "./pages/AttorneyCommunications";
@@ -272,6 +274,22 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <AppProvider>
                 <CaseDetail />
+              </AppProvider>
+            </AuthProvider>
+          } />
+          
+          {/* RN Dashboard and 10-Vs Builder routes */}
+          <Route path="/rn-dashboard" element={
+            <AuthProvider>
+              <AppProvider>
+                <RNDashboard />
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/rn/case/:caseId/ten-vs" element={
+            <AuthProvider>
+              <AppProvider>
+                <TenVsBuilder />
               </AppProvider>
             </AuthProvider>
           } />
