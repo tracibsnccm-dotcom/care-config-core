@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Pill, Plus, ChevronDown, ChevronUp, Calendar, FileText, CheckCircle, Edit, X } from "lucide-react";
+import { Pill, Plus, ChevronDown, ChevronUp, FileText, CheckCircle, Edit, X } from "lucide-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -60,8 +60,6 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedMeds, setExpandedMeds] = useState<Set<string>>(new Set());
-  const [expandedReconciliations, setExpandedReconciliations] = useState<Set<string>>(new Set());
-  const [showReconciliationHistory, setShowReconciliationHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedRecon, setExpandedRecon] = useState<string | null>(null);
   const [showDiscontinued, setShowDiscontinued] = useState(false);
@@ -221,7 +219,6 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   }
 
   async function handleContinueNoChanges(med: Medication) {
-    // Just confirm - no action needed, but could log to audit trail
     alert(`Confirmed: ${med.medication_name} - No changes needed`);
   }
 
@@ -339,23 +336,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
     setExpandedMeds(newExpanded);
   };
 
-  const toggleReconciliation = (reconId: string) => {
-    const newExpanded = new Set(expandedReconciliations);
-    if (newExpanded.has(reconId)) {
-      newExpanded.delete(reconId);
-    } else {
-      newExpanded.add(reconId);
-    }
-    setExpandedReconciliations(newExpanded);
-  };
-
   // Filter medications
-  const activePreInjuryMeds = medications.filter(
-    (m) => m.injury_related === false && m.is_active
-  );
-  const activePostInjuryMeds = medications.filter(
-    (m) => m.injury_related === true && m.is_active
-  );
+  const activeMeds = medications.filter((m) => m.is_active);
   const discontinuedMeds = medications.filter((m) => !m.is_active);
 
   if (loading) {
@@ -368,7 +350,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* 1. Header */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <CardTitle className="text-white text-2xl">My Medications</CardTitle>
@@ -378,214 +360,170 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         </CardHeader>
       </Card>
 
-      {/* Medication Review History */}
-      <Card className="border-teal-300 shadow-sm mb-4" style={{ backgroundColor: '#81cdc6' }}>
-        <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-amber-500" />
-              Medication Review History
-            </div>
-            <button onClick={() => setShowHistory(!showHistory)} className="text-white/70 hover:text-white">
-              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          </CardTitle>
-        </CardHeader>
-        
-        {showHistory && (
-          <CardContent>
-            {reconciliations.length === 0 ? (
-              <p className="text-white/70">No medication reviews completed yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {reconciliations.map((recon) => (
-                  <div key={recon.id} className="bg-white/20 rounded-lg p-3 border border-white/30">
-                    <button
-                      onClick={() => setExpandedRecon(expandedRecon === recon.id ? null : recon.id)}
-                      className="w-full flex justify-between items-center text-left"
-                    >
-                      <span className="text-white font-medium">
-                        Medication Review - {new Date(recon.created_at).toLocaleDateString()}
-                      </span>
-                      <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${expandedRecon === recon.id ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {expandedRecon === recon.id && (
-                      <div className="mt-3 pt-3 border-t border-white/20 space-y-2 text-white/80 text-sm">
-                        <p><strong>Date:</strong> {new Date(recon.created_at).toLocaleString()}</p>
-                        <p><strong>Allergies:</strong> {recon.has_allergies ? recon.medication_allergies || 'Yes' : 'None reported'}</p>
-                        {recon.additional_comments && <p><strong>Notes:</strong> {recon.additional_comments}</p>}
-                        {recon.med_attested_at && <p><strong>Attested:</strong> {new Date(recon.med_attested_at).toLocaleString()}</p>}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
-
-      {/* Section 1: Medication Reconciliation History */}
+      {/* 2. Medication Review History */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="text-white">Medication Reconciliation History</CardTitle>
+            <CardTitle className="text-white">Medication Review History</CardTitle>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowReconciliationHistory(!showReconciliationHistory)}
+              onClick={() => setShowHistory(!showHistory)}
               className="text-white hover:text-white/80"
             >
-              {showReconciliationHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
           </div>
         </CardHeader>
-        {showReconciliationHistory && (
+        {showHistory && (
           <CardContent className="space-y-3">
             {reconciliations.length === 0 ? (
-              <p className="text-white/80 text-sm">No medication reconciliations recorded</p>
+              <p className="text-white/80 text-sm">No medication reviews completed yet.</p>
             ) : (
               reconciliations.map((recon) => (
-                <Card key={recon.id} className="bg-white border-slate-200">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <button
-                        onClick={() => toggleReconciliation(recon.id)}
-                        className="flex-1 text-left flex items-center gap-2 hover:text-teal-600"
-                      >
-                        <FileText className="w-4 h-4 text-teal-600" />
-                        <span className="font-medium text-slate-800">
-                          Medication Review - {format(new Date(recon.created_at), "MMM d, yyyy 'at' h:mm a")}
-                        </span>
-                      </button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => toggleReconciliation(recon.id)}
-                      >
-                        {expandedReconciliations.has(recon.id) ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {expandedReconciliations.has(recon.id) && (
-                      <div className="mt-3 pt-3 border-t space-y-3 text-sm">
-                        <div>
-                          <p className="font-medium text-slate-700 mb-1">Review Date:</p>
-                          <p className="text-slate-600">{format(new Date(recon.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                <div key={recon.id} className="bg-white/20 rounded-lg p-3 border border-white/30">
+                  <button
+                    onClick={() => setExpandedRecon(expandedRecon === recon.id ? null : recon.id)}
+                    className="w-full flex justify-between items-center text-left"
+                  >
+                    <span className="text-white font-medium">
+                      Medication Review - {format(new Date(recon.created_at), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${expandedRecon === recon.id ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {expandedRecon === recon.id && (
+                    <div className="mt-4 pt-4 border-t border-white/20 space-y-4 text-white/90 text-sm">
+                      {/* a) Allergies Section */}
+                      <div>
+                        <h5 className="font-semibold text-white mb-2">Allergies</h5>
+                        <div className="space-y-1 ml-2">
+                          <p><strong>Has allergies:</strong> {recon.has_allergies ? 'Yes' : 'No'}</p>
+                          {recon.medication_allergies && (
+                            <div>
+                              <p className="font-medium">Medication allergies:</p>
+                              {(() => {
+                                try {
+                                  const allergies = JSON.parse(recon.medication_allergies);
+                                  return Array.isArray(allergies) ? (
+                                    <ul className="list-disc list-inside ml-2">
+                                      {allergies.map((a: any, idx: number) => (
+                                        <li key={idx}>
+                                          {a.medication} - {a.reaction} ({a.severity})
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : <p className="ml-2">{recon.medication_allergies}</p>;
+                                } catch {
+                                  return <p className="ml-2">{recon.medication_allergies}</p>;
+                                }
+                              })()}
+                            </div>
+                          )}
+                          {recon.food_allergies && (
+                            <div>
+                              <p className="font-medium">Food allergies:</p>
+                              <p className="ml-2">{recon.food_allergies}</p>
+                            </div>
+                          )}
+                          {recon.allergy_reactions && (
+                            <div>
+                              <p className="font-medium">Reactions:</p>
+                              {(() => {
+                                try {
+                                  const reactions = JSON.parse(recon.allergy_reactions);
+                                  return Array.isArray(reactions) ? (
+                                    <ul className="list-disc list-inside ml-2">
+                                      {reactions.map((r: any, idx: number) => (
+                                        <li key={idx}>
+                                          {r.medication} - {r.reaction} ({r.severity})
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : <p className="ml-2">{recon.allergy_reactions}</p>;
+                                } catch {
+                                  return <p className="ml-2">{recon.allergy_reactions}</p>;
+                                }
+                              })()}
+                            </div>
+                          )}
                         </div>
-                        {recon.has_allergies && (
-                          <div>
-                            <p className="font-medium text-slate-700 mb-1">Allergies Recorded:</p>
-                            {recon.medication_allergies ? (
-                              <div className="text-slate-600">
-                                {(() => {
-                                  try {
-                                    const allergies = JSON.parse(recon.medication_allergies);
-                                    return Array.isArray(allergies) ? (
-                                      <ul className="list-disc list-inside ml-2">
-                                        {allergies.map((a: any, idx: number) => (
+                      </div>
+
+                      {/* b) Medications Reviewed Section */}
+                      {recon.med_review_data && (
+                        <div>
+                          <h5 className="font-semibold text-white mb-2">Medications Reviewed</h5>
+                          {(() => {
+                            try {
+                              const reviewData = JSON.parse(recon.med_review_data);
+                              return (
+                                <div className="space-y-3 ml-2">
+                                  {reviewData.preInjuryMeds && reviewData.preInjuryMeds.length > 0 && (
+                                    <div>
+                                      <p className="font-medium mb-1">Pre-Injury Medications:</p>
+                                      <ul className="list-disc list-inside ml-2 space-y-1">
+                                        {reviewData.preInjuryMeds.map((m: any, idx: number) => (
                                           <li key={idx}>
-                                            {a.medication} - {a.reaction} ({a.severity})
+                                            <strong>{m.brandName || m.genericName}</strong>
+                                            {m.dose && <span> - {m.dose}</span>}
+                                            {m.frequency && <span> {m.frequency}</span>}
+                                            {m.purpose && <span> (for {m.purpose})</span>}
                                           </li>
                                         ))}
                                       </ul>
-                                    ) : <p>{recon.medication_allergies}</p>;
-                                  } catch {
-                                    return <p>{recon.medication_allergies}</p>;
-                                  }
-                                })()}
-                              </div>
-                            ) : (
-                              <p className="text-slate-600">None listed</p>
-                            )}
-                          </div>
-                        )}
-                        {recon.med_review_data && (
-                          <div>
-                            <p className="font-medium text-slate-700 mb-1">Medications Reviewed:</p>
-                            {(() => {
-                              try {
-                                const reviewData = JSON.parse(recon.med_review_data);
-                                return (
-                                  <div className="text-slate-600 space-y-2">
-                                    {reviewData.preInjuryMeds && reviewData.preInjuryMeds.length > 0 && (
-                                      <div>
-                                        <p className="font-medium">Pre-Injury Medications:</p>
-                                        <ul className="list-disc list-inside ml-2">
-                                          {reviewData.preInjuryMeds.map((m: any, idx: number) => (
-                                            <li key={idx}>
-                                              {m.brandName || m.genericName} - {m.dose} {m.frequency}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    {reviewData.postInjuryMeds && reviewData.postInjuryMeds.length > 0 && (
-                                      <div>
-                                        <p className="font-medium">Post-Injury Medications:</p>
-                                        <ul className="list-disc list-inside ml-2">
-                                          {reviewData.postInjuryMeds.map((m: any, idx: number) => (
-                                            <li key={idx}>
-                                              {m.brandName || m.genericName} - {m.dose} {m.frequency}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              } catch {
-                                return <p className="text-slate-600">{recon.med_review_data}</p>;
-                              }
-                            })()}
-                          </div>
-                        )}
-                        {recon.allergy_attested_at && (
-                          <div>
-                            <p className="font-medium text-slate-700 mb-1">Allergy Attestation:</p>
-                            <p className="text-slate-600">{format(new Date(recon.allergy_attested_at), "MMM d, yyyy 'at' h:mm a")}</p>
-                          </div>
-                        )}
-                        {recon.med_attested_at && (
-                          <div>
-                            <p className="font-medium text-slate-700 mb-1">Medication Attestation:</p>
-                            <p className="text-slate-600">{format(new Date(recon.med_attested_at), "MMM d, yyyy 'at' h:mm a")}</p>
-                          </div>
-                        )}
-                        {recon.additional_comments && (
-                          <div>
-                            <p className="font-medium text-slate-700 mb-1">Additional Comments:</p>
-                            <p className="text-slate-600">{recon.additional_comments}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                                    </div>
+                                  )}
+                                  {reviewData.postInjuryMeds && reviewData.postInjuryMeds.length > 0 && (
+                                    <div>
+                                      <p className="font-medium mb-1">Post-Injury Medications:</p>
+                                      <ul className="list-disc list-inside ml-2 space-y-1">
+                                        {reviewData.postInjuryMeds.map((m: any, idx: number) => (
+                                          <li key={idx}>
+                                            <strong>{m.brandName || m.genericName}</strong>
+                                            {m.dose && <span> - {m.dose}</span>}
+                                            {m.frequency && <span> {m.frequency}</span>}
+                                            {m.purpose && <span> (for {m.purpose})</span>}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } catch {
+                              return <p className="ml-2">{recon.med_review_data}</p>;
+                            }
+                          })()}
+                        </div>
+                      )}
+
+                      {/* c) Attestation */}
+                      {recon.med_attested_at && (
+                        <div>
+                          <p className="font-semibold text-white">Attestation</p>
+                          <p className="ml-2">Attested on {format(new Date(recon.med_attested_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))
             )}
           </CardContent>
         )}
       </Card>
 
-      {/* Section 2: Active Pre-Injury Medications */}
+      {/* 3. Current Medications */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
-          <CardTitle className="text-white">Active Pre-Injury Medications</CardTitle>
-          <p className="text-white/80 text-sm mt-1">
-            Medications you were taking before your injury date
-          </p>
+          <CardTitle className="text-white">Current Medications</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {activePreInjuryMeds.length === 0 ? (
-            <p className="text-white/80 text-sm">No pre-injury medications recorded</p>
+          {activeMeds.length === 0 ? (
+            <p className="text-white/80 text-sm">No active medications recorded</p>
           ) : (
-            activePreInjuryMeds.map((med) => (
+            activeMeds.map((med) => (
               <Card key={med.id} className="bg-white border-slate-200">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
@@ -593,12 +531,21 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                       <div className="flex items-center gap-2 mb-1">
                         <Pill className="w-4 h-4 text-teal-600" />
                         <h4 className="font-semibold text-slate-800">{med.medication_name}</h4>
+                        <Badge className={med.injury_related ? "bg-amber-600 text-white text-xs" : "bg-blue-600 text-white text-xs"}>
+                          {med.injury_related ? "Post-Injury" : "Pre-Injury"}
+                        </Badge>
                       </div>
                       <p className="text-sm text-slate-600">
                         {med.dosage && <span>{med.dosage}</span>}
                         {med.dosage && med.frequency && <span> • </span>}
                         {med.frequency && <span>{med.frequency}</span>}
                       </p>
+                      {med.prescribing_doctor && (
+                        <p className="text-sm text-slate-600">Prescriber: {med.prescribing_doctor}</p>
+                      )}
+                      {med.start_date && (
+                        <p className="text-sm text-slate-600">Started: {format(new Date(med.start_date), "MMM d, yyyy")}</p>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -615,20 +562,6 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                   </div>
                   {expandedMeds.has(med.id) && (
                     <div className="mt-3 pt-3 border-t space-y-2 text-sm">
-                      {med.prescribing_doctor && (
-                        <div>
-                          <span className="font-medium text-slate-700">Prescribing Doctor: </span>
-                          <span className="text-slate-600">{med.prescribing_doctor}</span>
-                        </div>
-                      )}
-                      {med.start_date && (
-                        <div>
-                          <span className="font-medium text-slate-700">Start Date: </span>
-                          <span className="text-slate-600">
-                            {format(new Date(med.start_date), "MMM d, yyyy")}
-                          </span>
-                        </div>
-                      )}
                       {med.reason_for_taking && (
                         <div>
                           <span className="font-medium text-slate-700">Reason for Taking: </span>
@@ -639,6 +572,24 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                         <div>
                           <span className="font-medium text-slate-700">Side Effects: </span>
                           <span className="text-slate-600">{med.side_effects}</span>
+                        </div>
+                      )}
+                      {med.pharmacy && (
+                        <div>
+                          <span className="font-medium text-slate-700">Pharmacy: </span>
+                          <span className="text-slate-600">{med.pharmacy}</span>
+                        </div>
+                      )}
+                      {med.prn_frequency && (
+                        <div>
+                          <span className="font-medium text-slate-700">PRN Frequency: </span>
+                          <span className="text-slate-600">{med.prn_frequency}</span>
+                        </div>
+                      )}
+                      {med.prn_reason && (
+                        <div>
+                          <span className="font-medium text-slate-700">PRN Reason: </span>
+                          <span className="text-slate-600">{med.prn_reason}</span>
                         </div>
                       )}
                       <div className="flex gap-2 mt-3 pt-3 border-t">
@@ -677,112 +628,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         </CardContent>
       </Card>
 
-      {/* Section 3: Active Post-Injury Medications */}
-      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
-        <CardHeader>
-          <CardTitle className="text-white">Active Post-Injury Medications</CardTitle>
-          <p className="text-white/80 text-sm mt-1">
-            Medications started after your injury date
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {activePostInjuryMeds.length === 0 ? (
-            <p className="text-white/80 text-sm">No post-injury medications recorded</p>
-          ) : (
-            activePostInjuryMeds.map((med) => (
-              <Card key={med.id} className="bg-white border-slate-200">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Pill className="w-4 h-4 text-teal-600" />
-                        <h4 className="font-semibold text-slate-800">{med.medication_name}</h4>
-                        <Badge className="bg-amber-600 text-white text-xs">Post-Injury</Badge>
-                      </div>
-                      <p className="text-sm text-slate-600">
-                        {med.dosage && <span>{med.dosage}</span>}
-                        {med.dosage && med.frequency && <span> • </span>}
-                        {med.frequency && <span>{med.frequency}</span>}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => toggleExpand(med.id)}
-                    >
-                      {expandedMeds.has(med.id) ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {expandedMeds.has(med.id) && (
-                    <div className="mt-3 pt-3 border-t space-y-2 text-sm">
-                      {med.prescribing_doctor && (
-                        <div>
-                          <span className="font-medium text-slate-700">Prescribing Doctor: </span>
-                          <span className="text-slate-600">{med.prescribing_doctor}</span>
-                        </div>
-                      )}
-                      {med.start_date && (
-                        <div>
-                          <span className="font-medium text-slate-700">Start Date: </span>
-                          <span className="text-slate-600">
-                            {format(new Date(med.start_date), "MMM d, yyyy")}
-                          </span>
-                        </div>
-                      )}
-                      {med.reason_for_taking && (
-                        <div>
-                          <span className="font-medium text-slate-700">Reason for Taking: </span>
-                          <span className="text-slate-600">{med.reason_for_taking}</span>
-                        </div>
-                      )}
-                      {med.side_effects && (
-                        <div>
-                          <span className="font-medium text-slate-700">Side Effects: </span>
-                          <span className="text-slate-600">{med.side_effects}</span>
-                        </div>
-                      )}
-                      <div className="flex gap-2 mt-3 pt-3 border-t">
-                        <Button
-                          size="sm"
-                          onClick={() => handleContinueNoChanges(med)}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Continue - No Changes
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleContinueWithChanges(med)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs"
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Continue - With Changes
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDiscontinue(med)}
-                          variant="destructive"
-                          className="text-xs"
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Discontinue
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Section 4: Add New Medication Button */}
+      {/* 4. Add New Medication Button */}
       <div className="flex justify-end">
         <Button
           onClick={() => setShowAddForm(true)}
@@ -793,7 +639,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         </Button>
       </div>
 
-      {/* Section 5: Discontinued Medications */}
+      {/* 5. Discontinued Medications */}
       {discontinuedMeds.length > 0 && (
         <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
           <CardHeader>
