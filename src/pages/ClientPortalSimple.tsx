@@ -22,6 +22,7 @@ import { ClientJournal } from "@/components/ClientJournal";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
 import { ClientMessages } from "@/components/ClientMessages";
+import { ClientProfile } from "@/components/ClientProfile";
 import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { ClientWellnessCheckin } from "@/components/ClientWellnessCheckin";
 import { ClientAppointments } from "@/components/ClientAppointments";
@@ -371,27 +372,7 @@ export default function ClientPortalSimple() {
 
           {/* Profile Tab */}
           <TabsContent value="profile">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 flex items-center gap-2">
-                  <User className="w-5 h-5 text-amber-500" />
-                  My Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-600">
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-slate-500 text-sm">Name</p>
-                    <p>{clientName || 'Not available'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-sm">Case Number</p>
-                    <p className="font-mono text-amber-500">{caseNumber || 'N/A'}</p>
-                  </div>
-                </div>
-                <p className="text-slate-500 text-sm mt-6">Profile editing coming soon.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientProfile caseId={caseId} />}
           </TabsContent>
         </Tabs>
       </main>
