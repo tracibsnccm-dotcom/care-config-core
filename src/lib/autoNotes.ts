@@ -1,34 +1,80 @@
-import { supabaseInsert } from '@/lib/supabaseRest';
-
-interface NoteParams {
+/**
+ * Create an automatic case note that can be called from anywhere in the app.
+ * Auto notes are system-generated and don't have a created_by user.
+ */
+export async function createAutoNote({
+  caseId,
+  noteType,
+  title,
+  content,
+  triggerEvent,
+  visibleToClient = false,
+  visibleToRN = false,
+  visibleToAttorney = false
+}: {
   caseId: string;
-  noteType: 'system' | 'intake' | 'consent' | 'attestation' | 'clinical';
+  noteType: string;
   title: string;
   content: string;
-  createdBy: string;
-  createdByRole: string;
-  visibility: 'client' | 'attorney' | 'rn' | 'all';
-}
+  triggerEvent: string;
+  visibleToClient?: boolean;
+  visibleToRN?: boolean;
+  visibleToAttorney?: boolean;
+}) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  // Determine visibility string based on boolean flags
+  // Note: Attorney always has access to notes for their cases, so visibleToAttorney is mainly for filtering
+  let visibility = 'private';
+  if (visibleToClient && visibleToRN && visibleToAttorney) {
+    visibility = 'shared_all';
+  } else if (visibleToRN && visibleToAttorney) {
+    visibility = 'shared_rn'; // RN and Attorney (attorney always has access)
+  } else if (visibleToClient && visibleToRN) {
+    visibility = 'shared_rn'; // Client and RN (will show to attorney too)
+  } else if (visibleToRN) {
+    visibility = 'shared_rn';
+  } else if (visibleToClient) {
+    visibility = 'shared_client';
+  }
+  // If none are set, visibility remains 'private' (attorney still sees it)
+  
+  const noteData = {
+    case_id: caseId,
+    title: title,
+    content: content,
+    note_type: triggerEvent,
+    created_by: null,
+    created_by_role: null,
+    visibility: visibility,
+    is_auto_generated: true,
+    created_at: new Date().toISOString(),
+  };
 
-export async function createAutoNote(params: NoteParams) {
   try {
-    const { error } = await supabaseInsert('rc_case_notes', {
-      case_id: params.caseId,
-      note_type: params.noteType,
-      title: params.title,
-      content: params.content,
-      created_by: params.createdBy,
-      created_by_role: params.createdByRole,
-      visibility: params.visibility,
-      is_auto_generated: true,
-      created_at: new Date().toISOString(),
+    const response = await fetch(`${supabaseUrl}/rest/v1/rc_case_notes`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(noteData),
     });
-    
-    if (error) {
-      console.error('Failed to create auto note:', error);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to create auto note:', errorText);
+      throw new Error(`Failed to create auto note: ${response.status}`);
     }
-  } catch (e) {
-    console.error('Error creating auto note:', e);
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error creating auto note:', error);
+    throw error;
   }
 }
 
