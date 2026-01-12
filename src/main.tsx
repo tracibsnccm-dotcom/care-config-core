@@ -40,6 +40,7 @@ import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
 import CaseDetail from "@/pages/CaseDetail";
+import AttorneyCommunications from "./pages/AttorneyCommunications";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/supabaseAuth";
 import { AppProvider } from "./context/AppContext";
@@ -157,6 +158,16 @@ function Root() {
       return (
         <RequireAuth>
           <AttorneyLanding />
+        </RequireAuth>
+      );
+    }
+
+    // MVP Attorney Communications: "/attorney/communications" routes to AttorneyCommunications component
+    // Check more specific routes first (before /attorney-portal)
+    if (pathname === "/attorney/communications" || pathname.startsWith("/attorney/communications")) {
+      return (
+        <RequireAuth>
+          <AttorneyCommunications />
         </RequireAuth>
       );
     }

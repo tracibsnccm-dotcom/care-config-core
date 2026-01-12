@@ -6,6 +6,7 @@ import { CaseManagementWidget } from "./widgets/CaseManagementWidget";
 import { PendingAssignmentsWidget } from "./widgets/PendingAssignmentsWidget";
 import { RNValueWidget } from "./widgets/RNValueWidget";
 import { DocumentManagementWidget } from "./widgets/DocumentManagementWidget";
+import { CommunicationWidget } from "./widgets/CommunicationWidget";
 
 const AVAILABLE_WIDGETS: Widget[] = [
   {
@@ -20,6 +21,13 @@ const AVAILABLE_WIDGETS: Widget[] = [
     name: "Pending Assignments",
     category: "clinical",
     component: PendingAssignmentsWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "communications",
+    name: "Communications",
+    category: "clinical",
+    component: CommunicationWidget,
     defaultEnabled: true,
   },
   {
