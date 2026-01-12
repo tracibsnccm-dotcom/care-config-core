@@ -213,7 +213,42 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
         </CardContent>
       </Card>
 
-      {/* Section 1: 4Ps Wellness Trends */}
+      {/* Summary Statistics */}
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
+        <CardHeader>
+          <CardTitle className="text-white">Summary Statistics</CardTitle>
+        </CardHeader>
+        <CardContent className="bg-white rounded-lg p-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Average Physical</p>
+              <p className="text-2xl font-bold text-blue-600">{avgPhysical}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Average Psychological</p>
+              <p className="text-2xl font-bold text-purple-600">{avgPsychological}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Average Psychosocial</p>
+              <p className="text-2xl font-bold text-green-600">{avgPsychosocial}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Average Professional</p>
+              <p className="text-2xl font-bold text-orange-600">{avgProfessional}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Average Pain</p>
+              <p className="text-2xl font-bold text-red-600">{avgPain}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Check-ins Completed</p>
+              <p className="text-2xl font-bold text-slate-800">{checkins.length}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4Ps Wellness Trends */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <CardTitle className="text-white">4Ps Wellness Trends</CardTitle>
@@ -245,7 +280,7 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
         </CardContent>
       </Card>
 
-      {/* Section 2: Pain Level Trends */}
+      {/* Pain Level Trends */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <CardTitle className="text-white">Pain Level Trends</CardTitle>
@@ -273,7 +308,7 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
         </CardContent>
       </Card>
 
-      {/* Section 3: Vital Signs Summary */}
+      {/* Vital Signs Summary */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <CardTitle className="text-white">Vital Signs Summary</CardTitle>
@@ -376,7 +411,7 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
         </CardContent>
       </Card>
 
-      {/* Section 4: Medication Timeline */}
+      {/* Medication Timeline */}
       <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
         <CardHeader>
           <CardTitle className="text-white">Medication Timeline</CardTitle>
@@ -397,41 +432,6 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
           ) : (
             <p className="text-slate-500 text-center py-8">No medication changes recorded</p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Section 5: Summary Stats */}
-      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
-        <CardHeader>
-          <CardTitle className="text-white">Summary Statistics</CardTitle>
-        </CardHeader>
-        <CardContent className="bg-white rounded-lg p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Average Physical</p>
-              <p className="text-2xl font-bold text-blue-600">{avgPhysical}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Average Psychological</p>
-              <p className="text-2xl font-bold text-purple-600">{avgPsychological}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Average Psychosocial</p>
-              <p className="text-2xl font-bold text-green-600">{avgPsychosocial}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Average Professional</p>
-              <p className="text-2xl font-bold text-orange-600">{avgProfessional}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Average Pain</p>
-              <p className="text-2xl font-bold text-red-600">{avgPain}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Check-ins Completed</p>
-              <p className="text-2xl font-bold text-slate-800">{checkins.length}</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
