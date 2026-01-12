@@ -105,6 +105,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   const [temperature, setTemperature] = useState("");
   const [diabetesStatus, setDiabetesStatus] = useState<"yes" | "no" | "not_sure" | "">("");
   const [bloodSugar, setBloodSugar] = useState("");
+  const [a1c, setA1c] = useState("");
   const [bloodSugarNotApplicable, setBloodSugarNotApplicable] = useState(false);
   const [heightFeet, setHeightFeet] = useState("");
   const [heightInches, setHeightInches] = useState("");
@@ -303,6 +304,55 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         color: "bg-orange-100 text-orange-800 border-orange-300",
         isCritical: false,
         message: "Follow your diabetes treatment plan. Contact your healthcare provider if readings are consistently in this range."
+      };
+    }
+    
+    return null;
+  };
+
+  // A1C Status
+  const getA1CStatus = (value: string) => {
+    if (!value) return null;
+    const num = parseFloat(value);
+    if (isNaN(num)) return null;
+    
+    if (num < 5.7) {
+      return {
+        category: "Normal",
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Your A1C is in the normal range."
+      };
+    }
+    
+    if (num >= 5.7 && num <= 6.4) {
+      return {
+        category: "Pre-diabetic",
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "This indicates pre-diabetes. Discuss with your healthcare provider."
+      };
+    }
+    
+    if (num >= 6.5 && num <= 7.0) {
+      return {
+        category: "Diabetic - Well Controlled",
+        color: "bg-orange-100 text-orange-800 border-orange-300",
+        message: "Diabetic range. This is generally a good target for most diabetics."
+      };
+    }
+    
+    if (num > 7.0 && num <= 8.0) {
+      return {
+        category: "Diabetic - Moderate Control",
+        color: "bg-orange-100 text-orange-800 border-orange-300",
+        message: "Discuss with your healthcare provider about improving control."
+      };
+    }
+    
+    if (num > 8.0) {
+      return {
+        category: "Diabetic - Needs Improvement",
+        color: "bg-red-100 text-red-800 border-red-300",
+        message: "Your A1C is elevated. Please follow up with your healthcare provider."
       };
     }
     
