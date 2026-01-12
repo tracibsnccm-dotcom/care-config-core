@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
@@ -14,8 +14,6 @@ export default function RNPortalLogin() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
 
   // Purple/Lilac/Pink Color Palette
   const colors = {
@@ -31,16 +29,6 @@ export default function RNPortalLogin() {
   // Fade-in animation on mount
   useEffect(() => {
     setMounted(true);
-    isMountedRef.current = true;
-    
-    // Cleanup on unmount
-    return () => {
-      isMountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,33 +48,8 @@ export default function RNPortalLogin() {
       return;
     }
 
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    
-    // Set up timeout to prevent infinite spinning
-    timeoutRef.current = setTimeout(() => {
-      console.error('RNPortalLogin: Login timeout after 10 seconds');
-      if (isMountedRef.current) {
-        setError("Login timed out. Please try again.");
-        setLoading(false);
-        setSuccess(false);
-      }
-      timeoutRef.current = null;
-    }, 10000);
-
-    // Clear any existing timeout on component unmount
-    const cleanup = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-
     try {
-      // Sign in with email and password
+      // Step 1: Sign in with email and password
       console.log('RNPortalLogin: Calling signInWithPassword with email:', trimmedEmail);
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
@@ -103,7 +66,6 @@ export default function RNPortalLogin() {
 
       if (authError) {
         console.error('RNPortalLogin: signInWithPassword error:', authError);
-        cleanup();
         setError(authError.message || "Invalid email or password. Please try again.");
         setLoading(false);
         return;
@@ -111,13 +73,12 @@ export default function RNPortalLogin() {
 
       if (!authData || !authData.user) {
         console.error('RNPortalLogin: No user returned from signInWithPassword');
-        cleanup();
         setError("Login failed: No user returned. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Check the user's role in rc_users table
+      // Step 2: Check the user's role in rc_users table (case-insensitive)
       console.log('RNPortalLogin: Checking rc_users for role, auth_user_id:', authData.user.id);
       const { data: userData, error: roleError } = await supabase
         .from("rc_users")
@@ -133,7 +94,6 @@ export default function RNPortalLogin() {
 
       if (roleError) {
         console.error('RNPortalLogin: rc_users query error:', roleError);
-        cleanup();
         setError(`Failed to verify user role: ${roleError.message}`);
         setLoading(false);
         return;
@@ -143,13 +103,12 @@ export default function RNPortalLogin() {
         console.error('RNPortalLogin: No role found for user');
         // Sign out the user since they don't have a role
         await supabase.auth.signOut();
-        cleanup();
         setError("User account not found. Please contact your administrator.");
         setLoading(false);
         return;
       }
 
-      // Check if role is 'rn' or 'rn_cm' (case-insensitive)
+      // Step 3: Check if role is 'rn' or 'rn_cm' (case-insensitive)
       const userRole = userData.role.toLowerCase();
       const isRN = userRole === "rn_cm" || userRole === "rn";
       console.log('RNPortalLogin: Role check:', { userRole, isRN });
@@ -158,70 +117,26 @@ export default function RNPortalLogin() {
         console.error('RNPortalLogin: User is not an RN, role:', userRole);
         // Sign out the user since they're not an RN
         await supabase.auth.signOut();
-        cleanup();
         setError("This portal is for RN staff only. Please contact support if you need access.");
         setLoading(false);
         return;
       }
 
-      // Verify session is present
-      if (!authData.session) {
-        console.error('RNPortalLogin: No session in authData');
-        cleanup();
-        setError("Login failed: No session created. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      console.log('RNPortalLogin: Login successful, session created:', !!authData.session);
+      // Step 4: Success! Immediately redirect - don't wait for anything else
+      console.log('RNPortalLogin: ========== Login successful! RN role confirmed. Redirecting immediately ==========');
       console.log('RNPortalLogin: User ID:', authData.user.id);
-
-      // Give Supabase a moment to persist the session to storage
-      console.log('RNPortalLogin: Waiting 500ms for session persistence...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Verify session is stored and accessible
-      console.log('RNPortalLogin: Checking session storage...');
-      const { data: sessionCheck, error: sessionError } = await supabase.auth.getSession();
-      console.log('RNPortalLogin: Session check after delay:', {
-        hasSession: !!sessionCheck?.session,
-        userId: sessionCheck?.session?.user?.id,
-        error: sessionError
-      });
-
-      if (sessionError) {
-        console.error('RNPortalLogin: Session check error:', sessionError);
-        cleanup();
-        setError("Failed to verify session. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!sessionCheck?.session) {
-        console.error('RNPortalLogin: Session not found after login');
-        cleanup();
-        setError("Session not persisted. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Clear timeout since we're about to redirect
-      cleanup();
-
-      // Success! Show success animation briefly before redirect
-      console.log('RNPortalLogin: ========== Login successful, preparing redirect ==========');
-      setSuccess(true);
-      setLoading(false); // Clear loading since we're showing success state
+      console.log('RNPortalLogin: Role:', userData.role);
       
-      // Wait a bit more to ensure session is fully persisted, then redirect
-      setTimeout(() => {
-        console.log('RNPortalLogin: Redirecting to /rn-console');
-        navigate('/rn-console', { replace: true });
-      }, 800);
+      setSuccess(true);
+      setLoading(false);
+      
+      // Immediate redirect - background processes can handle themselves
+      console.log('RNPortalLogin: Redirecting to /rn-console');
+      navigate('/rn-console', { replace: true });
+      
     } catch (err: any) {
       console.error("RNPortalLogin: Unexpected error caught:", err);
       console.error("RNPortalLogin: Error stack:", err?.stack);
-      cleanup();
       setError(err?.message || "An unexpected error occurred. Please try again.");
       setLoading(false);
       setSuccess(false);
