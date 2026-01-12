@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, CheckCircle, Loader2, ArrowLeft, ArrowRight, Plus, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -61,6 +62,7 @@ interface MedicationEntry {
   genericName: string;
   dose: string;
   frequency: string;
+  prnDescription?: string;
   route: string;
   purpose: string;
   prescriber: string;
@@ -160,6 +162,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       genericName: '', 
       dose: '', 
       frequency: '', 
+      prnDescription: '',
       route: '', 
       purpose: '', 
       prescriber: '', 
@@ -185,6 +188,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       genericName: '', 
       dose: '', 
       frequency: '', 
+      prnDescription: '',
       route: '', 
       purpose: '', 
       prescriber: '', 
@@ -595,14 +599,40 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                           </div>
                           <div>
                             <Label className="text-white text-sm">Frequency</Label>
+                            <Select 
+                              value={med.frequency} 
+                              onValueChange={(v) => updatePreInjuryMed(med.id, 'frequency', v)}
+                            >
+                              <SelectTrigger className="bg-white border-slate-200 text-slate-800">
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Once daily">Once daily</SelectItem>
+                                <SelectItem value="Twice daily">Twice daily</SelectItem>
+                                <SelectItem value="Three times daily">Three times daily</SelectItem>
+                                <SelectItem value="Four times daily">Four times daily</SelectItem>
+                                <SelectItem value="Every 4 hours">Every 4 hours</SelectItem>
+                                <SelectItem value="Every 6 hours">Every 6 hours</SelectItem>
+                                <SelectItem value="Every 8 hours">Every 8 hours</SelectItem>
+                                <SelectItem value="Every 12 hours">Every 12 hours</SelectItem>
+                                <SelectItem value="Once weekly">Once weekly</SelectItem>
+                                <SelectItem value="As needed (PRN)">As needed (PRN)</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {med.frequency === "As needed (PRN)" && (
+                          <div>
+                            <Label className="text-white text-sm">When do you take this medication?</Label>
                             <Input
-                              value={med.frequency}
-                              onChange={(e) => updatePreInjuryMed(med.id, 'frequency', e.target.value)}
-                              placeholder="e.g., Twice daily"
+                              value={med.prnDescription || ''}
+                              onChange={(e) => updatePreInjuryMed(med.id, 'prnDescription', e.target.value)}
+                              placeholder="Describe when you take this (e.g., for breakthrough pain, before bed, when anxious)"
                               className="bg-white border-slate-200"
                             />
                           </div>
-                        </div>
+                        )}
                       </div>
                     ))}
                     <Button
@@ -658,14 +688,40 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                           </div>
                           <div>
                             <Label className="text-white text-sm">Frequency</Label>
+                            <Select 
+                              value={med.frequency} 
+                              onValueChange={(v) => updatePostInjuryMed(med.id, 'frequency', v)}
+                            >
+                              <SelectTrigger className="bg-white border-slate-200 text-slate-800">
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Once daily">Once daily</SelectItem>
+                                <SelectItem value="Twice daily">Twice daily</SelectItem>
+                                <SelectItem value="Three times daily">Three times daily</SelectItem>
+                                <SelectItem value="Four times daily">Four times daily</SelectItem>
+                                <SelectItem value="Every 4 hours">Every 4 hours</SelectItem>
+                                <SelectItem value="Every 6 hours">Every 6 hours</SelectItem>
+                                <SelectItem value="Every 8 hours">Every 8 hours</SelectItem>
+                                <SelectItem value="Every 12 hours">Every 12 hours</SelectItem>
+                                <SelectItem value="Once weekly">Once weekly</SelectItem>
+                                <SelectItem value="As needed (PRN)">As needed (PRN)</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {med.frequency === "As needed (PRN)" && (
+                          <div>
+                            <Label className="text-white text-sm">When do you take this medication?</Label>
                             <Input
-                              value={med.frequency}
-                              onChange={(e) => updatePostInjuryMed(med.id, 'frequency', e.target.value)}
-                              placeholder="e.g., Twice daily"
+                              value={med.prnDescription || ''}
+                              onChange={(e) => updatePostInjuryMed(med.id, 'prnDescription', e.target.value)}
+                              placeholder="Describe when you take this (e.g., for breakthrough pain, before bed, when anxious)"
                               className="bg-white border-slate-200"
                             />
                           </div>
-                        </div>
+                        )}
                       </div>
                     ))}
                     <Button
