@@ -33,6 +33,7 @@ import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyLogin from "./pages/AttorneyLogin";
 import RNLogin from "./pages/RNLogin";
+import RNPortalLogin from "./pages/RNPortalLogin";
 import ClientLogin from "./pages/ClientLogin";
 import ClientConsent from "./pages/ClientConsent";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
@@ -265,7 +266,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/check-status" element={<CheckIntakeStatus />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
-          <Route path="/rn-login" element={<RNLogin />} />
+          <Route path="/rn-login" element={<RNPortalLogin />} />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />
           
@@ -274,6 +275,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <AppProvider>
                 <CaseDetail />
+              </AppProvider>
+            </AuthProvider>
+          } />
+          
+          {/* RN Console - explicit protected route */}
+          <Route path="/rn-console" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <RNPortalLanding />
+                </RequireAuth>
               </AppProvider>
             </AuthProvider>
           } />
