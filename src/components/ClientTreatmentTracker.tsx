@@ -48,21 +48,21 @@ interface ClientTreatmentTrackerProps {
 }
 
 const TREATMENT_TYPES = [
-  "Physical Therapy",
-  "Chiropractic Care",
-  "Epidural Injection",
-  "Cortisone Injection",
-  "Trigger Point Injection",
-  "Surgery",
-  "Occupational Therapy",
-  "Massage Therapy",
   "Acupuncture",
-  "Mental Health/Counseling",
-  "Pain Management",
-  "MRI",
+  "Chiropractic Care",
+  "Cortisone Injection",
   "CT Scan",
-  "X-Ray",
+  "Epidural Injection",
+  "Massage Therapy",
+  "Mental Health/Counseling",
+  "MRI",
+  "Occupational Therapy",
   "Other",
+  "Pain Management",
+  "Physical Therapy",
+  "Surgery",
+  "Trigger Point Injection",
+  "X-Ray",
 ];
 
 const FREQUENCY_OPTIONS = [
@@ -276,14 +276,22 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
   }
 
   async function handleContinueNoChanges(treatment: Treatment) {
-    // Save review with "no changes" status
-    await saveTreatmentReview([{
-      treatment_id: treatment.id,
-      treatment_type: treatment.treatment_type,
-      status: "continued_no_changes",
-      reviewed_at: new Date().toISOString(),
-    }]);
-    alert(`Confirmed: ${treatment.treatment_type} - No changes needed`);
+    try {
+      // Save review with "no changes" status
+      await saveTreatmentReview([{
+        treatment_id: treatment.id,
+        treatment_type: treatment.treatment_type,
+        provider_name: treatment.provider_name,
+        facility_name: treatment.facility_name,
+        frequency: treatment.frequency,
+        injury_related: treatment.injury_related,
+        status: "continued_no_changes",
+        reviewed_at: new Date().toISOString(),
+      }]);
+      alert(`Confirmed: ${treatment.treatment_type} - No changes needed`);
+    } catch (err) {
+      alert("Failed to save review. Please try again.");
+    }
   }
 
   async function handleContinueWithChanges(treatment: Treatment) {
@@ -405,10 +413,16 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       await saveTreatmentReview([{
         treatment_id: discontinuingTreatment.id,
         treatment_type: discontinuingTreatment.treatment_type,
+        provider_name: discontinuingTreatment.provider_name,
+        facility_name: discontinuingTreatment.facility_name,
+        frequency: discontinuingTreatment.frequency,
+        injury_related: discontinuingTreatment.injury_related,
         status: "discontinued",
         reason: discontinueForm.reason,
+        who_advised: discontinueForm.who_advised,
+        progress_notes: discontinueForm.progress_notes,
         reviewed_at: new Date().toISOString(),
-      }]);
+      }], discontinueForm.progress_notes || null);
 
       setDiscontinuingTreatment(null);
       setDiscontinueForm({ reason: "", end_date: "", who_advised: "", progress_notes: "" });
