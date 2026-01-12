@@ -59,6 +59,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
     notes: "",
     injury_related: true, // Default to post-injury (true)
   });
+  const [prnFrequency, setPrnFrequency] = useState("");
+  const [prnReason, setPrnReason] = useState("");
 
   useEffect(() => {
     fetchMedications();
@@ -175,12 +177,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // Get client_id from sessionStorage or auth
-      const clientId = sessionStorage.getItem('client_id') || '';
-
       const medicationData = {
         case_id: caseId,
-        client_id: clientId,
         medication_name: newMed.medication_name.trim(),
         dosage: newMed.dosage || null,
         frequency: newMed.frequency || null,
@@ -190,6 +188,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         pharmacy: newMed.pharmacy || null,
         notes: newMed.notes || null,
         injury_related: newMed.injury_related,
+        prn_frequency: newMed.frequency === "As needed (PRN)" ? prnFrequency || null : null,
+        prn_reason: newMed.frequency === "As needed (PRN)" ? prnReason || null : null,
         is_active: true,
       };
 
@@ -224,6 +224,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         notes: "",
         injury_related: true,
       });
+      setPrnFrequency("");
+      setPrnReason("");
       setShowAddForm(false);
       await fetchMedications();
     } catch (err: any) {
@@ -579,6 +581,39 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                 </Select>
               </div>
             </div>
+            {newMed.frequency === "As needed (PRN)" && (
+              <div className="space-y-4">
+                <div>
+                  <Label>How often can you take this medication?</Label>
+                  <Select
+                    value={prnFrequency}
+                    onValueChange={setPrnFrequency}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select PRN frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Every 2 hours">Every 2 hours</SelectItem>
+                      <SelectItem value="Every 3 hours">Every 3 hours</SelectItem>
+                      <SelectItem value="Every 4 hours">Every 4 hours</SelectItem>
+                      <SelectItem value="Every 6 hours">Every 6 hours</SelectItem>
+                      <SelectItem value="Every 8 hours">Every 8 hours</SelectItem>
+                      <SelectItem value="Every 12 hours">Every 12 hours</SelectItem>
+                      <SelectItem value="Once daily maximum">Once daily maximum</SelectItem>
+                      <SelectItem value="As directed">As directed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>What do you take this medication for?</Label>
+                  <Input
+                    value={prnReason}
+                    onChange={(e) => setPrnReason(e.target.value)}
+                    placeholder="e.g., breakthrough pain, anxiety, sleep, nausea"
+                  />
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Prescribing Doctor</Label>
