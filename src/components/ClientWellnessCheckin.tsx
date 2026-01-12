@@ -63,6 +63,7 @@ interface MedicationEntry {
   dose: string;
   frequency: string;
   prnDescription?: string;
+  prnTimeFrequency?: string;
   route: string;
   purpose: string;
   prescriber: string;
@@ -166,6 +167,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       dose: '', 
       frequency: '', 
       prnDescription: '',
+      prnTimeFrequency: '',
       route: '', 
       purpose: '', 
       prescriber: '', 
@@ -192,6 +194,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       dose: '', 
       frequency: '', 
       prnDescription: '',
+      prnTimeFrequency: '',
       route: '', 
       purpose: '', 
       prescriber: '', 
