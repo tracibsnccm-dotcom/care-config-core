@@ -24,6 +24,7 @@ import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
 import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { ClientWellnessCheckin } from "@/components/ClientWellnessCheckin";
 import { ClientAppointments } from "@/components/ClientAppointments";
+import { ClientHealthAnalytics } from "@/components/ClientHealthAnalytics";
 
 interface CaseData {
   id: string;
