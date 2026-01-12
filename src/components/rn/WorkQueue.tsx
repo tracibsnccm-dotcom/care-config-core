@@ -34,7 +34,7 @@ interface WorkQueueCase {
 }
 
 export function WorkQueue() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [pendingCases, setPendingCases] = useState<WorkQueueCase[]>([]);
@@ -42,9 +42,17 @@ export function WorkQueue() {
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    // Wait for auth to finish loading before attempting to fetch data
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchWorkQueue();
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   async function fetchWorkQueue() {
     if (!user?.id) return;
@@ -322,10 +330,20 @@ export function WorkQueue() {
     );
   }
 
-  if (loading) {
+  // Show loading state while auth is loading or data is fetching
+  if (authLoading || loading) {
     return (
       <div className="space-y-4">
         <div className="text-center text-muted-foreground py-8">Loading work queue...</div>
+      </div>
+    );
+  }
+
+  // If no user after auth has loaded, show empty state
+  if (!user) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center text-muted-foreground py-8">Please sign in to view your work queue.</div>
       </div>
     );
   }
