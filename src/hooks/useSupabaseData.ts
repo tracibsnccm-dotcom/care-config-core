@@ -198,19 +198,46 @@ export function useAttorneyCases() {
       return;
     }
 
+    // Normalize roles to uppercase for case-insensitive comparison
+    // Note: Roles from auth context should already be uppercase via mapRcUserRoleToAppRole,
+    // but we normalize again here to be defensive and handle any edge cases
+    const upperRoles = roles && roles.length > 0 ? roles.map(r => r.toUpperCase()) : [];
+    
+    // Check if user is an RN (case-insensitive) - RN users should NOT fetch attorney cases
+    // This includes: 'rn', 'rn_cm', 'RN_CM', 'RN_CCM', 'RN_CM_SUPERVISOR', etc.
+    const isRN = upperRoles.some(r => {
+      return r === 'RN' || 
+             r === 'RN_CM' || 
+             r === 'RN_CCM' ||
+             r === 'RN_CM_SUPERVISOR' ||
+             r === 'RN_CM_MANAGER' ||
+             r === 'RN_CM_DIRECTOR' ||
+             (r.includes('RN') && !r.includes('ATTORNEY')); // RN roles but not attorney-related
+    });
+    
     // Check if user is specifically an attorney (not RN or other roles)
-    const isAttorney = roles && roles.length > 0 && roles.some(r => {
-      const roleUpper = r.toUpperCase();
-      return roleUpper === 'ATTORNEY' || roleUpper === 'STAFF'; // Only fetch for attorneys/staff
+    const isAttorney = upperRoles.some(r => {
+      return r === 'ATTORNEY' || r === 'STAFF'; // Only fetch for attorneys/staff
     });
 
     console.log('useAttorneyCases: Roles check:', {
       roles,
+      upperRoles,
       rolesLoading,
+      isRN,
       isAttorney,
       userId: user?.id
     });
 
+    // Skip fetching if user is an RN (even if they also have attorney role, RN takes precedence)
+    if (isRN) {
+      console.log('useAttorneyCases: User is an RN, skipping attorney case fetch. Roles:', roles);
+      setCases([]);
+      setLoading(false);
+      return;
+    }
+
+    // Only fetch if user is specifically an attorney
     if (!isAttorney) {
       console.log('useAttorneyCases: User is not an attorney, skipping fetch. Roles:', roles);
       setCases([]);
