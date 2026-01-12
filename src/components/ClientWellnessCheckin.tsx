@@ -104,6 +104,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
   const [oxygenSaturation, setOxygenSaturation] = useState("");
   const [temperature, setTemperature] = useState("");
   const [bloodSugar, setBloodSugar] = useState("");
+  const [bloodSugarNotApplicable, setBloodSugarNotApplicable] = useState(false);
   const [heightFeet, setHeightFeet] = useState("");
   const [heightInches, setHeightInches] = useState("");
   const [weight, setWeight] = useState("");
@@ -245,6 +246,191 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     if (bmi < 35.0) return { label: "Obese (Class 1)", color: "bg-orange-100 text-orange-800" };
     if (bmi < 40.0) return { label: "Obese (Class 2)", color: "bg-red-100 text-red-800" };
     return { label: "Morbidly Obese (Class 3)", color: "bg-red-200 text-red-900" };
+  };
+
+  // Blood Sugar Status
+  const getBloodSugarStatus = (value: string) => {
+    if (bloodSugarNotApplicable) return null;
+    if (!value) return null;
+    const num = parseFloat(value);
+    if (isNaN(num)) return null;
+    
+    if (num < 70) {
+      return {
+        color: "bg-red-100 text-red-800 border-red-300",
+        message: "LOW - Immediately take a sugar or glucose source. Contact your PCP or call 911 if you are alone."
+      };
+    }
+    if (num <= 100) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Normal (Fasting)"
+      };
+    }
+    if (num <= 125) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Pre-diabetic range"
+      };
+    }
+    if (num <= 399) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Diabetic range - Follow your treatment plan"
+      };
+    }
+    return {
+      color: "bg-red-100 text-red-800 border-red-300",
+      message: "CRITICAL HIGH - If insulin is required, please take now. Contact your PCP for further instructions. If you are concerned, call 911 or seek emergency help."
+    };
+  };
+
+  // Blood Pressure Status
+  const getBloodPressureStatus = (systolic: string, diastolic: string) => {
+    if (!systolic || !diastolic) return null;
+    const sys = parseInt(systolic);
+    const dia = parseInt(diastolic);
+    if (isNaN(sys) || isNaN(dia)) return null;
+    
+    // Critical high (170+ OR 100+)
+    if (sys >= 170 || dia >= 100) {
+      return {
+        color: "bg-red-100 text-red-800 border-red-300",
+        message: "CRITICAL HIGH - Contact your MD/PCP immediately or call 911 if you are alone.",
+        isCritical: true
+      };
+    }
+    
+    // High Stage 2 (140-169 OR 90-99)
+    if ((sys >= 140 && sys <= 169) || (dia >= 90 && dia <= 99)) {
+      return {
+        color: "bg-orange-100 text-orange-800 border-orange-300",
+        message: "High (Stage 2) - Contact your MD",
+        isCritical: false
+      };
+    }
+    
+    // High Stage 1 (130-139 OR 80-89)
+    if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "High (Stage 1) - Follow up with your MD",
+        isCritical: false
+      };
+    }
+    
+    // Elevated (121-129/<80)
+    if (sys >= 121 && sys <= 129 && dia < 80) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Elevated - Monitor",
+        isCritical: false
+      };
+    }
+    
+    // Normal (90-120/60-80)
+    if (sys >= 90 && sys <= 120 && dia >= 60 && dia <= 80) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Normal",
+        isCritical: false
+      };
+    }
+    
+    // Low (<90/<60)
+    if (sys < 90 && dia < 60) {
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-300",
+        message: "Low (Hypotension) - Contact your PCP if symptomatic",
+        isCritical: false
+      };
+    }
+    
+    return null;
+  };
+
+  // Heart Rate Status
+  const getHeartRateStatus = (value: string) => {
+    if (!value) return null;
+    const num = parseInt(value);
+    if (isNaN(num)) return null;
+    
+    if (num < 60) {
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-300",
+        message: "Low (Bradycardia) - Contact your PCP if symptomatic"
+      };
+    }
+    if (num <= 100) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Normal"
+      };
+    }
+    if (num <= 120) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Elevated - Monitor"
+      };
+    }
+    return {
+      color: "bg-red-100 text-red-800 border-red-300",
+      message: "High (Tachycardia) - Contact your MD"
+    };
+  };
+
+  // Temperature Status
+  const getTemperatureStatus = (value: string) => {
+    if (!value) return null;
+    const num = parseFloat(value);
+    if (isNaN(num)) return null;
+    
+    if (num < 97) {
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-300",
+        message: "Low - Contact your PCP if symptomatic"
+      };
+    }
+    if (num <= 99) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Normal"
+      };
+    }
+    if (num <= 100.4) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Elevated - Monitor closely"
+      };
+    }
+    return {
+      color: "bg-red-100 text-red-800 border-red-300",
+      message: "Fever - Contact your treating MD"
+    };
+  };
+
+  // Oxygen Saturation Status
+  const getOxygenSaturationStatus = (value: string) => {
+    if (!value) return null;
+    const num = parseInt(value);
+    if (isNaN(num)) return null;
+    
+    if (num >= 95 && num <= 100) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        message: "Normal"
+      };
+    }
+    if (num >= 90 && num <= 94) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-300",
+        message: "Low - Monitor closely, contact MD if persistent"
+      };
+    }
+    return {
+      color: "bg-red-100 text-red-800 border-red-300",
+      message: "Critical - Seek immediate medical attention"
+    };
   };
 
   async function handleSubmit() {
@@ -849,6 +1035,30 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                       />
                       <span className="text-white text-sm">mmHg</span>
                     </div>
+                    {getBloodPressureStatus(bloodPressureSystolic, bloodPressureDiastolic) && (() => {
+                      const status = getBloodPressureStatus(bloodPressureSystolic, bloodPressureDiastolic)!;
+                      return (
+                        <>
+                          <Alert className={`${status.color} border`}>
+                            <AlertDescription className="text-sm">{status.message}</AlertDescription>
+                          </Alert>
+                          {status.isCritical && (
+                            <Alert className="bg-red-50 border-red-300">
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                              <AlertDescription className="text-red-800 text-sm">
+                                <p className="font-semibold mb-2">Watch for signs of stroke (FAST):</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li><strong>F</strong> - Face drooping: Is one side of the face drooping or numb?</li>
+                                  <li><strong>A</strong> - Arm weakness: Is one arm weak or numb?</li>
+                                  <li><strong>S</strong> - Speech difficulty: Is speech slurred or hard to understand?</li>
+                                  <li><strong>T</strong> - Time to call 911: If any symptoms, call 911 immediately.</li>
+                                </ul>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Heart Rate */}
@@ -864,6 +1074,11 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                       />
                       <span className="text-white text-sm">bpm</span>
                     </div>
+                    {getHeartRateStatus(heartRate) && (
+                      <Alert className={`${getHeartRateStatus(heartRate)!.color} border`}>
+                        <AlertDescription className="text-sm">{getHeartRateStatus(heartRate)!.message}</AlertDescription>
+                      </Alert>
+                    )}
                   </div>
 
                   {/* Oxygen Saturation */}
@@ -880,6 +1095,11 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                       <span className="text-white text-sm">%</span>
                     </div>
                     <p className="text-white/70 text-xs">Normal is 95-100%</p>
+                    {getOxygenSaturationStatus(oxygenSaturation) && (
+                      <Alert className={`${getOxygenSaturationStatus(oxygenSaturation)!.color} border`}>
+                        <AlertDescription className="text-sm">{getOxygenSaturationStatus(oxygenSaturation)!.message}</AlertDescription>
+                      </Alert>
+                    )}
                   </div>
 
                   {/* Temperature */}
@@ -896,6 +1116,11 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                       />
                       <span className="text-white text-sm">°F</span>
                     </div>
+                    {getTemperatureStatus(temperature) && (
+                      <Alert className={`${getTemperatureStatus(temperature)!.color} border`}>
+                        <AlertDescription className="text-sm">{getTemperatureStatus(temperature)!.message}</AlertDescription>
+                      </Alert>
+                    )}
                   </div>
 
                   {/* Blood Sugar */}
@@ -908,9 +1133,28 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                         onChange={(e) => setBloodSugar(e.target.value)}
                         placeholder="100"
                         className="bg-white border-slate-200 text-slate-800"
+                        disabled={bloodSugarNotApplicable}
                       />
                       <span className="text-white text-sm">mg/dL</span>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="blood-sugar-na"
+                        checked={bloodSugarNotApplicable}
+                        onCheckedChange={(checked) => {
+                          setBloodSugarNotApplicable(checked === true);
+                          if (checked) setBloodSugar("");
+                        }}
+                      />
+                      <Label htmlFor="blood-sugar-na" className="text-white text-sm cursor-pointer">
+                        Not Applicable
+                      </Label>
+                    </div>
+                    {!bloodSugarNotApplicable && getBloodSugarStatus(bloodSugar) && (
+                      <Alert className={`${getBloodSugarStatus(bloodSugar)!.color} border`}>
+                        <AlertDescription className="text-sm">{getBloodSugarStatus(bloodSugar)!.message}</AlertDescription>
+                      </Alert>
+                    )}
                   </div>
 
                   {/* Height */}
@@ -969,16 +1213,16 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                 )}
               </div>
 
-              <div className="space-y-2">
+          <div className="space-y-2">
                 <Label className="text-white">Notes (optional)</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Anything else you'd like to share about how you're feeling today?"
-                  className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400"
-                  rows={3}
-                />
-              </div>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anything else you'd like to share about how you're feeling today?"
+              className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400"
+              rows={3}
+            />
+          </div>
             </div>
           )}
 
