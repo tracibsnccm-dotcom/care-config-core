@@ -410,7 +410,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                       <div className="flex items-center gap-2 mb-1">
                         <Pill className="w-4 h-4 text-teal-600" />
                         <h4 className="font-semibold text-slate-800">{med.medication_name}</h4>
-                        <Badge className="bg-amber-600 text-white text-xs">Injury Related</Badge>
+                        <Badge className="bg-amber-600 text-white text-xs">Post-Injury</Badge>
                       </div>
                       <p className="text-sm text-slate-600">
                         {med.dosage && <span>{med.dosage}</span>}
