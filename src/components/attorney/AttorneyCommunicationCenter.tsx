@@ -5,9 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Send, ChevronDown, ChevronUp, Calendar, User, FileText } from "lucide-react";
+import { MessageSquare, Send, ChevronDown, ChevronUp, Calendar, User, FileText, Search } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/auth/supabaseAuth";
 
 interface Message {
   id: string;
@@ -45,39 +47,51 @@ interface CaseMessages {
 }
 
 export function AttorneyCommunicationCenter() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("client-messages");
   const [cases, setCases] = useState<Case[]>([]);
   const [caseMessages, setCaseMessages] = useState<CaseMessages[]>([]);
+  const [messageList, setMessageList] = useState<CaseMessages[]>([]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rnNotes, setRNNotes] = useState<RNNote[]>([]);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState({
     start: "",
     end: "",
   });
 
   useEffect(() => {
-    fetchCases();
-    if (activeTab === "client-messages") {
-      fetchClientMessages();
-    } else if (activeTab === "rn-communications") {
-      fetchRNNotes();
-    } else if (activeTab === "all-activity") {
-      fetchAllActivity();
+    if (user?.id) {
+      fetchCases();
     }
-  }, [activeTab]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (cases.length > 0) {
+      if (activeTab === "client-messages") {
+        fetchClientMessages();
+      } else if (activeTab === "rn-communications") {
+        fetchRNNotes();
+      } else if (activeTab === "all-activity") {
+        fetchAllActivity();
+      }
+    }
+  }, [activeTab, cases]);
 
   async function fetchCases() {
+    if (!user?.id) return;
+    
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // Fetch cases assigned to attorney
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
+      // First, get case IDs assigned to this attorney
+      const assignmentsResponse = await fetch(
+        `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -85,6 +99,32 @@ export function AttorneyCommunicationCenter() {
           },
         }
       );
+
+      if (!assignmentsResponse.ok) {
+        console.error("Failed to fetch case assignments");
+        return;
+      }
+
+      const assignments = await assignmentsResponse.json();
+      const caseIds = assignments.map((a: any) => a.case_id);
+
+      if (caseIds.length === 0) {
+        setCases([]);
+        return;
+      }
+
+      // Fetch cases assigned to attorney with client info
+      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
+        `id=in.(${caseIds.join(',')})` +
+        `&select=id,case_number,client_id,rc_clients(first_name,last_name)` +
+        `&order=case_number.asc`;
+
+      const response = await fetch(casesUrl, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -104,20 +144,39 @@ export function AttorneyCommunicationCenter() {
   }
 
   async function fetchClientMessages() {
+    if (!user?.id || cases.length === 0) {
+      if (cases.length === 0 && user?.id) {
+        // Cases haven't loaded yet, wait for them
+        await fetchCases();
+        return;
+      }
+      return;
+    }
+
     try {
       setLoading(true);
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_messages?sender_type=in.(client,attorney)&order=created_at.desc`,
-        {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
-      );
+      const caseIds = cases.map(c => c.id);
+      if (caseIds.length === 0) {
+        setCaseMessages([]);
+        setMessageList([]);
+        return;
+      }
+
+      // Fetch messages only for cases assigned to this attorney
+      const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?` +
+        `case_id=in.(${caseIds.join(',')})` +
+        `&sender_type=in.(client,attorney)` +
+        `&order=created_at.desc`;
+
+      const response = await fetch(messagesUrl, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
 
       if (response.ok) {
         const messages: Message[] = await response.json();
@@ -157,6 +216,7 @@ export function AttorneyCommunicationCenter() {
         });
 
         setCaseMessages(sortedCases);
+        setMessageList(sortedCases);
       }
     } catch (err) {
       console.error("Error fetching client messages:", err);
@@ -214,19 +274,21 @@ export function AttorneyCommunicationCenter() {
   }
 
   async function sendMessage(caseId: string) {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user?.id) return;
 
     setSending(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const attorneyId = sessionStorage.getItem('user_id');
+
+      // Get attorney name if available
+      const attorneyName = user.user_metadata?.full_name || user.email || 'Attorney';
 
       const messageData = {
         case_id: caseId,
         sender_type: 'attorney',
-        sender_id: attorneyId,
-        sender_name: 'Attorney',
+        sender_id: user.id,
+        sender_name: attorneyName,
         message_text: newMessage.trim(),
         is_read: false,
       };
@@ -246,7 +308,8 @@ export function AttorneyCommunicationCenter() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to send message');
       }
 
       setNewMessage("");
@@ -286,22 +349,20 @@ export function AttorneyCommunicationCenter() {
     }
   }
 
-  const toggleCase = (caseId: string) => {
-    const newExpanded = new Set(expandedCases);
-    if (newExpanded.has(caseId)) {
-      newExpanded.delete(caseId);
-    } else {
-      newExpanded.add(caseId);
-      // Mark messages as read when opening
-      const caseMsg = caseMessages.find((cm) => cm.case.id === caseId);
+  // Mark messages as read when viewing detail
+  useEffect(() => {
+    if (selectedCaseId && caseMessages.length > 0) {
+      const caseMsg = caseMessages.find((cm) => cm.case.id === selectedCaseId);
       if (caseMsg) {
         caseMsg.messages
           .filter((m) => m.sender_type === 'client' && !m.is_read)
-          .forEach((m) => markAsRead(m.id));
+          .forEach((m) => {
+            markAsRead(m.id);
+          });
       }
     }
-    setExpandedCases(newExpanded);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCaseId, caseMessages.length]);
 
   const allActivityItems = [
     ...caseMessages.flatMap((cm) =>
@@ -373,79 +434,169 @@ export function AttorneyCommunicationCenter() {
 
         {/* Tab 1: Client Messages */}
         <TabsContent value="client-messages" className="space-y-4">
-          {caseMessages.length === 0 ? (
+          {/* Message List View */}
+          {!selectedCaseId && (
             <Card className="bg-white border-slate-200">
-              <CardContent className="p-8 text-center">
-                <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-500">No messages yet.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            caseMessages.map((caseMsg) => {
-              const isExpanded = expandedCases.has(caseMsg.case.id);
-              const messages = caseMsg.messages.sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              );
-
-              return (
-                <Card key={caseMsg.case.id} className="bg-white border-slate-200">
-                  <CardHeader>
-                    <button
-                      onClick={() => toggleCase(caseMsg.case.id)}
-                      className="w-full flex justify-between items-center text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <h3 className="font-semibold text-slate-800">
-                            {caseMsg.case.case_number || 'Case ' + caseMsg.case.id.slice(0, 8)}
-                          </h3>
-                          {caseMsg.case.client_name && (
-                            <p className="text-sm text-slate-600">{caseMsg.case.client_name}</p>
+              <CardHeader>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search messages by client name or case number..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px] pr-4">
+                  {messageList
+                    .filter((cm) => {
+                      if (!searchTerm) return true;
+                      const search = searchTerm.toLowerCase();
+                      return (
+                        cm.case.client_name?.toLowerCase().includes(search) ||
+                        cm.case.case_number?.toLowerCase().includes(search) ||
+                        cm.messages.some(m => m.message_text.toLowerCase().includes(search))
+                      );
+                    })
+                    .map((caseMsg) => {
+                      const latestMsg = caseMsg.messages[0];
+                      const preview = latestMsg?.message_text.slice(0, 50) || '';
+                      return (
+                        <div
+                          key={caseMsg.case.id}
+                          onClick={() => {
+                            setSelectedCaseId(caseMsg.case.id);
+                            setExpandedCases(new Set([caseMsg.case.id]));
+                          }}
+                          className={`p-4 rounded-lg cursor-pointer transition-colors border mb-2 ${
+                            selectedCaseId === caseMsg.case.id
+                              ? 'bg-blue-50 border-blue-300'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="font-semibold text-slate-800">
+                                {caseMsg.case.client_name || 'Client'}
+                              </p>
+                              <p className="text-sm text-slate-600">
+                                {caseMsg.case.case_number || 'Case ' + caseMsg.case.id.slice(0, 8)}
+                              </p>
+                            </div>
+                            {caseMsg.unreadCount > 0 && (
+                              <Badge variant="destructive">{caseMsg.unreadCount}</Badge>
+                            )}
+                          </div>
+                          {latestMsg && (
+                            <>
+                              <p className="text-sm text-slate-700 mb-1 line-clamp-2">
+                                {preview}{preview.length < latestMsg.message_text.length ? '...' : ''}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {format(new Date(latestMsg.created_at), "MMM d, yyyy 'at' h:mm a")}
+                              </p>
+                            </>
                           )}
                         </div>
-                        {caseMsg.unreadCount > 0 && (
-                          <Badge className="bg-blue-600 text-white">{caseMsg.unreadCount}</Badge>
-                        )}
-                      </div>
-                      {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-slate-500" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-slate-500" />
-                      )}
-                    </button>
-                  </CardHeader>
-                  {isExpanded && (
-                    <CardContent className="space-y-4">
+                      );
+                    })}
+                  {messageList.filter((cm) => {
+                    if (!searchTerm) return true;
+                    const search = searchTerm.toLowerCase();
+                    return (
+                      cm.case.client_name?.toLowerCase().includes(search) ||
+                      cm.case.case_number?.toLowerCase().includes(search) ||
+                      cm.messages.some(m => m.message_text.toLowerCase().includes(search))
+                    );
+                  }).length === 0 && (
+                    <div className="p-8 text-center">
+                      <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-500">No messages found.</p>
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Message Detail View */}
+          {selectedCaseId && (
+            <Card className="bg-white border-slate-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedCaseId(null)}
+                      className="mb-2"
+                    >
+                      ← Back to Messages
+                    </Button>
+                    {(() => {
+                      const caseMsg = caseMessages.find(cm => cm.case.id === selectedCaseId);
+                      return caseMsg ? (
+                        <div>
+                          <h3 className="font-semibold text-slate-800 text-lg">
+                            {caseMsg.case.client_name || 'Client'}
+                          </h3>
+                          <p className="text-sm text-slate-600">
+                            {caseMsg.case.case_number || 'Case ' + caseMsg.case.id.slice(0, 8)}
+                          </p>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const caseMsg = caseMessages.find(cm => cm.case.id === selectedCaseId);
+                  if (!caseMsg) return null;
+
+                  const messages = caseMsg.messages.sort(
+                    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  );
+
+                  return (
+                    <div className="space-y-4">
                       {/* Message Thread */}
-                      <div className="bg-slate-50 rounded-lg p-4 space-y-3 max-h-96 overflow-y-auto">
-                        {messages.map((message) => {
-                          const isClient = message.sender_type === 'client';
-                          return (
-                            <div
-                              key={message.id}
-                              className={`flex ${isClient ? 'justify-start' : 'justify-end'}`}
-                            >
+                      <ScrollArea className="h-[500px] bg-slate-50 rounded-lg p-4">
+                        <div className="space-y-3">
+                          {messages.map((message) => {
+                            const isClient = message.sender_type === 'client';
+                            return (
                               <div
-                                className={`max-w-[75%] rounded-lg p-3 ${
-                                  isClient
-                                    ? 'bg-amber-100 text-slate-800'
-                                    : 'bg-blue-600 text-white'
-                                }`}
+                                key={message.id}
+                                className={`flex ${isClient ? 'justify-start' : 'justify-end'}`}
                               >
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-semibold text-sm">
-                                    {message.sender_name || (isClient ? 'Client' : 'You')}
-                                  </span>
+                                <div
+                                  className={`max-w-[75%] rounded-lg p-3 ${
+                                    isClient
+                                      ? 'bg-amber-100 text-slate-800 border border-amber-200'
+                                      : 'bg-blue-600 text-white'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold text-sm">
+                                      {message.sender_name || (isClient ? 'Client' : 'You')}
+                                    </span>
+                                    {message.is_read && !isClient && (
+                                      <span className="text-xs text-white/70">✓ Read</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
+                                  <p className={`text-xs mt-1 ${isClient ? 'text-slate-500' : 'text-white/70'}`}>
+                                    {format(new Date(message.created_at), "MMM d, yyyy 'at' h:mm a")}
+                                  </p>
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
-                                <p className={`text-xs mt-1 ${isClient ? 'text-slate-500' : 'text-white/70'}`}>
-                                  {format(new Date(message.created_at), "MMM d, yyyy 'at' h:mm a")}
-                                </p>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
 
                       {/* Compose Message */}
                       <div className="space-y-2">
@@ -458,10 +609,7 @@ export function AttorneyCommunicationCenter() {
                         />
                         <div className="flex justify-end">
                           <Button
-                            onClick={() => {
-                              setSelectedCaseId(caseMsg.case.id);
-                              sendMessage(caseMsg.case.id);
-                            }}
+                            onClick={() => sendMessage(caseMsg.case.id)}
                             disabled={!newMessage.trim() || sending}
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
@@ -470,12 +618,13 @@ export function AttorneyCommunicationCenter() {
                           </Button>
                         </div>
                       </div>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
           )}
+
         </TabsContent>
 
         {/* Tab 2: RN Communications */}
