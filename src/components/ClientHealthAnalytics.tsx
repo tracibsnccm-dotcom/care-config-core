@@ -409,23 +409,23 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <p className="text-xs text-slate-500 mb-1">Average Physical</p>
-              <p className="text-2xl font-bold text-blue-600">{avgPhysical.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-blue-600">{avgPhysical}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">Average Psychological</p>
-              <p className="text-2xl font-bold text-purple-600">{avgPsychological.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-purple-600">{avgPsychological}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">Average Psychosocial</p>
-              <p className="text-2xl font-bold text-green-600">{avgPsychosocial.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-green-600">{avgPsychosocial}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">Average Professional</p>
-              <p className="text-2xl font-bold text-orange-600">{avgProfessional.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-orange-600">{avgProfessional}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">Average Pain</p>
-              <p className="text-2xl font-bold text-red-600">{avgPain.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-red-600">{avgPain}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">Check-ins Completed</p>
