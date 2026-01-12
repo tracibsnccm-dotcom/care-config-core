@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { rnThemes, defaultTheme, type ThemeId } from "@/config/rnThemes";
-import { Mail, Lock, Eye, EyeOff, CheckCircle2, Sparkles } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,8 +13,16 @@ export default function RNPortalLogin() {
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Use default theme (boldModern)
-  const theme = rnThemes[defaultTheme];
+  // Purple/Lilac/Pink Color Palette
+  const colors = {
+    deepPurple: '#6d28d9',
+    mediumPurple: '#8b5cf6',
+    lilac: '#a78bfa',
+    lightLavender: '#c4b5fd',
+    softPink: '#e879f9',
+    lightPink: '#f0abfc',
+    paleLavender: '#ede9fe',
+  };
 
   // Fade-in animation on mount
   useEffect(() => {
@@ -91,72 +98,101 @@ export default function RNPortalLogin() {
     }
   }
 
-  // Extract gradient colors for CSS (including the new pink accent)
-  const gradientColors = theme.background.match(/#[0-9a-fA-F]{6}/g) || [];
-  const primaryColor = gradientColors[0] || theme.primary;
-  const secondaryColor = gradientColors[1] || theme.secondary;
-  const accentColor = gradientColors[2] || theme.accent;
-  const pinkAccent = gradientColors[3] || '#f5d0fe'; // Soft Pink
-
-  // Convert hex to rgba for border colors (Soft Purple #8b5cf6 = rgb(139, 92, 246))
-  const primaryRgba = 'rgba(139, 92, 246, 0.2)'; // 20% opacity
+  // Beautiful flowing gradient background
+  const backgroundGradient = 'linear-gradient(160deg, #6d28d9 0%, #8b5cf6 30%, #c4b5fd 60%, #f0abfc 100%)';
+  
+  // Button gradient - more pink-forward
+  const buttonGradient = 'linear-gradient(90deg, #a78bfa, #e879f9, #f0abfc)';
+  const buttonGradientHover = 'linear-gradient(90deg, #8b5cf6, #d946ef, #e879f9)';
+  
+  // Card border gradient
+  const cardBorderGradient = 'linear-gradient(90deg, #6d28d9, #8b5cf6, #c4b5fd, #e879f9)';
 
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden"
       style={{
-        background: theme.background,
+        background: backgroundGradient,
         transition: 'background 0.3s ease',
       }}
     >
-      {/* Animated background shapes */}
+      {/* Animated background shapes - fluid purple/pink blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large deep purple blob */}
         <div 
-          className="absolute rounded-full opacity-15 blur-3xl animate-pulse"
+          className="absolute rounded-full opacity-12 blur-[120px]"
+          style={{
+            width: '500px',
+            height: '500px',
+            background: colors.deepPurple,
+            top: '-150px',
+            left: '-150px',
+            animation: 'float 8s ease-in-out infinite',
+          }}
+        />
+        {/* Medium purple blob */}
+        <div 
+          className="absolute rounded-full opacity-15 blur-[100px]"
+          style={{
+            width: '450px',
+            height: '450px',
+            background: colors.mediumPurple,
+            bottom: '-100px',
+            right: '-100px',
+            animation: 'float 10s ease-in-out infinite',
+            animationDelay: '1.5s',
+          }}
+        />
+        {/* Lilac blob */}
+        <div 
+          className="absolute rounded-full opacity-12 blur-[90px]"
           style={{
             width: '400px',
             height: '400px',
-            background: primaryColor,
-            top: '-100px',
-            left: '-100px',
-            animation: 'float 6s ease-in-out infinite',
-          }}
-        />
-        <div 
-          className="absolute rounded-full opacity-15 blur-3xl animate-pulse"
-          style={{
-            width: '300px',
-            height: '300px',
-            background: secondaryColor,
-            bottom: '-50px',
-            right: '-50px',
-            animation: 'float 8s ease-in-out infinite',
-            animationDelay: '1s',
-          }}
-        />
-        <div 
-          className="absolute rounded-full opacity-12 blur-3xl"
-          style={{
-            width: '250px',
-            height: '250px',
-            background: accentColor,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            animation: 'float 10s ease-in-out infinite',
+            background: colors.lilac,
+            top: '30%',
+            left: '10%',
+            animation: 'float 12s ease-in-out infinite',
             animationDelay: '2s',
           }}
         />
+        {/* Soft pink blob */}
         <div 
-          className="absolute rounded-full opacity-10 blur-3xl"
+          className="absolute rounded-full opacity-10 blur-[80px]"
           style={{
-            width: '200px',
-            height: '200px',
-            background: pinkAccent,
-            top: '20%',
-            right: '20%',
-            animation: 'float 12s ease-in-out infinite',
+            width: '350px',
+            height: '350px',
+            background: colors.softPink,
+            top: '60%',
+            right: '15%',
+            animation: 'float 9s ease-in-out infinite',
             animationDelay: '3s',
+          }}
+        />
+        {/* Light lavender blob */}
+        <div 
+          className="absolute rounded-full opacity-8 blur-[70px]"
+          style={{
+            width: '300px',
+            height: '300px',
+            background: colors.lightLavender,
+            bottom: '20%',
+            left: '20%',
+            animation: 'float 11s ease-in-out infinite',
+            animationDelay: '4s',
+          }}
+        />
+        {/* Light pink accent */}
+        <div 
+          className="absolute rounded-full opacity-8 blur-[60px]"
+          style={{
+            width: '250px',
+            height: '250px',
+            background: colors.lightPink,
+            top: '10%',
+            right: '30%',
+            animation: 'float 7s ease-in-out infinite',
+            animationDelay: '5s',
           }}
         />
       </div>
@@ -165,16 +201,16 @@ export default function RNPortalLogin() {
       <div 
         className={`text-center mb-8 z-10 transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}
       >
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
-          Reconcile <span style={{ color: theme.accent }}>C.A.R.E.</span>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
+          Reconcile <span style={{ color: colors.softPink }}>C.A.R.E.</span>
         </h1>
-        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-2">
+        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-2 drop-shadow-md">
           Welcome Back! 👋
         </h2>
-        <p className="text-lg text-white/90 mb-1">
+        <p className="text-lg text-white/95 mb-1 drop-shadow-sm">
           RN Case Management Portal
         </p>
-        <p className="text-sm text-white/70 italic">
+        <p className="text-sm text-white/80 italic">
           Empowering nurses. Transforming care.
         </p>
       </div>
@@ -184,28 +220,32 @@ export default function RNPortalLogin() {
         className={`w-full max-w-md z-10 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
         <div 
-          className="bg-white rounded-[20px] p-8 shadow-2xl relative overflow-hidden"
+          className="rounded-[20px] p-8 relative overflow-hidden backdrop-blur-sm"
+          style={{
+            backgroundColor: '#faf5ff',
+            boxShadow: '0 20px 60px rgba(109, 40, 217, 0.15), 0 0 0 1px rgba(139, 92, 246, 0.1)',
+          }}
         >
           {/* Gradient top border */}
           <div 
-            className="absolute top-0 left-0 right-0 h-1"
+            className="absolute top-0 left-0 right-0 h-1.5"
             style={{
-              background: theme.cardBorder,
+              background: cardBorderGradient,
             }}
           />
           {/* Sparkle effect on success */}
           {success && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-20 rounded-[20px]">
+            <div className="absolute inset-0 flex items-center justify-center bg-[#faf5ff]/95 z-20 rounded-[20px] backdrop-blur-sm">
               <div className="text-center">
-                <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: theme.primary }} />
-                <p className="text-lg font-semibold" style={{ color: theme.primary }}>
+                <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: colors.softPink }} />
+                <p className="text-lg font-semibold" style={{ color: colors.softPink }}>
                   Signing you in...
                 </p>
               </div>
             </div>
           )}
 
-          <h3 className="text-2xl font-bold mb-6 text-center" style={{ color: theme.primary }}>
+          <h3 className="text-2xl font-bold mb-6 text-center" style={{ color: colors.softPink }}>
             Sign In
           </h3>
 
@@ -216,13 +256,14 @@ export default function RNPortalLogin() {
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors" style={{ color: 'rgba(232, 121, 249, 0.6)' }} />
                 <Input
                   type="email"
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-20"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-30"
                   style={{
-                    borderColor: primaryRgba,
+                    borderColor: 'rgba(139, 92, 246, 0.2)',
+                    backgroundColor: 'white',
                   }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -238,13 +279,14 @@ export default function RNPortalLogin() {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors" style={{ color: 'rgba(232, 121, 249, 0.6)' }} />
                 <Input
                   type={showPassword ? "text" : "password"}
                   required
-                  className="w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-20"
+                  className="w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-30"
                   style={{
-                    borderColor: primaryRgba,
+                    borderColor: 'rgba(139, 92, 246, 0.2)',
+                    backgroundColor: 'white',
                   }}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -280,10 +322,22 @@ export default function RNPortalLogin() {
             <Button
               type="submit"
               disabled={loading || success}
-              className="w-full py-6 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+              className="w-full py-6 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden text-white border-0"
               style={{
-                backgroundColor: theme.primary,
-                color: 'white',
+                background: loading || success ? colors.softPink : buttonGradient,
+                boxShadow: '0 4px 15px rgba(232, 121, 249, 0.4)',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && !success) {
+                  e.currentTarget.style.background = buttonGradientHover;
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(232, 121, 249, 0.5)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading && !success) {
+                  e.currentTarget.style.background = buttonGradient;
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(232, 121, 249, 0.4)';
+                }
               }}
             >
               {loading ? (
@@ -299,23 +353,14 @@ export default function RNPortalLogin() {
               ) : (
                 'Sign In'
               )}
-              {/* Button glow effect */}
-              {!loading && !success && (
-                <span 
-                  className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 blur-xl"
-                  style={{
-                    background: theme.primary,
-                  }}
-                />
-              )}
             </Button>
 
             {/* Forgot Password Link */}
             <div className="text-center">
               <button
                 type="button"
-                className="text-sm hover:underline transition-colors"
-                style={{ color: theme.primary }}
+                className="text-sm hover:underline transition-colors font-medium"
+                style={{ color: colors.softPink }}
                 disabled={loading || success}
               >
                 Forgot Password?
@@ -350,20 +395,25 @@ export default function RNPortalLogin() {
       <style>{`
         @keyframes float {
           0%, 100% {
-            transform: translate(0, 0) scale(1);
+            transform: translate(0, 0) scale(1) rotate(0deg);
           }
-          50% {
-            transform: translate(20px, -20px) scale(1.1);
+          33% {
+            transform: translate(30px, -30px) scale(1.05) rotate(2deg);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.95) rotate(-2deg);
           }
         }
         
         .animate-float {
-          animation: float 6s ease-in-out infinite;
+          animation: float 8s ease-in-out infinite;
         }
 
-        /* Custom focus ring color for inputs */
+        /* Custom focus ring color for inputs - purple glow */
         input:focus-visible {
-          --tw-ring-color: rgba(139, 92, 246, 0.25);
+          --tw-ring-color: rgba(139, 92, 246, 0.3);
+          border-color: rgba(139, 92, 246, 0.5) !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 20px rgba(139, 92, 246, 0.15);
         }
       `}</style>
     </div>
