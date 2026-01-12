@@ -182,7 +182,7 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
     }
   }
 
-  async function saveTreatmentReview(treatmentStatuses: any[]) {
+  async function saveTreatmentReview(treatmentStatuses: any[], additionalComments?: string) {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -190,6 +190,7 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       const reviewData = {
         case_id: caseId,
         treatment_review_data: JSON.stringify(treatmentStatuses),
+        additional_comments: additionalComments || null,
         attested_at: new Date().toISOString(),
       };
 
@@ -210,9 +211,14 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to save treatment review:', errorText);
+        throw new Error('Failed to save treatment review');
       }
+
+      // Refresh reconciliation history after saving
+      await fetchReconciliations();
     } catch (err) {
       console.error("Error saving treatment review:", err);
+      throw err;
     }
   }
 
@@ -343,10 +349,14 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       await saveTreatmentReview([{
         treatment_id: editingTreatment.id,
         treatment_type: editingTreatment.treatment_type,
+        provider_name: editForm.provider_name || editingTreatment.provider_name,
+        facility_name: editForm.facility_name || editingTreatment.facility_name,
+        frequency: editForm.frequency || editingTreatment.frequency,
+        injury_related: editingTreatment.injury_related,
         status: "continued_with_changes",
         changes: editForm.reason_for_change,
         reviewed_at: new Date().toISOString(),
-      }]);
+      }], editForm.reason_for_change);
 
       setEditingTreatment(null);
       setEditForm({ frequency: "", provider_name: "", facility_name: "", notes: "", reason_for_change: "" });
