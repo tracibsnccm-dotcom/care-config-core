@@ -25,8 +25,10 @@ interface Medication {
   start_date: string | null;
   end_date: string | null;
   side_effects: string | null;
-  adherence_notes: string | null;
-  injury_timing: string | null; // 'pre-injury' | 'post-injury'
+  reason_for_taking: string | null;
+  pharmacy: string | null;
+  notes: string | null;
+  injury_related: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -51,7 +53,9 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
     prescribing_doctor: "",
     start_date: "",
     reason_for_taking: "",
-    injury_timing: "post-injury" as "pre-injury" | "post-injury",
+    pharmacy: "",
+    notes: "",
+    injury_related: true, // Default to post-injury (true)
   });
 
   useEffect(() => {
@@ -66,7 +70,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_client_medications?case_id=eq.${caseId}&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/rc_medications?case_id=eq.${caseId}&order=created_at.desc`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -136,13 +140,15 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         frequency: newMed.frequency || null,
         prescribing_doctor: newMed.prescribing_doctor || null,
         start_date: newMed.start_date || null,
-        injury_timing: newMed.injury_timing,
-        adherence_notes: newMed.reason_for_taking || null, // Store reason in adherence_notes
+        reason_for_taking: newMed.reason_for_taking || null,
+        pharmacy: newMed.pharmacy || null,
+        notes: newMed.notes || null,
+        injury_related: newMed.injury_related,
         is_active: true,
       };
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_client_medications`,
+        `${supabaseUrl}/rest/v1/rc_medications`,
         {
           method: 'POST',
           headers: {
@@ -168,7 +174,9 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         prescribing_doctor: "",
         start_date: "",
         reason_for_taking: "",
-        injury_timing: "post-injury",
+        pharmacy: "",
+        notes: "",
+        injury_related: true,
       });
       setShowAddForm(false);
       await fetchMedications();
@@ -190,10 +198,10 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
 
   // Filter medications
   const activePreInjuryMeds = medications.filter(
-    (m) => m.injury_timing === "pre-injury" && m.is_active
+    (m) => m.injury_related === false && m.is_active
   );
   const activePostInjuryMeds = medications.filter(
-    (m) => m.injury_timing === "post-injury" && m.is_active
+    (m) => m.injury_related === true && m.is_active
   );
   const discontinuedMeds = medications.filter((m) => !m.is_active);
 
@@ -368,10 +376,10 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                           </span>
                         </div>
                       )}
-                      {med.adherence_notes && (
+                      {med.reason_for_taking && (
                         <div>
                           <span className="font-medium text-slate-700">Reason for Taking: </span>
-                          <span className="text-slate-600">{med.adherence_notes}</span>
+                          <span className="text-slate-600">{med.reason_for_taking}</span>
                         </div>
                       )}
                       {med.side_effects && (
@@ -426,9 +434,9 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                         </>
                       )}
                     </p>
-                    {med.adherence_notes && (
+                    {med.reason_for_taking && (
                       <p className="text-xs text-slate-500 mt-1">
-                        Reason: {med.adherence_notes}
+                        Reason: {med.reason_for_taking}
                       </p>
                     )}
                   </CardContent>
@@ -526,11 +534,30 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                 rows={3}
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Pharmacy</Label>
+                <Input
+                  value={newMed.pharmacy}
+                  onChange={(e) => setNewMed({ ...newMed, pharmacy: e.target.value })}
+                  placeholder="e.g., CVS Pharmacy"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={newMed.notes}
+                onChange={(e) => setNewMed({ ...newMed, notes: e.target.value })}
+                placeholder="Additional notes about this medication"
+                rows={2}
+              />
+            </div>
             <div>
               <Label>Medication Type</Label>
               <RadioGroup
-                value={newMed.injury_timing}
-                onValueChange={(value) => setNewMed({ ...newMed, injury_timing: value as "pre-injury" | "post-injury" })}
+                value={newMed.injury_related ? "post-injury" : "pre-injury"}
+                onValueChange={(value) => setNewMed({ ...newMed, injury_related: value === "post-injury" })}
                 className="flex gap-4 mt-2"
               >
                 <div className="flex items-center space-x-2">
