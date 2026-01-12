@@ -522,18 +522,14 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
                 : "Not available"}
             </p>
           </div>
-          {caseData?.assigned_rn_name && (
-            <div>
-              <Label className="text-white">Assigned RN</Label>
-              <p className="text-white/90 mt-1">{caseData.assigned_rn_name}</p>
-            </div>
-          )}
-          {caseData?.attorney_name && (
-            <div>
-              <Label className="text-white">Attorney</Label>
-              <p className="text-white/90 mt-1">{caseData.attorney_name}</p>
-            </div>
-          )}
+          <div>
+            <Label className="text-white">Assigned RN</Label>
+            <p className="text-white/90 mt-1">{caseData?.assigned_rn_name || "Not assigned"}</p>
+          </div>
+          <div>
+            <Label className="text-white">Attorney</Label>
+            <p className="text-white/90 mt-1">{caseData?.attorney_name || "Not assigned"}</p>
+          </div>
         </CardContent>
       </Card>
     </div>
