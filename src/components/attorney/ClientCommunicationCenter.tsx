@@ -7,37 +7,200 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, MessageSquare, Send, Search, FileText, Clock, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useAuth } from "@/auth/supabaseAuth";
 
 interface Message {
   id: string;
+  case_id: string;
   clientName: string;
   caseId: string;
   subject: string;
   preview: string;
+  message_text: string;
   timestamp: Date;
+  created_at: string;
   status: 'unread' | 'read' | 'replied';
   channel: 'email' | 'sms' | 'portal';
+  sender_type: 'client' | 'attorney' | 'rn';
+  sender_name?: string;
+  is_read: boolean;
 }
 
 export default function ClientCommunicationCenter() {
+  const { user } = useAuth();
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [messageText, setMessageText] = useState("");
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const messages: Message[] = [
-    {
-      id: '1',
-      clientName: 'John Doe',
-      caseId: 'RC-12345678',
-      subject: 'Question about upcoming appointment',
-      preview: 'Hi, I wanted to confirm the time for my appointment next week...',
-      timestamp: new Date(),
-      status: 'unread',
-      channel: 'email'
+  useEffect(() => {
+    if (user?.id) {
+      fetchMessages();
     }
-  ];
+  }, [user?.id]);
+
+  async function fetchMessages() {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // First, get case IDs assigned to this attorney
+      const assignmentsResponse = await fetch(
+        `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (!assignmentsResponse.ok) {
+        console.error("Failed to fetch case assignments");
+        return;
+      }
+
+      const assignments = await assignmentsResponse.json();
+      const caseIds = assignments.map((a: any) => a.case_id);
+
+      if (caseIds.length === 0) {
+        setMessages([]);
+        return;
+      }
+
+      // Fetch messages for cases assigned to this attorney
+      const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?` +
+        `case_id=in.(${caseIds.join(',')})` +
+        `&sender_type=in.(client,attorney)` +
+        `&order=created_at.desc`;
+
+      const response = await fetch(messagesUrl, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Fetch case info to get client names
+        const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
+          `id=in.(${caseIds.join(',')})` +
+          `&select=id,case_number,rc_clients(first_name,last_name)`;
+        
+        const casesResponse = await fetch(casesUrl, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        });
+
+        let caseMap = new Map();
+        if (casesResponse.ok) {
+          const casesData = await casesResponse.json();
+          casesData.forEach((c: any) => {
+            caseMap.set(c.id, {
+              case_number: c.case_number,
+              client_name: c.rc_clients
+                ? `${c.rc_clients.first_name || ''} ${c.rc_clients.last_name || ''}`.trim()
+                : 'Client',
+            });
+          });
+        }
+
+        // Transform messages to match the Message interface
+        const transformedMessages: Message[] = data.map((msg: any) => {
+          const caseInfo = caseMap.get(msg.case_id);
+          return {
+            id: msg.id,
+            case_id: msg.case_id,
+            clientName: caseInfo?.client_name || 'Client',
+            caseId: caseInfo?.case_number || msg.case_id.slice(0, 8),
+            subject: msg.message_text.slice(0, 50) + (msg.message_text.length > 50 ? '...' : ''),
+            preview: msg.message_text,
+            message_text: msg.message_text,
+            timestamp: new Date(msg.created_at),
+            created_at: msg.created_at,
+            status: msg.sender_type === 'client' && !msg.is_read ? 'unread' : msg.is_read ? 'read' : 'replied',
+            channel: 'portal',
+            sender_type: msg.sender_type,
+            sender_name: msg.sender_name,
+            is_read: msg.is_read,
+          };
+        });
+
+        setMessages(transformedMessages);
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSendReply() {
+    if (!replyText.trim() || !selectedMessage || !user?.id) return;
+    
+    setSending(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // Get attorney name if available
+      const attorneyName = user.user_metadata?.full_name || user.email || 'Attorney';
+      
+      const messageData = {
+        case_id: selectedMessage.case_id,
+        sender_type: 'attorney',
+        sender_id: user.id,
+        sender_name: attorneyName,
+        message_text: replyText.trim(),
+        is_read: false,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log("Sending message:", messageData);
+      
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_messages`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(messageData)
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error('Failed to send message');
+      }
+      
+      console.log("Message sent successfully");
+      setReplyText("");
+      // Refresh messages
+      await fetchMessages();
+      
+    } catch (err) {
+      console.error("Error sending message:", err);
+      alert("Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const filteredMessages = messages.filter(msg =>
     msg.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,9 +223,6 @@ export default function ClientCommunicationCenter() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-red-500 text-white p-4 text-xl font-bold">
-        === EDITING THIS FILE ===
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
@@ -117,24 +277,34 @@ export default function ClientCommunicationCenter() {
           </div>
 
           <ScrollArea className="h-[600px] pr-4">
-            <div className="space-y-2">
-              {filteredMessages.map(msg => (
-                <div
-                  key={msg.id}
-                  onClick={() => setSelectedMessage(msg)}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                    selectedMessage?.id === msg.id ? 'bg-primary/10 border-primary' : 'bg-card border-border'
-                  } border hover:bg-accent/30`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="font-medium text-sm text-foreground truncate">{msg.clientName}</p>
-                    {getStatusBadge(msg.status)}
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Loading messages...</p>
+              </div>
+            ) : filteredMessages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">No messages found</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredMessages.map(msg => (
+                  <div
+                    key={msg.id}
+                    onClick={() => setSelectedMessage(msg)}
+                    className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                      selectedMessage?.id === msg.id ? 'bg-primary/10 border-primary' : 'bg-card border-border'
+                    } border hover:bg-accent/30`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-medium text-sm text-foreground truncate">{msg.clientName}</p>
+                      {getStatusBadge(msg.status)}
+                    </div>
+                    <p className="text-sm font-medium text-foreground mb-1 truncate">{msg.subject}</p>
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{msg.preview}</p>
                   </div>
-                  <p className="text-sm font-medium text-foreground mb-1 truncate">{msg.subject}</p>
-                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{msg.preview}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </Card>
 
@@ -149,7 +319,7 @@ export default function ClientCommunicationCenter() {
               </div>
 
               <div className="py-4">
-                <p className="text-foreground">{selectedMessage.preview}</p>
+                <p className="text-foreground whitespace-pre-wrap">{selectedMessage.message_text || selectedMessage.preview}</p>
               </div>
 
               <div className="space-y-4">
@@ -170,17 +340,25 @@ export default function ClientCommunicationCenter() {
                 </div>
                 
                 <Textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your reply..."
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
                   className="min-h-[200px]"
                 />
                 
                 <div className="flex justify-end">
-                  <Button>
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Reply
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log("=== SEND CLICKED ===");
+                      handleSendReply();
+                    }}
+                    disabled={!replyText.trim() || sending}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    {sending ? "Sending..." : "Send Reply"}
+                  </button>
                 </div>
               </div>
             </div>
