@@ -51,7 +51,7 @@ import { RNTodaysPriorities } from "@/components/RNTodaysPriorities";
 import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNNavigationGuard } from "@/components/RNNavigationGuard";
-import { RNWorkQueue } from "@/components/RNClinicalLiaison/RNWorkQueue";
+import { WorkQueue } from "@/components/rn/WorkQueue";
 
 export default function RNPortalLanding() {
   const navigate = useNavigate();
@@ -403,7 +403,7 @@ export default function RNPortalLanding() {
 
                   {/* Work Queue - Cases ready for RN review */}
                   <div className="mt-4">
-                    <RNWorkQueue />
+                    <WorkQueue />
                   </div>
 
                   {/* Communication & Compliance - Second Row */}
