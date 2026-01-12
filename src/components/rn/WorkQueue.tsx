@@ -59,22 +59,59 @@ export function WorkQueue() {
     
     setLoading(true);
     try {
-      // Fetch case assignments for this RN
+      console.log('WorkQueue: Fetching for user ID:', user.id);
+      
+      // First, try to get the rc_users ID from auth_user_id
+      const { data: rcUserData, error: rcUserError } = await supabase
+        .from('rc_users')
+        .select('id, role')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      console.log('WorkQueue: rc_users lookup result:', rcUserData, rcUserError);
+
+      // Fetch case assignments for this RN - try both user.id (auth) and rc_users.id
+      // Also try different role formats (uppercase, lowercase, with/without underscores)
       const { data: assignments, error: assignmentsError } = await supabase
         .from('rc_case_assignments')
-        .select('case_id')
-        .eq('user_id', user.id)
-        .in('role', ['RN_CCM', 'RN_CM', 'RCMS_CLINICAL_MGMT']);
+        .select('case_id, role, user_id')
+        .or(`user_id.eq.${user.id},user_id.eq.${rcUserData?.id || '00000000-0000-0000-0000-000000000000'}`)
+        .in('role', ['RN_CCM', 'RN_CM', 'RCMS_CLINICAL_MGMT', 'rn_cm', 'rn', 'RN', 'RN_CCM', 'RN_CM']);
 
-      if (assignmentsError) throw assignmentsError;
+      console.log('WorkQueue: Assignments query result:', assignments, assignmentsError);
+
+      if (assignmentsError) {
+        console.error('WorkQueue: Assignments error:', assignmentsError);
+        throw assignmentsError;
+      }
 
       const caseIds = assignments?.map(a => a.case_id) || [];
+      console.log('WorkQueue: Found case IDs:', caseIds);
 
+      // If no assignments found, try checking rc_cases directly for assigned_rn_id
       if (caseIds.length === 0) {
-        setPendingCases([]);
-        setActiveCases([]);
-        setLoading(false);
-        return;
+        console.log('WorkQueue: No case assignments found, checking rc_cases for assigned_rn_id');
+        
+        // Try to find cases where assigned_rn_id matches the user
+        const { data: directCases, error: directCasesError } = await supabase
+          .from('rc_cases')
+          .select('id')
+          .eq('assigned_rn_id', user.id);
+        
+        console.log('WorkQueue: Direct cases query (assigned_rn_id):', directCases, directCasesError);
+        
+        if (directCases && directCases.length > 0) {
+          const directCaseIds = directCases.map(c => c.id);
+          console.log('WorkQueue: Found cases via assigned_rn_id:', directCaseIds);
+          // Continue with these case IDs
+          caseIds.push(...directCaseIds);
+        } else {
+          console.log('WorkQueue: No cases found via assigned_rn_id either');
+          setPendingCases([]);
+          setActiveCases([]);
+          setLoading(false);
+          return;
+        }
       }
 
       // Fetch cases with case_type
@@ -83,7 +120,12 @@ export function WorkQueue() {
         .select('id, case_number, date_of_injury, case_type, client_id')
         .in('id', caseIds);
 
-      if (casesError) throw casesError;
+      console.log('WorkQueue: Cases data:', casesData, casesError);
+
+      if (casesError) {
+        console.error('WorkQueue: Cases error:', casesError);
+        throw casesError;
+      }
 
       // Fetch client names
       const { data: clientsData } = await supabase
@@ -169,6 +211,10 @@ export function WorkQueue() {
       // Split into pending and active
       const pending = casesWithData.filter(c => c.is_pending);
       const active = casesWithData.filter(c => !c.is_pending && casesWithCarePlans.has(c.id));
+
+      console.log('WorkQueue: Final results - Pending:', pending.length, 'Active:', active.length);
+      console.log('WorkQueue: Pending cases:', pending);
+      console.log('WorkQueue: Active cases:', active);
 
       setPendingCases(pending);
       setActiveCases(active);

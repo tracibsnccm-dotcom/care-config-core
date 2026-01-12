@@ -91,11 +91,15 @@ export default function RNPortalLogin() {
     }
   }
 
-  // Extract gradient colors for CSS
+  // Extract gradient colors for CSS (including the new pink accent)
   const gradientColors = theme.background.match(/#[0-9a-fA-F]{6}/g) || [];
   const primaryColor = gradientColors[0] || theme.primary;
   const secondaryColor = gradientColors[1] || theme.secondary;
   const accentColor = gradientColors[2] || theme.accent;
+  const pinkAccent = gradientColors[3] || '#f5d0fe'; // Soft Pink
+
+  // Convert hex to rgba for border colors (Soft Purple #8b5cf6 = rgb(139, 92, 246))
+  const primaryRgba = 'rgba(139, 92, 246, 0.2)'; // 20% opacity
 
   return (
     <div 
@@ -108,7 +112,7 @@ export default function RNPortalLogin() {
       {/* Animated background shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
-          className="absolute rounded-full opacity-20 blur-3xl animate-pulse"
+          className="absolute rounded-full opacity-15 blur-3xl animate-pulse"
           style={{
             width: '400px',
             height: '400px',
@@ -119,7 +123,7 @@ export default function RNPortalLogin() {
           }}
         />
         <div 
-          className="absolute rounded-full opacity-20 blur-3xl animate-pulse"
+          className="absolute rounded-full opacity-15 blur-3xl animate-pulse"
           style={{
             width: '300px',
             height: '300px',
@@ -131,7 +135,7 @@ export default function RNPortalLogin() {
           }}
         />
         <div 
-          className="absolute rounded-full opacity-15 blur-3xl"
+          className="absolute rounded-full opacity-12 blur-3xl"
           style={{
             width: '250px',
             height: '250px',
@@ -141,6 +145,18 @@ export default function RNPortalLogin() {
             transform: 'translate(-50%, -50%)',
             animation: 'float 10s ease-in-out infinite',
             animationDelay: '2s',
+          }}
+        />
+        <div 
+          className="absolute rounded-full opacity-10 blur-3xl"
+          style={{
+            width: '200px',
+            height: '200px',
+            background: pinkAccent,
+            top: '20%',
+            right: '20%',
+            animation: 'float 12s ease-in-out infinite',
+            animationDelay: '3s',
           }}
         />
       </div>
@@ -206,7 +222,7 @@ export default function RNPortalLogin() {
                   required
                   className="w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-20"
                   style={{
-                    borderColor: 'rgba(124, 58, 237, 0.2)',
+                    borderColor: primaryRgba,
                   }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -228,7 +244,7 @@ export default function RNPortalLogin() {
                   required
                   className="w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all focus-visible:ring-2 focus-visible:ring-opacity-20"
                   style={{
-                    borderColor: 'rgba(124, 58, 237, 0.2)',
+                    borderColor: primaryRgba,
                   }}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -347,7 +363,7 @@ export default function RNPortalLogin() {
 
         /* Custom focus ring color for inputs */
         input:focus-visible {
-          --tw-ring-color: ${theme.primary}40;
+          --tw-ring-color: rgba(139, 92, 246, 0.25);
         }
       `}</style>
     </div>

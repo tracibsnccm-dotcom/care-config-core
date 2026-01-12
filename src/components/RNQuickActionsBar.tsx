@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 interface Resource {
   id: string;
@@ -14,8 +15,46 @@ interface Resource {
 
 export function RNQuickActionsBar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
+
+  // Handle "My Work Queue" click - scroll to work queue section or switch to overview tab
+  const handleWorkQueueClick = () => {
+    // If we're on the RN dashboard, scroll to work queue section
+    if (location.pathname === '/rn-console' || location.pathname === '/rn-portal-landing') {
+      // First, try to switch to overview tab if not already there
+      const overviewTab = document.querySelector('#rn-dashboard-tabs [value="overview"]') as HTMLElement;
+      if (overviewTab && !overviewTab.getAttribute('data-state')?.includes('active')) {
+        overviewTab.click();
+      }
+      
+      // Then scroll to work queue section
+      setTimeout(() => {
+        const workQueueElement = document.querySelector('[data-work-queue]') || 
+                                 document.querySelector('#work-queue');
+        if (workQueueElement) {
+          workQueueElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Add a subtle highlight effect
+          workQueueElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
+          setTimeout(() => {
+            workQueueElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
+          }, 2000);
+        }
+      }, 150);
+    } else {
+      // If not on dashboard, navigate to it
+      navigate('/rn-console');
+      // After navigation, scroll to work queue
+      setTimeout(() => {
+        const workQueueElement = document.querySelector('[data-work-queue]') || 
+                                 document.querySelector('#work-queue');
+        if (workQueueElement) {
+          workQueueElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500);
+    }
+  };
 
   const resources: Resource[] = [
     {
@@ -60,7 +99,7 @@ export function RNQuickActionsBar() {
   };
 
   const actions = [
-    { icon: ClipboardList, label: "My Work Queue", onClick: () => navigate("/rn-work-queue"), variant: "default" },
+    { icon: ClipboardList, label: "My Work Queue", onClick: handleWorkQueueClick, variant: "default" },
     { icon: FileText, label: "New Note", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: MessageSquare, label: "Message Client", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: Calendar, label: "Schedule", onClick: () => navigate("/rn-diary") },

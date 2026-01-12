@@ -3,11 +3,11 @@ export const rnThemes = {
     id: 'boldModern',
     name: 'Bold & Modern',
     description: 'Creative and energizing',
-    primary: '#7c3aed',      // Deep Purple
-    secondary: '#ec4899',    // Magenta Pink
-    accent: '#a78bfa',       // Soft Lavender
-    background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #a78bfa 100%)',
-    cardBorder: 'linear-gradient(90deg, #7c3aed, #ec4899, #a78bfa)',
+    primary: '#8b5cf6',      // Soft Purple
+    secondary: '#c4b5fd',     // Lilac
+    accent: '#e9d5ff',        // Light Lavender
+    background: 'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 40%, #e9d5ff 70%, #f5d0fe 100%)',
+    cardBorder: 'linear-gradient(90deg, #8b5cf6, #c4b5fd, #e9d5ff)',
   },
   warmEnergizing: {
     id: 'warmEnergizing',

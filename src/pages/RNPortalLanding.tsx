@@ -354,7 +354,7 @@ export default function RNPortalLanding() {
 
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs defaultValue="overview" className="w-full" id="rn-dashboard-tabs">
               <CardHeader className="pb-3">
                 <RNNavigationGuard>
                   {({ handleNavigation, hasIncompleteAlerts }) => (
@@ -402,7 +402,7 @@ export default function RNPortalLanding() {
                   </div>
 
                   {/* Work Queue - Cases ready for RN review */}
-                  <div className="mt-4">
+                  <div className="mt-4" data-work-queue id="work-queue">
                     <WorkQueue />
                   </div>
 
