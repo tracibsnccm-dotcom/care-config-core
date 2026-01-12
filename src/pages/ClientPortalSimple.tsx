@@ -308,17 +308,7 @@ export default function ClientPortalSimple() {
 
           {/* Treatments Tab */}
           <TabsContent value="treatments">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 flex items-center gap-2">
-                  <Stethoscope className="w-5 h-5 text-amber-500" />
-                  Treatment Tracker
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-600">
-                <p className="text-slate-500">Treatment tracker coming soon. You'll be able to log your treatments and therapy sessions.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientTreatmentTracker caseId={caseId} />}
           </TabsContent>
 
           {/* Appointments Tab */}
