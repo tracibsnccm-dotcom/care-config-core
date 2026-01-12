@@ -412,26 +412,42 @@ export default function AttorneyLanding() {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto gap-2 bg-muted/50 p-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="performance">Performance</TabsTrigger>}
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="communication">Communication</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="notes">Case Notes</TabsTrigger>
-            <TabsTrigger value="settlement">Settlement</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="features">Features & Tiers</TabsTrigger>
-            <TabsTrigger value="expert-witnesses">Expert Witnesses</TabsTrigger>
-            <TabsTrigger value="evidence">Evidence</TabsTrigger>
-            <TabsTrigger value="provider-network">Provider Network</TabsTrigger>
-            <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>
-            <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>
-              <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>
-              <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>
-              <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>
-              <TabsTrigger value="modules">Modules & Add-Ons</TabsTrigger>
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="settlement">Settlement</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="tasks">Tasks</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="referrals">Referrals</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="integrations">Integrations</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="features">Features & Tiers</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="expert-witnesses">Expert Witnesses</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="evidence">Evidence</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="provider-network">Provider Network</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>}
+            {/* DISABLED - Phase 6+ feature */}
+            {false && <TabsTrigger value="modules">Modules & Add-Ons</TabsTrigger>}
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
@@ -536,10 +552,12 @@ export default function AttorneyLanding() {
             </div>
           </TabsContent>
 
-          {/* Performance Dashboard Tab */}
-        <TabsContent value="performance">
-          <PerformanceDashboard />
-        </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="performance">
+              <PerformanceDashboard />
+            </TabsContent>
+          )}
         
         <TabsContent value="time-tracking">
           <TimeTrackingBilling />
@@ -605,45 +623,75 @@ export default function AttorneyLanding() {
           <TrustAccounting />
         </TabsContent>
         
-              <TabsContent value="features">
-                <FeatureLibrary />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="features">
+                  <FeatureLibrary />
+                </TabsContent>
+              )}
 
-              <TabsContent value="expert-witnesses">
-                <ExpertWitnessManagement />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="expert-witnesses">
+                  <ExpertWitnessManagement />
+                </TabsContent>
+              )}
 
-              <TabsContent value="evidence">
-                <EvidenceRepository />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="evidence">
+                  <EvidenceRepository />
+                </TabsContent>
+              )}
 
-              <TabsContent value="provider-network">
-                <MedicalProviderNetwork />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="provider-network">
+                  <MedicalProviderNetwork />
+                </TabsContent>
+              )}
 
-              <TabsContent value="billing">
-                <ClientBillingInvoicing />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="billing">
+                  <ClientBillingInvoicing />
+                </TabsContent>
+              )}
 
-              <TabsContent value="marketing">
-                <MarketingLeadManagement />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="marketing">
+                  <MarketingLeadManagement />
+                </TabsContent>
+              )}
 
-              <TabsContent value="ai-prioritization">
-                <AICasePrioritization cases={cases} />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="ai-prioritization">
+                  <AICasePrioritization cases={cases} />
+                </TabsContent>
+              )}
 
-              <TabsContent value="ai-settlement">
-                <AISettlementPredictor caseData={cases[0]} />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="ai-settlement">
+                  <AISettlementPredictor caseData={cases[0]} />
+                </TabsContent>
+              )}
 
-              <TabsContent value="ai-documents">
-                <AIDocumentAssembly caseData={cases[0]} />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="ai-documents">
+                  <AIDocumentAssembly caseData={cases[0]} />
+                </TabsContent>
+              )}
 
-              <TabsContent value="modules">
-                <FeatureLibrary />
-              </TabsContent>
+              {/* DISABLED - Phase 6+ feature */}
+              {false && (
+                <TabsContent value="modules">
+                  <FeatureLibrary />
+                </TabsContent>
+              )}
 
           {/* Document Hub Tab */}
           <TabsContent value="documents">
@@ -665,30 +713,40 @@ export default function AttorneyLanding() {
             <AttorneyCaseNotes />
           </TabsContent>
 
-          {/* Settlement Management Tab */}
-          <TabsContent value="settlement">
-            <SettlementManagement />
-          </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="settlement">
+              <SettlementManagement />
+            </TabsContent>
+          )}
 
-          {/* Case Analytics Tab */}
-          <TabsContent value="analytics">
-            <CaseAnalyticsInsights />
-          </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="analytics">
+              <CaseAnalyticsInsights />
+            </TabsContent>
+          )}
 
-          {/* Task & Deadline Manager Tab */}
-          <TabsContent value="tasks">
-            <TaskDeadlineManager />
-          </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="tasks">
+              <TaskDeadlineManager />
+            </TabsContent>
+          )}
 
-          {/* Referral Network Tab */}
-          <TabsContent value="referrals">
-            <ReferralNetworkManagement />
-          </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="referrals">
+              <ReferralNetworkManagement />
+            </TabsContent>
+          )}
 
-          {/* Integration Settings Tab */}
-          <TabsContent value="integrations">
-            <IntegrationSettings />
-          </TabsContent>
+          {/* DISABLED - Phase 6+ feature */}
+          {false && (
+            <TabsContent value="integrations">
+              <IntegrationSettings />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Bulk Actions Bar - shown when items are selected */}
