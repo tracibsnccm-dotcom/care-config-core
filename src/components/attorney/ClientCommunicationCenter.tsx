@@ -60,6 +60,9 @@ export default function ClientCommunicationCenter() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-red-500 text-white p-4 text-xl font-bold">
+        === EDITING THIS FILE ===
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
