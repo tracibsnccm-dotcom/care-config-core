@@ -62,6 +62,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   const [expandedMeds, setExpandedMeds] = useState<Set<string>>(new Set());
   const [expandedReconciliations, setExpandedReconciliations] = useState<Set<string>>(new Set());
   const [showReconciliationHistory, setShowReconciliationHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedRecon, setExpandedRecon] = useState<string | null>(null);
   const [showDiscontinued, setShowDiscontinued] = useState(false);
   
   // Edit/Discontinue dialogs
@@ -374,6 +376,54 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
             Track all medications related to your injury and recovery
           </p>
         </CardHeader>
+      </Card>
+
+      {/* Medication Review History */}
+      <Card className="border-teal-300 shadow-sm mb-4" style={{ backgroundColor: '#81cdc6' }}>
+        <CardHeader>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-500" />
+              Medication Review History
+            </div>
+            <button onClick={() => setShowHistory(!showHistory)} className="text-white/70 hover:text-white">
+              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </CardTitle>
+        </CardHeader>
+        
+        {showHistory && (
+          <CardContent>
+            {reconciliations.length === 0 ? (
+              <p className="text-white/70">No medication reviews completed yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {reconciliations.map((recon) => (
+                  <div key={recon.id} className="bg-white/20 rounded-lg p-3 border border-white/30">
+                    <button
+                      onClick={() => setExpandedRecon(expandedRecon === recon.id ? null : recon.id)}
+                      className="w-full flex justify-between items-center text-left"
+                    >
+                      <span className="text-white font-medium">
+                        Medication Review - {new Date(recon.created_at).toLocaleDateString()}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-white/70 transition-transform ${expandedRecon === recon.id ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedRecon === recon.id && (
+                      <div className="mt-3 pt-3 border-t border-white/20 space-y-2 text-white/80 text-sm">
+                        <p><strong>Date:</strong> {new Date(recon.created_at).toLocaleString()}</p>
+                        <p><strong>Allergies:</strong> {recon.has_allergies ? recon.medication_allergies || 'Yes' : 'None reported'}</p>
+                        {recon.additional_comments && <p><strong>Notes:</strong> {recon.additional_comments}</p>}
+                        {recon.med_attested_at && <p><strong>Attested:</strong> {new Date(recon.med_attested_at).toLocaleString()}</p>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* Section 1: Medication Reconciliation History */}
