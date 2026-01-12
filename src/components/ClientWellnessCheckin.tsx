@@ -701,7 +701,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-amber-500" />
-            Daily Wellness Check-in
+            Wellness Check-in
           </CardTitle>
           <div className="flex items-center gap-2 mt-2">
             <div className={`flex-1 h-2 rounded-full ${currentStep >= 1 ? 'bg-amber-500' : 'bg-white/30'}`} />
