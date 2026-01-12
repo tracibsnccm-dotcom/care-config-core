@@ -563,6 +563,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         med_attested_at: medsAttested ? new Date().toISOString() : null
       };
 
+      console.log("Saving reconciliation data:", reconData);
+
       const reconResponse = await fetch(
         `${supabaseUrl}/rest/v1/rc_med_reconciliations`,
         {
@@ -577,12 +579,16 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         }
       );
 
+      console.log("Reconciliation response status:", reconResponse.status);
+      const reconText = await reconResponse.text();
+      console.log("Reconciliation response:", reconText);
+
       if (!reconResponse.ok) {
-        const errorText = await reconResponse.text();
-        throw new Error(errorText || 'Failed to save medication reconciliation');
+        console.error("Failed to save reconciliation:", reconText);
+        throw new Error(reconText || 'Failed to save medication reconciliation');
       }
 
-      const reconResult = await reconResponse.json();
+      const reconResult = JSON.parse(reconText);
       const reconId = reconResult[0]?.id;
       
       // Save medications to rc_medications table
@@ -648,6 +654,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         : null;
       
       // THEN: Save wellness check-in with vital signs
+      console.log("Saving check-in with reconciliation ID:", reconId);
+      
       const checkinData: any = {
         case_id: caseId,
         pain_scale: painLevel,
@@ -1253,7 +1261,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Blood Pressure */}
-                  <div className="space-y-2">
+          <div className="space-y-2">
                     <Label className="text-white text-sm">Blood Pressure</Label>
                     <div className="flex items-center gap-2">
                       <Input
