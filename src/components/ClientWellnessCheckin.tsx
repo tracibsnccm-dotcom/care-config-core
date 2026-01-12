@@ -534,14 +534,111 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // Save allergies if provided
-      if (hasAllergies === "yes" && allergies.length > 0) {
-        // TODO: Save allergies to database
-      }
+      // Prepare medication review data
+      const medicationReviewData = {
+        preInjuryMeds: preInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()),
+        postInjuryMeds: postInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()),
+        medsAttested: medsAttested
+      };
       
-      // Save medications if provided
+      // Prepare allergy data
+      const medicationAllergies = allergies
+        .filter(a => a.medication.trim())
+        .map(a => ({
+          medication: a.medication,
+          reaction: a.reaction,
+          severity: a.severity
+        }));
+      
+      // FIRST: Save medication reconciliation data
+      const reconData = {
+        case_id: caseId,
+        has_allergies: hasAllergies === "yes",
+        medication_allergies: medicationAllergies.length > 0 ? JSON.stringify(medicationAllergies) : null,
+        food_allergies: null, // Not collected in current form
+        allergy_reactions: allergies.length > 0 ? JSON.stringify(allergies) : null,
+        allergy_attested_at: allergiesAttested ? new Date().toISOString() : null,
+        med_review_data: JSON.stringify(medicationReviewData),
+        additional_comments: notes || null,
+        med_attested_at: medsAttested ? new Date().toISOString() : null
+      };
+
+      const reconResponse = await fetch(
+        `${supabaseUrl}/rest/v1/rc_med_reconciliations`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(reconData)
+        }
+      );
+
+      if (!reconResponse.ok) {
+        const errorText = await reconResponse.text();
+        throw new Error(errorText || 'Failed to save medication reconciliation');
+      }
+
+      const reconResult = await reconResponse.json();
+      const reconId = reconResult[0]?.id;
+      
+      // Save medications to rc_medications table
       if (preInjuryMeds.length > 0 || postInjuryMeds.length > 0) {
-        // TODO: Save medications to database
+        const allMeds = [
+          ...preInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
+            case_id: caseId,
+            medication_name: med.brandName || med.genericName,
+            dosage: med.dose || null,
+            frequency: med.frequency || null,
+            prescribing_doctor: med.prescriber || null,
+            start_date: med.startDate || null,
+            end_date: med.endDate || null,
+            reason_for_taking: med.purpose || null,
+            pharmacy: med.pharmacy || null,
+            notes: med.notes || null,
+            injury_related: false,
+            is_active: true,
+          })),
+          ...postInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
+            case_id: caseId,
+            medication_name: med.brandName || med.genericName,
+            dosage: med.dose || null,
+            frequency: med.frequency || null,
+            prescribing_doctor: med.prescriber || null,
+            start_date: med.startDate || null,
+            end_date: med.endDate || null,
+            reason_for_taking: med.purpose || null,
+            pharmacy: med.pharmacy || null,
+            notes: med.notes || null,
+            injury_related: true,
+            is_active: true,
+          })),
+        ];
+
+        if (allMeds.length > 0) {
+          const medsResponse = await fetch(
+            `${supabaseUrl}/rest/v1/rc_medications`,
+            {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(allMeds)
+            }
+          );
+
+          if (!medsResponse.ok) {
+            const errorText = await medsResponse.text();
+            console.error('Failed to save medications:', errorText);
+            // Don't throw - continue with check-in save
+          }
+        }
       }
       
       // Calculate BMI if height and weight are provided
@@ -550,7 +647,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         ? parseFloat(heightFeet) * 12 + parseFloat(heightInches) 
         : null;
       
-      // Save wellness check-in with vital signs
+      // THEN: Save wellness check-in with vital signs
       const checkinData: any = {
         case_id: caseId,
         pain_scale: painLevel,
