@@ -563,6 +563,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         oxygen_saturation: oxygenSaturation ? parseInt(oxygenSaturation) : null,
         temperature: temperature ? parseFloat(temperature) : null,
         blood_sugar: bloodSugar ? parseFloat(bloodSugar) : null,
+        a1c: a1c ? parseFloat(a1c) : null,
         height_feet: heightFeet ? parseInt(heightFeet) : null,
         height_inches: heightInches ? parseInt(heightInches) : null,
         height_total_inches: totalInches,
@@ -612,6 +613,7 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
         setOxygenSaturation("");
         setTemperature("");
         setBloodSugar("");
+        setA1c("");
         setHeightFeet("");
         setHeightInches("");
         setWeight("");
@@ -1301,6 +1303,25 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                             </Alert>
                           );
                         })()}
+                        {(diabetesStatus === "yes" || diabetesStatus === "not_sure") && !bloodSugarNotApplicable && (
+                          <div className="mt-3">
+                            <Label className="text-white text-sm">Most Recent A1C (%)</Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={a1c}
+                              onChange={(e) => setA1c(e.target.value)}
+                              placeholder="e.g., 6.5"
+                              className="bg-white border-slate-200 text-slate-800"
+                            />
+                            <p className="text-white/70 text-xs mt-1">Your A1C from your last lab test (if known)</p>
+                            {getA1CStatus(a1c) && (
+                              <Alert className={`${getA1CStatus(a1c)!.color} border mt-2`}>
+                                <AlertDescription className="text-sm">{getA1CStatus(a1c)!.message}</AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        )}
                         <details className="mt-3">
                           <summary className="text-white/80 text-sm cursor-pointer hover:text-white flex items-center gap-2">
                             <Info className="w-4 h-4" />
