@@ -57,7 +57,7 @@ export function AttorneyCommunicationCenter() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rnNotes, setRNNotes] = useState<RNNote[]>([]);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
-  const [newMessage, setNewMessage] = useState("");
+  const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -275,13 +275,15 @@ export function AttorneyCommunicationCenter() {
     }
   }
 
-  async function sendMessage(caseId: string) {
-    console.log("Send Reply clicked");
-    console.log("Reply text:", newMessage);
-    console.log("Selected case:", caseId);
-    console.log("User ID:", user?.id);
+  async function handleSendReply() {
+    const selectedCase = caseMessages.find(cm => cm.case.id === selectedCaseId);
+    const caseId = selectedCase?.case.id;
 
-    if (!newMessage.trim() || !user?.id) {
+    console.log("Send Reply clicked");
+    console.log("Reply text:", replyText);
+    console.log("Selected case:", selectedCase);
+
+    if (!replyText.trim() || !user?.id) {
       console.log("Validation failed - message empty or no user");
       return;
     }
@@ -309,7 +311,7 @@ export function AttorneyCommunicationCenter() {
         sender_type: 'attorney',
         sender_id: user.id,
         sender_name: attorneyName,
-        message_text: newMessage.trim(),
+        message_text: replyText.trim(),
         is_read: false,
         created_at: new Date().toISOString(),
       };
@@ -342,7 +344,7 @@ export function AttorneyCommunicationCenter() {
       console.log("Message sent successfully:", result);
 
       // Clear the textarea
-      setNewMessage("");
+      setReplyText("");
       
       // Refresh the message thread
       await fetchClientMessages();
@@ -643,11 +645,8 @@ export function AttorneyCommunicationCenter() {
                       {/* Compose Message */}
                       <div className="space-y-2">
                         <Textarea
-                          value={newMessage}
-                          onChange={(e) => {
-                            console.log("Textarea changed:", e.target.value);
-                            setNewMessage(e.target.value);
-                          }}
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
                           placeholder="Type your message..."
                           rows={3}
                           className="bg-white border-slate-200"
@@ -657,11 +656,9 @@ export function AttorneyCommunicationCenter() {
                             type="button"
                             onClick={() => {
                               console.log("Send button clicked");
-                              console.log("Current newMessage state:", newMessage);
-                              console.log("Case ID:", caseMsg.case.id);
-                              sendMessage(caseMsg.case.id);
+                              handleSendReply();
                             }}
-                            disabled={!newMessage.trim() || sending}
+                            disabled={!replyText.trim() || sending}
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Send className="w-4 h-4 mr-2" />
