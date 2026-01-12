@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Pill, Plus, ChevronDown, ChevronUp, FileText, CheckCircle, Edit, X } from "lucide-react";
 import { format } from "date-fns";
+import { createAutoNote } from "@/lib/autoNotes";
 import {
   Dialog,
   DialogContent,
@@ -212,6 +213,22 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
       setPrnReason("");
       setShowAddForm(false);
       await fetchMedications();
+      
+      // Create auto-note for medication addition
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'medication',
+          title: 'Medication Added',
+          content: `New medication added: ${newMed.medication_name.trim()}`,
+          triggerEvent: 'medication_added',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: false
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for medication addition:", err);
+      }
     } catch (err: any) {
       console.error("Error adding medication:", err);
       alert("Failed to add medication: " + (err.message || "Unknown error"));
@@ -317,9 +334,27 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
       }
 
       setDiscontinuingMed(null);
+      const medicationName = discontinuingMed.medication_name;
+      const reason = discontinueForm.reason_stopped;
       setDiscontinueForm({ reason_stopped: "", date_stopped: "", who_advised: "" });
       await fetchMedications();
       alert("Medication discontinued successfully");
+      
+      // Create auto-note for medication discontinuation
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'medication',
+          title: 'Medication Discontinued',
+          content: `Medication discontinued: ${medicationName} - Reason: ${reason}`,
+          triggerEvent: 'medication_discontinued',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: false
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for medication discontinuation:", err);
+      }
     } catch (err: any) {
       console.error("Error discontinuing medication:", err);
       alert("Failed to discontinue medication: " + (err.message || "Unknown error"));

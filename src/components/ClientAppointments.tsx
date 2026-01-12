@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { createAutoNote } from "@/lib/autoNotes";
 
 interface Appointment {
   id: string;
@@ -193,6 +194,24 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       setShowAddForm(false);
       resetAddForm();
       loadAppointments();
+      
+      // Create auto-note for appointment scheduling
+      try {
+        const appointmentTypeDisplay = appointmentType === "Specialist" ? `Specialist - ${specialistType}` : appointmentType;
+        const formattedDate = format(new Date(scheduledAt), 'MMM d, yyyy');
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'appointment',
+          title: 'Appointment Scheduled',
+          content: `Appointment scheduled: ${appointmentTypeDisplay} with ${providerName} on ${formattedDate}`,
+          triggerEvent: 'appointment_scheduled',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: true
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for appointment scheduling:", err);
+      }
     } catch (err: any) {
       console.error("Error adding appointment:", err);
       toast.error(err.message || "Failed to add appointment");
@@ -289,6 +308,26 @@ export function ClientAppointments({ caseId }: ClientAppointmentsProps) {
       }
 
       toast.success(successMessage);
+
+      // Create auto-note for appointment cancellation
+      if (newStatus === 'cancelled' && !canAttend) {
+        try {
+          const appointmentTypeDisplay = checkInAppointment.appointment_type || 'Appointment';
+          const barrierReason = barrierNotes || (barrierType ? BARRIER_TYPES.find(b => b.value === barrierType)?.label : 'No reason provided');
+          await createAutoNote({
+            caseId: caseId,
+            noteType: 'appointment',
+            title: 'Appointment Cancelled',
+            content: `Appointment cancelled: ${appointmentTypeDisplay} - Reason: ${barrierReason}`,
+            triggerEvent: 'appointment_cancelled',
+            visibleToClient: true,
+            visibleToRN: true,
+            visibleToAttorney: true
+          });
+        } catch (err) {
+          console.error("Failed to create auto-note for appointment cancellation:", err);
+        }
+      }
 
       setCheckInAppointment(null);
       resetCheckInForm();

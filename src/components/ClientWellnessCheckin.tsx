@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, CheckCircle, Loader2, ArrowLeft, ArrowRight, Plus, X, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
+import { createAutoNote } from "@/lib/autoNotes";
 
 interface WellnessCheckinProps {
   caseId: string;
@@ -591,6 +592,24 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       const reconResult = JSON.parse(reconText);
       const reconId = reconResult[0]?.id;
       
+      // Create auto-note for medication reconciliation
+      if (medsAttested) {
+        try {
+          await createAutoNote({
+            caseId: caseId,
+            noteType: 'medication',
+            title: 'Medication Reconciliation',
+            content: 'Client completed medication reconciliation',
+            triggerEvent: 'med_reconciliation',
+            visibleToClient: true,
+            visibleToRN: true,
+            visibleToAttorney: false
+          });
+        } catch (err) {
+          console.error("Failed to create auto-note for medication reconciliation:", err);
+        }
+      }
+      
       // Save medications to rc_medications table
       if (preInjuryMeds.length > 0 || postInjuryMeds.length > 0) {
         const allMeds = [
@@ -698,6 +717,22 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       setSubmitted(true);
       setLastCheckin(new Date());
       toast.success("Wellness check-in saved!");
+      
+      // Create auto-note for wellness check-in
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'wellness',
+          title: 'Wellness Check-in Completed',
+          content: 'Client completed wellness check-in',
+          triggerEvent: 'wellness_checkin',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: false
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for wellness check-in:", err);
+      }
       
       // Reset form after 3 seconds
       setTimeout(() => {

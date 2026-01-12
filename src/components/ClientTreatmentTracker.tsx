@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Plus, ChevronDown, ChevronUp, FileText, CheckCircle, Edit, X } from "lucide-react";
 import { format } from "date-fns";
+import { createAutoNote } from "@/lib/autoNotes";
 import {
   Dialog,
   DialogContent,
@@ -275,6 +276,22 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       });
       setShowAddForm(false);
       await fetchTreatments();
+      
+      // Create auto-note for treatment addition
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'treatment',
+          title: 'Treatment Started',
+          content: `Treatment started: ${newTreatment.treatment_type.trim()}${newTreatment.provider_name ? ` with ${newTreatment.provider_name}` : ''}`,
+          triggerEvent: 'treatment_started',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: false
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for treatment addition:", err);
+      }
     } catch (err: any) {
       console.error("Error adding treatment:", err);
       alert("Failed to add treatment: " + (err.message || "Unknown error"));
@@ -435,9 +452,27 @@ export function ClientTreatmentTracker({ caseId }: ClientTreatmentTrackerProps) 
       }], discontinueForm.progress_notes || null);
 
       setDiscontinuingTreatment(null);
+      const treatmentType = discontinuingTreatment.treatment_type;
+      const reason = discontinueForm.reason;
       setDiscontinueForm({ reason: "", end_date: "", who_advised: "", progress_notes: "" });
       await fetchTreatments();
       alert("Treatment discontinued successfully");
+      
+      // Create auto-note for treatment discontinuation
+      try {
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'treatment',
+          title: 'Treatment Ended',
+          content: `Treatment ended: ${treatmentType} - Reason: ${reason}`,
+          triggerEvent: 'treatment_ended',
+          visibleToClient: true,
+          visibleToRN: true,
+          visibleToAttorney: false
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for treatment discontinuation:", err);
+      }
     } catch (err: any) {
       console.error("Error discontinuing treatment:", err);
       alert("Failed to discontinue treatment: " + (err.message || "Unknown error"));
