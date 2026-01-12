@@ -174,7 +174,7 @@ export default function ClientPortalSimple() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-white border border-slate-200 shadow-sm p-1 flex flex-wrap gap-1">
+          <TabsList className="flex w-full overflow-x-auto whitespace-nowrap bg-white border-b border-slate-200 p-1 gap-1 scrollbar-hide">
             <TabsTrigger value="home" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Home className="w-4 h-4 mr-2" />
               Home
@@ -185,7 +185,7 @@ export default function ClientPortalSimple() {
             </TabsTrigger>
             <TabsTrigger value="analytics" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Activity className="w-4 h-4 mr-2" />
-              Health Analytics
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="journal" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <BookOpen className="w-4 h-4 mr-2" />
@@ -201,7 +201,7 @@ export default function ClientPortalSimple() {
             </TabsTrigger>
             <TabsTrigger value="appointments" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <Calendar className="w-4 h-4 mr-2" />
-              Appointments
+              Appts
             </TabsTrigger>
             <TabsTrigger value="messages" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4 mr-2" />
@@ -209,7 +209,7 @@ export default function ClientPortalSimple() {
             </TabsTrigger>
             <TabsTrigger value="documents" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <FileText className="w-4 h-4 mr-2" />
-              Documents
+              Docs
             </TabsTrigger>
             <TabsTrigger value="profile" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <User className="w-4 h-4 mr-2" />

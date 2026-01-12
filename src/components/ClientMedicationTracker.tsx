@@ -45,6 +45,8 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   const [expandedMeds, setExpandedMeds] = useState<Set<string>>(new Set());
   const [showDiscontinued, setShowDiscontinued] = useState(false);
   const [lastReconciliationDate, setLastReconciliationDate] = useState<string | null>(null);
+  const [showReconciliationDetails, setShowReconciliationDetails] = useState(false);
+  const [reconciliationData, setReconciliationData] = useState<any | null>(null);
 
   const [newMed, setNewMed] = useState({
     medication_name: "",
@@ -97,9 +99,9 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // Get the most recent check-in date
+      // Get the most recent medication reconciliation
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_client_checkins?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
+        `${supabaseUrl}/rest/v1/rc_med_reconciliations?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -112,10 +114,60 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
         const data = await response.json();
         if (data && data.length > 0) {
           setLastReconciliationDate(data[0].created_at);
+          setReconciliationData(data[0]);
+        } else {
+          // Fallback to check-in date if no reconciliation found
+          const checkinResponse = await fetch(
+            `${supabaseUrl}/rest/v1/rc_client_checkins?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+            }
+          );
+          if (checkinResponse.ok) {
+            const checkinData = await checkinResponse.json();
+            if (checkinData && checkinData.length > 0) {
+              setLastReconciliationDate(checkinData[0].created_at);
+            }
+          }
         }
       }
     } catch (err) {
       console.error("Error fetching last reconciliation date:", err);
+    }
+  }
+
+  async function fetchReconciliationDetails() {
+    if (reconciliationData) {
+      setShowReconciliationDetails(!showReconciliationDetails);
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_med_reconciliations?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setReconciliationData(data[0]);
+          setShowReconciliationDetails(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching reconciliation details:", err);
     }
   }
 
@@ -223,19 +275,48 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
             Track all medications related to your injury and recovery
           </p>
           {lastReconciliationDate && (
-            <p className="text-white/80 text-sm mt-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Last reviewed: {format(new Date(lastReconciliationDate), "MMM d, yyyy")} -{" "}
-              <button
-                onClick={() => {
-                  // Navigate to wellness check-in or show details
-                  window.location.href = "#wellness";
-                }}
-                className="underline hover:text-white"
-              >
-                View Details
-              </button>
-            </p>
+            <div className="mt-2">
+              <p className="text-white/80 text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Last reviewed: {format(new Date(lastReconciliationDate), "MMM d, yyyy")} -{" "}
+                <button
+                  onClick={fetchReconciliationDetails}
+                  className="underline hover:text-white"
+                >
+                  View Details
+                </button>
+              </p>
+              {showReconciliationDetails && reconciliationData && (
+                <div className="mt-3 p-3 bg-white/20 border border-white/30 rounded-lg space-y-2">
+                  <p className="text-white font-medium text-sm">Medication Reconciliation Details</p>
+                  <div className="text-white/90 text-sm space-y-1">
+                    <p><strong>Date:</strong> {format(new Date(reconciliationData.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                    {reconciliationData.allergies && reconciliationData.allergies.length > 0 && (
+                      <div>
+                        <p className="font-medium">Allergies Recorded:</p>
+                        <ul className="list-disc list-inside ml-2">
+                          {Array.isArray(reconciliationData.allergies) 
+                            ? reconciliationData.allergies.map((allergy: any, idx: number) => (
+                                <li key={idx}>{allergy.medication || allergy.name || JSON.stringify(allergy)}</li>
+                              ))
+                            : <li>{reconciliationData.allergies}</li>
+                          }
+                        </ul>
+                      </div>
+                    )}
+                    {reconciliationData.summary && (
+                      <p><strong>Summary:</strong> {reconciliationData.summary}</p>
+                    )}
+                    {reconciliationData.notes && (
+                      <p><strong>Notes:</strong> {reconciliationData.notes}</p>
+                    )}
+                    {!reconciliationData.allergies && !reconciliationData.summary && !reconciliationData.notes && (
+                      <p className="text-white/70 italic">No additional details available</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </CardHeader>
       </Card>
