@@ -58,6 +58,9 @@ export default function AttorneyCaseNotes() {
   const [messageClientOpen, setMessageClientOpen] = useState(false);
   const [messageRNOpen, setMessageRNOpen] = useState(false);
   const [newNote, setNewNote] = useState({ caseId: '', noteText: '', shareWithRN: false, shareWithClient: false });
+  const [messageClient, setMessageClient] = useState({ caseId: '', messageText: '' });
+  const [messageRN, setMessageRN] = useState({ caseId: '', messageText: '' });
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -262,6 +265,127 @@ export default function AttorneyCaseNotes() {
         description: "Failed to save note: " + (err.message || "Unknown error"),
         variant: "destructive",
       });
+    }
+  }
+
+  async function handleSendClientMessage() {
+    if (!messageClient.caseId || !messageClient.messageText.trim() || !user?.id) {
+      toast({
+        title: "Error",
+        description: "Please select a case and enter message text",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const attorneyName = user.user_metadata?.full_name || user.email || 'Attorney';
+
+      const messageData = {
+        case_id: messageClient.caseId,
+        sender_type: 'attorney',
+        sender_id: user.id,
+        sender_name: attorneyName,
+        message_text: messageClient.messageText.trim(),
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/rc_messages`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(messageData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent to the client.",
+      });
+
+      setMessageClientOpen(false);
+      setMessageClient({ caseId: '', messageText: '' });
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      toast({
+        title: "Error",
+        description: "Failed to send message: " + (err.message || "Unknown error"),
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+
+  async function handleSendRNMessage() {
+    if (!messageRN.caseId || !messageRN.messageText.trim() || !user?.id) {
+      toast({
+        title: "Error",
+        description: "Please select a case and enter message text",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const attorneyName = user.user_metadata?.full_name || user.email || 'Attorney';
+
+      const messageData = {
+        case_id: messageRN.caseId,
+        sender_type: 'attorney',
+        recipient_type: 'rn',
+        sender_id: user.id,
+        sender_name: attorneyName,
+        message_text: messageRN.messageText.trim(),
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/rc_messages`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(messageData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent to the RN.",
+      });
+
+      setMessageRNOpen(false);
+      setMessageRN({ caseId: '', messageText: '' });
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      toast({
+        title: "Error",
+        description: "Failed to send message: " + (err.message || "Unknown error"),
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMessage(false);
     }
   }
 
@@ -475,8 +599,8 @@ export default function AttorneyCaseNotes() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Case</Label>
-              <Select>
+              <Label>Case *</Label>
+              <Select value={messageClient.caseId} onValueChange={(v) => setMessageClient({ ...messageClient, caseId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a case" />
                 </SelectTrigger>
@@ -490,13 +614,23 @@ export default function AttorneyCaseNotes() {
               </Select>
             </div>
             <div>
-              <Label>Message</Label>
-              <Textarea placeholder="Type your message..." rows={6} />
+              <Label>Message *</Label>
+              <Textarea 
+                value={messageClient.messageText}
+                onChange={(e) => setMessageClient({ ...messageClient, messageText: e.target.value })}
+                placeholder="Type your message..." 
+                rows={6} 
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMessageClientOpen(false)}>Cancel</Button>
-            <Button>Send</Button>
+            <Button variant="outline" onClick={() => {
+              setMessageClientOpen(false);
+              setMessageClient({ caseId: '', messageText: '' });
+            }}>Cancel</Button>
+            <Button onClick={handleSendClientMessage} disabled={sendingMessage || !messageClient.caseId || !messageClient.messageText.trim()}>
+              {sendingMessage ? 'Sending...' : 'Send'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -510,8 +644,8 @@ export default function AttorneyCaseNotes() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Case</Label>
-              <Select>
+              <Label>Case *</Label>
+              <Select value={messageRN.caseId} onValueChange={(v) => setMessageRN({ ...messageRN, caseId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a case" />
                 </SelectTrigger>
@@ -525,13 +659,23 @@ export default function AttorneyCaseNotes() {
               </Select>
             </div>
             <div>
-              <Label>Message</Label>
-              <Textarea placeholder="Type your message..." rows={6} />
+              <Label>Message *</Label>
+              <Textarea 
+                value={messageRN.messageText}
+                onChange={(e) => setMessageRN({ ...messageRN, messageText: e.target.value })}
+                placeholder="Type your message..." 
+                rows={6} 
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMessageRNOpen(false)}>Cancel</Button>
-            <Button>Send</Button>
+            <Button variant="outline" onClick={() => {
+              setMessageRNOpen(false);
+              setMessageRN({ caseId: '', messageText: '' });
+            }}>Cancel</Button>
+            <Button onClick={handleSendRNMessage} disabled={sendingMessage || !messageRN.caseId || !messageRN.messageText.trim()}>
+              {sendingMessage ? 'Sending...' : 'Send'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

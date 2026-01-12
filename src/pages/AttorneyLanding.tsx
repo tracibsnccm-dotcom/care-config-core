@@ -4,6 +4,7 @@ import PerformanceDashboard from "@/components/attorney/PerformanceDashboard";
 import DocumentHub from "@/components/attorney/DocumentHub";
 import ClientCommunicationCenter from "@/components/attorney/ClientCommunicationCenter";
 import CalendarScheduling from "@/components/attorney/CalendarScheduling";
+import AttorneyCaseNotes from "@/components/attorney/AttorneyCaseNotes";
 import SettlementManagement from "@/components/attorney/SettlementManagement";
 import CaseAnalyticsInsights from "@/components/attorney/CaseAnalyticsInsights";
 import TaskDeadlineManager from "@/components/attorney/TaskDeadlineManager";
@@ -415,6 +416,7 @@ export default function AttorneyLanding() {
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="communication">Communication</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="notes">Case Notes</TabsTrigger>
             <TabsTrigger value="settlement">Settlement</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -656,6 +658,11 @@ export default function AttorneyLanding() {
           {/* Calendar Tab */}
           <TabsContent value="calendar">
             <CalendarScheduling />
+          </TabsContent>
+
+          {/* Case Notes Tab */}
+          <TabsContent value="notes">
+            <AttorneyCaseNotes />
           </TabsContent>
 
           {/* Settlement Management Tab */}
