@@ -261,7 +261,11 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
                   Cancel
                 </Button>
                 <Button
-                  onClick={saveProfile}
+                  type="button"
+                  onClick={() => {
+                    console.log("Save button clicked");
+                    saveProfile();
+                  }}
                   disabled={saving}
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
