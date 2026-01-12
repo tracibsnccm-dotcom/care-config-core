@@ -107,8 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('=== Auth: About to call getSession() ===');
         const {
           data: { session },
+          error: sessionError,
         } = await supabase.auth.getSession();
-        console.log('=== Auth: getSession() returned, session:', !!session);
+        
+        console.log('=== Auth: getSession() returned:', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: sessionError
+        });
+        
+        if (sessionError) {
+          console.error('=== Auth: getSession() ERROR:', sessionError);
+        }
+        
         setSession(session ?? null);
         setUser(session?.user ?? null);
       } catch (error) {
@@ -123,13 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('=== Auth: onAuthStateChange event:', event, 'hasSession:', !!session, 'userId:', session?.user?.id);
+      
       setSession(session ?? null);
       const newUserId = session?.user?.id ?? null;
       const currentUserId = user?.id ?? null;
       
       // Only set rolesLoading if the user ID has actually changed
       if (newUserId !== currentUserId) {
+        console.log('=== Auth: User ID changed, updating user and roles');
         setUser(session?.user ?? null);
         // Fetch roles when auth state changes
         if (session?.user?.id) {
@@ -148,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Same user, just update session/user state without reloading roles
+        console.log('=== Auth: Same user, updating session only');
         setUser(session?.user ?? null);
       }
     });

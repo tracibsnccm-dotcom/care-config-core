@@ -86,11 +86,43 @@ export default function RNPortalLogin() {
         throw new Error("This portal is for RN staff only. Please contact support if you need access.");
       }
 
+      // Verify session is present
+      if (!authData.session) {
+        throw new Error("Login failed: No session created");
+      }
+
+      console.log('RNPortalLogin: Login successful, session created:', !!authData.session);
+      console.log('RNPortalLogin: User ID:', authData.user.id);
+
+      // Give Supabase a moment to persist the session to storage
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify session is stored and accessible
+      const { data: sessionCheck, error: sessionError } = await supabase.auth.getSession();
+      console.log('RNPortalLogin: Session check after delay:', {
+        hasSession: !!sessionCheck?.session,
+        userId: sessionCheck?.session?.user?.id,
+        error: sessionError
+      });
+
+      if (sessionError) {
+        console.error('RNPortalLogin: Session check error:', sessionError);
+        throw new Error("Failed to verify session. Please try again.");
+      }
+
+      if (!sessionCheck?.session) {
+        console.error('RNPortalLogin: Session not found after login');
+        throw new Error("Session not persisted. Please try again.");
+      }
+
       // Success! Show success animation briefly before redirect
       setSuccess(true);
+      
+      // Wait a bit more to ensure session is fully persisted, then redirect
       setTimeout(() => {
+        console.log('RNPortalLogin: Redirecting to /rn-console');
         window.location.href = '/rn-console';
-      }, 1000);
+      }, 800);
     } catch (err: any) {
       console.error("RNPortalLogin: Error:", err);
       setError(err.message || "Login failed. Please check your credentials and try again.");
