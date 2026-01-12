@@ -58,7 +58,11 @@ export default function CalendarScheduling() {
       const assignmentsData = await assignmentsResponse.json();
       const caseIds = assignmentsData.map((a: any) => a.case_id);
 
+      console.log("=== FETCHING APPOINTMENTS ===");
+      console.log("Case IDs:", caseIds);
+
       if (caseIds.length === 0) {
+        console.log("No case IDs found");
         setAppointments([]);
         return;
       }
@@ -73,11 +77,12 @@ export default function CalendarScheduling() {
       });
 
       if (!appointmentsResponse.ok) {
-        console.error("Failed to fetch appointments");
+        console.error("Failed to fetch appointments, status:", appointmentsResponse.status);
         return;
       }
 
       const appointmentsData = await appointmentsResponse.json();
+      console.log("Appointments fetched:", appointmentsData);
 
       // Fetch case info to get client names
       const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(',')})&select=id,case_number,rc_clients(first_name,last_name)`;
@@ -117,6 +122,7 @@ export default function CalendarScheduling() {
         };
       });
 
+      console.log("Transformed appointments:", transformedAppointments);
       setAppointments(transformedAppointments);
 
       // Fetch barrier reasons for cancelled/missed appointments
@@ -235,8 +241,8 @@ export default function CalendarScheduling() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Appointment Activity</h2>
-        <p className="text-sm text-muted-foreground">Track client appointment updates across your cases</p>
+        <h2 className="text-2xl font-bold text-gray-900">Appointment Activity</h2>
+        <p className="text-sm text-gray-600">Track client appointment updates across your cases</p>
       </div>
 
       <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full">
@@ -260,7 +266,7 @@ export default function CalendarScheduling() {
                 <div className="space-y-6">
                   {sortedDates.map(date => (
                     <div key={date}>
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 sticky top-0 bg-background py-2">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-2">
                         {date}
                       </h3>
                       <div className="space-y-3 ml-4">
@@ -273,11 +279,11 @@ export default function CalendarScheduling() {
                           return (
                             <div
                               key={apt.id}
-                              className={`p-4 rounded-lg border border-border transition-colors ${
-                                isCancelled ? 'bg-red-50' : isMissed ? 'bg-orange-50' : 'bg-white hover:bg-accent/50'
+                              className={`p-4 border rounded-lg shadow-sm transition-colors ${
+                                isCancelled ? 'bg-red-50' : isMissed ? 'bg-orange-50' : 'bg-white hover:bg-gray-50'
                               }`}
                             >
-                              <div className="flex items-start justify-between mb-2">
+                              <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-2">
                                     {getStatusBadge(apt.status)}
@@ -287,24 +293,27 @@ export default function CalendarScheduling() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className={hasStrikethrough ? 'line-through' : ''}>
-                                    <p className={`text-sm font-medium mb-1 ${hasStrikethrough ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                      {generateActivityMessage(apt)}
+                                  <p className={`font-medium mb-1 ${hasStrikethrough ? 'line-through text-gray-600' : 'text-gray-900'}`}>
+                                    {apt.client_name} - {apt.case_number}
+                                  </p>
+                                  <p className={`text-sm mb-1 ${hasStrikethrough ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                    {apt.appointment_type}
+                                    {apt.provider_name && ` with ${apt.provider_name}`}
+                                  </p>
+                                  <p className={`text-sm mb-1 ${hasStrikethrough ? 'line-through text-gray-500' : 'text-gray-600'}`}>
+                                    {formatDate(apt.scheduled_at)} at {formatTime(apt.scheduled_at)}
+                                  </p>
+                                  {apt.location && (
+                                    <p className={`text-sm ${hasStrikethrough ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                                      <MapPin className="h-3 w-3 inline mr-1" />
+                                      {apt.location}
                                     </p>
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <User className="h-3 w-3" />
-                                        {apt.client_name}
-                                      </span>
-                                      <span>Case: {apt.case_number}</span>
-                                      {apt.location && (
-                                        <span className="flex items-center gap-1">
-                                          <MapPin className="h-3 w-3" />
-                                          {apt.location}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
+                                  )}
+                                  {barrierReason && (
+                                    <p className={`text-sm mt-2 font-medium ${isCancelled ? 'text-red-600' : 'text-orange-600'}`}>
+                                      Reason: {barrierReason}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -317,8 +326,8 @@ export default function CalendarScheduling() {
               </ScrollArea>
             ) : (
               <div className="flex flex-col items-center justify-center h-[400px] text-center">
-                <CalendarIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground">No appointment activity for your cases</p>
+                <CalendarIcon className="h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600">No appointment activity for your cases</p>
               </div>
             )}
           </Card>
