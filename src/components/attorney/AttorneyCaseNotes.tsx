@@ -36,14 +36,15 @@ interface Note {
   case_id: string;
   case_number: string;
   client_name: string;
-  note_text: string;
+  content: string;
+  title?: string;
   created_at: string;
-  created_by_type: 'attorney' | 'rn' | 'client' | 'system';
-  created_by_id: string | null;
-  created_by_name: string | null;
-  is_auto: boolean;
+  created_by: string | null;
+  created_by_role: string | null;
+  created_by_name?: string | null;
+  is_auto_generated: boolean;
   note_type?: string;
-  trigger_event?: string;
+  visibility?: string;
 }
 
 export default function AttorneyCaseNotes() {
@@ -187,16 +188,15 @@ export default function AttorneyCaseNotes() {
             case_id: note.case_id,
             case_number: caseInfo?.case_number || note.case_id.slice(0, 8),
             client_name: caseInfo?.client_name || 'Client',
-            note_text: note.content || note.note_text || '',
+            content: note.content || '',
+            title: note.title,
             created_at: note.created_at,
-            created_by_type: note.created_by_role === 'ATTORNEY' ? 'attorney' : 
-                            note.created_by_role === 'RN_CCM' ? 'rn' : 
-                            note.is_auto_generated ? 'system' : 'attorney',
-            created_by_id: note.created_by,
+            created_by: note.created_by,
+            created_by_role: note.created_by_role,
             created_by_name: note.created_by_name || null,
-            is_auto: note.is_auto_generated || false,
+            is_auto_generated: note.is_auto_generated || false,
             note_type: note.note_type,
-            trigger_event: note.trigger_event,
+            visibility: note.visibility,
           };
         });
 
@@ -235,22 +235,15 @@ export default function AttorneyCaseNotes() {
 
       const noteData = {
         case_id: newNote.caseId,
+        title: newNote.noteText.trim().substring(0, 50) + (newNote.noteText.trim().length > 50 ? '...' : ''),
+        content: newNote.noteText.trim(),
         note_type: 'manual',
-        note_text: newNote.noteText.trim(),
-        content: newNote.noteText.trim(), // Also set content field for compatibility
         created_by: user.id,
-        created_by_type: 'attorney',
-        created_by_id: user.id,
         created_by_role: 'ATTORNEY',
-        created_by_name: attorneyName,
-        is_auto: false,
+        visibility: newNote.shareWithClient && newNote.shareWithRN ? 'shared_all' : 
+                    newNote.shareWithRN ? 'shared_rn' : 
+                    newNote.shareWithClient ? 'shared_client' : 'private',
         is_auto_generated: false,
-        visible_to_attorney: true,
-        visible_to_rn: newNote.shareWithRN,
-        visible_to_client: newNote.shareWithClient,
-        visibility: newNote.shareWithRN && newNote.shareWithClient ? 'shared_all' :
-                   newNote.shareWithRN ? 'shared_rn' :
-                   newNote.shareWithClient ? 'shared_provider' : 'private',
         created_at: new Date().toISOString(),
       };
 
@@ -431,20 +424,20 @@ export default function AttorneyCaseNotes() {
   };
 
   const getNoteTypeBadge = (note: Note) => {
-    if (note.is_auto || note.created_by_type === 'system') {
+    if (note.is_auto_generated) {
       return <Badge className="bg-gray-500 text-white">System</Badge>;
-    } else if (note.created_by_type === 'attorney') {
+    } else if (note.created_by_role === 'ATTORNEY') {
       return <Badge className="bg-blue-600 text-white">Attorney</Badge>;
-    } else if (note.created_by_type === 'rn') {
+    } else if (note.created_by_role === 'RN_CCM' || note.created_by_role === 'RN') {
       return <Badge className="bg-green-600 text-white">RN</Badge>;
-    } else if (note.created_by_type === 'client') {
+    } else if (note.created_by_role === 'CLIENT') {
       return <Badge className="bg-purple-600 text-white">Client</Badge>;
     }
     return <Badge variant="outline">Note</Badge>;
   };
 
   const getEventIcon = (note: Note) => {
-    const eventType = note.trigger_event || note.note_type || '';
+    const eventType = note.note_type || '';
     if (eventType.includes('appointment') || eventType.includes('calendar')) {
       return <Calendar className="h-4 w-4" />;
     } else if (eventType.includes('medication') || eventType.includes('med')) {
@@ -464,11 +457,11 @@ export default function AttorneyCaseNotes() {
     
     switch (activeFilter) {
       case 'auto':
-        return note.is_auto || note.created_by_type === 'system';
+        return note.is_auto_generated;
       case 'manual':
-        return !note.is_auto && note.created_by_type === 'attorney';
+        return !note.is_auto_generated && note.created_by_role === 'ATTORNEY';
       case 'rn':
-        return note.created_by_type === 'rn';
+        return note.created_by_role === 'RN_CCM' || note.created_by_role === 'RN';
       default:
         return true;
     }
@@ -546,7 +539,7 @@ export default function AttorneyCaseNotes() {
                       {note.case_number} - {note.client_name}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.note_text}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
                   {note.created_by_name && (
                     <p className="text-xs text-gray-500 mt-2">By: {note.created_by_name}</p>
                   )}
