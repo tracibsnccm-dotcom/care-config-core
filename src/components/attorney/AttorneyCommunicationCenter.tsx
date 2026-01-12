@@ -651,19 +651,29 @@ export function AttorneyCommunicationCenter() {
                           rows={3}
                           className="bg-white border-slate-200"
                         />
-                        <div className="flex justify-end">
-                          <Button
+                        <div className="flex justify-end flex-col items-end gap-2">
+                          <button 
                             type="button"
-                            onClick={() => {
-                              console.log("Send button clicked");
+                            onClick={() => alert("Button works!")}
+                            className="bg-green-500 text-white px-2 py-1 rounded mb-2"
+                          >
+                            Test Click
+                          </button>
+                          <button
+                            type="button"
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("=== SEND BUTTON CLICKED ===");
+                              console.log("replyText:", replyText);
+                              console.log("selectedCase:", caseMsg);
                               handleSendReply();
                             }}
                             disabled={!replyText.trim() || sending}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
-                            <Send className="w-4 h-4 mr-2" />
-                            {sending ? 'Sending...' : 'Send Reply'}
-                          </Button>
+                            SEND TEST
+                          </button>
                         </div>
                       </div>
                     </div>
