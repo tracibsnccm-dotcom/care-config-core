@@ -644,19 +644,28 @@ export function AttorneyCommunicationCenter() {
                       <div className="space-y-2">
                         <Textarea
                           value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
+                          onChange={(e) => {
+                            console.log("Textarea changed:", e.target.value);
+                            setNewMessage(e.target.value);
+                          }}
                           placeholder="Type your message..."
                           rows={3}
                           className="bg-white border-slate-200"
                         />
                         <div className="flex justify-end">
                           <Button
-                            onClick={() => sendMessage(caseMsg.case.id)}
+                            type="button"
+                            onClick={() => {
+                              console.log("Send button clicked");
+                              console.log("Current newMessage state:", newMessage);
+                              console.log("Case ID:", caseMsg.case.id);
+                              sendMessage(caseMsg.case.id);
+                            }}
                             disabled={!newMessage.trim() || sending}
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Send className="w-4 h-4 mr-2" />
-                            {sending ? 'Sending...' : 'Send'}
+                            {sending ? 'Sending...' : 'Send Reply'}
                           </Button>
                         </div>
                       </div>
