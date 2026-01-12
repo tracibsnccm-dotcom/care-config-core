@@ -19,12 +19,7 @@ import {
 } from "lucide-react";
 import { format, isToday, parseISO } from "date-fns";
 import { AppLayout } from "@/components/AppLayout";
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, ExternalLink, FileText } from "lucide-react";
+import { WorkQueue } from "@/components/rn/WorkQueue";
 
 interface Case {
   id: string;
@@ -73,7 +68,6 @@ export default function RNDashboard() {
   const [cases, setCases] = useState<Case[]>([]);
   const [pendingCases, setPendingCases] = useState<Case[]>([]);
   const [activeCases, setActiveCases] = useState<Case[]>([]);
-  const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
   const [flags, setFlags] = useState<ClinicalFlag[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [stats, setStats] = useState({
@@ -342,151 +336,6 @@ export default function RNDashboard() {
     return <Badge variant="outline">{status}</Badge>;
   };
 
-  // Case Card Component
-  function CaseCard({ 
-    caseItem, 
-    isExpanded, 
-    onToggleExpand, 
-    isPending,
-    navigate 
-  }: { 
-    caseItem: Case; 
-    isExpanded: boolean; 
-    onToggleExpand: () => void;
-    isPending: boolean;
-    navigate: (path: string) => void;
-  }) {
-    return (
-      <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
-        <Card className="border-l-4" style={{ borderLeftColor: isPending ? '#f59e0b' : '#10b981' }}>
-          <CollapsibleTrigger className="w-full">
-            <CardContent className="p-3 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm">{caseItem.case_number || 'No case number'}</p>
-                      {caseItem.active_flags_count > 0 && (
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{caseItem.client_name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isPending ? 'bg-amber-500' : 'bg-green-500'}`} />
-                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0 pb-4 px-3">
-              <div className="space-y-3 border-t pt-3 mt-3">
-                {/* Read-only summary information */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-muted-foreground font-medium">Date of Injury:</span>
-                    <p className="mt-0.5">
-                      {caseItem.date_of_injury 
-                        ? format(parseISO(caseItem.date_of_injury), 'MMM d, yyyy')
-                        : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground font-medium">Case Type:</span>
-                    <p className="mt-0.5">{caseItem.case_type || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {caseItem.fourp_scores && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">4P Scores:</p>
-                    <div className="grid grid-cols-4 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">P1: </span>
-                        <span className="font-semibold">{caseItem.fourp_scores.physical || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">P2: </span>
-                        <span className="font-semibold">{caseItem.fourp_scores.psychological || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">P3: </span>
-                        <span className="font-semibold">{caseItem.fourp_scores.psychosocial || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">P4: </span>
-                        <span className="font-semibold">{caseItem.fourp_scores.professional || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {caseItem.viability_index !== null && (
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium">Viability Index: </span>
-                    <Badge variant="outline" className="text-xs ml-2">
-                      {caseItem.viability_index.toFixed(1)}
-                    </Badge>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-muted-foreground font-medium">Active Flags:</span>
-                    <p className="mt-0.5">{caseItem.active_flags_count}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground font-medium">Last Check-in:</span>
-                    <p className="mt-0.5">
-                      {caseItem.last_checkin_date
-                        ? format(parseISO(caseItem.last_checkin_date), 'MMM d, yyyy')
-                        : 'Never'}
-                    </p>
-                  </div>
-                </div>
-
-                {!isPending && caseItem.care_plan_status && (
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium">Care Plan Status: </span>
-                    {getStatusBadge(caseItem.care_plan_status)}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/cases/${caseItem.id}`);
-                    }}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Open Case
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/rn/case/${caseItem.id}/ten-vs`);
-                    }}
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    {isPending ? 'Start Care Plan' : 'View/Edit Care Plan'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-    );
-  }
 
   if (loading) {
     return (
@@ -558,80 +407,8 @@ export default function RNDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* My Work Queue Section */}
-          <div id="my-work-queue" className="lg:col-span-2 space-y-4">
-            {/* Pending Cases Section */}
-            <Card>
-              <CardHeader className="bg-amber-50 border-b border-amber-200">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-amber-900">Pending Cases</CardTitle>
-                  <Badge className="bg-amber-500">{pendingCases.length} Pending</Badge>
-                </div>
-                <CardDescription className="text-amber-700">
-                  Newly attested cases awaiting initial care plan
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {pendingCases.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8 text-sm">
-                        No pending cases
-                      </div>
-                    ) : (
-                      pendingCases.map((caseItem) => (
-                        <CaseCard
-                          key={caseItem.id}
-                          caseItem={caseItem}
-                          isExpanded={expandedCaseId === caseItem.id}
-                          onToggleExpand={() => setExpandedCaseId(
-                            expandedCaseId === caseItem.id ? null : caseItem.id
-                          )}
-                          isPending={true}
-                          navigate={navigate}
-                        />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Active Cases Section */}
-            <Card>
-              <CardHeader className="bg-green-50 border-b border-green-200">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-green-900">Active Cases</CardTitle>
-                  <Badge className="bg-green-500">{activeCases.length} Active</Badge>
-                </div>
-                <CardDescription className="text-green-700">
-                  Cases with existing care plans
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {activeCases.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8 text-sm">
-                        No active cases
-                      </div>
-                    ) : (
-                      activeCases.map((caseItem) => (
-                        <CaseCard
-                          key={caseItem.id}
-                          caseItem={caseItem}
-                          isExpanded={expandedCaseId === caseItem.id}
-                          onToggleExpand={() => setExpandedCaseId(
-                            expandedCaseId === caseItem.id ? null : caseItem.id
-                          )}
-                          isPending={false}
-                          navigate={navigate}
-                        />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+          <div id="my-work-queue" className="lg:col-span-2">
+            <WorkQueue />
           </div>
 
           {/* Sidebar */}
