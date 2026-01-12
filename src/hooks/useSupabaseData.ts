@@ -179,13 +179,40 @@ export function useCases() {
  * Never exposes draft cases.
  */
 export function useAttorneyCases() {
-  const { user } = useAuth();
+  const { user, roles, rolesLoading } = useAuth();
   const [cases, setCases] = useState<AttorneyCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Wait for roles to load before checking
+    if (rolesLoading) {
+      console.log('useAttorneyCases: Waiting for roles to load...');
+      return;
+    }
+
     if (!user) {
+      console.log('useAttorneyCases: No user, skipping fetch');
+      setCases([]);
+      setLoading(false);
+      return;
+    }
+
+    // Check if user is specifically an attorney (not RN or other roles)
+    const isAttorney = roles && roles.length > 0 && roles.some(r => {
+      const roleUpper = r.toUpperCase();
+      return roleUpper === 'ATTORNEY' || roleUpper === 'STAFF'; // Only fetch for attorneys/staff
+    });
+
+    console.log('useAttorneyCases: Roles check:', {
+      roles,
+      rolesLoading,
+      isAttorney,
+      userId: user?.id
+    });
+
+    if (!isAttorney) {
+      console.log('useAttorneyCases: User is not an attorney, skipping fetch. Roles:', roles);
       setCases([]);
       setLoading(false);
       return;
@@ -195,6 +222,7 @@ export function useAttorneyCases() {
       try {
         console.log('=== useAttorneyCases: fetchAttorneyCases called ===');
         console.log('useAttorneyCases: User ID:', user?.id);
+        console.log('useAttorneyCases: User roles:', roles);
         
         // Use attorney_accessible_cases() RPC which enforces released-only access
         const attorneyCases = await getAttorneyCases();
@@ -216,7 +244,7 @@ export function useAttorneyCases() {
     // Note: Real-time subscriptions for attorney cases would need to be handled
     // via the attorney_latest_final_cases view, but for MVP we'll refetch on demand
     // Attorneys can manually refresh if needed
-  }, [user]);
+  }, [user, roles, rolesLoading]);
 
   return { cases, loading, error, refetch: () => setLoading(true) };
 }
