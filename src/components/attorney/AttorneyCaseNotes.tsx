@@ -61,6 +61,7 @@ export default function AttorneyCaseNotes() {
   const [messageClient, setMessageClient] = useState({ caseId: '', messageText: '' });
   const [messageRN, setMessageRN] = useState({ caseId: '', messageText: '' });
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -209,7 +210,15 @@ export default function AttorneyCaseNotes() {
   }
 
   async function handleAddNote() {
+    console.log("=== SAVE NOTE CLICKED ===");
+    console.log("Selected case:", newNote.caseId);
+    console.log("Note text:", newNote.noteText);
+    console.log("Share with RN:", newNote.shareWithRN);
+    console.log("Share with Client:", newNote.shareWithClient);
+
+    console.log("=== HANDLE SAVE NOTE ===");
     if (!newNote.caseId || !newNote.noteText.trim() || !user?.id) {
+      console.log("Validation failed");
       toast({
         title: "Error",
         description: "Please select a case and enter note text",
@@ -218,6 +227,7 @@ export default function AttorneyCaseNotes() {
       return;
     }
 
+    setSaving(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -225,15 +235,26 @@ export default function AttorneyCaseNotes() {
 
       const noteData = {
         case_id: newNote.caseId,
+        note_type: 'manual',
         note_text: newNote.noteText.trim(),
+        content: newNote.noteText.trim(), // Also set content field for compatibility
         created_by: user.id,
+        created_by_type: 'attorney',
+        created_by_id: user.id,
         created_by_role: 'ATTORNEY',
         created_by_name: attorneyName,
+        is_auto: false,
         is_auto_generated: false,
+        visible_to_attorney: true,
+        visible_to_rn: newNote.shareWithRN,
+        visible_to_client: newNote.shareWithClient,
         visibility: newNote.shareWithRN && newNote.shareWithClient ? 'shared_all' :
                    newNote.shareWithRN ? 'shared_rn' :
                    newNote.shareWithClient ? 'shared_provider' : 'private',
+        created_at: new Date().toISOString(),
       };
+
+      console.log("Sending note data:", noteData);
 
       const response = await fetch(`${supabaseUrl}/rest/v1/rc_case_notes`, {
         method: 'POST',
@@ -246,9 +267,16 @@ export default function AttorneyCaseNotes() {
         body: JSON.stringify(noteData),
       });
 
+      console.log("Response status:", response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
         throw new Error('Failed to save note');
       }
+
+      const result = await response.json();
+      console.log("Note saved successfully:", result);
 
       toast({
         title: "Note added",
@@ -265,6 +293,8 @@ export default function AttorneyCaseNotes() {
         description: "Failed to save note: " + (err.message || "Unknown error"),
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -584,8 +614,23 @@ export default function AttorneyCaseNotes() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddNoteOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddNote}>Save</Button>
+            <Button variant="outline" onClick={() => {
+              setAddNoteOpen(false);
+              setNewNote({ caseId: '', noteText: '', shareWithRN: false, shareWithClient: false });
+            }}>Cancel</Button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Save button clicked");
+                handleAddNote();
+              }}
+              disabled={!newNote.caseId || !newNote.noteText.trim() || saving}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? "Saving..." : "Save Note"}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
