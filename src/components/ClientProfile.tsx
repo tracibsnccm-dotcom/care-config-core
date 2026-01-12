@@ -136,6 +136,7 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
   }
 
   async function saveProfile() {
+    console.log("=== HANDLE SAVE CALLED ===");
     if (!clientData) return;
 
     console.log("Save clicked, formData:", formData);
