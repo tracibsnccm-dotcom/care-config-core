@@ -1,29 +1,20 @@
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Pill, Plus, AlertCircle, Edit2, StopCircle, History } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Pill, Plus, ChevronDown, ChevronUp, Calendar, FileText } from "lucide-react";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LabeledSelect } from "@/components/LabeledSelect";
-
-interface MedicationChange {
-  id: string;
-  change_type: string;
-  change_reason: string;
-  previous_value: any;
-  new_value: any;
-  notes: string | null;
-  changed_at: string;
-}
 
 interface Medication {
   id: string;
@@ -34,10 +25,11 @@ interface Medication {
   start_date: string | null;
   end_date: string | null;
   side_effects: string | null;
+  adherence_notes: string | null;
+  injury_timing: string | null; // 'pre-injury' | 'post-injury'
   is_active: boolean;
   created_at: string;
-  injury_timing: string | null;
-  change_history: MedicationChange[];
+  updated_at: string;
 }
 
 interface ClientMedicationTrackerProps {
@@ -47,238 +39,423 @@ interface ClientMedicationTrackerProps {
 export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps) {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [showChangeDialog, setShowChangeDialog] = useState(false);
-  const [showDiscontinueDialog, setShowDiscontinueDialog] = useState(false);
-  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-  const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
-  const [changeReason, setChangeReason] = useState("");
-  const [discontinueReason, setDiscontinueReason] = useState("");
-  const [changeNotes, setChangeNotes] = useState("");
-  const [newDosage, setNewDosage] = useState("");
-  const [newFrequency, setNewFrequency] = useState("");
-  const [medicationHistory, setMedicationHistory] = useState<MedicationChange[]>([]);
-  
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [expandedMeds, setExpandedMeds] = useState<Set<string>>(new Set());
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
+  const [lastReconciliationDate, setLastReconciliationDate] = useState<string | null>(null);
+
   const [newMed, setNewMed] = useState({
     medication_name: "",
     dosage: "",
     frequency: "",
     prescribing_doctor: "",
     start_date: "",
-    side_effects: "",
+    reason_for_taking: "",
+    injury_timing: "post-injury" as "pre-injury" | "post-injury",
   });
 
   useEffect(() => {
     fetchMedications();
+    fetchLastReconciliationDate();
   }, [caseId]);
 
   async function fetchMedications() {
     try {
       setLoading(true);
-      const user = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from("client_medications")
-        .select("*")
-        .eq("client_id", user.data.user?.id)
-        .eq("case_id", caseId)
-        .order("is_active", { ascending: false })
-        .order("created_at", { ascending: false });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      if (error) throw error;
-      // Map data and ensure change_history is properly typed
-      const medicationsWithHistory = (data || []).map(med => ({
-        ...med,
-        change_history: [] as MedicationChange[] // We'll load this separately when needed
-      }));
-      setMedications(medicationsWithHistory as Medication[]);
-    } catch (err: any) {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_client_medications?case_id=eq.${caseId}&order=created_at.desc`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch medications');
+      }
+
+      const data = await response.json();
+      setMedications(data || []);
+    } catch (err) {
       console.error("Error fetching medications:", err);
     } finally {
       setLoading(false);
     }
   }
 
+  async function fetchLastReconciliationDate() {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // Get the most recent check-in date
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_client_checkins?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setLastReconciliationDate(data[0].created_at);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching last reconciliation date:", err);
+    }
+  }
+
   async function handleAddMedication() {
     if (!newMed.medication_name.trim()) {
-      toast.error("Please enter medication name");
+      alert("Please enter a medication name");
       return;
     }
 
     try {
-      const user = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from("client_medications")
-        .insert({
-          client_id: user.data.user?.id,
-          case_id: caseId,
-          ...newMed,
-        });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      if (error) throw error;
+      // Get client_id from sessionStorage or auth
+      const clientId = sessionStorage.getItem('client_id') || '';
 
-      toast.success("Medication added successfully!");
+      const medicationData = {
+        case_id: caseId,
+        client_id: clientId,
+        medication_name: newMed.medication_name.trim(),
+        dosage: newMed.dosage || null,
+        frequency: newMed.frequency || null,
+        prescribing_doctor: newMed.prescribing_doctor || null,
+        start_date: newMed.start_date || null,
+        injury_timing: newMed.injury_timing,
+        adherence_notes: newMed.reason_for_taking || null, // Store reason in adherence_notes
+        is_active: true,
+      };
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rc_client_medications`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify(medicationData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save medication');
+      }
+
+      // Reset form and refresh
       setNewMed({
         medication_name: "",
         dosage: "",
         frequency: "",
         prescribing_doctor: "",
         start_date: "",
-        side_effects: "",
+        reason_for_taking: "",
+        injury_timing: "post-injury",
       });
-      setShowForm(false);
-      fetchMedications();
+      setShowAddForm(false);
+      await fetchMedications();
     } catch (err: any) {
       console.error("Error adding medication:", err);
-      toast.error("Failed to add medication");
+      alert("Failed to add medication: " + (err.message || "Unknown error"));
     }
   }
 
-  async function handleChange() {
-    if (!selectedMed || !changeReason) {
-      toast.error("Please select a change reason");
-      return;
+  const toggleExpand = (medId: string) => {
+    const newExpanded = new Set(expandedMeds);
+    if (newExpanded.has(medId)) {
+      newExpanded.delete(medId);
+    } else {
+      newExpanded.add(medId);
     }
+    setExpandedMeds(newExpanded);
+  };
 
-    try {
-      const user = await supabase.auth.getUser();
-      const previousValue = {
-        dosage: selectedMed.dosage,
-        frequency: selectedMed.frequency,
-      };
-      const newValue = {
-        dosage: newDosage || selectedMed.dosage,
-        frequency: newFrequency || selectedMed.frequency,
-      };
+  // Filter medications
+  const activePreInjuryMeds = medications.filter(
+    (m) => m.injury_timing === "pre-injury" && m.is_active
+  );
+  const activePostInjuryMeds = medications.filter(
+    (m) => m.injury_timing === "post-injury" && m.is_active
+  );
+  const discontinuedMeds = medications.filter((m) => !m.is_active);
 
-      // Insert change record
-      const { error: changeError } = await supabase
-        .from("medication_changes")
-        .insert({
-          medication_id: selectedMed.id,
-          case_id: caseId,
-          client_id: user.data.user?.id,
-          change_type: "change",
-          change_reason: changeReason,
-          previous_value: previousValue,
-          new_value: newValue,
-          notes: changeNotes,
-          changed_by: user.data.user?.id,
-        });
-
-      if (changeError) throw changeError;
-
-      // Update medication
-      const { error: updateError } = await supabase
-        .from("client_medications")
-        .update({
-          dosage: newDosage || selectedMed.dosage,
-          frequency: newFrequency || selectedMed.frequency,
-        })
-        .eq("id", selectedMed.id);
-
-      if (updateError) throw updateError;
-
-      toast.success("Medication updated successfully");
-      setShowChangeDialog(false);
-      setChangeReason("");
-      setChangeNotes("");
-      setNewDosage("");
-      setNewFrequency("");
-      fetchMedications();
-    } catch (err: any) {
-      console.error("Error updating medication:", err);
-      toast.error("Failed to update medication");
-    }
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <p className="text-slate-600">Loading medications...</p>
+      </div>
+    );
   }
-
-  async function handleDiscontinue() {
-    if (!selectedMed || !discontinueReason) {
-      toast.error("Please select a discontinue reason");
-      return;
-    }
-
-    try {
-      const user = await supabase.auth.getUser();
-
-      // Insert change record
-      const { error: changeError } = await supabase
-        .from("medication_changes")
-        .insert({
-          medication_id: selectedMed.id,
-          case_id: caseId,
-          client_id: user.data.user?.id,
-          change_type: "discontinue",
-          change_reason: discontinueReason,
-          previous_value: { is_active: true },
-          new_value: { is_active: false },
-          notes: changeNotes,
-          changed_by: user.data.user?.id,
-        });
-
-      if (changeError) throw changeError;
-
-      // Update medication
-      const { error: updateError } = await supabase
-        .from("client_medications")
-        .update({
-          is_active: false,
-          end_date: new Date().toISOString().split("T")[0],
-        })
-        .eq("id", selectedMed.id);
-
-      if (updateError) throw updateError;
-
-      toast.success("Medication discontinued");
-      setShowDiscontinueDialog(false);
-      setDiscontinueReason("");
-      setChangeNotes("");
-      fetchMedications();
-    } catch (err: any) {
-      console.error("Error discontinuing medication:", err);
-      toast.error("Failed to discontinue medication");
-    }
-  }
-
-  async function loadMedicationHistory(medId: string) {
-    try {
-      const { data, error } = await supabase
-        .from("medication_changes")
-        .select("*")
-        .eq("medication_id", medId)
-        .order("changed_at", { ascending: false });
-
-      if (error) throw error;
-      setMedicationHistory(data || []);
-    } catch (err: any) {
-      console.error("Error loading history:", err);
-      toast.error("Failed to load history");
-    }
-  }
-
-  const activeMeds = medications.filter(m => m.is_active);
-  const inactiveMeds = medications.filter(m => !m.is_active);
 
   return (
-    <Card className="p-6 border-rcms-gold bg-white shadow-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Pill className="w-6 h-6 text-rcms-teal" />
-          My Medications
-        </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
+        <CardHeader>
+          <CardTitle className="text-white text-2xl">My Medications</CardTitle>
+          <p className="text-white/80 text-sm mt-1">
+            Track all medications related to your injury and recovery
+          </p>
+          {lastReconciliationDate && (
+            <p className="text-white/80 text-sm mt-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Last reviewed: {format(new Date(lastReconciliationDate), "MMM d, yyyy")} -{" "}
+              <button
+                onClick={() => {
+                  // Navigate to wellness check-in or show details
+                  window.location.href = "#wellness";
+                }}
+                className="underline hover:text-white"
+              >
+                View Details
+              </button>
+            </p>
+          )}
+        </CardHeader>
+      </Card>
+
+      {/* Section 1: Active Pre-Injury Medications */}
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
+        <CardHeader>
+          <CardTitle className="text-white">Active Pre-Injury Medications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {activePreInjuryMeds.length === 0 ? (
+            <p className="text-white/80 text-sm">No pre-injury medications recorded</p>
+          ) : (
+            activePreInjuryMeds.map((med) => (
+              <Card
+                key={med.id}
+                className="bg-white border-slate-200"
+                onClick={() => toggleExpand(med.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start cursor-pointer">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Pill className="w-4 h-4 text-teal-600" />
+                        <h4 className="font-semibold text-slate-800">{med.medication_name}</h4>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        {med.dosage && <span>{med.dosage}</span>}
+                        {med.dosage && med.frequency && <span> • </span>}
+                        {med.frequency && <span>{med.frequency}</span>}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(med.id);
+                      }}
+                    >
+                      {expandedMeds.has(med.id) ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {expandedMeds.has(med.id) && (
+                    <div className="mt-3 pt-3 border-t space-y-2 text-sm">
+                      {med.prescribing_doctor && (
+                        <div>
+                          <span className="font-medium text-slate-700">Prescribing Doctor: </span>
+                          <span className="text-slate-600">{med.prescribing_doctor}</span>
+                        </div>
+                      )}
+                      {med.start_date && (
+                        <div>
+                          <span className="font-medium text-slate-700">Start Date: </span>
+                          <span className="text-slate-600">
+                            {format(new Date(med.start_date), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                      )}
+                      {med.side_effects && (
+                        <div>
+                          <span className="font-medium text-slate-700">Side Effects: </span>
+                          <span className="text-slate-600">{med.side_effects}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 2: Active Post-Injury Medications */}
+      <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
+        <CardHeader>
+          <CardTitle className="text-white">Active Post-Injury Medications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {activePostInjuryMeds.length === 0 ? (
+            <p className="text-white/80 text-sm">No post-injury medications recorded</p>
+          ) : (
+            activePostInjuryMeds.map((med) => (
+              <Card
+                key={med.id}
+                className="bg-white border-slate-200"
+                onClick={() => toggleExpand(med.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start cursor-pointer">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Pill className="w-4 h-4 text-teal-600" />
+                        <h4 className="font-semibold text-slate-800">{med.medication_name}</h4>
+                        <Badge className="bg-amber-600 text-white text-xs">Injury Related</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        {med.dosage && <span>{med.dosage}</span>}
+                        {med.dosage && med.frequency && <span> • </span>}
+                        {med.frequency && <span>{med.frequency}</span>}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(med.id);
+                      }}
+                    >
+                      {expandedMeds.has(med.id) ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {expandedMeds.has(med.id) && (
+                    <div className="mt-3 pt-3 border-t space-y-2 text-sm">
+                      {med.prescribing_doctor && (
+                        <div>
+                          <span className="font-medium text-slate-700">Prescribing Doctor: </span>
+                          <span className="text-slate-600">{med.prescribing_doctor}</span>
+                        </div>
+                      )}
+                      {med.start_date && (
+                        <div>
+                          <span className="font-medium text-slate-700">Start Date: </span>
+                          <span className="text-slate-600">
+                            {format(new Date(med.start_date), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                      )}
+                      {med.adherence_notes && (
+                        <div>
+                          <span className="font-medium text-slate-700">Reason for Taking: </span>
+                          <span className="text-slate-600">{med.adherence_notes}</span>
+                        </div>
+                      )}
+                      {med.side_effects && (
+                        <div>
+                          <span className="font-medium text-slate-700">Side Effects: </span>
+                          <span className="text-slate-600">{med.side_effects}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Discontinued Medications */}
+      {discontinuedMeds.length > 0 && (
+        <Card className="border-teal-300 shadow-sm" style={{ backgroundColor: '#81cdc6' }}>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-white">Discontinued Medications</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDiscontinued(!showDiscontinued)}
+                className="text-white hover:text-white/80"
+              >
+                {showDiscontinued ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {showDiscontinued && (
+            <CardContent className="space-y-3">
+              {discontinuedMeds.map((med) => (
+                <Card
+                  key={med.id}
+                  className="bg-slate-100 border-slate-300 opacity-75"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Pill className="w-4 h-4 text-slate-500" />
+                      <h4 className="font-semibold text-slate-600 line-through">{med.medication_name}</h4>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {med.dosage && <span>{med.dosage}</span>}
+                      {med.end_date && (
+                        <>
+                          {med.dosage && <span> • </span>}
+                          <span>Stopped: {format(new Date(med.end_date), "MMM d, yyyy")}</span>
+                        </>
+                      )}
+                    </p>
+                    {med.adherence_notes && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Reason: {med.adherence_notes}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Add Medication Button */}
+      <div className="flex justify-end">
         <Button
-          onClick={() => setShowForm(!showForm)}
-          size="sm"
-          className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold transition-all"
+          onClick={() => setShowAddForm(true)}
+          className="bg-amber-600 hover:bg-amber-700 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Medication
         </Button>
       </div>
 
-      {showForm && (
-        <div className="mb-6 p-4 border border-border rounded-lg bg-muted/20">
+      {/* Add Medication Dialog */}
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Medication</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Medication Name *</Label>
@@ -299,11 +476,27 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
               </div>
               <div>
                 <Label>Frequency</Label>
-                <Input
+                <Select
                   value={newMed.frequency}
-                  onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })}
-                  placeholder="e.g., 3 times daily"
-                />
+                  onValueChange={(value) => setNewMed({ ...newMed, frequency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Once daily">Once daily</SelectItem>
+                    <SelectItem value="Twice daily">Twice daily</SelectItem>
+                    <SelectItem value="Three times daily">Three times daily</SelectItem>
+                    <SelectItem value="Four times daily">Four times daily</SelectItem>
+                    <SelectItem value="Every 4 hours">Every 4 hours</SelectItem>
+                    <SelectItem value="Every 6 hours">Every 6 hours</SelectItem>
+                    <SelectItem value="Every 8 hours">Every 8 hours</SelectItem>
+                    <SelectItem value="Every 12 hours">Every 12 hours</SelectItem>
+                    <SelectItem value="Once weekly">Once weekly</SelectItem>
+                    <SelectItem value="As needed (PRN)">As needed (PRN)</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -312,7 +505,7 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                 <Input
                   value={newMed.prescribing_doctor}
                   onChange={(e) => setNewMed({ ...newMed, prescribing_doctor: e.target.value })}
-                  placeholder="Dr. Smith"
+                  placeholder="e.g., Dr. Smith"
                 />
               </div>
               <div>
@@ -325,284 +518,46 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
               </div>
             </div>
             <div>
-              <Label>Side Effects (Optional)</Label>
+              <Label>Reason for Taking</Label>
               <Textarea
-                value={newMed.side_effects}
-                onChange={(e) => setNewMed({ ...newMed, side_effects: e.target.value })}
-                placeholder="Any side effects you've noticed..."
+                value={newMed.reason_for_taking}
+                onChange={(e) => setNewMed({ ...newMed, reason_for_taking: e.target.value })}
+                placeholder="e.g., pain management, inflammation"
                 rows={3}
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAddMedication} className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold">
+            <div>
+              <Label>Medication Type</Label>
+              <RadioGroup
+                value={newMed.injury_timing}
+                onValueChange={(value) => setNewMed({ ...newMed, injury_timing: value as "pre-injury" | "post-injury" })}
+                className="flex gap-4 mt-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pre-injury" id="pre-injury" />
+                  <Label htmlFor="pre-injury" className="cursor-pointer">
+                    Pre-Injury Medication
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="post-injury" id="post-injury" />
+                  <Label htmlFor="post-injury" className="cursor-pointer">
+                    Post-Injury Medication
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddMedication} className="bg-amber-600 hover:bg-amber-700 text-white">
                 Save Medication
               </Button>
-              <Button onClick={() => setShowForm(false)} variant="outline">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="animate-pulse h-24 bg-muted rounded"></div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {activeMeds.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Current Medications</h3>
-              <div className="space-y-3">
-                {activeMeds.map((med) => (
-                  <div key={med.id} className="p-4 border border-border rounded-lg bg-background">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">{med.medication_name}</p>
-                        <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                          {med.dosage && <p>Dosage: {med.dosage}</p>}
-                          {med.frequency && <p>Frequency: {med.frequency}</p>}
-                          {med.prescribing_doctor && <p>Prescribed by: {med.prescribing_doctor}</p>}
-                          {med.start_date && <p>Since: {new Date(med.start_date).toLocaleDateString()}</p>}
-                        </div>
-                        {med.side_effects && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm flex items-start gap-2">
-                            <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                            <p className="text-yellow-800"><strong>Side Effects:</strong> {med.side_effects}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedMed(med);
-                            setNewDosage(med.dosage || "");
-                            setNewFrequency(med.frequency || "");
-                            setShowChangeDialog(true);
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4 mr-1" />
-                          Change
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedMed(med);
-                            setShowDiscontinueDialog(true);
-                          }}
-                        >
-                          <StopCircle className="w-4 h-4 mr-1" />
-                          Discontinue
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedMed(med);
-                            loadMedicationHistory(med.id);
-                            setShowHistoryDialog(true);
-                          }}
-                        >
-                          <History className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {inactiveMeds.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-muted-foreground mb-3">Previous Medications</h3>
-              <div className="space-y-2">
-                {inactiveMeds.map((med) => (
-                  <div key={med.id} className="p-3 border border-border rounded-lg bg-muted/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground line-through">{med.medication_name}</p>
-                        {med.end_date && (
-                          <p className="text-xs text-muted-foreground">
-                            Discontinued: {new Date(med.end_date).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedMed(med);
-                          loadMedicationHistory(med.id);
-                          setShowHistoryDialog(true);
-                        }}
-                      >
-                        <History className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {medications.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <Pill className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>No medications tracked yet</p>
-              <p className="text-sm mt-1">Add your current medications to track them</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Change Dialog */}
-      <Dialog open={showChangeDialog} onOpenChange={setShowChangeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change Medication: {selectedMed?.medication_name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <LabeledSelect
-              label="Change Reason"
-              value={changeReason}
-              onChange={setChangeReason}
-              options={[
-                "Decreased dose",
-                "Increased dose",
-                "Changed frequency",
-                "Changed medication",
-                "Dose adjustment per doctor",
-              ]}
-            />
-            <div>
-              <Label>New Dosage (optional)</Label>
-              <Input
-                value={newDosage}
-                onChange={(e) => setNewDosage(e.target.value)}
-                placeholder="e.g., 400mg"
-              />
-            </div>
-            <div>
-              <Label>New Frequency (optional)</Label>
-              <Input
-                value={newFrequency}
-                onChange={(e) => setNewFrequency(e.target.value)}
-                placeholder="e.g., 2 times daily"
-              />
-            </div>
-            <div>
-              <Label>Notes</Label>
-              <Textarea
-                value={changeNotes}
-                onChange={(e) => setChangeNotes(e.target.value)}
-                placeholder="Additional notes about this change..."
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleChange} className="bg-rcms-gold text-rcms-black hover:bg-rcms-black hover:text-rcms-gold">
-                Save Change
-              </Button>
-              <Button onClick={() => setShowChangeDialog(false)} variant="outline">
-                Cancel
-              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Discontinue Dialog */}
-      <Dialog open={showDiscontinueDialog} onOpenChange={setShowDiscontinueDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Discontinue Medication: {selectedMed?.medication_name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <LabeledSelect
-              label="Discontinue Reason"
-              value={discontinueReason}
-              onChange={setDiscontinueReason}
-              options={[
-                "Completed dose",
-                "Stopped",
-                "Started a new medication",
-                "Allergy to medication",
-                "Ineffective",
-                "Side effects (non-allergic)",
-                "Treatment complete",
-                "Doctor recommendation",
-              ]}
-            />
-            <div>
-              <Label>Notes</Label>
-              <Textarea
-                value={changeNotes}
-                onChange={(e) => setChangeNotes(e.target.value)}
-                placeholder="Additional notes about discontinuing..."
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleDiscontinue} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Discontinue
-              </Button>
-              <Button onClick={() => setShowDiscontinueDialog(false)} variant="outline">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* History Dialog */}
-      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Change History: {selectedMed?.medication_name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {medicationHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No change history</p>
-            ) : (
-              medicationHistory.map((change) => (
-                <div key={change.id} className="p-3 border border-border rounded-lg bg-muted/20">
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="text-sm font-semibold capitalize">{change.change_type}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(change.changed_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground mb-1">
-                    <strong>Reason:</strong> {change.change_reason}
-                  </p>
-                  {change.notes && (
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Notes:</strong> {change.notes}
-                    </p>
-                  )}
-                  {change.change_type === "change" && change.previous_value && change.new_value && (
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {change.previous_value.dosage !== change.new_value.dosage && (
-                        <p>Dosage: {change.previous_value.dosage} → {change.new_value.dosage}</p>
-                      )}
-                      {change.previous_value.frequency !== change.new_value.frequency && (
-                        <p>Frequency: {change.previous_value.frequency} → {change.new_value.frequency}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
+    </div>
   );
 }
