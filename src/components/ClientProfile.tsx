@@ -178,13 +178,17 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
         throw new Error(errorText || 'Failed to save profile');
       }
 
-      // Refresh data
-      await fetchProfileData();
+      // Update local state with saved values
+      setClientData((prev) => (prev ? { ...prev, ...updateData } : null));
+      setFormData((prev) => ({ ...prev, ...updateData }));
       setIsEditing(false);
       toast({
         title: "Profile updated",
         description: "Your profile information has been saved successfully.",
       });
+      
+      // Optionally re-fetch to confirm (in background, doesn't block UI)
+      fetchProfileData().catch((err) => console.error("Error refreshing profile:", err));
     } catch (err: any) {
       console.error("Error saving profile:", err);
       toast({
