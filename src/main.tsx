@@ -266,7 +266,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/check-status" element={<CheckIntakeStatus />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
-          <Route path="/rn-login" element={<RNPortalLogin />} />
+          <Route path="/rn-login" element={
+            <AuthProvider>
+              <AppProvider>
+                <RNPortalLogin />
+              </AppProvider>
+            </AuthProvider>
+          } />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />
           

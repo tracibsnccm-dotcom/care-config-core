@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function RNPortalLogin() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -121,7 +123,7 @@ export default function RNPortalLogin() {
       // Wait a bit more to ensure session is fully persisted, then redirect
       setTimeout(() => {
         console.log('RNPortalLogin: Redirecting to /rn-console');
-        window.location.href = '/rn-console';
+        navigate('/rn-console', { replace: true });
       }, 800);
     } catch (err: any) {
       console.error("RNPortalLogin: Error:", err);
