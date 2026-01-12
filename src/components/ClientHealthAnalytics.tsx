@@ -115,11 +115,11 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
   // Prepare chart data for 4Ps
   const chartData = checkins.map((checkin) => ({
     date: format(new Date(checkin.created_at), "MMM d"),
-    physical: normalize4PValue(checkin.p_physical),
-    psychological: normalize4PValue(checkin.p_psychological),
-    psychosocial: normalize4PValue(checkin.p_psychosocial),
-    professional: normalize4PValue(checkin.p_professional),
-    pain: checkin.pain_scale || 0,
+    physical: Math.floor(normalize4PValue(checkin.p_physical)),
+    psychological: Math.floor(normalize4PValue(checkin.p_psychological)),
+    psychosocial: Math.floor(normalize4PValue(checkin.p_psychosocial)),
+    professional: Math.floor(normalize4PValue(checkin.p_professional)),
+    pain: Math.floor(checkin.pain_scale || 0),
   }));
 
   // Get latest vital signs
@@ -134,21 +134,21 @@ export function ClientHealthAnalytics({ caseId }: HealthAnalyticsProps) {
     return <Minus className="w-4 h-4 text-slate-400" />;
   };
 
-  // Calculate summary stats
+  // Calculate summary stats (rounded down to whole numbers)
   const avgPhysical = checkins.length > 0
-    ? checkins.reduce((sum, c) => sum + normalize4PValue(c.p_physical), 0) / checkins.length
+    ? Math.floor(checkins.reduce((sum, c) => sum + normalize4PValue(c.p_physical), 0) / checkins.length)
     : 0;
   const avgPsychological = checkins.length > 0
-    ? checkins.reduce((sum, c) => sum + normalize4PValue(c.p_psychological), 0) / checkins.length
+    ? Math.floor(checkins.reduce((sum, c) => sum + normalize4PValue(c.p_psychological), 0) / checkins.length)
     : 0;
   const avgPsychosocial = checkins.length > 0
-    ? checkins.reduce((sum, c) => sum + normalize4PValue(c.p_psychosocial), 0) / checkins.length
+    ? Math.floor(checkins.reduce((sum, c) => sum + normalize4PValue(c.p_psychosocial), 0) / checkins.length)
     : 0;
   const avgProfessional = checkins.length > 0
-    ? checkins.reduce((sum, c) => sum + normalize4PValue(c.p_professional), 0) / checkins.length
+    ? Math.floor(checkins.reduce((sum, c) => sum + normalize4PValue(c.p_professional), 0) / checkins.length)
     : 0;
   const avgPain = checkins.length > 0
-    ? checkins.reduce((sum, c) => sum + (c.pain_scale || 0), 0) / checkins.length
+    ? Math.floor(checkins.reduce((sum, c) => sum + (c.pain_scale || 0), 0) / checkins.length)
     : 0;
 
   if (loading) {
