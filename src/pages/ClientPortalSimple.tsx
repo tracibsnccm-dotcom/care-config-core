@@ -21,6 +21,7 @@ import {
 import { ClientJournal } from "@/components/ClientJournal";
 import { ClientMedicationTracker } from "@/components/ClientMedicationTracker";
 import { ClientTreatmentTracker } from "@/components/ClientTreatmentTracker";
+import { ClientMessages } from "@/components/ClientMessages";
 import { ConsentDocumentViewer } from "@/components/ConsentDocumentViewer";
 import { ClientWellnessCheckin } from "@/components/ClientWellnessCheckin";
 import { ClientAppointments } from "@/components/ClientAppointments";
@@ -318,17 +319,7 @@ export default function ClientPortalSimple() {
 
           {/* Messages Tab */}
           <TabsContent value="messages">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-amber-500" />
-                  Messages
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-slate-600">
-                <p className="text-slate-500">Secure messaging coming soon. You'll be able to communicate with your care team.</p>
-              </CardContent>
-            </Card>
+            {caseId && <ClientMessages caseId={caseId} />}
           </TabsContent>
 
           {/* Documents Tab */}
