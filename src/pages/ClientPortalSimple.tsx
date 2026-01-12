@@ -183,6 +183,10 @@ export default function ClientPortalSimple() {
               <Activity className="w-4 h-4 mr-2" />
               Wellness
             </TabsTrigger>
+            <TabsTrigger value="analytics" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+              <Activity className="w-4 h-4 mr-2" />
+              Health Analytics
+            </TabsTrigger>
             <TabsTrigger value="journal" className="text-slate-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
               <BookOpen className="w-4 h-4 mr-2" />
               Journal
@@ -285,6 +289,11 @@ export default function ClientPortalSimple() {
           {/* Wellness Tab */}
           <TabsContent value="wellness">
             {caseId && <ClientWellnessCheckin caseId={caseId} />}
+          </TabsContent>
+
+          {/* Health Analytics Tab */}
+          <TabsContent value="analytics">
+            {caseId && <ClientHealthAnalytics caseId={caseId} />}
           </TabsContent>
 
           {/* Journal Tab */}
