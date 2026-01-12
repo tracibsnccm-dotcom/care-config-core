@@ -1364,6 +1364,35 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                                 </tr>
                               </tbody>
                             </table>
+                            <div className="mt-4 pt-4 border-t">
+                              <p className="font-semibold text-slate-800 mb-2">A1C Levels (Average Blood Sugar Over 2-3 Months):</p>
+                              <table className="w-full text-left">
+                                <thead>
+                                  <tr className="border-b">
+                                    <th className="py-1 text-slate-700">Category</th>
+                                    <th className="py-1 text-slate-700">A1C (%)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr className="bg-green-100">
+                                    <td className="py-1 font-medium text-green-900">Normal</td>
+                                    <td className="py-1 text-green-900">Below 5.7%</td>
+                                  </tr>
+                                  <tr className="bg-amber-100">
+                                    <td className="py-1 font-medium text-amber-900">Pre-diabetic</td>
+                                    <td className="py-1 text-amber-900">5.7% - 6.4%</td>
+                                  </tr>
+                                  <tr className="bg-orange-100">
+                                    <td className="py-1 font-medium text-orange-900">Diabetic</td>
+                                    <td className="py-1 text-orange-900">6.5% or higher</td>
+                                  </tr>
+                                  <tr className="bg-blue-50">
+                                    <td className="py-1 font-medium text-blue-900">Well Controlled Diabetic</td>
+                                    <td className="py-1 text-blue-900">Under 7.0% (Target for most diabetics)</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </details>
                       </>
