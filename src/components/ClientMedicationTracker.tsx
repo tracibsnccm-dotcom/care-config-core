@@ -140,34 +140,28 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
   }
 
   async function fetchReconciliationDetails() {
-    if (reconciliationData) {
-      setShowReconciliationDetails(!showReconciliationDetails);
-      return;
-    }
-
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
+      
       const response = await fetch(
         `${supabaseUrl}/rest/v1/rc_med_reconciliations?case_id=eq.${caseId}&order=created_at.desc&limit=1`,
         {
           headers: {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
-          },
+          }
         }
       );
-
+      
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
           setReconciliationData(data[0]);
-          setShowReconciliationDetails(true);
         }
       }
     } catch (err) {
-      console.error("Error fetching reconciliation details:", err);
+      console.error("Error fetching reconciliation:", err);
     }
   }
 
@@ -280,40 +274,37 @@ export function ClientMedicationTracker({ caseId }: ClientMedicationTrackerProps
                 <Calendar className="w-4 h-4" />
                 Last reviewed: {format(new Date(lastReconciliationDate), "MMM d, yyyy")} -{" "}
                 <button
-                  onClick={fetchReconciliationDetails}
-                  className="underline hover:text-white"
+                  type="button"
+                  onClick={() => {
+                    console.log("View Details clicked");
+                    if (showReconciliationDetails) {
+                      setShowReconciliationDetails(false);
+                    } else {
+                      fetchReconciliationDetails();
+                      setShowReconciliationDetails(true);
+                    }
+                  }}
+                  className="text-amber-200 hover:text-amber-100 underline cursor-pointer"
                 >
                   View Details
                 </button>
               </p>
               {showReconciliationDetails && reconciliationData && (
-                <div className="mt-3 p-3 bg-white/20 border border-white/30 rounded-lg space-y-2">
-                  <p className="text-white font-medium text-sm">Medication Reconciliation Details</p>
-                  <div className="text-white/90 text-sm space-y-1">
-                    <p><strong>Date:</strong> {format(new Date(reconciliationData.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
-                    {reconciliationData.allergies && reconciliationData.allergies.length > 0 && (
-                      <div>
-                        <p className="font-medium">Allergies Recorded:</p>
-                        <ul className="list-disc list-inside ml-2">
-                          {Array.isArray(reconciliationData.allergies) 
-                            ? reconciliationData.allergies.map((allergy: any, idx: number) => (
-                                <li key={idx}>{allergy.medication || allergy.name || JSON.stringify(allergy)}</li>
-                              ))
-                            : <li>{reconciliationData.allergies}</li>
-                          }
-                        </ul>
-                      </div>
-                    )}
-                    {reconciliationData.summary && (
-                      <p><strong>Summary:</strong> {reconciliationData.summary}</p>
-                    )}
-                    {reconciliationData.notes && (
-                      <p><strong>Notes:</strong> {reconciliationData.notes}</p>
-                    )}
-                    {!reconciliationData.allergies && !reconciliationData.summary && !reconciliationData.notes && (
-                      <p className="text-white/70 italic">No additional details available</p>
-                    )}
-                  </div>
+                <div className="mt-3 p-3 bg-white/20 rounded-lg border border-white/30">
+                  <h4 className="text-white font-medium mb-2">Last Medication Review</h4>
+                  <p className="text-white/80 text-sm">
+                    Date: {new Date(reconciliationData.created_at).toLocaleDateString()}
+                  </p>
+                  {reconciliationData.has_allergies && (
+                    <p className="text-white/80 text-sm">
+                      Allergies: {reconciliationData.medication_allergies || 'None listed'}
+                    </p>
+                  )}
+                  {reconciliationData.additional_comments && (
+                    <p className="text-white/80 text-sm">
+                      Notes: {reconciliationData.additional_comments}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
