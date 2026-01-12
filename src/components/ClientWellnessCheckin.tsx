@@ -292,12 +292,23 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
     const dia = parseInt(diastolic);
     if (isNaN(sys) || isNaN(dia)) return null;
     
-    // Critical high (170+ OR 100+)
-    if (sys >= 170 || dia >= 100) {
+    // Hypertensive crisis (180+ OR 120+)
+    if (sys >= 180 || dia >= 120) {
+      return {
+        color: "bg-red-100 text-red-800 border-red-300",
+        message: "HYPERTENSIVE CRISIS - Seek emergency care immediately if you have any symptoms:\n- Chest pain\n- Shortness of breath\n- Back pain\n- Numbness or weakness\n- Change in vision\n- Difficulty speaking\n\nRemember FAST for stroke warning signs:\nF - Face drooping: Is one side of your face drooping or numb?\nA - Arm weakness: Is one arm weak or numb?\nS - Speech difficulty: Is your speech slurred or hard to understand?\nT - Time to call 911: If you have ANY of these symptoms, call 911 immediately!\n\nIf you have NO symptoms, call your healthcare professional immediately.",
+        isCritical: true,
+        isHypertensiveCrisis: true
+      };
+    }
+    
+    // Critical high (170-179 OR 100-119)
+    if ((sys >= 170 && sys < 180) || (dia >= 100 && dia < 120)) {
       return {
         color: "bg-red-100 text-red-800 border-red-300",
         message: "CRITICAL HIGH - Contact your MD/PCP immediately or call 911 if you are alone.",
-        isCritical: true
+        isCritical: true,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -306,7 +317,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       return {
         color: "bg-orange-100 text-orange-800 border-orange-300",
         message: "High (Stage 2) - Contact your MD",
-        isCritical: false
+        isCritical: false,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -315,7 +327,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       return {
         color: "bg-amber-100 text-amber-800 border-amber-300",
         message: "High (Stage 1) - Follow up with your MD",
-        isCritical: false
+        isCritical: false,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -324,7 +337,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       return {
         color: "bg-amber-100 text-amber-800 border-amber-300",
         message: "Elevated - Monitor",
-        isCritical: false
+        isCritical: false,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -333,7 +347,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       return {
         color: "bg-green-100 text-green-800 border-green-300",
         message: "Normal",
-        isCritical: false
+        isCritical: false,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -342,7 +357,8 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
       return {
         color: "bg-blue-100 text-blue-800 border-blue-300",
         message: "Low (Hypotension) - Contact your PCP if symptomatic",
-        isCritical: false
+        isCritical: false,
+        isHypertensiveCrisis: false
       };
     }
     
@@ -1037,12 +1053,41 @@ export function ClientWellnessCheckin({ caseId }: WellnessCheckinProps) {
                     </div>
                     {getBloodPressureStatus(bloodPressureSystolic, bloodPressureDiastolic) && (() => {
                       const status = getBloodPressureStatus(bloodPressureSystolic, bloodPressureDiastolic)!;
+                      if (status.isHypertensiveCrisis) {
+                        return (
+                          <Alert className="bg-red-100 border-red-300">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <AlertDescription className="text-red-800 text-sm space-y-3">
+                              <p className="font-semibold">HYPERTENSIVE CRISIS - Seek emergency care immediately if you have any symptoms:</p>
+                              <ul className="list-disc list-inside space-y-1 ml-2">
+                                <li>Chest pain</li>
+                                <li>Shortness of breath</li>
+                                <li>Back pain</li>
+                                <li>Numbness or weakness</li>
+                                <li>Change in vision</li>
+                                <li>Difficulty speaking</li>
+                              </ul>
+                              <div>
+                                <p className="font-semibold mb-2">Remember FAST for stroke warning signs:</p>
+                                <ul className="list-disc list-inside space-y-1 ml-2">
+                                  <li><strong>F</strong> - Face drooping: Is one side of your face drooping or numb?</li>
+                                  <li><strong>A</strong> - Arm weakness: Is one arm weak or numb?</li>
+                                  <li><strong>S</strong> - Speech difficulty: Is your speech slurred or hard to understand?</li>
+                                  <li><strong>T</strong> - Time to call 911: If you have ANY of these symptoms, call 911 immediately!</li>
+                                </ul>
+                              </div>
+                              <p className="font-medium">If you have NO symptoms, call your healthcare professional immediately.</p>
+                              <p className="text-xs italic mt-2">*Crisis symptoms: chest pain, shortness of breath, back pain, numbness, weakness, change in vision, difficulty speaking. Remember FAST for stroke: Face drooping, Arm weakness, Speech difficulty, Time to call 911.</p>
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
                       return (
                         <>
                           <Alert className={`${status.color} border`}>
                             <AlertDescription className="text-sm">{status.message}</AlertDescription>
                           </Alert>
-                          {status.isCritical && (
+                          {status.isCritical && !status.isHypertensiveCrisis && (
                             <Alert className="bg-red-50 border-red-300">
                               <AlertTriangle className="h-4 w-4 text-red-600" />
                               <AlertDescription className="text-red-800 text-sm">
