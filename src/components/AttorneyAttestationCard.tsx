@@ -258,11 +258,12 @@ export function AttorneyAttestationCard({
             createAutoNote({
               caseId: intake.case_id,
               noteType: 'attestation',
-              title: 'Attorney Confirmation',
-              content: generateAttestationNote(attorneyId, caseNumber, 'confirmed'),
-              createdBy: user?.id || '',
-              createdByRole: 'attorney',
-              visibility: 'all',
+              title: 'Attorney Confirmed Representation',
+              content: 'Attorney confirmed client representation',
+              triggerEvent: 'attorney_confirmed',
+              visibleToClient: true,
+              visibleToRN: true,
+              visibleToAttorney: true
             }).catch(() => {});
           });
         }, 0);

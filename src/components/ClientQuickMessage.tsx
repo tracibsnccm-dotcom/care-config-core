@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { createAutoNote } from "@/lib/autoNotes";
 
 interface Message {
   id: string;
@@ -110,6 +111,24 @@ export function ClientQuickMessage({ caseId }: ClientQuickMessageProps) {
       toast.success("Message sent!");
       setNewMessage("");
       fetchMessages();
+      
+      // Create auto-note for message sent
+      try {
+        const recipientMember = careTeam.find(m => m.user_id === recipient);
+        const recipientType = recipientMember?.role || 'team member';
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'communication',
+          title: 'Message Sent',
+          content: `Message sent from client to ${recipientType}`,
+          triggerEvent: 'message_sent',
+          visibleToClient: false,
+          visibleToRN: true,
+          visibleToAttorney: true
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for message:", err);
+      }
     } catch (err: any) {
       console.error("Error sending message:", err);
       toast.error("Failed to send message");

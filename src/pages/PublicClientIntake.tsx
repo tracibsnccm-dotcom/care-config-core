@@ -1,6 +1,7 @@
 // src/pages/PublicClientIntake.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { createCaseAndIntake } from "../lib/clientIntakeApi";
+import { createAutoNote } from "@/lib/autoNotes";
 
 type Step = 1 | 2 | 3;
 
@@ -186,6 +187,24 @@ export default function PublicClientIntake() {
 
       const { caseId } = await createCaseAndIntake(payload);
       setSuccessCaseId(caseId);
+      
+      // Create auto-note for intake completion
+      if (caseId) {
+        try {
+          await createAutoNote({
+            caseId: caseId,
+            noteType: 'intake',
+            title: 'Intake Completed',
+            content: 'Client completed intake assessment',
+            triggerEvent: 'intake_completed',
+            visibleToClient: true,
+            visibleToRN: true,
+            visibleToAttorney: true
+          });
+        } catch (err) {
+          console.error("Failed to create auto-note for intake completion:", err);
+        }
+      }
     } catch (e: any) {
       setError(e?.message || "Something went wrong.");
     } finally {

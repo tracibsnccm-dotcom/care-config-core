@@ -24,6 +24,7 @@ import { useState, useEffect } from "react";
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
+import { createAutoNote } from "@/lib/autoNotes";
 
 interface Case {
   id: string;
@@ -339,6 +340,22 @@ export default function AttorneyCaseNotes() {
 
       setMessageClientOpen(false);
       setMessageClient({ caseId: '', messageText: '' });
+      
+      // Create auto-note for message sent
+      try {
+        await createAutoNote({
+          caseId: messageClient.caseId,
+          noteType: 'communication',
+          title: 'Message Sent',
+          content: `Message sent from attorney to client`,
+          triggerEvent: 'message_sent',
+          visibleToClient: false,
+          visibleToRN: true,
+          visibleToAttorney: true
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for message:", err);
+      }
     } catch (err: any) {
       console.error("Error sending message:", err);
       toast({
@@ -400,6 +417,22 @@ export default function AttorneyCaseNotes() {
 
       setMessageRNOpen(false);
       setMessageRN({ caseId: '', messageText: '' });
+      
+      // Create auto-note for message sent
+      try {
+        await createAutoNote({
+          caseId: messageRN.caseId,
+          noteType: 'communication',
+          title: 'Message Sent',
+          content: `Message sent from attorney to RN`,
+          triggerEvent: 'message_sent',
+          visibleToClient: false,
+          visibleToRN: true,
+          visibleToAttorney: true
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for message:", err);
+      }
     } catch (err: any) {
       console.error("Error sending message:", err);
       toast({

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useApp } from "@/context/AppContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createAutoNote } from "@/lib/autoNotes";
 
 interface Message {
   id: string;
@@ -214,6 +215,24 @@ export function ClientMessaging({ caseId }: ClientMessagingProps) {
       
       // Refresh messages
       fetchMessages();
+      
+      // Create auto-note for message sent
+      try {
+        const recipient = teamMembers.find(m => m.user_id === recipientId);
+        const recipientType = recipient?.role || 'team member';
+        await createAutoNote({
+          caseId: caseId,
+          noteType: 'communication',
+          title: 'Message Sent',
+          content: `Message sent from client to ${recipientType}`,
+          triggerEvent: 'message_sent',
+          visibleToClient: false,
+          visibleToRN: true,
+          visibleToAttorney: true
+        });
+      } catch (err) {
+        console.error("Failed to create auto-note for message:", err);
+      }
     } catch (err: any) {
       console.error("Error sending message:", err);
       toast({

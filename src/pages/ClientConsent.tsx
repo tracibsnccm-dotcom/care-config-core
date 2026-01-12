@@ -344,6 +344,11 @@ export default function ClientConsent() {
           console.error('Failed to audit consent signing:', e);
         }
         
+        // NOTE: Auto-note for consent signing cannot be created here because
+        // consent is signed before case creation (no caseId available yet).
+        // Consider creating the note later when case is created, or linking
+        // consent to case after case creation.
+        
         // All steps complete - redirect to intake with attorney info in URL params
         const attorneyParam = selectedAttorneyId || '';
         const codeParam = attorneyCode || '';
