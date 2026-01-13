@@ -21,7 +21,10 @@ import {
   UserCheck,
   Search,
   GitBranch,
-  Mic
+  Mic,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,10 +32,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/config/rcms";
+import { useAuth } from "@/auth/supabaseAuth";
 import { useRNAssignments, useRNAssessments, useRNDiary } from "@/hooks/useRNData";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { RNToDoList } from "@/components/RNToDoList";
 import { MetricNoteDialog } from "@/components/MetricNoteDialog";
 import { useEffect, useState } from "react";
@@ -53,8 +63,27 @@ import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNNavigationGuard } from "@/components/RNNavigationGuard";
 import { WorkQueue } from "@/components/rn/WorkQueue";
 
+interface CaseItem {
+  id: string;
+  case_number: string | null;
+  client_name: string;
+  date_of_injury: string | null;
+  case_type: string | null;
+  fourp_scores: {
+    physical?: number;
+    psychological?: number;
+    psychosocial?: number;
+    professional?: number;
+  } | null;
+  viability_index: number | null;
+  active_flags_count: number;
+  last_checkin_date: string | null;
+  care_plan_status: string | null;
+}
+
 export default function RNPortalLanding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { role } = useApp();
   const isSupervisor = role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
   const { assignments } = useRNAssignments();
@@ -70,6 +99,10 @@ export default function RNPortalLanding() {
     value: number;
     target: number;
   } | null>(null);
+  const [pendingCases, setPendingCases] = useState<CaseItem[]>([]);
+  const [activeCases, setActiveCases] = useState<CaseItem[]>([]);
+  const [casesLoading, setCasesLoading] = useState(true);
+  const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
 
   const newAssignments = assignments.filter((a) => {
     const assignedDate = new Date(a.assigned_at);
@@ -109,6 +142,148 @@ export default function RNPortalLanding() {
     
     loadData();
   }, []);
+
+  // Fetch pending and active cases
+  useEffect(() => {
+    const fetchCases = async () => {
+      if (!user?.id) {
+        setCasesLoading(false);
+        return;
+      }
+
+      try {
+        setCasesLoading(true);
+
+        // First, get the rc_users.id from auth_user_id
+        const { data: rcUserData, error: rcUserError } = await supabase
+          .from('rc_users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (rcUserError || !rcUserData?.id) {
+          console.error('Failed to get rc_users.id:', rcUserError);
+          setPendingCases([]);
+          setActiveCases([]);
+          return;
+        }
+
+        const rcUserId = rcUserData.id;
+
+        // Get all cases for this RN
+        const { data: casesData, error: casesError } = await supabase
+          .from('rc_cases')
+          .select('id, case_number, date_of_injury, case_type, client_id')
+          .eq('rn_cm_id', rcUserId);
+
+        if (casesError) {
+          console.error('Failed to fetch cases:', casesError);
+          setPendingCases([]);
+          setActiveCases([]);
+          return;
+        }
+
+        if (!casesData || casesData.length === 0) {
+          setPendingCases([]);
+          setActiveCases([]);
+          return;
+        }
+
+        const caseIds = casesData.map(c => c.id);
+
+        // Fetch client names
+        const { data: clientsData } = await supabase
+          .from('rc_clients')
+          .select('id, first_name, last_name')
+          .in('id', casesData.map(c => c.client_id).filter(Boolean) || []);
+
+        // Fetch intakes to check attorney attestation
+        const { data: intakesData } = await supabase
+          .from('rc_client_intakes')
+          .select('case_id, attorney_attested_at')
+          .in('case_id', caseIds);
+
+        // Fetch care plans
+        const { data: carePlansData } = await supabase
+          .from('rc_care_plans')
+          .select('case_id, plan_type, updated_at')
+          .in('case_id', caseIds);
+
+        // Fetch latest check-ins for 4P scores
+        const { data: checkinsData } = await supabase
+          .from('rc_client_checkins')
+          .select('case_id, fourp_physical, fourp_psychological, fourp_psychosocial, fourp_professional, created_at')
+          .in('case_id', caseIds)
+          .order('created_at', { ascending: false });
+
+        const casesWithCarePlans = new Set(carePlansData?.map(cp => cp.case_id) || []);
+
+        // Build cases array
+        const casesWithData: CaseItem[] = (casesData || []).map(c => {
+          const client = clientsData?.find(cl => cl.id === c.client_id);
+          const clientName = client ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown Client';
+          
+          const intake = intakesData?.find(i => i.case_id === c.id);
+          const attorneyAttested = !!intake?.attorney_attested_at;
+          const hasCarePlan = casesWithCarePlans.has(c.id);
+
+          const latestCheckin = checkinsData?.find(ch => ch.case_id === c.id);
+          const fourpScores = latestCheckin ? {
+            physical: latestCheckin.fourp_physical,
+            psychological: latestCheckin.fourp_psychological,
+            psychosocial: latestCheckin.fourp_psychosocial,
+            professional: latestCheckin.fourp_professional,
+          } : null;
+
+          const viabilityIndex = fourpScores 
+            ? ((fourpScores.physical || 0) + (fourpScores.psychological || 0) + 
+               (fourpScores.psychosocial || 0) + (fourpScores.professional || 0)) / 4
+            : null;
+
+          const carePlan = carePlansData?.find(cp => cp.case_id === c.id);
+          const carePlanStatus = carePlan 
+            ? (carePlan.plan_type === 'final' ? 'Complete' : 
+               carePlan.plan_type === 'updated' ? 'In Progress' : 'Draft')
+            : null;
+
+          return {
+            id: c.id,
+            case_number: c.case_number,
+            client_name: clientName,
+            date_of_injury: c.date_of_injury,
+            case_type: c.case_type,
+            fourp_scores: fourpScores,
+            viability_index: viabilityIndex,
+            active_flags_count: 0, // TODO: Fetch from clinical flags table
+            last_checkin_date: latestCheckin?.created_at || null,
+            care_plan_status: carePlanStatus,
+          };
+        });
+
+        // Split into pending and active
+        // Pending: attorney attested but no care plan
+        const pending = casesWithData.filter(c => {
+          const intake = intakesData?.find(i => i.case_id === c.id);
+          const attorneyAttested = !!intake?.attorney_attested_at;
+          return attorneyAttested && !casesWithCarePlans.has(c.id);
+        });
+
+        // Active: has care plan
+        const active = casesWithData.filter(c => casesWithCarePlans.has(c.id));
+
+        setPendingCases(pending);
+        setActiveCases(active);
+      } catch (error) {
+        console.error('Error fetching cases:', error);
+        setPendingCases([]);
+        setActiveCases([]);
+      } finally {
+        setCasesLoading(false);
+      }
+    };
+
+    fetchCases();
+  }, [user?.id]);
 
   const handleMetricClick = (name: string, label: string, value: number, target: number) => {
     setSelectedMetric({ name, label, value, target });
@@ -199,6 +374,328 @@ export default function RNPortalLanding() {
               </Alert>
             </div>
           )}
+
+          {/* PENDING CASES SECTION */}
+          <section id="pending-cases" className="mb-6">
+            <Card>
+              <CardHeader className="bg-amber-50 border-b border-amber-200" style={{ backgroundColor: '#fef3c7' }}>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-amber-900">Pending Cases</CardTitle>
+                  <Badge className="bg-amber-500" style={{ backgroundColor: '#f59e0b' }}>
+                    {pendingCases.length} Pending
+                  </Badge>
+                </div>
+                <CardDescription className="text-amber-700">
+                  Newly attested cases awaiting initial care plan
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                {casesLoading ? (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Loading pending cases...</div>
+                ) : pendingCases.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8 text-sm">No pending cases</div>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {pendingCases.map((caseItem) => (
+                        <Collapsible
+                          key={caseItem.id}
+                          open={expandedCaseId === caseItem.id}
+                          onOpenChange={(open) => setExpandedCaseId(open ? caseItem.id : null)}
+                        >
+                          <Card className="border-l-4" style={{ borderLeftColor: '#f59e0b' }}>
+                            <CollapsibleTrigger className="w-full">
+                              <CardContent className="p-3 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm">{caseItem.case_number || 'No case number'}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">{caseItem.client_name}</p>
+                                    </div>
+                                  </div>
+                                  {expandedCaseId === caseItem.id ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <CardContent className="pt-0 pb-4 px-3">
+                                <div className="space-y-3 border-t pt-3 mt-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Date of Injury:</span>
+                                      <p className="mt-0.5">
+                                        {caseItem.date_of_injury 
+                                          ? format(parseISO(caseItem.date_of_injury), 'MMM d, yyyy')
+                                          : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Case Type:</span>
+                                      <p className="mt-0.5">{caseItem.case_type || 'N/A'}</p>
+                                    </div>
+                                  </div>
+
+                                  {caseItem.fourp_scores && (
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">4P Scores:</p>
+                                      <div className="grid grid-cols-4 gap-2 text-xs">
+                                        <div>
+                                          <span className="text-muted-foreground">P1: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.physical || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P2: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.psychological || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P3: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.psychosocial || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P4: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.professional || 'N/A'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Active Flags:</span>
+                                      <p className="mt-0.5">{caseItem.active_flags_count}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Last Check-in:</span>
+                                      <p className="mt-0.5">
+                                        {caseItem.last_checkin_date
+                                          ? format(parseISO(caseItem.last_checkin_date), 'MMM d, yyyy')
+                                          : 'Never'}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/cases/${caseItem.id}`);
+                                      }}
+                                    >
+                                      <ExternalLink className="h-3 w-3 mr-1" />
+                                      Open Case
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/rn/case/${caseItem.id}/ten-vs`);
+                                      }}
+                                    >
+                                      <FileText className="h-3 w-3 mr-1" />
+                                      Start Care Plan
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Today's Priorities and Caseload At-a-Glance */}
+          <section className="mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <RNCaseloadAtAGlance />
+              <RNTodaysPriorities />
+            </div>
+          </section>
+
+          {/* Recent Activity and Upcoming Deadlines */}
+          <section className="mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <RNRecentActivityFeed />
+              <RNUpcomingDeadlines />
+            </div>
+          </section>
+
+          {/* ACTIVE CASES SECTION */}
+          <section id="active-cases" className="mb-6">
+            <Card>
+              <CardHeader className="bg-green-50 border-b border-green-200" style={{ backgroundColor: '#d1fae5' }}>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-green-900">Active Cases</CardTitle>
+                  <Badge className="bg-green-500" style={{ backgroundColor: '#10b981' }}>
+                    {activeCases.length} Active
+                  </Badge>
+                </div>
+                <CardDescription className="text-green-700">
+                  Cases with existing care plans
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                {casesLoading ? (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Loading active cases...</div>
+                ) : activeCases.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8 text-sm">No active cases</div>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {activeCases.map((caseItem) => (
+                        <Collapsible
+                          key={caseItem.id}
+                          open={expandedCaseId === caseItem.id}
+                          onOpenChange={(open) => setExpandedCaseId(open ? caseItem.id : null)}
+                        >
+                          <Card className="border-l-4" style={{ borderLeftColor: '#10b981' }}>
+                            <CollapsibleTrigger className="w-full">
+                              <CardContent className="p-3 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm">{caseItem.case_number || 'No case number'}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">{caseItem.client_name}</p>
+                                    </div>
+                                  </div>
+                                  {expandedCaseId === caseItem.id ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <CardContent className="pt-0 pb-4 px-3">
+                                <div className="space-y-3 border-t pt-3 mt-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Date of Injury:</span>
+                                      <p className="mt-0.5">
+                                        {caseItem.date_of_injury 
+                                          ? format(parseISO(caseItem.date_of_injury), 'MMM d, yyyy')
+                                          : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Case Type:</span>
+                                      <p className="mt-0.5">{caseItem.case_type || 'N/A'}</p>
+                                    </div>
+                                  </div>
+
+                                  {caseItem.fourp_scores && (
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">4P Scores:</p>
+                                      <div className="grid grid-cols-4 gap-2 text-xs">
+                                        <div>
+                                          <span className="text-muted-foreground">P1: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.physical || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P2: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.psychological || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P3: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.psychosocial || 'N/A'}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">P4: </span>
+                                          <span className="font-semibold">{caseItem.fourp_scores.professional || 'N/A'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {caseItem.viability_index !== null && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground font-medium">Viability Index: </span>
+                                      <Badge variant="outline" className="text-xs ml-2">
+                                        {caseItem.viability_index.toFixed(1)}
+                                      </Badge>
+                                    </div>
+                                  )}
+
+                                  {caseItem.care_plan_status && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground font-medium">Care Plan Status: </span>
+                                      {caseItem.care_plan_status === 'Complete' ? (
+                                        <Badge className="bg-green-500 text-xs ml-2">{caseItem.care_plan_status}</Badge>
+                                      ) : caseItem.care_plan_status === 'In Progress' ? (
+                                        <Badge className="bg-blue-500 text-xs ml-2">{caseItem.care_plan_status}</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs ml-2">{caseItem.care_plan_status}</Badge>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Active Flags:</span>
+                                      <p className="mt-0.5">{caseItem.active_flags_count}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Last Check-in:</span>
+                                      <p className="mt-0.5">
+                                        {caseItem.last_checkin_date
+                                          ? format(parseISO(caseItem.last_checkin_date), 'MMM d, yyyy')
+                                          : 'Never'}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/cases/${caseItem.id}`);
+                                      }}
+                                    >
+                                      <ExternalLink className="h-3 w-3 mr-1" />
+                                      Open Case
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/rn/case/${caseItem.id}/ten-vs`);
+                                      }}
+                                    >
+                                      <FileText className="h-3 w-3 mr-1" />
+                                      View/Edit Care Plan
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </section>
 
           {/* Case Health Overview */}
           <section className="mb-6">
@@ -324,33 +821,6 @@ export default function RNPortalLanding() {
             </section>
           )}
 
-          {/* Summary Cards */}
-          <section className="mb-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3 rounded-lg border bg-card">
-                <div className="text-xs text-muted-foreground">Today's Schedule</div>
-                <div className="text-2xl font-bold text-blue-600 mt-1">
-                  {diaryEntries.filter((e) => e.scheduled_date === new Date().toISOString().split("T")[0]).length}
-                </div>
-                <div className="text-xs text-muted-foreground">Appointments</div>
-              </div>
-              <div className="p-3 rounded-lg border bg-card">
-                <div className="text-xs text-muted-foreground">New Assignments</div>
-                <div className="text-2xl font-bold mt-1">{newAssignments.length}</div>
-                <div className="text-xs text-muted-foreground">Last 3 days</div>
-              </div>
-              <div className="p-3 rounded-lg border bg-card">
-                <div className="text-xs text-muted-foreground">Incomplete Assessments</div>
-                <div className="text-2xl font-bold text-yellow-600 mt-1">{pendingAssessments.length}</div>
-                <div className="text-xs text-muted-foreground">To complete</div>
-              </div>
-              <div className="p-3 rounded-lg border bg-card">
-                <div className="text-xs text-muted-foreground">Follow-Ups</div>
-                <div className="text-2xl font-bold text-red-600 mt-1">{requireFollowup.length}</div>
-                <div className="text-xs text-muted-foreground">Required</div>
-              </div>
-            </div>
-          </section>
 
           {/* Tabbed Ribbon */}
           <Card className="mb-6">
@@ -395,20 +865,13 @@ export default function RNPortalLanding() {
 
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="mt-0 space-y-4">
-                  {/* Priority Section - First Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <RNCaseloadAtAGlance />
-                    <RNTodaysPriorities />
-                  </div>
-
                   {/* Work Queue - Cases ready for RN review */}
                   <div className="mt-4" data-work-queue id="work-queue">
                     <WorkQueue />
                   </div>
 
-                  {/* Communication & Compliance - Second Row */}
+                  {/* Compliance - Second Row */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <RNCommunicationPriority />
                     <RNComplianceAlerts />
                   </div>
 
@@ -419,10 +882,8 @@ export default function RNPortalLanding() {
                     </div>
                   )}
 
-                  {/* Activity & Deadlines - Fourth Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <RNRecentActivityFeed />
-                    <RNUpcomingDeadlines />
+                  {/* Time Stats Widget */}
+                  <div className="grid grid-cols-1 gap-4">
                     <RNTimeStatsWidget />
                   </div>
                 </TabsContent>
@@ -549,8 +1010,8 @@ export default function RNPortalLanding() {
             </Tabs>
           </Card>
 
-        {/* Main Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Bottom Cards - Keep only specified cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {isSupervisor && (
             <Link
               to="/rn-supervisor-dashboard"
@@ -571,133 +1032,7 @@ export default function RNPortalLanding() {
             </Link>
           )}
 
-          <Link
-            to="/cases"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
-                <ClipboardList className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">My Cases</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Access assigned cases, update notes, and track care plans.
-                </p>
-                <Badge className="mt-3" variant="secondary">{assignments.length} Active</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/rn-clinical-liaison"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                <HeartPulse className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Clinical Liaison</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Coordinate care, manage appointments, and track medical records.
-                </p>
-                <Badge className="mt-3" variant="secondary">Care Coordination</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/rn-diary"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">My Diary & Schedule</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  View all appointments, calls, follow-ups, and meetings in one calendar.
-                </p>
-                <Badge className="mt-3" variant="secondary">{upcomingDiaryEntries.length} Upcoming</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/client-portal"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Client Communication</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Message clients, review check-ins, and monitor wellness data.
-                </p>
-                <Badge className="mt-3" variant="secondary">HIPAA Secure</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/providers"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                <Users className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Provider Network</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Contact providers, request updates, and coordinate referrals.
-                </p>
-                <Badge className="mt-3" variant="secondary">Network Access</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/attorney-dashboard"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#0f2a6a]/10 text-[#0f2a6a] group-hover:bg-[#0f2a6a] group-hover:text-white transition">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Attorney Portal</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Communicate with attorneys, share case updates, and track legal coordination.
-                </p>
-                <Badge className="mt-3" variant="secondary">Legal Coordination</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/documents"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-[#128f8b]/10 text-[#128f8b] group-hover:bg-[#128f8b] group-hover:text-white transition">
-                <FolderKanban className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Documents & Files</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Access medical records, reports, and case documentation.
-                </p>
-                <Badge className="mt-3" variant="secondary">Secure Storage</Badge>
-              </div>
-            </div>
-          </Link>
-
-          {/* NEW Clinical Tools Section */}
+          {/* Education Materials */}
           <Link
             to="/rn/education-library"
             className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
@@ -716,78 +1051,7 @@ export default function RNPortalLanding() {
             </div>
           </Link>
 
-          <Link
-            to="/rn/care-plan-reminders"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-orange-100 text-orange-700 group-hover:bg-orange-600 group-hover:text-white transition">
-                <Bell className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Care Plan Reminders</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Manage care plan updates, medication reconciliation, and follow-up tasks.
-                </p>
-                <Badge className="mt-3" variant="secondary">Task Management</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/rn/case-handoffs"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-indigo-100 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition">
-                <UserCheck className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Case Handoffs</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Transfer cases between RN Case Managers with complete care continuity.
-                </p>
-                <Badge className="mt-3" variant="secondary">RN-to-RN</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/rn/clinical-guidelines"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-teal-100 text-teal-700 group-hover:bg-teal-600 group-hover:text-white transition">
-                <Search className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Clinical Guidelines</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Search ODG/MCG guidelines for evidence-based treatment recommendations.
-                </p>
-                <Badge className="mt-3" variant="secondary">Decision Support</Badge>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/rn/care-workflows"
-            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
-                <GitBranch className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground text-lg">Care Workflows</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Build and apply standardized care coordination workflow templates.
-                </p>
-                <Badge className="mt-3" variant="secondary">Workflow Builder</Badge>
-              </div>
-            </div>
-          </Link>
-
+          {/* Voice Documentation */}
           <Link
             to="/rn/voice-documentation"
             className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
@@ -806,10 +1070,48 @@ export default function RNPortalLanding() {
             </div>
           </Link>
 
-          {/* To-Do List Card */}
-          <div className="rounded-2xl border bg-card p-6 shadow-sm">
-            <RNToDoList />
+          {/* Resources - moved from top action bar */}
+          <div
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group cursor-pointer"
+            onClick={() => {
+              // Trigger the resources dialog from RNQuickActionsBar
+              if ((window as any).openRNResourcesDialog) {
+                (window as any).openRNResourcesDialog();
+              }
+            }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Resources</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Quick access to guides, training materials, and best practices.
+                </p>
+                <Badge className="mt-3" variant="secondary">Resource Library</Badge>
+              </div>
+            </div>
           </div>
+
+          {/* Log Activity - moved from top action bar */}
+          <Link
+            to="/rn-clinical-liaison"
+            className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-green-100 text-green-700 group-hover:bg-green-600 group-hover:text-white transition">
+                <Activity className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground text-lg">Log Activity</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Record clinical activities, notes, and case updates.
+                </p>
+                <Badge className="mt-3" variant="secondary">Activity Tracking</Badge>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Performance & Satisfaction Section */}

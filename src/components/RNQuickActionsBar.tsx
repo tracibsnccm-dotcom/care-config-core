@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square, ClipboardList } from "lucide-react";
+import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square, ClipboardList, Bell, Search, GitBranch, UserCheck, HeartPulse, FolderKanban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 
@@ -19,38 +19,37 @@ export function RNQuickActionsBar() {
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
 
-  // Handle "My Work Queue" click - scroll to work queue section or switch to overview tab
+  // Expose openResourcesDialog function globally so bottom card can trigger it
+  useEffect(() => {
+    (window as any).openRNResourcesDialog = () => setResourceDialogOpen(true);
+    return () => {
+      delete (window as any).openRNResourcesDialog;
+    };
+  }, []);
+
+  // Handle "My Work Queue" click - scroll to pending cases section
   const handleWorkQueueClick = () => {
-    // If we're on the RN dashboard, scroll to work queue section
+    // If we're on the RN dashboard, scroll to pending cases section
     if (location.pathname === '/rn-console' || location.pathname === '/rn-portal-landing') {
-      // First, try to switch to overview tab if not already there
-      const overviewTab = document.querySelector('#rn-dashboard-tabs [value="overview"]') as HTMLElement;
-      if (overviewTab && !overviewTab.getAttribute('data-state')?.includes('active')) {
-        overviewTab.click();
-      }
-      
-      // Then scroll to work queue section
       setTimeout(() => {
-        const workQueueElement = document.querySelector('[data-work-queue]') || 
-                                 document.querySelector('#work-queue');
-        if (workQueueElement) {
-          workQueueElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const pendingCasesElement = document.querySelector('#pending-cases');
+        if (pendingCasesElement) {
+          pendingCasesElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
           // Add a subtle highlight effect
-          workQueueElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
+          pendingCasesElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
           setTimeout(() => {
-            workQueueElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
+            pendingCasesElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
           }, 2000);
         }
-      }, 150);
+      }, 100);
     } else {
       // If not on dashboard, navigate to it
       navigate('/rn-console');
-      // After navigation, scroll to work queue
+      // After navigation, scroll to pending cases
       setTimeout(() => {
-        const workQueueElement = document.querySelector('[data-work-queue]') || 
-                                 document.querySelector('#work-queue');
-        if (workQueueElement) {
-          workQueueElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const pendingCasesElement = document.querySelector('#pending-cases');
+        if (pendingCasesElement) {
+          pendingCasesElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 500);
     }
@@ -98,14 +97,27 @@ export function RNQuickActionsBar() {
     }
   };
 
-  const actions = [
+  // First row: Core clinical work
+  const firstRowActions = [
     { icon: ClipboardList, label: "My Work Queue", onClick: handleWorkQueueClick, variant: "default" },
     { icon: FileText, label: "New Note", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: MessageSquare, label: "Message Client", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: Calendar, label: "Schedule", onClick: () => navigate("/rn-diary") },
-    { icon: Users, label: "Team Chat", onClick: () => navigate("/rn-clinical-liaison") },
+    { icon: Bell, label: "Care Plan Reminders", onClick: () => navigate("/rn/care-plan-reminders") },
+    { icon: Search, label: "Clinical Guidelines", onClick: () => navigate("/rn/clinical-guidelines") },
+    { icon: Users, label: "Provider Network", onClick: () => navigate("/providers") },
+    { icon: FileText, label: "Attorney Portal", onClick: () => navigate("/attorney-dashboard") },
+  ];
+
+  // Second row: Support/admin tools
+  const secondRowActions = [
+    { icon: HeartPulse, label: "Contact RN Sup/Mgr", onClick: () => navigate("/rn-clinical-liaison") },
+    { icon: FolderKanban, label: "Documents & Files", onClick: () => navigate("/documents") },
+    { icon: ClipboardList, label: "My To Do List", onClick: () => navigate("/rn-console") },
+    { icon: GitBranch, label: "Care Workflows", onClick: () => navigate("/rn/care-workflows") },
+    { icon: UserCheck, label: "Case Hand-Offs", onClick: () => navigate("/rn/case-handoffs") },
     { icon: AlertCircle, label: "Report Alert", onClick: () => navigate("/rn-clinical-liaison") },
-    { icon: Activity, label: "Log Activity", onClick: () => navigate("/rn-clinical-liaison") },
+    { icon: Users, label: "Team Chat", onClick: () => navigate("/rn-clinical-liaison") },
     { 
       icon: isTracking ? Square : Play, 
       label: isTracking ? "Stop Timer" : "Start Timer", 
@@ -118,23 +130,39 @@ export function RNQuickActionsBar() {
       },
       className: isTracking ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" : ""
     },
-    { icon: BookOpen, label: "Resources", onClick: () => setResourceDialogOpen(true) },
   ];
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-8 gap-2">
-        {actions.map((action) => (
-          <Button
-            key={action.label}
-            variant={(action as any).variant ?? "outline"}
-            className={`flex flex-col items-center gap-2 h-auto py-4 ${action.className || ""}`}
-            onClick={action.onClick}
-          >
-            <action.icon className="h-5 w-5" />
-            <span className="text-xs">{action.label}</span>
-          </Button>
-        ))}
+      <div className="space-y-2">
+        {/* First Row: Core clinical work */}
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-2">
+          {firstRowActions.map((action) => (
+            <Button
+              key={action.label}
+              variant={(action as any).variant ?? "outline"}
+              className={`flex flex-col items-center gap-2 h-auto py-4 ${action.className || ""}`}
+              onClick={action.onClick}
+            >
+              <action.icon className="h-5 w-5" />
+              <span className="text-xs">{action.label}</span>
+            </Button>
+          ))}
+        </div>
+        {/* Second Row: Support/admin tools */}
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-2">
+          {secondRowActions.map((action) => (
+            <Button
+              key={action.label}
+              variant="outline"
+              className={`flex flex-col items-center gap-2 h-auto py-4 ${action.className || ""}`}
+              onClick={action.onClick}
+            >
+              <action.icon className="h-5 w-5" />
+              <span className="text-xs">{action.label}</span>
+            </Button>
+          ))}
+        </div>
       </div>
 
       <Dialog open={resourceDialogOpen} onOpenChange={setResourceDialogOpen}>
