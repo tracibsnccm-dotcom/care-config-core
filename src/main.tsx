@@ -141,10 +141,10 @@ function Root() {
       return <AttorneyLogin />;
     }
 
-    // MVP RN Login: "/rn-login" routes to RNLogin component
-    // Separate login flow for RN users (NOT through /auth)
+    // MVP RN Login: "/rn-login" routes to RNPortalLogin component
+    // Separate private login flow for RN users (NOT through /auth)
     if (pathname === "/rn-login" || pathname.startsWith("/rn-login")) {
-      return <RNLogin />;
+      return <RNPortalLogin />;
     }
 
     // MVP Client Login: "/client-login" routes to ClientLogin component
