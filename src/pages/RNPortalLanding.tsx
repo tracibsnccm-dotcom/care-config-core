@@ -62,6 +62,7 @@ import { RNEngagementMetrics } from "@/components/RNEngagementMetrics";
 import { RNTimeStatsWidget } from "@/components/RNTimeStatsWidget";
 import { RNNavigationGuard } from "@/components/RNNavigationGuard";
 import { WorkQueue } from "@/components/rn/WorkQueue";
+import PendingCasesSection from "@/components/rn/PendingCasesSection";
 
 interface CaseItem {
   id: string;
@@ -83,7 +84,8 @@ interface CaseItem {
 
 export default function RNPortalLanding() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  console.log('RNPortalLanding: authUser from useAuth =', authUser?.id, 'full object:', authUser);
   const { role } = useApp();
   const isSupervisor = role === ROLES.SUPER_USER || role === ROLES.SUPER_ADMIN;
   const { assignments } = useRNAssignments();
@@ -99,7 +101,6 @@ export default function RNPortalLanding() {
     value: number;
     target: number;
   } | null>(null);
-  const [pendingCases, setPendingCases] = useState<CaseItem[]>([]);
   const [activeCases, setActiveCases] = useState<CaseItem[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
@@ -143,147 +144,6 @@ export default function RNPortalLanding() {
     loadData();
   }, []);
 
-  // Fetch pending and active cases
-  useEffect(() => {
-    const fetchCases = async () => {
-      if (!user?.id) {
-        setCasesLoading(false);
-        return;
-      }
-
-      try {
-        setCasesLoading(true);
-
-        // First, get the rc_users.id from auth_user_id
-        const { data: rcUserData, error: rcUserError } = await supabase
-          .from('rc_users')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .maybeSingle();
-
-        if (rcUserError || !rcUserData?.id) {
-          console.error('Failed to get rc_users.id:', rcUserError);
-          setPendingCases([]);
-          setActiveCases([]);
-          return;
-        }
-
-        const rcUserId = rcUserData.id;
-
-        // Get all cases for this RN
-        const { data: casesData, error: casesError } = await supabase
-          .from('rc_cases')
-          .select('id, case_number, date_of_injury, case_type, client_id')
-          .eq('rn_cm_id', rcUserId);
-
-        if (casesError) {
-          console.error('Failed to fetch cases:', casesError);
-          setPendingCases([]);
-          setActiveCases([]);
-          return;
-        }
-
-        if (!casesData || casesData.length === 0) {
-          setPendingCases([]);
-          setActiveCases([]);
-          return;
-        }
-
-        const caseIds = casesData.map(c => c.id);
-
-        // Fetch client names
-        const { data: clientsData } = await supabase
-          .from('rc_clients')
-          .select('id, first_name, last_name')
-          .in('id', casesData.map(c => c.client_id).filter(Boolean) || []);
-
-        // Fetch intakes to check attorney attestation
-        const { data: intakesData } = await supabase
-          .from('rc_client_intakes')
-          .select('case_id, attorney_attested_at')
-          .in('case_id', caseIds);
-
-        // Fetch care plans
-        const { data: carePlansData } = await supabase
-          .from('rc_care_plans')
-          .select('case_id, plan_type, updated_at')
-          .in('case_id', caseIds);
-
-        // Fetch latest check-ins for 4P scores
-        const { data: checkinsData } = await supabase
-          .from('rc_client_checkins')
-          .select('case_id, fourp_physical, fourp_psychological, fourp_psychosocial, fourp_professional, created_at')
-          .in('case_id', caseIds)
-          .order('created_at', { ascending: false });
-
-        const casesWithCarePlans = new Set(carePlansData?.map(cp => cp.case_id) || []);
-
-        // Build cases array
-        const casesWithData: CaseItem[] = (casesData || []).map(c => {
-          const client = clientsData?.find(cl => cl.id === c.client_id);
-          const clientName = client ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown Client';
-          
-          const intake = intakesData?.find(i => i.case_id === c.id);
-          const attorneyAttested = !!intake?.attorney_attested_at;
-          const hasCarePlan = casesWithCarePlans.has(c.id);
-
-          const latestCheckin = checkinsData?.find(ch => ch.case_id === c.id);
-          const fourpScores = latestCheckin ? {
-            physical: latestCheckin.fourp_physical,
-            psychological: latestCheckin.fourp_psychological,
-            psychosocial: latestCheckin.fourp_psychosocial,
-            professional: latestCheckin.fourp_professional,
-          } : null;
-
-          const viabilityIndex = fourpScores 
-            ? ((fourpScores.physical || 0) + (fourpScores.psychological || 0) + 
-               (fourpScores.psychosocial || 0) + (fourpScores.professional || 0)) / 4
-            : null;
-
-          const carePlan = carePlansData?.find(cp => cp.case_id === c.id);
-          const carePlanStatus = carePlan 
-            ? (carePlan.plan_type === 'final' ? 'Complete' : 
-               carePlan.plan_type === 'updated' ? 'In Progress' : 'Draft')
-            : null;
-
-          return {
-            id: c.id,
-            case_number: c.case_number,
-            client_name: clientName,
-            date_of_injury: c.date_of_injury,
-            case_type: c.case_type,
-            fourp_scores: fourpScores,
-            viability_index: viabilityIndex,
-            active_flags_count: 0, // TODO: Fetch from clinical flags table
-            last_checkin_date: latestCheckin?.created_at || null,
-            care_plan_status: carePlanStatus,
-          };
-        });
-
-        // Split into pending and active
-        // Pending: attorney attested but no care plan
-        const pending = casesWithData.filter(c => {
-          const intake = intakesData?.find(i => i.case_id === c.id);
-          const attorneyAttested = !!intake?.attorney_attested_at;
-          return attorneyAttested && !casesWithCarePlans.has(c.id);
-        });
-
-        // Active: has care plan
-        const active = casesWithData.filter(c => casesWithCarePlans.has(c.id));
-
-        setPendingCases(pending);
-        setActiveCases(active);
-      } catch (error) {
-        console.error('Error fetching cases:', error);
-        setPendingCases([]);
-        setActiveCases([]);
-      } finally {
-        setCasesLoading(false);
-      }
-    };
-
-    fetchCases();
-  }, [user?.id]);
 
   const handleMetricClick = (name: string, label: string, value: number, target: number) => {
     setSelectedMetric({ name, label, value, target });
@@ -376,146 +236,7 @@ export default function RNPortalLanding() {
           )}
 
           {/* PENDING CASES SECTION */}
-          <section id="pending-cases" className="mb-6">
-            <Card>
-              <CardHeader className="bg-amber-50 border-b border-amber-200" style={{ backgroundColor: '#fef3c7' }}>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-amber-900">Pending Cases</CardTitle>
-                  <Badge className="bg-amber-500" style={{ backgroundColor: '#f59e0b' }}>
-                    {pendingCases.length} Pending
-                  </Badge>
-                </div>
-                <CardDescription className="text-amber-700">
-                  Newly attested cases awaiting initial care plan
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                {casesLoading ? (
-                  <div className="text-center text-muted-foreground py-8 text-sm">Loading pending cases...</div>
-                ) : pendingCases.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8 text-sm">No pending cases</div>
-                ) : (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
-                      {pendingCases.map((caseItem) => (
-                        <Collapsible
-                          key={caseItem.id}
-                          open={expandedCaseId === caseItem.id}
-                          onOpenChange={(open) => setExpandedCaseId(open ? caseItem.id : null)}
-                        >
-                          <Card className="border-l-4" style={{ borderLeftColor: '#f59e0b' }}>
-                            <CollapsibleTrigger className="w-full">
-                              <CardContent className="p-3 hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3 flex-1">
-                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm">{caseItem.case_number || 'No case number'}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">{caseItem.client_name}</p>
-                                    </div>
-                                  </div>
-                                  {expandedCaseId === caseItem.id ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                  )}
-                                </div>
-                              </CardContent>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <CardContent className="pt-0 pb-4 px-3">
-                                <div className="space-y-3 border-t pt-3 mt-3">
-                                  <div className="grid grid-cols-2 gap-3 text-xs">
-                                    <div>
-                                      <span className="text-muted-foreground font-medium">Date of Injury:</span>
-                                      <p className="mt-0.5">
-                                        {caseItem.date_of_injury 
-                                          ? format(parseISO(caseItem.date_of_injury), 'MMM d, yyyy')
-                                          : 'N/A'}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground font-medium">Case Type:</span>
-                                      <p className="mt-0.5">{caseItem.case_type || 'N/A'}</p>
-                                    </div>
-                                  </div>
-
-                                  {caseItem.fourp_scores && (
-                                    <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">4P Scores:</p>
-                                      <div className="grid grid-cols-4 gap-2 text-xs">
-                                        <div>
-                                          <span className="text-muted-foreground">P1: </span>
-                                          <span className="font-semibold">{caseItem.fourp_scores.physical || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">P2: </span>
-                                          <span className="font-semibold">{caseItem.fourp_scores.psychological || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">P3: </span>
-                                          <span className="font-semibold">{caseItem.fourp_scores.psychosocial || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">P4: </span>
-                                          <span className="font-semibold">{caseItem.fourp_scores.professional || 'N/A'}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="grid grid-cols-2 gap-3 text-xs">
-                                    <div>
-                                      <span className="text-muted-foreground font-medium">Active Flags:</span>
-                                      <p className="mt-0.5">{caseItem.active_flags_count}</p>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground font-medium">Last Check-in:</span>
-                                      <p className="mt-0.5">
-                                        {caseItem.last_checkin_date
-                                          ? format(parseISO(caseItem.last_checkin_date), 'MMM d, yyyy')
-                                          : 'Never'}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex gap-2 pt-2 border-t">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="flex-1 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/cases/${caseItem.id}`);
-                                      }}
-                                    >
-                                      <ExternalLink className="h-3 w-3 mr-1" />
-                                      Open Case
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      className="flex-1 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/rn/case/${caseItem.id}/ten-vs`);
-                                      }}
-                                    >
-                                      <FileText className="h-3 w-3 mr-1" />
-                                      Start Care Plan
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </CollapsibleContent>
-                          </Card>
-                        </Collapsible>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-          </section>
+          <PendingCasesSection />
 
           {/* Today's Priorities and Caseload At-a-Glance */}
           <section className="mb-6">
