@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface CaseItem {
   id: string;
@@ -7,7 +6,7 @@ interface CaseItem {
   client_name: string;
 }
 
-export default function PendingCasesSection() {
+export default function ActiveCasesSection() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +16,7 @@ export default function PendingCasesSection() {
   }, []);
 
   async function fetchCases() {
-    console.log('PendingCasesSection: Starting fetch with raw fetch...');
+    console.log('ActiveCasesSection: Starting fetch with raw fetch...');
     
     try {
       const rnUserId = 'dd8b2a3b-a924-414f-854f-75737d173090';
@@ -26,7 +25,7 @@ export default function PendingCasesSection() {
       
       // Get cases for this RN with client_id
       const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id&rn_cm_id=eq.${rnUserId}`;
-      console.log('PendingCasesSection: Fetching cases URL:', casesUrl);
+      console.log('ActiveCasesSection: Fetching cases URL:', casesUrl);
       
       const casesResponse = await fetch(casesUrl, {
         headers: {
@@ -37,10 +36,10 @@ export default function PendingCasesSection() {
       });
       
       const casesData = await casesResponse.json();
-      console.log('PendingCasesSection: Cases data:', casesData);
+      console.log('ActiveCasesSection: Cases data:', casesData);
       
       if (!casesData || casesData.length === 0) {
-        console.log('PendingCasesSection: No cases found');
+        console.log('ActiveCasesSection: No cases found');
         setCases([]);
         setLoading(false);
         return;
@@ -53,7 +52,7 @@ export default function PendingCasesSection() {
       let clientsMap: Record<string, string> = {};
       if (clientIds.length > 0) {
         const clientsUrl = `${supabaseUrl}/rest/v1/rc_clients?select=id,first_name,last_name&id=in.(${clientIds.join(',')})`;
-        console.log('PendingCasesSection: Fetching clients URL:', clientsUrl);
+        console.log('ActiveCasesSection: Fetching clients URL:', clientsUrl);
         
         const clientsResponse = await fetch(clientsUrl, {
           headers: {
@@ -64,7 +63,7 @@ export default function PendingCasesSection() {
         });
         
         const clientsData = await clientsResponse.json();
-        console.log('PendingCasesSection: Clients data:', clientsData);
+        console.log('ActiveCasesSection: Clients data:', clientsData);
         
         if (clientsData && Array.isArray(clientsData)) {
           clientsData.forEach((client: any) => {
@@ -73,7 +72,7 @@ export default function PendingCasesSection() {
         }
       }
       
-      // Get care plans to filter out cases that have them (pending = no care plan)
+      // Get care plans to find which cases have them
       const carePlansUrl = `${supabaseUrl}/rest/v1/rc_care_plans?select=case_id`;
       const carePlansResponse = await fetch(carePlansUrl, {
         headers: {
@@ -86,12 +85,12 @@ export default function PendingCasesSection() {
       const carePlansData = await carePlansResponse.json();
       const casesWithCarePlans = new Set(carePlansData?.map((cp: any) => cp.case_id) || []);
       
-      // Filter to pending cases (those WITHOUT care plans)
-      const pendingCases = casesData.filter((c: any) => !casesWithCarePlans.has(c.id));
-      console.log('PendingCasesSection: Pending cases:', pendingCases);
+      // Filter to active cases (those WITH care plans)
+      const activeCases = casesData.filter((c: any) => casesWithCarePlans.has(c.id));
+      console.log('ActiveCasesSection: Active cases:', activeCases);
       
-      if (pendingCases.length > 0) {
-        const formatted = pendingCases.map((c: any) => ({
+      if (activeCases.length > 0) {
+        const formatted = activeCases.map((c: any) => ({
           id: c.id,
           case_number: c.case_number || 'No Case #',
           client_name: clientsMap[c.client_id] || 'Unknown Client'
@@ -101,7 +100,7 @@ export default function PendingCasesSection() {
       
       setLoading(false);
     } catch (err: any) {
-      console.error('PendingCasesSection: Error:', err);
+      console.error('ActiveCasesSection: Error:', err);
       setError(err.message);
       setLoading(false);
     }
@@ -109,31 +108,31 @@ export default function PendingCasesSection() {
 
   return (
     <div style={{ 
-      backgroundColor: '#fef3c7', 
-      border: '1px solid #f59e0b', 
+      backgroundColor: '#d1fae5', 
+      border: '1px solid #10b981', 
       borderRadius: '8px', 
       padding: '16px', 
       marginBottom: '16px' 
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 style={{ color: '#92400e', margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Pending Cases</h3>
+        <h3 style={{ color: '#065f46', margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Active Cases</h3>
         <span style={{ 
-          backgroundColor: '#f59e0b', 
+          backgroundColor: '#10b981', 
           color: 'white', 
           padding: '4px 12px', 
           borderRadius: '12px', 
           fontSize: '14px' 
         }}>
-          {cases.length} Pending
+          {cases.length} Active
         </span>
       </div>
       
       {loading ? (
-        <p style={{ color: '#92400e' }}>Loading...</p>
+        <p style={{ color: '#065f46' }}>Loading...</p>
       ) : error ? (
         <p style={{ color: 'red' }}>Error: {error}</p>
       ) : cases.length === 0 ? (
-        <p style={{ color: '#92400e' }}>No pending cases</p>
+        <p style={{ color: '#065f46' }}>No active cases</p>
       ) : (
         <div>
           {cases.map(c => (
@@ -142,7 +141,7 @@ export default function PendingCasesSection() {
               padding: '12px', 
               marginBottom: '8px', 
               borderRadius: '4px',
-              borderLeft: '4px solid #f59e0b'
+              borderLeft: '4px solid #10b981'
             }}>
               <strong>{c.case_number}</strong> - {c.client_name}
             </div>
