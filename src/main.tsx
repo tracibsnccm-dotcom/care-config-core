@@ -41,6 +41,7 @@ import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import RNDashboard from "./pages/RNDashboard";
 import TenVsBuilder from "./components/rn/TenVsBuilder";
+import CarePlanWorkflow from "./components/rn/CarePlanWorkflow";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
 import CaseDetail from "@/pages/CaseDetail";
 import AttorneyCommunications from "./pages/AttorneyCommunications";
@@ -302,6 +303,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <AppProvider>
                 <TenVsBuilder />
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/rn/case/:caseId/workflow" element={
+            <AuthProvider>
+              <AppProvider>
+                <CarePlanWorkflow />
               </AppProvider>
             </AuthProvider>
           } />

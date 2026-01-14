@@ -1,8 +1,12 @@
 // src/screens/ClientIntakeScreen.tsx
+// UPDATED: Added demographic fields (DOB, Gender Identity, Sex at Birth, Dependents, Student Status)
+// These fields transfer to Care Plan Overlays for auto-suggestions
+
 import React, { useMemo, useState } from "react";
 import ClientEndScreen from "./ClientEndScreen";
 
 type DemoStep =
+  | "About You"
   | "Injury Snapshot"
   | "Care Disruptions"
   | "Client Voice"
@@ -10,6 +14,7 @@ type DemoStep =
   | "Complete";
 
 const STEPS: DemoStep[] = [
+  "About You",
   "Injury Snapshot",
   "Care Disruptions",
   "Client Voice",
@@ -48,10 +53,33 @@ type ChronicCondition =
   | "Chronic Pain"
   | "Other";
 
+type GenderIdentity =
+  | ""
+  | "Female"
+  | "Male"
+  | "Transgender Female (MTF)"
+  | "Transgender Male (FTM)"
+  | "Non-binary"
+  | "Other"
+  | "Prefer not to say";
+
+type SexAtBirth =
+  | ""
+  | "Female"
+  | "Male"
+  | "Prefer not to say";
+
 type FormState = {
   // Basic identifiers
   firstName: string;
   lastName: string;
+
+  // NEW: Demographics for overlay auto-suggestions
+  dateOfBirth: string;
+  genderIdentity: GenderIdentity;
+  sexAtBirth: SexAtBirth;
+  hasDependents: "Yes" | "No" | "";
+  isStudent: "Yes" | "No" | "";
 
   // Injury + conditions
   injuryType: InjuryType;
@@ -83,6 +111,11 @@ type FormState = {
 const DEFAULT_FORM: FormState = {
   firstName: "",
   lastName: "",
+  dateOfBirth: "",
+  genderIdentity: "",
+  sexAtBirth: "",
+  hasDependents: "",
+  isStudent: "",
   injuryType: "",
   injuryOther: "",
   chronicCondition: "",
@@ -149,54 +182,93 @@ const smallBtn: React.CSSProperties = {
   borderRadius: "999px",
   border: "1px solid #cbd5e1",
   background: "#ffffff",
+  color: "#0f172a",
   fontSize: "0.78rem",
   cursor: "pointer",
 };
 
-function stepLabel(step: DemoStep) {
-  if (step === "Client Voice") return "Client Voice (Demo)";
-  return step;
-}
+const primaryBtn: React.CSSProperties = {
+  padding: "0.5rem 1.25rem",
+  borderRadius: "999px",
+  border: "none",
+  background: "#0f2a6a",
+  color: "#ffffff",
+  fontSize: "0.85rem",
+  cursor: "pointer",
+};
 
-export default function ClientIntakeScreen() {
-  const [stepIndex, setStepIndex] = useState(0);
+const ClientIntakeScreen: React.FC = () => {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const [stepIndex, setStepIndex] = useState(0);
 
   const step = STEPS[stepIndex];
   const isPreview = step === "Preview";
   const isComplete = step === "Complete";
 
-  const canProceed = useMemo(() => {
-    if (step === "Client Voice") {
-      const a = (form.clientVoiceWhatHappened ?? "").trim();
-      const b = (form.clientVoiceHardestPart ?? "").trim();
-      const c = (form.clientVoiceNeedMost ?? "").trim();
-      return a.length > 0 || b.length > 0 || c.length > 0;
-    }
-    if (step === "Preview") return form.demoAcknowledged;
-    return true;
-  }, [form, step]);
-
-  const goNext = () => {
-    if (stepIndex < STEPS.length - 1) setStepIndex((s) => s + 1);
-  };
-
-  const goBack = () => {
-    if (stepIndex > 0) setStepIndex((s) => s - 1);
-  };
+  const update = (partial: Partial<FormState>) =>
+    setForm((prev) => ({ ...prev, ...partial }));
 
   const goTo = (idx: number) => {
-    if (idx < 0 || idx >= STEPS.length) return;
-    setStepIndex(idx);
+    if (idx >= 0 && idx < STEPS.length) setStepIndex(idx);
   };
 
-  const update = (patch: Partial<FormState>) =>
-    setForm((prev) => ({ ...prev, ...patch }));
+  const stepLabel = (s: DemoStep) => {
+    if (s === "About You") return "1 · About You";
+    if (s === "Injury Snapshot") return "2 · Snapshot";
+    if (s === "Care Disruptions") return "3 · Disruptions";
+    if (s === "Client Voice") return "4 · Voice";
+    return s;
+  };
+
+  // Calculate age from date of birth
+  const calculateAge = (dob: string): number | null => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const age = useMemo(() => calculateAge(form.dateOfBirth), [form.dateOfBirth]);
+
+  // Check if transgender identity
+  const isTransgender = form.genderIdentity === "Transgender Female (MTF)" || 
+                        form.genderIdentity === "Transgender Male (FTM)" ||
+                        form.genderIdentity === "Non-binary";
 
   if (isComplete) {
     return (
       <div style={{ padding: "1.5rem", maxWidth: 980, margin: "0 auto" }}>
-        <ClientEndScreen />
+        <ClientEndScreen
+          form={{
+            firstName: form.firstName,
+            lastName: form.lastName,
+            dateOfBirth: form.dateOfBirth,
+            genderIdentity: form.genderIdentity,
+            sexAtBirth: form.sexAtBirth,
+            hasDependents: form.hasDependents,
+            isStudent: form.isStudent,
+            injuryType: form.injuryType,
+            injuryOther: form.injuryOther,
+            chronicCondition: form.chronicCondition,
+            chronicOther: form.chronicOther,
+            painNow: form.painNow,
+            missedWork: form.missedWork,
+            primaryConcern: form.primaryConcern,
+            transportationIssue: form.transportationIssue,
+            housingConcern: form.housingConcern,
+            foodConcern: form.foodConcern,
+            childcareIssue: form.childcareIssue,
+            incomeRange: form.incomeRange,
+            clientVoiceWhatHappened: form.clientVoiceWhatHappened,
+            clientVoiceHardestPart: form.clientVoiceHardestPart,
+            clientVoiceNeedMost: form.clientVoiceNeedMost,
+          }}
+        />
       </div>
     );
   }
@@ -206,14 +278,14 @@ export default function ClientIntakeScreen() {
       {/* Header */}
       <div style={{ marginBottom: "0.9rem" }}>
         <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.2rem" }}>
-          Client Intake Demo
+          Client Intake
         </h1>
         <p style={{ fontSize: "0.85rem", color: "#64748b", lineHeight: 1.35 }}>
-          This is a shortened demonstration intake. Some items are intentionally excluded to protect
-          proprietary workflows and the Clinical Care Planning Logic used in the live environment.
+          Please complete this intake form. Your responses help your RN Care Manager develop 
+          a personalized care plan tailored to your needs and circumstances.
         </p>
         <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "#64748b" }}>
-          <strong>Live environment:</strong> Clients should plan <strong>60–90 minutes</strong> to complete a full intake.
+          <strong>Estimated time:</strong> 15–20 minutes
         </div>
       </div>
 
@@ -233,7 +305,7 @@ export default function ClientIntakeScreen() {
             alignItems: "center",
           }}
         >
-          {STEPS.slice(0, 4).map((s, idx) => {
+          {STEPS.slice(0, 5).map((s, idx) => {
             const active = idx === stepIndex;
             const done = idx < stepIndex;
             return (
@@ -254,15 +326,6 @@ export default function ClientIntakeScreen() {
           <span style={{ fontSize: "0.78rem", color: "#64748b" }}>→</span>
           <button
             type="button"
-            onClick={() => goTo(3)}
-            style={{ ...pillBtn(isPreview), opacity: isPreview ? 1 : 0.65 }}
-            disabled={stepIndex < 2}
-            title={stepIndex < 2 ? "Complete the demo steps first" : "Preview"}
-          >
-            Preview
-          </button>
-          <button
-            type="button"
             style={{ ...pillBtn(false), opacity: 0.6, cursor: "not-allowed" }}
             disabled
             title="Complete becomes available after preview"
@@ -274,10 +337,26 @@ export default function ClientIntakeScreen() {
 
       {/* Main step content */}
       <div style={cardStyle}>
-        {step === "Injury Snapshot" && (
+        
+        {/* ========== STEP 1: ABOUT YOU (NEW) ========== */}
+        {step === "About You" && (
           <div style={{ display: "grid", gap: "0.85rem" }}>
+            <div style={{ 
+              padding: "0.75rem", 
+              background: "#f0f9ff", 
+              borderRadius: "8px",
+              border: "1px solid #bae6fd",
+              marginBottom: "0.5rem"
+            }}>
+              <div style={{ fontSize: "0.8rem", color: "#0369a1" }}>
+                <strong>Why we ask:</strong> This information helps your RN Care Manager understand 
+                your unique needs and circumstances. It ensures your care plan considers all relevant 
+                factors for your recovery.
+              </div>
+            </div>
+
             <div>
-              <div style={labelStyle}>Client name</div>
+              <div style={labelStyle}>Your Name</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
                 <input
                   style={inputStyle}
@@ -295,9 +374,180 @@ export default function ClientIntakeScreen() {
             </div>
 
             <div>
+              <div style={labelStyle}>Date of Birth</div>
+              <div style={helpStyle}>
+                Your age helps us identify relevant health screenings and care considerations.
+              </div>
+              <input
+                type="date"
+                style={{ ...inputStyle, maxWidth: "200px" }}
+                value={form.dateOfBirth}
+                onChange={(e) => update({ dateOfBirth: e.target.value })}
+              />
+              {age !== null && (
+                <div style={{ marginTop: "0.4rem", fontSize: "0.8rem", color: "#16a34a" }}>
+                  Age: {age} years old
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={labelStyle}>Gender Identity</div>
+              <div style={helpStyle}>
+                How you identify helps us provide inclusive, personalized care.
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                {[
+                  "Female",
+                  "Male",
+                  "Transgender Female (MTF)",
+                  "Transgender Male (FTM)",
+                  "Non-binary",
+                  "Other",
+                  "Prefer not to say",
+                ].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    style={pillBtn(form.genderIdentity === v)}
+                    onClick={() => update({ genderIdentity: v as GenderIdentity })}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={labelStyle}>Sex Assigned at Birth</div>
+              <div style={helpStyle}>
+                This helps identify relevant health screenings (e.g., cervical, prostate).
+                Your answer is kept confidential.
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                {["Female", "Male", "Prefer not to say"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    style={pillBtn(form.sexAtBirth === v)}
+                    onClick={() => update({ sexAtBirth: v as SexAtBirth })}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={labelStyle}>Do you have dependents?</div>
+              <div style={helpStyle}>
+                Dependents include children, elderly parents, or anyone who relies on you for care.
+                This helps us understand your caregiving responsibilities.
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {["Yes", "No"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    style={pillBtn(form.hasDependents === v)}
+                    onClick={() => update({ hasDependents: v as "Yes" | "No" })}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={labelStyle}>Are you currently a student?</div>
+              <div style={helpStyle}>
+                This includes college, trade school, or other educational programs.
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {["Yes", "No"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    style={pillBtn(form.isStudent === v)}
+                    onClick={() => update({ isStudent: v as "Yes" | "No" })}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Show what overlays would apply based on their answers */}
+            {(age !== null || form.genderIdentity || form.hasDependents === "Yes" || form.isStudent === "Yes") && (
+              <div style={{ 
+                marginTop: "0.5rem",
+                padding: "0.75rem", 
+                background: "#f0fdf4", 
+                borderRadius: "8px",
+                border: "1px solid #86efac",
+              }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#166534", marginBottom: "0.4rem" }}>
+                  Based on your answers, your care plan may include considerations for:
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                  {age !== null && age >= 60 && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      60+ Geriatric Care
+                    </span>
+                  )}
+                  {age !== null && age >= 18 && age <= 24 && form.isStudent === "Yes" && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Student Support
+                    </span>
+                  )}
+                  {age !== null && age >= 13 && age <= 17 && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Adolescent Care
+                    </span>
+                  )}
+                  {age !== null && age >= 3 && age <= 12 && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Pediatric Care
+                    </span>
+                  )}
+                  {age !== null && age < 3 && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Infant/Toddler Care
+                    </span>
+                  )}
+                  {isTransgender && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Gender-Affirming Care
+                    </span>
+                  )}
+                  {(form.genderIdentity === "Female" || form.genderIdentity === "Transgender Female (MTF)") && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Female Health Considerations
+                    </span>
+                  )}
+                  {(form.genderIdentity === "Male" || form.genderIdentity === "Transgender Male (FTM)") && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Male Health Considerations
+                    </span>
+                  )}
+                  {form.hasDependents === "Yes" && (
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", background: "#dcfce7", borderRadius: "4px", color: "#166534" }}>
+                      Caregiver Support
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========== STEP 2: INJURY SNAPSHOT ========== */}
+        {step === "Injury Snapshot" && (
+          <div style={{ display: "grid", gap: "0.85rem" }}>
+            <div>
               <div style={labelStyle}>Most common injury type</div>
               <div style={helpStyle}>
-                Choose the closest match. (In live use, this maps into structured RN review and care planning.)
+                Choose the closest match. (This maps into structured RN review and care planning.)
               </div>
               <select
                 style={selectStyle}
@@ -348,36 +598,38 @@ export default function ClientIntakeScreen() {
                   style={{ ...inputStyle, marginTop: "0.5rem" }}
                   value={form.chronicOther}
                   onChange={(e) => update({ chronicOther: e.target.value })}
-                  placeholder="Briefly list condition"
+                  placeholder="Briefly describe condition"
                 />
               )}
             </div>
 
             <div>
               <div style={labelStyle}>Current pain level (0–10)</div>
-              <div style={helpStyle}>This helps tailor education and self-management supports.</div>
+              <div style={helpStyle}>
+                0 = no pain, 10 = worst possible pain.
+              </div>
               <input
                 type="range"
-                min={0}
+                min={1}
                 max={10}
                 value={form.painNow}
-                onChange={(e) => update({ painNow: Number(e.target.value) as any })}
-                style={{ width: "100%" }}
+                onChange={(e) => update({ painNow: Number(e.target.value) as FormState["painNow"] })}
+                style={{ width: "100%", maxWidth: "300px" }}
               />
-              <div style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>
-                Pain now: <strong>{form.painNow}/10</strong>
+              <div style={{ fontSize: "0.85rem", fontWeight: 600, marginTop: "0.25rem" }}>
+                {form.painNow}/10
               </div>
             </div>
 
             <div>
-              <div style={labelStyle}>Have you missed work due to this injury?</div>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                {(["Yes", "No"] as const).map((v) => (
+              <div style={labelStyle}>Have you missed work due to your injury?</div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {["Yes", "No"].map((v) => (
                   <button
                     key={v}
                     type="button"
                     style={pillBtn(form.missedWork === v)}
-                    onClick={() => update({ missedWork: v })}
+                    onClick={() => update({ missedWork: v as "Yes" | "No" })}
                   >
                     {v}
                   </button>
@@ -386,54 +638,48 @@ export default function ClientIntakeScreen() {
             </div>
 
             <div>
-              <div style={labelStyle}>Main concern (short)</div>
-              <input
-                style={inputStyle}
+              <div style={labelStyle}>What is your primary concern right now?</div>
+              <div style={helpStyle}>
+                This helps tailor education and self-management supports.
+              </div>
+              <textarea
+                style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
                 value={form.primaryConcern}
                 onChange={(e) => update({ primaryConcern: e.target.value })}
-                placeholder="Example: pain control, sleep, mobility, return to work…"
+                placeholder="Example: Pain management, returning to work, medical bills..."
               />
             </div>
           </div>
         )}
 
+        {/* ========== STEP 3: CARE DISRUPTIONS ========== */}
         {step === "Care Disruptions" && (
           <div style={{ display: "grid", gap: "0.85rem" }}>
-            <div style={{ marginBottom: "0.15rem" }}>
-              <div style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.25rem" }}>
+            <div style={{ 
+              padding: "0.75rem", 
+              background: "#fffbeb", 
+              borderRadius: "8px",
+              border: "1px solid #fcd34d",
+              marginBottom: "0.5rem"
+            }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#92400e", marginBottom: "0.25rem" }}>
                 Social Drivers of Health (SDOH) — External Disruptions of Care
               </div>
-              <div style={helpStyle}>
+              <div style={{ fontSize: "0.75rem", color: "#78350f" }}>
                 Why it matters: documenting SDOH defends the integrity of the client by distinguishing real
-                external disruptions from perceived “noncompliance,” strengthening credibility and the medical record.
+                barriers from assumptions. This informs your care plan and protects your case.
               </div>
             </div>
 
             <div>
               <div style={labelStyle}>Transportation disruption since injury/accident?</div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {(["Yes", "No"] as const).map((v) => (
+                {["Yes", "No"].map((v) => (
                   <button
                     key={v}
                     type="button"
                     style={pillBtn(form.transportationIssue === v)}
-                    onClick={() => update({ transportationIssue: v })}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div style={labelStyle}>Food insecurity concerns?</div>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {(["Yes", "No"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    style={pillBtn(form.foodConcern === v)}
-                    onClick={() => update({ foodConcern: v })}
+                    onClick={() => update({ transportationIssue: v as "Yes" | "No" })}
                   >
                     {v}
                   </button>
@@ -444,12 +690,12 @@ export default function ClientIntakeScreen() {
             <div>
               <div style={labelStyle}>Housing instability concerns?</div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {(["Yes", "No"] as const).map((v) => (
+                {["Yes", "No"].map((v) => (
                   <button
                     key={v}
                     type="button"
                     style={pillBtn(form.housingConcern === v)}
-                    onClick={() => update({ housingConcern: v })}
+                    onClick={() => update({ housingConcern: v as "Yes" | "No" })}
                   >
                     {v}
                   </button>
@@ -458,14 +704,30 @@ export default function ClientIntakeScreen() {
             </div>
 
             <div>
-              <div style={labelStyle}>Childcare disruption due to injury?</div>
+              <div style={labelStyle}>Food insecurity concerns?</div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {(["Yes", "No"] as const).map((v) => (
+                {["Yes", "No"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    style={pillBtn(form.foodConcern === v)}
+                    onClick={() => update({ foodConcern: v as "Yes" | "No" })}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={labelStyle}>Childcare issues affecting appointments?</div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {["Yes", "No"].map((v) => (
                   <button
                     key={v}
                     type="button"
                     style={pillBtn(form.childcareIssue === v)}
-                    onClick={() => update({ childcareIssue: v })}
+                    onClick={() => update({ childcareIssue: v as "Yes" | "No" })}
                   >
                     {v}
                   </button>
@@ -474,9 +736,9 @@ export default function ClientIntakeScreen() {
             </div>
 
             <div>
-              <div style={labelStyle}>Annual household income range (optional)</div>
+              <div style={labelStyle}>Household income range (optional)</div>
               <div style={helpStyle}>
-                You may choose “Prefer not to say.” If provided, it is used to support community referrals when needed.
+                This helps identify potential financial barriers to care.
               </div>
               <select
                 style={selectStyle}
@@ -496,209 +758,214 @@ export default function ClientIntakeScreen() {
           </div>
         )}
 
+        {/* ========== STEP 4: CLIENT VOICE ========== */}
         {step === "Client Voice" && (
-          <div style={{ display: "grid", gap: "0.9rem" }}>
-            <div>
-              <div style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.25rem" }}>
-                Client Voice (Demo)
+          <div style={{ display: "grid", gap: "0.85rem" }}>
+            <div style={{ 
+              padding: "0.75rem", 
+              background: "#f0f9ff", 
+              borderRadius: "8px",
+              border: "1px solid #bae6fd",
+              marginBottom: "0.5rem"
+            }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#0369a1", marginBottom: "0.25rem" }}>
+                Your Voice Matters
               </div>
-              <div style={helpStyle}>
-                This section captures the client’s lived experience in their own words. In the live system, this
-                is reviewed by an RN Care Manager as part of the complete intake.
+              <div style={{ fontSize: "0.75rem", color: "#0c4a6e" }}>
+                These questions help your RN understand your experience in your own words.
+                There are no right or wrong answers.
               </div>
             </div>
 
             <div>
-              <div style={labelStyle}>What happened (brief)</div>
+              <div style={labelStyle}>In your own words, what happened?</div>
               <textarea
+                style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
                 value={form.clientVoiceWhatHappened}
                 onChange={(e) => update({ clientVoiceWhatHappened: e.target.value })}
-                rows={4}
-                style={inputStyle}
-                placeholder="Example: Rear-ended at a stop light. Immediate neck and back pain..."
+                placeholder="Describe the incident or how your injury occurred..."
               />
             </div>
 
             <div>
-              <div style={labelStyle}>What’s hardest right now</div>
+              <div style={labelStyle}>What has been the hardest part?</div>
               <textarea
+                style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
                 value={form.clientVoiceHardestPart}
                 onChange={(e) => update({ clientVoiceHardestPart: e.target.value })}
-                rows={4}
-                style={inputStyle}
-                placeholder="Example: Sleep is broken; standing/sitting hurts; missed work..."
+                placeholder="What challenges have you faced since the injury?"
               />
             </div>
 
             <div>
-              <div style={labelStyle}>What you need most</div>
+              <div style={labelStyle}>What do you need most right now?</div>
               <textarea
+                style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
                 value={form.clientVoiceNeedMost}
                 onChange={(e) => update({ clientVoiceNeedMost: e.target.value })}
-                rows={3}
-                style={inputStyle}
                 placeholder="Example: Guidance, appointments scheduled, pain plan, transportation help..."
               />
             </div>
-
-            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-              Next becomes available once you enter at least one Client Voice response.
-            </div>
           </div>
         )}
 
-        {step === "Preview" && (
-          <div style={{ display: "grid", gap: "0.85rem" }}>
-            <div>
-              <div style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.25rem" }}>
-                Preview (Attorney Demo)
+        {/* ========== PREVIEW ========== */}
+        {isPreview && (
+          <div style={{ display: "grid", gap: "1rem" }}>
+            <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+              Review Your Information
+            </div>
+            <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "-0.5rem" }}>
+              Please review your responses below. You can go back to any section to make changes.
+            </p>
+
+            {/* About You Summary */}
+            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "8px" }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: "0.4rem" }}>
+                ABOUT YOU
               </div>
-              <div style={helpStyle}>
-                This preview is for demonstration. In the live environment, additional clinical and authorization
-                workflows are required before any information is reviewed or shared.
+              <div style={{ fontSize: "0.85rem" }}>
+                <strong>{form.firstName} {form.lastName}</strong>
+                {form.dateOfBirth && <span> • Born: {form.dateOfBirth} (Age: {age})</span>}
+              </div>
+              <div style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                Gender: <strong>{form.genderIdentity || "—"}</strong> • 
+                Sex at Birth: <strong>{form.sexAtBirth || "—"}</strong>
+              </div>
+              <div style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                Has Dependents: <strong>{form.hasDependents || "—"}</strong> • 
+                Student: <strong>{form.isStudent || "—"}</strong>
               </div>
             </div>
 
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "0.85rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 700, marginBottom: "0.35rem" }}>
-                Snapshot Summary
+            {/* Injury Snapshot Summary */}
+            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "8px" }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: "0.4rem" }}>
+                INJURY SNAPSHOT
               </div>
-              <div style={{ fontSize: "0.85rem", color: "#0f172a", lineHeight: 1.4 }}>
-                <div>
-                  <strong>Client:</strong> {form.firstName || "—"} {form.lastName || ""}
-                </div>
-                <div>
-                  <strong>Injury type:</strong> {form.injuryType || "—"}
-                  {form.injuryType === "Other" && form.injuryOther ? ` (${form.injuryOther})` : ""}
-                </div>
-                <div>
-                  <strong>Chronic condition:</strong> {form.chronicCondition || "—"}
-                  {form.chronicCondition === "Other" && form.chronicOther ? ` (${form.chronicOther})` : ""}
-                </div>
-                <div>
-                  <strong>Pain now:</strong> {form.painNow}/10
-                </div>
-                <div>
-                  <strong>Missed work:</strong> {form.missedWork || "—"}
-                </div>
-                <div>
-                  <strong>Main concern:</strong> {form.primaryConcern || "—"}
-                </div>
+              <div style={{ fontSize: "0.8rem" }}>
+                Injury: <strong>{form.injuryType || "—"}</strong>
+                {form.injuryOther && ` (${form.injuryOther})`}
               </div>
+              <div style={{ fontSize: "0.8rem" }}>
+                Chronic Condition: <strong>{form.chronicCondition || "—"}</strong>
+                {form.chronicOther && ` (${form.chronicOther})`}
+              </div>
+              <div style={{ fontSize: "0.8rem" }}>
+                Pain Level: <strong>{form.painNow}/10</strong> • 
+                Missed Work: <strong>{form.missedWork || "—"}</strong>
+              </div>
+              {form.primaryConcern && (
+                <div style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                  Primary Concern: <em>{form.primaryConcern}</em>
+                </div>
+              )}
             </div>
 
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "0.85rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 700, marginBottom: "0.35rem" }}>
+            {/* SDOH Summary */}
+            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "8px" }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: "0.4rem" }}>
                 SDOH — External Disruptions of Care
               </div>
-              <div style={{ fontSize: "0.85rem", color: "#0f172a", lineHeight: 1.4 }}>
-                <div>
-                  Transportation: <strong>{form.transportationIssue || "—"}</strong>
-                </div>
-                <div>
-                  Food: <strong>{form.foodConcern || "—"}</strong>
-                </div>
-                <div>
-                  Housing: <strong>{form.housingConcern || "—"}</strong>
-                </div>
-                <div>
-                  Childcare: <strong>{form.childcareIssue || "—"}</strong>
-                </div>
-                <div>
-                  Income range: <strong>{form.incomeRange || "—"}</strong>
-                </div>
+              <div style={{ fontSize: "0.8rem" }}>
+                Transportation: <strong>{form.transportationIssue || "—"}</strong> • 
+                Housing: <strong>{form.housingConcern || "—"}</strong> • 
+                Food: <strong>{form.foodConcern || "—"}</strong>
+              </div>
+              <div style={{ fontSize: "0.8rem" }}>
+                Childcare Issues: <strong>{form.childcareIssue || "—"}</strong> • 
+                Income: <strong>{form.incomeRange || "—"}</strong>
               </div>
             </div>
 
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "0.85rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 700, marginBottom: "0.35rem" }}>
-                Client Voice
+            {/* Client Voice Summary */}
+            <div style={{ background: "#f8fafc", padding: "0.75rem", borderRadius: "8px" }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: "0.4rem" }}>
+                CLIENT VOICE
               </div>
-              <div style={{ fontSize: "0.85rem", color: "#0f172a", lineHeight: 1.4 }}>
-                <div style={{ marginBottom: "0.35rem" }}>
-                  <strong>What happened:</strong>{" "}
-                  <span style={{ whiteSpace: "pre-wrap" }}>
-                    {form.clientVoiceWhatHappened || "—"}
-                  </span>
+              {form.clientVoiceWhatHappened && (
+                <div style={{ fontSize: "0.8rem", marginBottom: "0.4rem" }}>
+                  <strong>What happened:</strong> <em>{form.clientVoiceWhatHappened}</em>
                 </div>
-                <div style={{ marginBottom: "0.35rem" }}>
-                  <strong>Hardest part:</strong>{" "}
-                  <span style={{ whiteSpace: "pre-wrap" }}>
-                    {form.clientVoiceHardestPart || "—"}
-                  </span>
+              )}
+              {form.clientVoiceHardestPart && (
+                <div style={{ fontSize: "0.8rem", marginBottom: "0.4rem" }}>
+                  <strong>Hardest part:</strong> <em>{form.clientVoiceHardestPart}</em>
                 </div>
-                <div>
-                  <strong>Need most:</strong>{" "}
-                  <span style={{ whiteSpace: "pre-wrap" }}>
-                    {form.clientVoiceNeedMost || "—"}
-                  </span>
+              )}
+              {form.clientVoiceNeedMost && (
+                <div style={{ fontSize: "0.8rem" }}>
+                  <strong>Need most:</strong> <em>{form.clientVoiceNeedMost}</em>
                 </div>
-              </div>
+              )}
             </div>
 
-            <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.8rem" }}>
-              <input
-                type="checkbox"
-                checked={form.demoAcknowledged}
-                onChange={(e) => update({ demoAcknowledged: e.target.checked })}
-              />
-              I understand this is a demo preview and does not include full live intake/authorization workflows.
-            </label>
-
-            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-              “Complete Demo” unlocks after acknowledgement.
+            {/* Submit */}
+            <div style={{ 
+              marginTop: "0.5rem",
+              padding: "0.75rem", 
+              background: "#f0fdf4", 
+              borderRadius: "8px",
+              border: "1px solid #86efac",
+            }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={form.demoAcknowledged}
+                  onChange={(e) => update({ demoAcknowledged: e.target.checked })}
+                  style={{ marginTop: "0.2rem" }}
+                />
+                <span style={{ fontSize: "0.8rem", color: "#166534" }}>
+                  I confirm that the information I have provided is accurate to the best of my knowledge.
+                  I understand this information will be reviewed by an RN Care Manager as part of my care plan.
+                </span>
+              </label>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Footer Nav */}
-      <div
-        style={{
-          marginTop: "0.9rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "0.75rem",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button type="button" onClick={goBack} style={smallBtn} disabled={stepIndex === 0}>
-            Back
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStepIndex(0)}
-            style={smallBtn}
-            title="Restart demo intake"
-          >
-            Restart
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (isPreview) setStepIndex(STEPS.length - 1);
-            else goNext();
-          }}
-          disabled={!canProceed}
+        {/* Navigation */}
+        <div
           style={{
-            padding: "0.5rem 1.1rem",
-            borderRadius: "999px",
-            border: "1px solid #0f2a6a",
-            background: !canProceed ? "#e2e8f0" : "#0f2a6a",
-            color: !canProceed ? "#64748b" : "#ffffff",
-            fontSize: "0.85rem",
-            fontWeight: 700,
-            cursor: !canProceed ? "not-allowed" : "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "1.25rem",
+            paddingTop: "1rem",
+            borderTop: "1px solid #e2e8f0",
           }}
         >
-          {isPreview ? "Complete Demo" : "Next"}
-        </button>
+          <button
+            type="button"
+            style={{ ...smallBtn, opacity: stepIndex === 0 ? 0.5 : 1 }}
+            disabled={stepIndex === 0}
+            onClick={() => goTo(stepIndex - 1)}
+          >
+            ← Back
+          </button>
+
+          {isPreview ? (
+            <button
+              type="button"
+              style={{ ...primaryBtn, opacity: form.demoAcknowledged ? 1 : 0.6 }}
+              disabled={!form.demoAcknowledged}
+              onClick={() => goTo(5)}
+            >
+              Submit Intake →
+            </button>
+          ) : (
+            <button
+              type="button"
+              style={primaryBtn}
+              onClick={() => goTo(stepIndex + 1)}
+            >
+              Continue →
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default ClientIntakeScreen;

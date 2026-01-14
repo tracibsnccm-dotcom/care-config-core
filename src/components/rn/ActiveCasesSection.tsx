@@ -234,7 +234,7 @@ export default function ActiveCasesSection() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/rn/case/${c.id}/ten-vs`;
+                        window.location.href = `/rn/case/${c.id}/workflow`;
                       }}
                       style={{
                         flex: 1,
