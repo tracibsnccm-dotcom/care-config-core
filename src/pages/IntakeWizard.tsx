@@ -63,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet, supabaseInsert, supabaseUpdate } from '@/lib/supabaseRest';
 import { audit } from '@/lib/supabaseOperations';
 import { createAutoNote, generateIntakeNote } from '@/lib/autoNotes';
+import { getIntakeSessionByToken, updateIntakeSession } from '@/lib/intakeSessionService';
 import { IntakeSensitiveExperiences, type SensitiveExperiencesData, type SensitiveExperiencesProgress } from "@/components/IntakeSensitiveExperiences";
 import { analyzeSensitiveExperiences, buildSdohUpdates } from "@/lib/sensitiveExperiencesFlags";
 import { saveMentalHealthScreening } from "@/lib/sensitiveDisclosuresHelper";
@@ -71,7 +72,7 @@ import { Input } from "@/components/ui/input";
 import { Printer } from "lucide-react";
 
 // Generate temporary intake ID in INT-YYMMDD-##X format
-function generateIntakeId(attorneyCode: string | null, sequenceToday: number): string {
+function generateIntakeId(sequenceToday: number): string {
   const today = new Date();
   const yy = today.getFullYear().toString().slice(-2);
   const mm = (today.getMonth() + 1).toString().padStart(2, '0');
@@ -88,10 +89,18 @@ export default function IntakeWizard() {
   const [searchParams] = useSearchParams();
   
   // Check if consents were completed before allowing intake access
+  // Allow resume links (with resume token) to bypass this check
   useEffect(() => {
+    const resumeToken = sessionStorage.getItem("rcms_resume_token");
     const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
     const consentsCompleted = sessionStorage.getItem("rcms_consents_completed");
     
+    // If resuming via token, allow access (session was created after minimum identity)
+    if (resumeToken) {
+      return;
+    }
+    
+    // Otherwise, require consents to be completed
     if (!consentSessionId || !consentsCompleted) {
       // Redirect to consent flow
       window.location.href = "/client-consent";
@@ -121,13 +130,88 @@ export default function IntakeWizard() {
     loadAttorneys();
   }, []);
 
-  // Read attorney selection from URL parameters (set in ClientConsent)
+  // Load intake session on mount (if resuming)
+  useEffect(() => {
+    const loadIntakeSession = async () => {
+      const resumeToken = sessionStorage.getItem("rcms_resume_token");
+      const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+      const storedIntakeId = sessionStorage.getItem("rcms_intake_id");
+      
+      // If we have a resume token, load the session
+      if (resumeToken) {
+        try {
+          const session = await getIntakeSessionByToken(resumeToken);
+          if (session) {
+            // Set INT- ID immediately (fixes stuck "generating" label)
+            if (session.intakeId) {
+              setClient(prev => ({ ...prev, rcmsId: session.intakeId }));
+            }
+            
+            // Load attorney from session (fixes attorney persistence)
+            if (session.attorneyId) {
+              setSelectedAttorneyId(session.attorneyId);
+            }
+            if (session.attorneyCode) {
+              setAttorneyCode(session.attorneyCode);
+            }
+            
+            // Load form data if available
+            if (session.formData && Object.keys(session.formData).length > 0) {
+              const data = session.formData as any;
+              if (data.client) setClient(data.client);
+              if (data.intake) setIntake(data.intake);
+              if (data.fourPs) setFourPs(data.fourPs);
+              if (data.sdoh) setSdoh(data.sdoh);
+              if (data.medsBlock) setMedsBlock(data.medsBlock);
+              if (data.preInjuryMeds) setPreInjuryMeds(data.preInjuryMeds);
+              if (data.postInjuryMeds) setPostInjuryMeds(data.postInjuryMeds);
+              if (data.preInjuryTreatments) setPreInjuryTreatments(data.preInjuryTreatments);
+              if (data.postInjuryTreatments) setPostInjuryTreatments(data.postInjuryTreatments);
+              if (data.medAllergies) setMedAllergies(data.medAllergies);
+              if (data.mentalHealth) setMentalHealth(data.mentalHealth);
+              if (data.incidentNarrative) setIncidentNarrative(data.incidentNarrative);
+              if (data.incidentNarrativeExtra) setIncidentNarrativeExtra(data.incidentNarrativeExtra);
+              if (data.physicalPreDiagnoses) setPhysicalPreDiagnoses(data.physicalPreDiagnoses);
+              if (data.physicalPreNotes) setPhysicalPreNotes(data.physicalPreNotes);
+              if (data.physicalPostDiagnoses) setPhysicalPostDiagnoses(data.physicalPostDiagnoses);
+              if (data.physicalPostNotes) setPhysicalPostNotes(data.physicalPostNotes);
+              if (data.bhPreDiagnoses) setBhPreDiagnoses(data.bhPreDiagnoses);
+              if (data.bhPostDiagnoses) setBhPostDiagnoses(data.bhPostDiagnoses);
+              if (data.bhNotes) setBhNotes(data.bhNotes);
+              if (typeof data.step === 'number') setStep(data.step);
+            }
+            
+            // Set intake started time from session
+            if (session.createdAt) {
+              setIntakeStartedAt(new Date(session.createdAt));
+            }
+            
+            toast({
+              title: "Intake Session Loaded",
+              description: `Resuming from ${new Date(session.updatedAt).toLocaleString()}`,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load intake session:', error);
+        }
+      } else if (storedIntakeId) {
+        // If we have stored intake ID but no token, set it (from ClientConsent)
+        setClient(prev => ({ ...prev, rcmsId: storedIntakeId }));
+      }
+    };
+    
+    loadIntakeSession();
+  }, []);
+
+  // Read attorney selection from URL parameters (set in ClientConsent) - fallback if not in session
   useEffect(() => {
     const urlAttorneyId = searchParams.get('attorney_id');
     const urlAttorneyCode = searchParams.get('attorney_code');
     console.log('IntakeWizard: Read from URL params', { urlAttorneyId, urlAttorneyCode });
-    if (urlAttorneyId) setSelectedAttorneyId(urlAttorneyId);
-    if (urlAttorneyCode) setAttorneyCode(urlAttorneyCode);
+    
+    // Only set if not already set from session
+    if (urlAttorneyId && !selectedAttorneyId) setSelectedAttorneyId(urlAttorneyId);
+    if (urlAttorneyCode && !attorneyCode) setAttorneyCode(urlAttorneyCode);
   }, [searchParams]);
   
   const [showWelcome, setShowWelcome] = useState(false); // Skip welcome - consents already signed
@@ -946,6 +1030,27 @@ export default function IntakeWizard() {
     debounceMs: 3000,
   });
 
+  // Also save to intake session when formData or step changes
+  useEffect(() => {
+    if (showWelcome) return;
+    
+    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    if (!intakeSessionId) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await updateIntakeSession(intakeSessionId, {
+          currentStep: step,
+          formData,
+        });
+      } catch (error) {
+        console.error('Failed to save to intake session:', error);
+      }
+    }, 3000); // Debounce same as autosave
+
+    return () => clearTimeout(timer);
+  }, [formData, step, showWelcome]);
+
   // Clear old draft if starting fresh intake with new attorney
   useEffect(() => {
     const urlAttorneyId = searchParams.get('attorney_id');
@@ -1027,9 +1132,12 @@ export default function IntakeWizard() {
     }
   }, []);
 
-  // Generate intake ID when attorney code is available
+  // Generate intake ID when attorney code is available (only if not already set from session)
   useEffect(() => {
     async function generateId() {
+      // Skip if ID already exists and is in INT- format (from session)
+      if (client.rcmsId && client.rcmsId.startsWith('INT-')) return;
+      
       // Regenerate if no ID, or if ID is in old RCMS-XXXX format (not INT- format)
       const needsNewId = !client.rcmsId || (client.rcmsId && !client.rcmsId.startsWith('INT-'));
       if (!attorneyCode || !needsNewId) return;
@@ -1043,18 +1151,18 @@ export default function IntakeWizard() {
       
       try {
         const { data: todayIntakes } = await supabaseGet(
-          'rc_client_intakes',
-          `select=id,intake_json&intake_json->>rcmsId=like.${todayPrefix}*`
+          'rc_client_intake_sessions',
+          `select=intake_id&intake_id=like.${todayPrefix}*`
         );
         
         const count = Array.isArray(todayIntakes) ? todayIntakes.length : 0;
-        const newId = generateIntakeId(attorneyCode, count + 1);
+        const newId = generateIntakeId(count + 1);
         
         setClient(prev => ({ ...prev, rcmsId: newId }));
       } catch (error) {
         console.error('Error generating intake ID:', error);
         // Fallback - just use sequence 1
-        const newId = generateIntakeId(attorneyCode, 1);
+        const newId = generateIntakeId(1);
         setClient(prev => ({ ...prev, rcmsId: newId }));
       }
     }
@@ -1303,13 +1411,13 @@ export default function IntakeWizard() {
           <Card className="p-6 border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4">Incident Details</h3>
             
-            {/* Attorney Display (read-only, selected in ClientConsent) */}
+            {/* Attorney Display (read-only, selected in ClientConsent or loaded from session) */}
             {(selectedAttorneyId || attorneyCode) && (
               <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
                 <h4 className="text-sm font-semibold mb-2">Attorney</h4>
                 <p className="text-sm text-muted-foreground">
                   {selectedAttorneyId && availableAttorneys.find(a => a.id === selectedAttorneyId)
-                    ? `${availableAttorneys.find(a => a.id === selectedAttorneyId)?.full_name} (${availableAttorneys.find(a => a.id === selectedAttorneyId)?.attorney_code})`
+                    ? `${availableAttorneys.find(a => a.id === selectedAttorneyId)?.full_name}${availableAttorneys.find(a => a.id === selectedAttorneyId)?.attorney_code ? ' (' + availableAttorneys.find(a => a.id === selectedAttorneyId)?.attorney_code + ')' : ''}`
                     : attorneyCode
                     ? `Attorney Code: ${attorneyCode}`
                     : 'Not selected'}

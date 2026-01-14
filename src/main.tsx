@@ -43,6 +43,7 @@ import RNDashboard from "./pages/RNDashboard";
 import TenVsBuilder from "./components/rn/TenVsBuilder";
 import CarePlanWorkflow from "./components/rn/CarePlanWorkflow";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
+import ResumeIntake from "./pages/ResumeIntake";
 import CaseDetail from "@/pages/CaseDetail";
 import AttorneyCommunications from "./pages/AttorneyCommunications";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -263,6 +264,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           {/* Public routes - no AuthProvider */}
           <Route path="/client-consent" element={<ClientConsent />} />
           <Route path="/client-intake" element={<IntakeWizard />} />
+          <Route path="/resume-intake" element={<ResumeIntake />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/check-status" element={<CheckIntakeStatus />} />
