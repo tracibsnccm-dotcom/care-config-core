@@ -1,9 +1,9 @@
 // src/pages/ClientConsent.tsx
-// Updated flow: Attorney Selection (0) -> Minimum Identity (1) -> Consents (2-6)
-// Minimum Identity step creates INT intake session and sends resume email
+// Updated flow: Attorney Selection (0) -> [IntakeIdentity page] -> Consents (1-5)
+// Identity step is now handled by separate IntakeIdentity page
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { supabaseGet } from "@/lib/supabaseRest";
 import { audit } from '@/lib/supabaseOperations';
-import { createIntakeSession } from "@/lib/intakeSessionService";
-import { sendResumeEmail } from "@/lib/intakeEmailService";
 
 // Generate a session ID to track consent before intake exists
 function generateSessionId(): string {
@@ -53,31 +51,34 @@ async function saveConsentStep(sessionId: string, step: number, data: any) {
     updated_at: new Date().toISOString(),
   };
 
-  // Map step data to database fields (updated order: Minimum Identity (1), then Service Agreement (2), etc.)
-  if (step === 2) {
-    // Service Agreement (was 1)
+  // Map step data to database fields
+  // UI steps 1-5 map to DB steps 2-6 (DB step 2 = Service Agreement, etc.)
+  const dbStep = step + 1; // UI step 1 -> DB step 2, UI step 2 -> DB step 3, etc.
+  
+  if (dbStep === 2) {
+    // Service Agreement (UI step 1)
     updates.service_agreement_signed_at = new Date().toISOString();
     updates.service_agreement_signature = data.signature;
     updates.service_agreement_declined = data.declined || false;
-  } else if (step === 3) {
-    // Legal Disclosure (was 2)
+  } else if (dbStep === 3) {
+    // Legal Disclosure (UI step 2)
     updates.legal_disclosure_signed_at = new Date().toISOString();
     updates.legal_disclosure_signature = data.signature;
     updates.legal_disclosure_attorney_name = data.attorneyName;
-  } else if (step === 4) {
-    // Obtain Records (was 3)
+  } else if (dbStep === 4) {
+    // Obtain Records (UI step 3)
     updates.obtain_records_signed_at = new Date().toISOString();
     updates.obtain_records_signature = data.signature;
     updates.obtain_records_injury_date = data.injuryDate;
-  } else if (step === 5) {
-    // Healthcare Coordination (was 4)
+  } else if (dbStep === 5) {
+    // Healthcare Coordination (UI step 4)
     updates.healthcare_coord_signed_at = new Date().toISOString();
     updates.healthcare_coord_signature = data.signature;
     updates.healthcare_coord_pcp = data.pcp || null;
     updates.healthcare_coord_specialist = data.specialist || null;
     updates.healthcare_coord_therapy = data.therapy || null;
-  } else if (step === 6) {
-    // HIPAA Privacy Notice (was 5, now last)
+  } else if (dbStep === 6) {
+    // HIPAA Privacy Notice (UI step 5)
     updates.hipaa_acknowledged_at = new Date().toISOString();
     updates.hipaa_signature = data.signature;
   }
@@ -120,11 +121,20 @@ function getCurrentDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-type ConsentStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type ConsentStep = 0 | 1 | 2 | 3 | 4 | 5; // Step 0: Attorney, Steps 1-5: Consents
 
 export default function ClientConsent() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<ConsentStep>(0);
+  const [searchParams] = useSearchParams();
+  
+  // Check if coming from IntakeIdentity - if intake session exists, start at consent step 1
+  // Otherwise, start at attorney selection step 0
+  const hasIntakeSession = sessionStorage.getItem("rcms_intake_id");
+  const [step, setStep] = useState<ConsentStep>(() => {
+    // If intake session exists, start at step 1 (consents), otherwise step 0 (attorney)
+    return hasIntakeSession ? 1 : 0;
+  });
+  
   const [sessionId] = useState<string>(() => {
     // Try to get existing session ID from sessionStorage, or generate new one
     const stored = sessionStorage.getItem("rcms_consent_session_id");
@@ -134,35 +144,32 @@ export default function ClientConsent() {
     return newId;
   });
 
-  // Step 1: Minimum Identity (NEW)
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [intakeSessionId, setIntakeSessionId] = useState<string | null>(null);
-  const [intakeId, setIntakeId] = useState<string>("");
+  const [intakeSessionId, setIntakeSessionId] = useState<string | null>(
+    sessionStorage.getItem("rcms_intake_session_id")
+  );
 
-  // Step 2: Service Agreement (was 1)
+  // Step 1: Service Agreement
   const [serviceAgreementAccepted, setServiceAgreementAccepted] = useState(false);
   const [serviceAgreementSignature, setServiceAgreementSignature] = useState("");
 
-  // Step 3: Legal Disclosure (was 2)
+  // Step 2: Legal Disclosure
   const [legalDisclosureAuthorized, setLegalDisclosureAuthorized] = useState(false);
   const [legalDisclosureSignature, setLegalDisclosureSignature] = useState("");
   const [attorneyName, setAttorneyName] = useState("");
 
-  // Step 4: Obtain Records (was 3)
+  // Step 3: Obtain Records
   const [obtainRecordsAuthorized, setObtainRecordsAuthorized] = useState(false);
   const [obtainRecordsSignature, setObtainRecordsSignature] = useState("");
   const [injuryDate, setInjuryDate] = useState("");
 
-  // Step 5: Healthcare Coordination (was 4)
+  // Step 4: Healthcare Coordination
   const [healthcareCoordAuthorized, setHealthcareCoordAuthorized] = useState(false);
   const [healthcareCoordSignature, setHealthcareCoordSignature] = useState("");
   const [pcp, setPcp] = useState("");
   const [specialist, setSpecialist] = useState("");
   const [therapy, setTherapy] = useState("");
 
-  // Step 6: HIPAA Privacy Notice (was 5)
+  // Step 5: HIPAA Privacy Notice
   const [hipaaAcknowledged, setHipaaAcknowledged] = useState(false);
   const [hipaaSignature, setHipaaSignature] = useState("");
 
@@ -194,13 +201,38 @@ export default function ClientConsent() {
     loadAttorneys();
   }, []);
 
+  // Check if intake session exists - if not and we're past attorney step, redirect to IntakeIdentity
+  useEffect(() => {
+    const storedIntakeId = sessionStorage.getItem("rcms_intake_id");
+    const storedSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    
+    // If on a consent step but no intake session, redirect to identity page
+    if (step > 0 && !storedIntakeId) {
+      // Get attorney info to pass along
+      const storedAttorneyId = sessionStorage.getItem("rcms_current_attorney_id") || "";
+      const storedAttorneyCode = sessionStorage.getItem("rcms_attorney_code") || "";
+      navigate(`/intake-identity?attorney_id=${encodeURIComponent(storedAttorneyId)}&attorney_code=${encodeURIComponent(storedAttorneyCode)}`);
+      return;
+    }
+    
+    if (storedSessionId) {
+      setIntakeSessionId(storedSessionId);
+    }
+    
+    // Restore attorney info if available
+    const storedAttorneyId = sessionStorage.getItem("rcms_current_attorney_id");
+    const storedAttorneyCode = sessionStorage.getItem("rcms_attorney_code");
+    if (storedAttorneyId) setSelectedAttorneyId(storedAttorneyId);
+    if (storedAttorneyCode) setAttorneyCode(storedAttorneyCode);
+  }, [step, navigate]);
+
 
   const handleDecline = async () => {
     setIsSaving(true);
     setError(null);
     try {
-      // Save decline status (step 2 is now Service Agreement)
-      await saveConsentStep(sessionId, 2, {
+      // Save decline status (UI step 1 = DB step 2 = Service Agreement)
+      await saveConsentStep(sessionId, 1, {
         signature: "",
         declined: true,
       });
@@ -220,68 +252,18 @@ export default function ClientConsent() {
 
     // Validate current step
     if (step === 0) {
-      // Attorney Selection
+      // Attorney Selection - Navigate to IntakeIdentity page
       if (!selectedAttorneyId && !attorneyCode.trim()) {
         setError("Please select your attorney or enter an attorney code.");
         return;
       }
-      setStep(1);
+      // Store attorney selection in sessionStorage
+      sessionStorage.setItem("rcms_current_attorney_id", selectedAttorneyId);
+      sessionStorage.setItem("rcms_attorney_code", attorneyCode);
+      // Navigate to IntakeIdentity page with attorney info
+      navigate(`/intake-identity?attorney_id=${encodeURIComponent(selectedAttorneyId)}&attorney_code=${encodeURIComponent(attorneyCode)}`);
     } else if (step === 1) {
-      // Minimum Identity - CREATE INT SESSION HERE
-      if (!firstName.trim()) {
-        setError("Please enter your first name.");
-        return;
-      }
-      if (!lastName.trim()) {
-        setError("Please enter your last name.");
-        return;
-      }
-      if (!email.trim() || !email.includes('@')) {
-        setError("Please enter a valid email address.");
-        return;
-      }
-      
-      setIsSaving(true);
-      try {
-        // Create INT intake session
-        const session = await createIntakeSession({
-          attorneyId: selectedAttorneyId || undefined,
-          attorneyCode: attorneyCode || undefined,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim().toLowerCase(),
-        });
-        
-        setIntakeSessionId(session.id);
-        setIntakeId(session.intakeId);
-        
-        // Store session ID and intake ID in sessionStorage for IntakeWizard
-        sessionStorage.setItem("rcms_intake_session_id", session.id);
-        sessionStorage.setItem("rcms_intake_id", session.intakeId);
-        sessionStorage.setItem("rcms_resume_token", session.resumeToken);
-        
-        // Send resume email
-        try {
-          await sendResumeEmail({
-            email: session.email,
-            firstName: session.firstName,
-            lastName: session.lastName,
-            resumeToken: session.resumeToken,
-            intakeId: session.intakeId,
-          });
-        } catch (emailError) {
-          console.error('Failed to send resume email:', emailError);
-          // Don't block progress if email fails
-        }
-        
-        setStep(2);
-      } catch (err: any) {
-        setError(err.message || "Failed to save your information. Please try again.");
-      } finally {
-        setIsSaving(false);
-      }
-    } else if (step === 2) {
-      // Service Agreement (was 1)
+      // Service Agreement (UI step 1 = DB step 2)
       if (!serviceAgreementAccepted) {
         setError("Please confirm that you have read and agree to the Service Agreement.");
         return;
@@ -292,18 +274,18 @@ export default function ClientConsent() {
       }
       setIsSaving(true);
       try {
-        await saveConsentStep(sessionId, 2, {
+        await saveConsentStep(sessionId, 1, {
           signature: serviceAgreementSignature,
           declined: false,
         });
-        setStep(3);
+        setStep(2);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
       } finally {
         setIsSaving(false);
       }
-    } else if (step === 3) {
-      // Legal Disclosure (was 2)
+    } else if (step === 2) {
+      // Legal Disclosure (UI step 2 = DB step 3)
       if (!attorneyName.trim()) {
         setError("Please enter your attorney or firm name.");
         return;
@@ -318,18 +300,18 @@ export default function ClientConsent() {
       }
       setIsSaving(true);
       try {
-        await saveConsentStep(sessionId, 3, {
+        await saveConsentStep(sessionId, 2, {
           signature: legalDisclosureSignature,
           attorneyName: attorneyName.trim(),
         });
-        setStep(4);
+        setStep(3);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
       } finally {
         setIsSaving(false);
       }
-    } else if (step === 4) {
-      // Obtain Records (was 3)
+    } else if (step === 3) {
+      // Obtain Records (UI step 3 = DB step 4)
       if (!injuryDate) {
         setError("Please enter the date of injury/incident.");
         return;
@@ -344,18 +326,18 @@ export default function ClientConsent() {
       }
       setIsSaving(true);
       try {
-        await saveConsentStep(sessionId, 4, {
+        await saveConsentStep(sessionId, 3, {
           signature: obtainRecordsSignature,
           injuryDate,
         });
-        setStep(5);
+        setStep(4);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
       } finally {
         setIsSaving(false);
       }
-    } else if (step === 5) {
-      // Healthcare Coordination (was 4)
+    } else if (step === 4) {
+      // Healthcare Coordination (UI step 4 = DB step 5)
       if (!healthcareCoordAuthorized) {
         setError("Please authorize RCMS to share information with your healthcare providers.");
         return;
@@ -366,20 +348,20 @@ export default function ClientConsent() {
       }
       setIsSaving(true);
       try {
-        await saveConsentStep(sessionId, 5, {
+        await saveConsentStep(sessionId, 4, {
           signature: healthcareCoordSignature,
           pcp: pcp.trim() || null,
           specialist: specialist.trim() || null,
           therapy: therapy.trim() || null,
         });
-        setStep(6);
+        setStep(5);
       } catch (err: any) {
         setError(err.message || "Failed to save. Please try again.");
       } finally {
         setIsSaving(false);
       }
-    } else if (step === 6) {
-      // HIPAA Privacy Notice (was 5, now last)
+    } else if (step === 5) {
+      // HIPAA Privacy Notice (UI step 5 = DB step 6)
       if (!hipaaAcknowledged) {
         setError("Please acknowledge that you have received and reviewed the Notice of Privacy Practices.");
         return;
@@ -390,17 +372,17 @@ export default function ClientConsent() {
       }
       setIsSaving(true);
       try {
-        await saveConsentStep(sessionId, 6, {
+        await saveConsentStep(sessionId, 5, {
           signature: hipaaSignature,
         });
         
         // Audit: All consents signed
         try {
           await audit({
-            action: 'consents_signed',
+            action: 'POLICY_ACK',
             actorRole: 'client',
             actorId: 'pre-auth',
-            caseId: null,
+            caseId: undefined,
             meta: { session_id: sessionId, intake_session_id: intakeSessionId }
           });
         } catch (e) {
@@ -408,13 +390,11 @@ export default function ClientConsent() {
         }
         
         // All steps complete - redirect to intake with attorney info in URL params
-        const attorneyParam = selectedAttorneyId || '';
-        const codeParam = attorneyCode || '';
+        const attorneyParam = selectedAttorneyId || sessionStorage.getItem("rcms_current_attorney_id") || '';
+        const codeParam = attorneyCode || sessionStorage.getItem("rcms_attorney_code") || '';
         
         // Clear any previous intake submission flag to prevent reload loop
         sessionStorage.removeItem("rcms_intake_submitted");
-        // Set attorney ID before navigation
-        sessionStorage.setItem("rcms_current_attorney_id", attorneyParam);
         // Mark consents as completed
         sessionStorage.setItem("rcms_consents_completed", "true");
         
@@ -426,7 +406,7 @@ export default function ClientConsent() {
     }
   };
 
-  const progress = (step / 7) * 100;
+  const progress = step === 0 ? 0 : ((step) / 6) * 100; // 0% for attorney, 16.67% per consent step
 
   // Show decline message if user declined Service Agreement
   if (showDeclineMessage) {
@@ -456,7 +436,7 @@ export default function ClientConsent() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-foreground">
-              Step {step + 1} of 7
+              {step === 0 ? "Step 1 of 3 (Attorney Selection)" : `Step ${step + 1} of 6 (Consents)`}
             </h2>
             <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
           </div>
@@ -518,82 +498,7 @@ export default function ClientConsent() {
             </div>
           )}
 
-          {/* Step 1: Minimum Intake Identity - NEW STEP */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground mb-2">
-                  Basic Contact Information
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  We need basic contact information so we can save your intake.
-                </p>
-              </div>
-
-              <Alert className="bg-amber-50 border-amber-200">
-                <Info className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-900">
-                  <strong>Before you continue:</strong> We need basic contact information so we can save your intake.
-                  If you leave before completing this step, your information will not be saved.
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="first-name">
-                    First Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="first-name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Enter your first name"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="last-name">
-                    Last Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="last-name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Enter your last name"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">
-                    Email Address <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-              </div>
-
-              {intakeId && (
-                <Alert className="bg-green-50 border-green-200">
-                  <Info className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-900">
-                    <strong>Your intake has been saved.</strong> Your Intake ID is: <span className="font-mono font-bold">{intakeId}</span>
-                    <br />
-                    You can leave at any time and return using the link we sent to your email.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Service Agreement (was 1) */}
+          {/* Step 1: Service Agreement */}
           {step === 1 && (
             <div className="space-y-6">
               <div>
@@ -706,8 +611,8 @@ export default function ClientConsent() {
             </div>
           )}
 
-          {/* Step 3: Authorization for Legal Disclosure (was 2) */}
-          {step === 3 && (
+          {/* Step 2: Authorization for Legal Disclosure */}
+          {step === 2 && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -831,8 +736,8 @@ export default function ClientConsent() {
             </div>
           )}
 
-          {/* Step 4: Authorization to Obtain Records (was 3) */}
-          {step === 4 && (
+          {/* Step 3: Authorization to Obtain Records */}
+          {step === 3 && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -957,8 +862,8 @@ export default function ClientConsent() {
             </div>
           )}
 
-          {/* Step 5: Authorization for Healthcare Coordination (was 4) */}
-          {step === 5 && (
+          {/* Step 4: Authorization for Healthcare Coordination */}
+          {step === 4 && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -1093,8 +998,8 @@ export default function ClientConsent() {
             </div>
           )}
 
-          {/* Step 6: HIPAA Privacy Notice (was 5, now last) */}
-          {step === 6 && (
+          {/* Step 5: HIPAA Privacy Notice */}
+          {step === 5 && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -1247,7 +1152,7 @@ export default function ClientConsent() {
 
           {/* Action Buttons */}
           <div className="mt-6 flex justify-end gap-3">
-            {step === 2 && (
+            {step === 1 && (
               <Button
                 onClick={handleDecline}
                 disabled={isSaving}
@@ -1267,10 +1172,8 @@ export default function ClientConsent() {
                 : step === 0
                 ? "Continue"
                 : step === 1
-                ? "Continue"
-                : step === 2
                 ? "I Agree - Continue"
-                : step === 6
+                : step === 5
                 ? "Complete & Continue to Intake"
                 : "Continue"}
             </Button>

@@ -43,13 +43,87 @@ export interface IntakeSession {
 }
 
 /**
- * Create a new INT intake session after minimum identity is collected
+ * Create or update (upsert) INT intake session after minimum identity is collected
+ * If session already exists for this email + attorney, updates it; otherwise creates new one
  */
 export async function createIntakeSession(params: CreateIntakeSessionParams): Promise<IntakeSession> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  // Count today's intakes to get sequence number
+  const emailLower = params.email.trim().toLowerCase();
+  
+  // Check if session already exists (by email - one session per email/attorney combo)
+  const existingResponse = await fetch(
+    `${supabaseUrl}/rest/v1/rc_client_intake_sessions?email=eq.${emailLower}&select=*&limit=1`,
+    {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  let existingSession: any = null;
+  if (existingResponse.ok) {
+    const existing = await existingResponse.json();
+    if (Array.isArray(existing) && existing.length > 0) {
+      existingSession = existing[0];
+      // Check if expired or converted - if so, create new
+      if (new Date(existingSession.expires_at) < new Date() || 
+          existingSession.intake_status === 'converted' || 
+          existingSession.intake_status === 'submitted') {
+        existingSession = null;
+      }
+    }
+  }
+
+  // If existing valid session, update it with current attorney info and return
+  if (existingSession) {
+    const updateData: any = {
+      attorney_id: params.attorneyId || existingSession.attorney_id || null,
+      attorney_code: params.attorneyCode || existingSession.attorney_code || null,
+      first_name: params.firstName.trim(),
+      last_name: params.lastName.trim(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updateResponse = await fetch(
+      `${supabaseUrl}/rest/v1/rc_client_intake_sessions?id=eq.${existingSession.id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(updateData),
+      }
+    );
+
+    if (updateResponse.ok) {
+      const updated = await updateResponse.json();
+      const session = Array.isArray(updated) ? updated[0] : updated;
+      return {
+        id: session.id,
+        intakeId: session.intake_id,
+        resumeToken: session.resume_token,
+        attorneyId: session.attorney_id,
+        attorneyCode: session.attorney_code,
+        firstName: session.first_name,
+        lastName: session.last_name,
+        email: session.email,
+        currentStep: session.current_step,
+        formData: session.form_data || {},
+        createdAt: session.created_at,
+        expiresAt: session.expires_at,
+        intakeStatus: session.intake_status,
+      };
+    }
+  }
+
+  // Create new session
   const today = new Date();
   const yy = today.getFullYear().toString().slice(-2);
   const mm = (today.getMonth() + 1).toString().padStart(2, '0');
@@ -85,7 +159,7 @@ export async function createIntakeSession(params: CreateIntakeSessionParams): Pr
     attorney_code: params.attorneyCode || null,
     first_name: params.firstName.trim(),
     last_name: params.lastName.trim(),
-    email: params.email.trim().toLowerCase(),
+    email: emailLower,
     current_step: 0,
     form_data: {},
     expires_at: expiresAt,

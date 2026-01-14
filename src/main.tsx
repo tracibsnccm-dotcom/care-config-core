@@ -36,6 +36,7 @@ import RNLogin from "./pages/RNLogin";
 import RNPortalLogin from "./pages/RNPortalLogin";
 import ClientLogin from "./pages/ClientLogin";
 import ClientConsent from "./pages/ClientConsent";
+import IntakeIdentity from "./pages/IntakeIdentity";
 import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
@@ -263,6 +264,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Routes>
           {/* Public routes - no AuthProvider */}
           <Route path="/client-consent" element={<ClientConsent />} />
+          <Route path="/intake-identity" element={<IntakeIdentity />} />
           <Route path="/client-intake" element={<IntakeWizard />} />
           <Route path="/resume-intake" element={<ResumeIntake />} />
           <Route path="/client-login" element={<ClientLogin />} />

@@ -130,14 +130,14 @@ export default function IntakeWizard() {
     loadAttorneys();
   }, []);
 
-  // Load intake session on mount (if resuming)
+  // Load intake session on mount (priority: resume token > stored session ID > stored intake ID)
   useEffect(() => {
     const loadIntakeSession = async () => {
       const resumeToken = sessionStorage.getItem("rcms_resume_token");
       const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
       const storedIntakeId = sessionStorage.getItem("rcms_intake_id");
       
-      // If we have a resume token, load the session
+      // Priority 1: If we have a resume token, load the full session
       if (resumeToken) {
         try {
           const session = await getIntakeSessionByToken(resumeToken);
@@ -190,13 +190,32 @@ export default function IntakeWizard() {
               title: "Intake Session Loaded",
               description: `Resuming from ${new Date(session.updatedAt).toLocaleString()}`,
             });
+            return; // Exit early if resume token loaded successfully
           }
         } catch (error) {
           console.error('Failed to load intake session:', error);
         }
-      } else if (storedIntakeId) {
-        // If we have stored intake ID but no token, set it (from ClientConsent)
-        setClient(prev => ({ ...prev, rcmsId: storedIntakeId }));
+      }
+      
+      // Priority 2: If we have stored intake ID from ClientConsent (created BEFORE consents), set it immediately
+      if (storedIntakeId && storedIntakeId.startsWith('INT-')) {
+        setClient(prev => {
+          // Only set if not already set or if current value is not an INT- ID
+          if (!prev.rcmsId || !prev.rcmsId.startsWith('INT-')) {
+            return { ...prev, rcmsId: storedIntakeId };
+          }
+          return prev;
+        });
+        
+        // Also load attorney info if available in sessionStorage
+        const storedAttorneyId = sessionStorage.getItem("rcms_current_attorney_id");
+        const storedAttorneyCode = sessionStorage.getItem("rcms_attorney_code");
+        if (storedAttorneyId) {
+          setSelectedAttorneyId(storedAttorneyId);
+        }
+        if (storedAttorneyCode) {
+          setAttorneyCode(storedAttorneyCode);
+        }
       }
     };
     
@@ -1132,43 +1151,9 @@ export default function IntakeWizard() {
     }
   }, []);
 
-  // Generate intake ID when attorney code is available (only if not already set from session)
-  useEffect(() => {
-    async function generateId() {
-      // Skip if ID already exists and is in INT- format (from session)
-      if (client.rcmsId && client.rcmsId.startsWith('INT-')) return;
-      
-      // Regenerate if no ID, or if ID is in old RCMS-XXXX format (not INT- format)
-      const needsNewId = !client.rcmsId || (client.rcmsId && !client.rcmsId.startsWith('INT-'));
-      if (!attorneyCode || !needsNewId) return;
-      
-      // Count today's intakes to get sequence number
-      const today = new Date();
-      const yy = today.getFullYear().toString().slice(-2);
-      const mm = (today.getMonth() + 1).toString().padStart(2, '0');
-      const dd = today.getDate().toString().padStart(2, '0');
-      const todayPrefix = `INT-${yy}${mm}${dd}-`;
-      
-      try {
-        const { data: todayIntakes } = await supabaseGet(
-          'rc_client_intake_sessions',
-          `select=intake_id&intake_id=like.${todayPrefix}*`
-        );
-        
-        const count = Array.isArray(todayIntakes) ? todayIntakes.length : 0;
-        const newId = generateIntakeId(count + 1);
-        
-        setClient(prev => ({ ...prev, rcmsId: newId }));
-      } catch (error) {
-        console.error('Error generating intake ID:', error);
-        // Fallback - just use sequence 1
-        const newId = generateIntakeId(1);
-        setClient(prev => ({ ...prev, rcmsId: newId }));
-      }
-    }
-    
-    generateId();
-  }, [attorneyCode, client.rcmsId]);
+  // DO NOT generate intake ID here - it should already be created in ClientConsent before reaching IntakeWizard
+  // This useEffect is intentionally disabled to prevent ID generation after consents
+  // The INT- ID is set from sessionStorage in the loadIntakeSession useEffect above
 
   // Inactivity detection
   const { isInactive, dismissInactivity } = useInactivityDetection({
