@@ -162,7 +162,7 @@ export default function ClientConsent() {
   const [showDeclineMessage, setShowDeclineMessage] = useState(false);
 
   // Attorney selection state
-  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string}[]>([]);
+  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, firm_name: string}[]>([]);
   const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
   const [attorneyCode, setAttorneyCode] = useState<string>("");
 
@@ -173,13 +173,13 @@ export default function ClientConsent() {
     const loadAttorneys = async () => {
       console.log('ClientConsent: Loading attorneys...');
       const { data, error } = await supabaseGet(
-        'rc_users',
-        'select=id,full_name,attorney_code&role=eq.attorney&order=full_name.asc'
+        'rc_attorneys',
+        'select=id,firm_name&is_active=eq.true&order=firm_name.asc'
       );
       console.log('ClientConsent: Attorney load result', { data, error });
       if (!error && data) {
         const attorneys = Array.isArray(data) ? data : [data];
-        setAvailableAttorneys(attorneys.filter(a => a.attorney_code));
+        setAvailableAttorneys(attorneys);
       }
     };
     loadAttorneys();
@@ -426,8 +426,8 @@ export default function ClientConsent() {
                       <Label className="text-sm font-medium">Select Your Attorney</Label>
                       <Select value={selectedAttorneyId} onValueChange={(val) => {
                         setSelectedAttorneyId(val);
-                        const attorney = availableAttorneys.find(a => a.id === val);
-                        if (attorney) setAttorneyCode(attorney.attorney_code);
+                        // Clear attorney code when selecting from dropdown
+                        setAttorneyCode("");
                       }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Choose your attorney..." />
@@ -435,7 +435,7 @@ export default function ClientConsent() {
                         <SelectContent>
                           {availableAttorneys.map(attorney => (
                             <SelectItem key={attorney.id} value={attorney.id}>
-                              {attorney.full_name} ({attorney.attorney_code})
+                              {attorney.firm_name}
                             </SelectItem>
                           ))}
                         </SelectContent>
