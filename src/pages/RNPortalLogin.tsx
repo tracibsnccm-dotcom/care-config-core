@@ -76,30 +76,30 @@ export default function RNPortalLogin() {
         return;
       }
 
-      // Step 2: Check the user's role in rc_users table (case-insensitive)
-      console.log('RNPortalLogin: Checking rc_users for role, auth_user_id:', authData.user.id);
-      const { data: userData, error: roleError } = await supabase
-        .from("rc_users")
+      // Step 2: Check the user's profile and role in profiles table
+      console.log('RNPortalLogin: Checking profiles for role, id:', authData.user.id);
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
         .select("role")
-        .eq("auth_user_id", authData.user.id)
+        .eq("id", authData.user.id)
         .maybeSingle();
 
-      console.log('RNPortalLogin: rc_users query result:', {
-        hasData: !!userData,
-        role: userData?.role,
-        error: roleError
+      console.log('RNPortalLogin: profiles query result:', {
+        hasData: !!profileData,
+        role: profileData?.role,
+        error: profileError
       });
 
-      if (roleError) {
-        console.error('RNPortalLogin: rc_users query error:', roleError);
-        setError(`Failed to verify user role: ${roleError.message}`);
+      if (profileError) {
+        console.error('RNPortalLogin: profiles query error:', profileError);
+        setError(`Failed to verify user profile: ${profileError.message}`);
         setLoading(false);
         return;
       }
 
-      if (!userData || !userData.role) {
-        console.error('RNPortalLogin: No role found for user');
-        // Sign out the user since they don't have a role
+      if (!profileData || !profileData.role) {
+        console.error('RNPortalLogin: No profile or role found for user');
+        // Sign out the user since they don't have a profile/role
         await supabase.auth.signOut();
         setError("User account not found. Please contact your administrator.");
         setLoading(false);
@@ -108,8 +108,8 @@ export default function RNPortalLogin() {
 
       // Step 3: Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
       // Note: Provider role is separate and NOT used for nurses
-      const userRole = userData.role.toLowerCase();
-      const isRN = userRole === "rn" || userRole === "rn_supervisor" || userRole === "rn_cm_supervisor";
+      const userRole = profileData.role.toLowerCase();
+      const isRN = userRole === "rn" || userRole === "rn_supervisor";
       console.log('RNPortalLogin: Role check:', { userRole, isRN });
 
       if (!isRN) {
@@ -121,17 +121,23 @@ export default function RNPortalLogin() {
         return;
       }
 
-      // Step 4: Success! Immediately redirect - don't wait for anything else
+      // Step 4: Route based on role
+      let redirectPath = '/rn-console'; // Default for 'rn' role
+      if (userRole === "rn_supervisor") {
+        redirectPath = '/rn-supervisor';
+      }
+
+      // Step 5: Success! Immediately redirect - don't wait for anything else
       console.log('RNPortalLogin: ========== Login successful! RN role confirmed. Redirecting immediately ==========');
       console.log('RNPortalLogin: User ID:', authData.user.id);
-      console.log('RNPortalLogin: Role:', userData.role);
+      console.log('RNPortalLogin: Role:', profileData.role);
+      console.log('RNPortalLogin: Redirecting to:', redirectPath);
       
       setSuccess(true);
       setLoading(false);
       
       // Immediate redirect - background processes can handle themselves
-      console.log('RNPortalLogin: Redirecting to /rn-console');
-      window.location.href = '/rn-console';
+      window.location.href = redirectPath;
       
     } catch (err: any) {
       console.error("RNPortalLogin: Unexpected error caught:", err);

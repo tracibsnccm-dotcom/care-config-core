@@ -41,6 +41,7 @@ import ClientPortalSimple from "./pages/ClientPortalSimple";
 import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import RNDashboard from "./pages/RNDashboard";
+import RNSupervisor from "./pages/RNSupervisor";
 import TenVsBuilder from "./components/rn/TenVsBuilder";
 import CarePlanWorkflow from "./components/rn/CarePlanWorkflow";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
@@ -290,6 +291,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <AppProvider>
                 <RequireAuth>
                   <RNPortalLanding />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          
+          {/* RN Supervisor route */}
+          <Route path="/rn-supervisor" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <RNSupervisor />
                 </RequireAuth>
               </AppProvider>
             </AuthProvider>
