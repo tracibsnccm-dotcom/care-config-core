@@ -514,7 +514,7 @@ export default function IntakeWizard() {
     console.log('IntakeWizard handleSubmit: Resolved attorneyId', attorneyId);
 
     // Get client information from intake session or sessionStorage
-    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    // Reuse intakeSessionId that was already declared above for case number lookup
     let clientFirstName = "";
     let clientLastName = "";
     let clientEmail = "";
