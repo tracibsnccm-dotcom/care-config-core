@@ -376,18 +376,14 @@ export default function ClientConsent() {
           signature: hipaaSignature,
         });
         
-        // Audit: All consents signed
-        try {
-          await audit({
-            action: 'POLICY_ACK',
-            actorRole: 'client',
-            actorId: 'pre-auth',
-            caseId: undefined,
-            meta: { session_id: sessionId, intake_session_id: intakeSessionId }
-          });
-        } catch (e) {
-          console.error('Failed to audit consent signing:', e);
-        }
+        // Audit: All consents signed (fire and forget - don't block navigation)
+        audit({
+          action: 'POLICY_ACK',
+          actorRole: 'client',
+          actorId: 'pre-auth',
+          caseId: undefined,
+          meta: { session_id: sessionId, intake_session_id: intakeSessionId }
+        }).catch(e => console.error('Failed to audit consent signing:', e));
         
         // All steps complete - redirect to intake with attorney info in URL params
         const attorneyParam = selectedAttorneyId || sessionStorage.getItem("rcms_current_attorney_id") || '';
