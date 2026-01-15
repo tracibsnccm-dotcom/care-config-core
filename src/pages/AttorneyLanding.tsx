@@ -271,23 +271,27 @@ export default function AttorneyLanding() {
     }
   }
 
-  // Call loadAttorneyName when user becomes available with isMounted check
+  // Call loadAttorneyName when user becomes available - check sessionStorage first
   useEffect(() => {
-    // Check cache first - if we have a cached name, use it immediately
-    if (cachedAttorneyName) {
-      console.log("AttorneyLanding: Using cached attorney name:", cachedAttorneyName);
-      setAttorneyName(cachedAttorneyName);
+    // Check sessionStorage first (set during login)
+    const storedName = sessionStorage.getItem('attorneyName');
+    if (storedName) {
+      console.log("AttorneyLanding: Using attorney name from sessionStorage:", storedName);
+      setAttorneyName(storedName);
+      // Also cache it for module-level cache
+      cachedAttorneyName = storedName;
+      return;
+    }
+
+    // Fallback: fetch from database if not in sessionStorage
+    if (!user?.id) {
+      console.log("AttorneyLanding: useEffect triggered, but no user available");
       return;
     }
 
     let isMounted = true;
     
     const fetchName = async () => {
-      if (!user?.id) {
-        console.log("fetchName: No user ID available");
-        return;
-      }
-
       try {
         console.log("fetchName: Fetching attorney name for user:", user.id);
         
@@ -322,7 +326,8 @@ export default function AttorneyLanding() {
         if (rcUser?.full_name) {
           const name = rcUser.full_name;
           console.log("Setting attorney name:", name);
-          // Cache the name
+          // Store in sessionStorage and cache
+          sessionStorage.setItem('attorneyName', name);
           cachedAttorneyName = name;
           if (isMounted) {
             setAttorneyName(name);
@@ -355,8 +360,9 @@ export default function AttorneyLanding() {
           if (!profileError && profile) {
             const name = profile.full_name || profile.display_name || "";
             console.log("Setting attorney name (from profiles):", name);
-            // Cache the name
+            // Store in sessionStorage and cache
             if (name) {
+              sessionStorage.setItem('attorneyName', name);
               cachedAttorneyName = name;
             }
             if (isMounted) {
@@ -370,11 +376,6 @@ export default function AttorneyLanding() {
         console.error("Error loading attorney name:", error);
       }
     };
-
-    if (!user) {
-      console.log("AttorneyLanding: useEffect triggered, but no user available");
-      return;
-    }
 
     console.log("AttorneyLanding: useEffect triggered, user available:", user.id);
     loadTierData();

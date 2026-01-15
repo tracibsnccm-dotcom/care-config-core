@@ -120,6 +120,40 @@ export default function AttorneyLogin() {
         // Continue with login - directory record is optional
       }
 
+      console.log("AttorneyLogin: Role verified as attorney, fetching attorney name");
+      
+      // Fetch attorney name and store in sessionStorage
+      try {
+        const { data: rcUser, error: rcUserError } = await supabase
+          .from("rc_users")
+          .select("full_name")
+          .eq("auth_user_id", authData.user.id)
+          .maybeSingle();
+
+        if (!rcUserError && rcUser?.full_name) {
+          console.log("AttorneyLogin: Storing attorney name in sessionStorage:", rcUser.full_name);
+          sessionStorage.setItem('attorneyName', rcUser.full_name);
+        } else {
+          // Fallback to profiles table if rc_users doesn't have it
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("display_name, full_name")
+            .eq("id", authData.user.id)
+            .maybeSingle();
+
+          if (!profileError && profile) {
+            const name = profile.full_name || profile.display_name || "";
+            if (name) {
+              console.log("AttorneyLogin: Storing attorney name from profiles in sessionStorage:", name);
+              sessionStorage.setItem('attorneyName', name);
+            }
+          }
+        }
+      } catch (nameError) {
+        console.warn("AttorneyLogin: Error fetching attorney name, continuing with login:", nameError);
+        // Don't block login if name fetch fails
+      }
+
       console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
       console.log('AttorneyLogin: About to redirect to /attorney-console');
       // Success! Redirect to attorney console with full page reload to ensure proper component mounting
