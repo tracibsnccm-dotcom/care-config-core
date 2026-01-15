@@ -53,61 +53,77 @@ export default function AttorneyLogin() {
 
       console.log("AttorneyLogin: User authenticated, checking role for user ID:", authData.user.id);
 
-      // Check the user's role in rc_users table with timeout
-      const roleCheckPromise = supabase
-        .from("rc_users")
+      // Check the user's profile and role in profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
         .select("role")
-        .eq("auth_user_id", authData.user.id)
+        .eq("id", authData.user.id)
         .maybeSingle();
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Role check timeout')), 3000)
-      );
-
-      try {
-        const { data: userData, error: roleError } = await Promise.race([roleCheckPromise, timeoutPromise]) as any;
-
-        console.log('AttorneyLogin: Role query result:', userData, roleError);
-
-        if (roleError) {
-          console.error("AttorneyLogin: Error checking user role:", roleError);
-          throw new Error(`Failed to verify user role: ${roleError.message}`);
-        }
-
-        if (!userData || !userData.role) {
-          console.error("AttorneyLogin: No role found for user");
-          // Sign out the user since they don't have a role
-          await supabase.auth.signOut();
-          throw new Error("User account not found. Please contact your administrator.");
-        }
-
-        console.log("AttorneyLogin: User role found:", userData.role);
-
-        // Check if role is 'attorney' (case-insensitive)
-        const userRole = userData.role.toLowerCase();
-        const isAttorney = userRole === "attorney";
-        console.log('AttorneyLogin: Is attorney?', isAttorney);
-        if (!isAttorney) {
-          console.error("AttorneyLogin: User role is not attorney:", userRole);
-          // Sign out the user since they're not an attorney
-          await supabase.auth.signOut();
-          throw new Error(`This login is for attorneys only. Your account has role: ${userData.role}`);
-        }
-
-        console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
-        console.log('AttorneyLogin: About to redirect to /attorney-console');
-        // Success! Redirect to attorney console with full page reload to ensure proper component mounting
-        window.location.href = '/attorney-console';
-      } catch (err: any) {
-        // If timeout or other error, assume attorney and proceed (AttorneyLanding will handle any issues)
-        if (err.message === 'Role check timeout') {
-          console.log('AttorneyLogin: Role check failed or timed out, proceeding anyway');
-          window.location.href = '/attorney-console';
-          return;
-        }
-        // Re-throw other errors to be handled by outer catch
-        throw err;
+      if (profileError) {
+        console.error("AttorneyLogin: Error checking user profile:", profileError);
+        await supabase.auth.signOut();
+        throw new Error(`Failed to verify user profile: ${profileError.message}`);
       }
+
+      if (!profileData || !profileData.role) {
+        console.error("AttorneyLogin: No profile or role found for user");
+        await supabase.auth.signOut();
+        throw new Error("User account not found. Please contact your administrator.");
+      }
+
+      console.log("AttorneyLogin: User role found:", profileData.role);
+
+      // Check if role is 'attorney' (case-insensitive)
+      const userRole = profileData.role.toLowerCase();
+      const isAttorney = userRole === "attorney";
+      console.log('AttorneyLogin: Is attorney?', isAttorney);
+      
+      if (!isAttorney) {
+        console.error("AttorneyLogin: User role is not attorney:", userRole);
+        await supabase.auth.signOut();
+        throw new Error(`This login is for attorneys only. Your account has role: ${profileData.role}`);
+      }
+
+      // Optional: Check for attorney directory record (rc_attorneys or attorney_metadata)
+      // This is informational only - don't block login if missing, but log it
+      try {
+        // Try rc_attorneys first (if it exists)
+        const { data: rcAttorneyData, error: rcAttorneyError } = await supabase
+          .from("rc_attorneys")
+          .select("id, attorney_code")
+          .eq("auth_user_id", authData.user.id)
+          .maybeSingle();
+
+        if (rcAttorneyError && rcAttorneyError.code !== 'PGRST116') {
+          // Table doesn't exist or other error - try attorney_metadata
+          const { data: attorneyMetadataData, error: attorneyMetadataError } = await supabase
+            .from("attorney_metadata")
+            .select("user_id")
+            .eq("user_id", authData.user.id)
+            .maybeSingle();
+
+          if (attorneyMetadataError && attorneyMetadataError.code !== 'PGRST116') {
+            console.warn("AttorneyLogin: Attorney directory record not found, but proceeding with login");
+            // Don't block login - this is optional metadata
+          } else if (!attorneyMetadataData) {
+            console.warn("AttorneyLogin: Attorney directory record not found in attorney_metadata");
+            // Don't block login - this is optional metadata
+          }
+        } else if (!rcAttorneyData) {
+          console.warn("AttorneyLogin: Attorney directory record not found in rc_attorneys");
+          // Don't block login - this is optional metadata
+        }
+      } catch (dirError: any) {
+        // If checking directory record fails, don't block login
+        console.warn("AttorneyLogin: Error checking attorney directory record:", dirError);
+        // Continue with login - directory record is optional
+      }
+
+      console.log("AttorneyLogin: Role verified as attorney, redirecting to /attorney-console");
+      console.log('AttorneyLogin: About to redirect to /attorney-console');
+      // Success! Redirect to attorney console with full page reload to ensure proper component mounting
+      window.location.href = '/attorney-console';
     } catch (err: any) {
       console.error("AttorneyLogin: Error caught in catch block:", err);
       console.error("AttorneyLogin: Error details:", {
@@ -116,7 +132,13 @@ export default function AttorneyLogin() {
         name: err.name,
         stack: err.stack,
       });
-      setError(err.message || "Login failed. Please check your credentials and try again.");
+      
+      // Check if this is an attorney directory record error (should not happen, but handle gracefully)
+      if (err.message && err.message.includes("Attorney record not found")) {
+        setError("Attorney directory record not found. Please contact your administrator.");
+      } else {
+        setError(err.message || "Login failed. Please check your credentials and try again.");
+      }
     } finally {
       console.log("AttorneyLogin: Setting loading to false");
       setLoading(false);
