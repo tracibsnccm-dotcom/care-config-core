@@ -191,14 +191,24 @@ export default function AttorneyLanding() {
 
     try {
       console.log("loadAttorneyName: Fetching attorney name for user:", user.id);
-      // Get rc_users record for this attorney
-      const { data: rcUser, error: rcUserError } = await supabase
-        .from("rc_users")
-        .select("full_name")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-
-      console.log("loadAttorneyName: rc_users query result:", { rcUser, rcUserError });
+      
+      // Get rc_users record for this attorney - wrapped in try-catch
+      let rcUser: any = null;
+      let rcUserError: any = null;
+      try {
+        const result = await supabase
+          .from("rc_users")
+          .select("full_name")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        
+        rcUser = result.data;
+        rcUserError = result.error;
+        console.log("loadAttorneyName: Query completed", { rcUser, rcUserError });
+      } catch (queryError) {
+        console.error("loadAttorneyName: Query threw exception:", queryError);
+        rcUserError = queryError;
+      }
 
       if (rcUserError) {
         console.error("loadAttorneyName: rc_users error:", rcUserError);
@@ -211,13 +221,22 @@ export default function AttorneyLanding() {
       } else {
         console.log("loadAttorneyName: No full_name in rc_users, trying profiles fallback");
         // Fallback to profiles table if rc_users doesn't have it
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("display_name, full_name")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        console.log("loadAttorneyName: profiles query result:", { profile, profileError });
+        let profile: any = null;
+        let profileError: any = null;
+        try {
+          const result = await supabase
+            .from("profiles")
+            .select("display_name, full_name")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          
+          profile = result.data;
+          profileError = result.error;
+          console.log("loadAttorneyName: profiles query completed", { profile, profileError });
+        } catch (queryError) {
+          console.error("loadAttorneyName: Profiles query threw exception:", queryError);
+          profileError = queryError;
+        }
 
         if (!profileError && profile) {
           const name = profile.full_name || profile.display_name || "";
@@ -249,13 +268,106 @@ export default function AttorneyLanding() {
     }
   }
 
-  // Call loadAttorneyName when user becomes available
+  // Call loadAttorneyName when user becomes available with isMounted check
   useEffect(() => {
-    if (!user) return;
+    let isMounted = true;
+    
+    const fetchName = async () => {
+      if (!user?.id) {
+        console.log("fetchName: No user ID available");
+        return;
+      }
+
+      try {
+        console.log("fetchName: Fetching attorney name for user:", user.id);
+        
+        // Get rc_users record for this attorney - wrapped in try-catch
+        let rcUser: any = null;
+        let rcUserError: any = null;
+        try {
+          const result = await supabase
+            .from("rc_users")
+            .select("full_name")
+            .eq("auth_user_id", user.id)
+            .maybeSingle();
+          
+          rcUser = result.data;
+          rcUserError = result.error;
+          console.log("fetchName: Query completed", { rcUser, rcUserError });
+        } catch (queryError) {
+          console.error("fetchName: Query threw exception:", queryError);
+          rcUserError = queryError;
+        }
+
+        if (!isMounted) {
+          console.log("fetchName: Component unmounted, skipping state update");
+          return;
+        }
+
+        if (rcUserError) {
+          console.error("fetchName: rc_users error:", rcUserError);
+          throw rcUserError;
+        }
+        
+        if (rcUser?.full_name) {
+          console.log("Setting attorney name:", rcUser.full_name);
+          if (isMounted) {
+            setAttorneyName(rcUser.full_name);
+          }
+        } else {
+          console.log("fetchName: No full_name in rc_users, trying profiles fallback");
+          // Fallback to profiles table if rc_users doesn't have it
+          let profile: any = null;
+          let profileError: any = null;
+          try {
+            const result = await supabase
+              .from("profiles")
+              .select("display_name, full_name")
+              .eq("user_id", user.id)
+              .maybeSingle();
+            
+            profile = result.data;
+            profileError = result.error;
+            console.log("fetchName: profiles query completed", { profile, profileError });
+          } catch (queryError) {
+            console.error("fetchName: Profiles query threw exception:", queryError);
+            profileError = queryError;
+          }
+
+          if (!isMounted) {
+            console.log("fetchName: Component unmounted after profiles query, skipping state update");
+            return;
+          }
+
+          if (!profileError && profile) {
+            const name = profile.full_name || profile.display_name || "";
+            console.log("Setting attorney name (from profiles):", name);
+            if (isMounted) {
+              setAttorneyName(name);
+            }
+          } else {
+            console.log("fetchName: No name found in profiles either");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading attorney name:", error);
+      }
+    };
+
+    if (!user) {
+      console.log("AttorneyLanding: useEffect triggered, but no user available");
+      return;
+    }
+
     console.log("AttorneyLanding: useEffect triggered, user available:", user.id);
     loadTierData();
-    loadAttorneyName();
-  }, [user, loadAttorneyName]);
+    fetchName();
+    
+    return () => {
+      isMounted = false;
+      console.log("AttorneyLanding: useEffect cleanup - isMounted set to false");
+    };
+  }, [user]);
 
   useEffect(() => {
     console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
