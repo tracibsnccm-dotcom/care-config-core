@@ -427,15 +427,41 @@ export default function IntakeWizard() {
 
     const masked = maskName(client.fullName || "");
     
-    // Generate client ID - use 'R' (referral) as default type when attorney is involved
-    const clientIdResult = await ClientIdService.generateClientId({
-      attorneyCode: attorneyCode || undefined,
-      type: attorneyCode ? 'R' : 'I' // 'R' for referral with attorney, 'I' for internal if no attorney
-    });
+    // Get intake_id from session (INT number) - DO NOT generate a new one
+    // The intake_id from rc_client_intake_sessions is the INT number (e.g., INT-260115-02V)
+    // This MUST be used as the case_number to maintain consistency
+    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    let caseNumber: string | null = null;
     
-    if (!clientIdResult.success) {
-      alert(`Error generating client ID: ${clientIdResult.error}`);
-      return;
+    if (intakeSessionId) {
+      try {
+        const { data: sessionData } = await supabaseGet(
+          'rc_client_intake_sessions',
+          `id=eq.${intakeSessionId}&select=intake_id&limit=1`
+        );
+        if (sessionData) {
+          const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
+          caseNumber = session.intake_id || null;
+          console.log('IntakeWizard: Using intake_id from session as case_number:', caseNumber);
+        }
+      } catch (e) {
+        console.error("Error loading intake session for case_number:", e);
+      }
+    }
+    
+    // Fallback: If no intake_id found, generate one (should not happen in normal flow)
+    if (!caseNumber) {
+      console.warn('IntakeWizard: No intake_id found in session, generating new client ID as fallback');
+      const clientIdResult = await ClientIdService.generateClientId({
+        attorneyCode: attorneyCode || undefined,
+        type: attorneyCode ? 'R' : 'I' // 'R' for referral with attorney, 'I' for internal if no attorney
+      });
+      
+      if (!clientIdResult.success) {
+        alert(`Error generating client ID: ${clientIdResult.error}`);
+        return;
+      }
+      caseNumber = clientIdResult.clientId;
     }
     
     const newCase: Case = {
@@ -493,18 +519,21 @@ export default function IntakeWizard() {
     let clientLastName = "";
     let clientEmail = "";
     let clientPhone = client.phone || "";
+    let intakeIdFromSession: string | null = null; // The INT number from the session
     
     if (intakeSessionId) {
       try {
         const { data: sessionData } = await supabaseGet(
           'rc_client_intake_sessions',
-          `id=eq.${intakeSessionId}&select=first_name,last_name,email&limit=1`
+          `id=eq.${intakeSessionId}&select=first_name,last_name,email,intake_id&limit=1`
         );
         if (sessionData) {
           const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
           clientFirstName = session.first_name || "";
           clientLastName = session.last_name || "";
           clientEmail = session.email || "";
+          intakeIdFromSession = session.intake_id || null; // Get the INT number from session
+          console.log('IntakeWizard: Retrieved intake_id from session:', intakeIdFromSession);
         }
       } catch (e) {
         console.error("Error loading intake session:", e);
@@ -596,14 +625,14 @@ export default function IntakeWizard() {
       attorney_id: attorneyId, // Assign attorney if found
       case_type: intake.incidentType || 'MVA',
       case_status: 'intake_pending',
-      case_number: clientIdResult.clientId, // Save the INT number
+      case_number: caseNumber, // Use intake_id from session (INT number), NOT a newly generated one
       date_of_injury: dateOfInjury, // Save date of injury
       fourps: fourpsData, // Save 4Ps assessment as JSON
       sdoh: sdohData, // Save SDOH assessment as JSON
       created_at: new Date().toISOString(),
     });
 
-    console.log('IntakeWizard: rc_cases result', { error: caseError, case_number: clientIdResult.clientId, client_id: clientId, date_of_injury: dateOfInjury });
+    console.log('IntakeWizard: rc_cases result', { error: caseError, case_number: caseNumber, client_id: clientId, date_of_injury: dateOfInjury });
 
     if (caseError) {
       console.error("Error creating case:", caseError);
@@ -984,7 +1013,7 @@ export default function IntakeWizard() {
     
     toast({
       title: "Intake Submitted Successfully",
-      description: `Case ${newCase.id} created with Client ID: ${clientIdResult.clientId}. Your intake is now pending attorney confirmation.`,
+      description: `Case ${newCase.id} created with Case Number: ${caseNumber}. Your intake is now pending attorney confirmation.`,
     });
     
     // Audit: Intake submitted
