@@ -427,31 +427,37 @@ export default function IntakeWizard() {
 
     const masked = maskName(client.fullName || "");
     
-    // Get intake_id from session (INT number) - DO NOT generate a new one
-    // The intake_id from rc_client_intake_sessions is the INT number (e.g., INT-260115-02V)
-    // This MUST be used as the case_number to maintain consistency
-    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
-    let caseNumber: string | null = null;
+    // Get intake_id from sessionStorage - it was stored during IntakeIdentity
+    // The intake_id is the INT number (e.g., INT-260115-02V) and MUST be used as the case_number
+    let caseNumber: string | null = sessionStorage.getItem("rcms_intake_id");
     
-    if (intakeSessionId) {
-      try {
-        const { data: sessionData } = await supabaseGet(
-          'rc_client_intake_sessions',
-          `id=eq.${intakeSessionId}&select=intake_id&limit=1`
-        );
-        if (sessionData) {
-          const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
-          caseNumber = session.intake_id || null;
-          console.log('IntakeWizard: Using intake_id from session as case_number:', caseNumber);
+    if (caseNumber) {
+      console.log('IntakeWizard: Using intake_id from sessionStorage as case_number:', caseNumber);
+    } else {
+      // Fallback: try to get from database if sessionStorage is empty
+      const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+      if (intakeSessionId) {
+        try {
+          const { data: sessionData } = await supabaseGet(
+            'rc_client_intake_sessions',
+            `id=eq.${intakeSessionId}&select=intake_id&limit=1`
+          );
+          if (sessionData) {
+            const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
+            caseNumber = session.intake_id || null;
+            if (caseNumber) {
+              console.log('IntakeWizard: Retrieved intake_id from database as case_number:', caseNumber);
+            }
+          }
+        } catch (e) {
+          console.error("Error loading intake session for case_number:", e);
         }
-      } catch (e) {
-        console.error("Error loading intake session for case_number:", e);
       }
     }
     
-    // Fallback: If no intake_id found, generate one (should not happen in normal flow)
+    // Only generate new ID if absolutely nothing found (should never happen)
     if (!caseNumber) {
-      console.warn('IntakeWizard: No intake_id found in session, generating new client ID as fallback');
+      console.warn('IntakeWizard: No intake_id found in sessionStorage or database, generating new client ID as fallback');
       const clientIdResult = await ClientIdService.generateClientId({
         attorneyCode: attorneyCode || undefined,
         type: attorneyCode ? 'R' : 'I' // 'R' for referral with attorney, 'I' for internal if no attorney
