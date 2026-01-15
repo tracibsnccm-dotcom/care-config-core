@@ -57,21 +57,10 @@ export function ConsentDocumentViewer({
         } else if (sessionId) {
           query += `&session_id=eq.${sessionId}`;
         } else if (caseId) {
-          // First get intake ID from case (get most recent intake)
-          const { data: intakes } = await supabaseGet(
-            'rc_client_intakes',
-            `select=id&case_id=eq.${caseId}&order=intake_submitted_at.desc&limit=1`
-          );
-          const intake = Array.isArray(intakes) ? intakes[0] : intakes;
-          if (intake?.id) {
-            query += `&client_intake_id=eq.${intake.id}`;
-          } else {
-            setError('No intake found for this case');
-            setLoading(false);
-            return;
-          }
+          // Query directly by case_id
+          query += `&case_id=eq.${caseId}`;
         } else {
-          setError('No intake or session ID provided');
+          setError('No intake, session, or case ID provided');
           setLoading(false);
           return;
         }

@@ -925,21 +925,19 @@ export default function IntakeWizard() {
           console.error("Error recording intake completion:", intakeCompletionError);
           // Don't block submission if this fails, but log it
         } else {
-          // Link consent record to this intake and case
+          // Link consent record to case via case_id
           try {
             const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
-            if (consentSessionId && intakeResult?.id) {
-              console.log('IntakeWizard: Linking consent to intake and case', { 
+            if (consentSessionId && newCase.id) {
+              console.log('IntakeWizard: Linking consent to case', { 
                 consentSessionId, 
-                intakeId: intakeResult.id,
                 caseId: newCase.id 
               });
               
-              // First, try to add case_id if the column exists (might need migration)
+              // Update consent record with case_id and client_intake_id
               const updateData: any = { 
-                client_intake_id: intakeResult.id,
-                // Note: case_id column may need to be added via migration if it doesn't exist
-                // For now, consents can be accessed via client_intake_id -> rc_client_intakes -> case_id
+                case_id: newCase.id,
+                client_intake_id: intakeResult?.id || null,
               };
               
               const { error: consentLinkError } = await supabaseUpdate(
@@ -947,28 +945,36 @@ export default function IntakeWizard() {
                 `session_id=eq.${consentSessionId}`,
                 updateData
               );
+              
               if (consentLinkError) {
-                console.error('Failed to link consent to intake:', consentLinkError);
-                // If case_id column doesn't exist, try without it
+                console.error('Failed to link consent to case:', consentLinkError);
+                // If case_id column doesn't exist yet, try with just client_intake_id
                 if (consentLinkError.message?.includes('column') && consentLinkError.message?.includes('case_id')) {
-                  delete updateData.case_id;
+                  console.warn('IntakeWizard: case_id column may not exist, trying with client_intake_id only');
                   const { error: retryError } = await supabaseUpdate(
                     'rc_client_consents',
                     `session_id=eq.${consentSessionId}`,
-                    { client_intake_id: intakeResult.id }
+                    { client_intake_id: intakeResult?.id || null }
                   );
                   if (retryError) {
                     console.error('Failed to link consent (retry):', retryError);
                   } else {
-                    console.log('IntakeWizard: Consent linked to intake successfully (without case_id)');
+                    console.log('IntakeWizard: Consent linked to intake successfully (case_id column not available)');
                   }
                 }
               } else {
-                console.log('IntakeWizard: Consent linked to intake successfully');
+                console.log('IntakeWizard: Consent linked to case successfully:', { caseId: newCase.id, sessionId: consentSessionId });
+              }
+            } else {
+              if (!consentSessionId) {
+                console.warn('IntakeWizard: No consent session_id found in sessionStorage');
+              }
+              if (!newCase.id) {
+                console.warn('IntakeWizard: No case ID available to link consent');
               }
             }
           } catch (e) {
-            console.error('Error linking consent to intake:', e);
+            console.error('Error linking consent to case:', e);
           }
         }
       }

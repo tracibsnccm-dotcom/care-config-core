@@ -30,76 +30,51 @@ export function ClientConsentManagement({ caseId }: { caseId: string }) {
     
     setError(null);
     try {
-      // First, get the intake ID from the case
-      const { data: intakeData, error: intakeError } = await supabase
-        .from("rc_client_intakes")
-        .select("id")
+      // Query consent directly by case_id
+      const { data: consentRecords, error: fetchError } = await supabase
+        .from("rc_client_consents")
+        .select("*")
         .eq("case_id", caseId)
-        .order("intake_submitted_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (intakeError && intakeError.code !== 'PGRST116') {
-        console.error("Error loading intake data:", intakeError);
-        // Continue - consents might not be linked yet
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error loading consent data:", fetchError);
+        setError("Failed to load consent information");
+        return;
       }
 
-      // Get consent data from rc_client_consents table
-      if (intakeData?.id) {
-        const { data: consentRecords, error: fetchError } = await supabase
-          .from("rc_client_consents")
-          .select("*")
-          .eq("client_intake_id", intakeData.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error("Error loading consent data:", fetchError);
-          setError("Failed to load consent information");
-          return;
-        }
-
-        if (consentRecords) {
-          // Transform consent data to match expected format
-          const hasServiceAgreement = !!consentRecords.service_agreement_signed_at && !consentRecords.service_agreement_declined;
-          const hasLegalDisclosure = !!consentRecords.legal_disclosure_signed_at;
-          const hasObtainRecords = !!consentRecords.obtain_records_signed_at;
-          const hasHealthcareCoord = !!consentRecords.healthcare_coord_signed_at;
-          const hasHipaa = !!consentRecords.hipaa_acknowledged_at;
-          
-          // All consents are signed if all required ones are present
-          const allSigned = hasServiceAgreement && hasLegalDisclosure && hasObtainRecords && hasHealthcareCoord && hasHipaa;
-          
-          // Get the earliest signature date
-          const signatureDates = [
-            consentRecords.service_agreement_signed_at,
-            consentRecords.legal_disclosure_signed_at,
-            consentRecords.obtain_records_signed_at,
-            consentRecords.healthcare_coord_signed_at,
-            consentRecords.hipaa_acknowledged_at,
-          ].filter(Boolean).sort();
-          
-          setConsentData({
-            consent_signed: allSigned,
-            consent_signed_at: signatureDates[0] || null,
-            consent_attorney: hasLegalDisclosure ? 'authorized' : 'not_authorized',
-            consent_providers: hasHealthcareCoord ? 'authorized' : 'not_authorized',
-            consent_details: consentRecords, // Store full consent details
-          });
-        } else {
-          // No consent records found - check if we can find by session_id from intake_json
-          console.warn('No consent records found for intake:', intakeData.id);
-          setConsentData({
-            consent_signed: false,
-            consent_signed_at: null,
-            consent_attorney: 'not_authorized',
-            consent_providers: 'not_authorized',
-          });
-        }
+      if (consentRecords) {
+        // Transform consent data to match expected format
+        const hasServiceAgreement = !!consentRecords.service_agreement_signed_at && !consentRecords.service_agreement_declined;
+        const hasLegalDisclosure = !!consentRecords.legal_disclosure_signed_at;
+        const hasObtainRecords = !!consentRecords.obtain_records_signed_at;
+        const hasHealthcareCoord = !!consentRecords.healthcare_coord_signed_at;
+        const hasHipaa = !!consentRecords.hipaa_acknowledged_at;
+        
+        // All consents are signed if all required ones are present
+        const allSigned = hasServiceAgreement && hasLegalDisclosure && hasObtainRecords && hasHealthcareCoord && hasHipaa;
+        
+        // Get the earliest signature date
+        const signatureDates = [
+          consentRecords.service_agreement_signed_at,
+          consentRecords.legal_disclosure_signed_at,
+          consentRecords.obtain_records_signed_at,
+          consentRecords.healthcare_coord_signed_at,
+          consentRecords.hipaa_acknowledged_at,
+        ].filter(Boolean).sort();
+        
+        setConsentData({
+          consent_signed: allSigned,
+          consent_signed_at: signatureDates[0] || null,
+          consent_attorney: hasLegalDisclosure ? 'authorized' : 'not_authorized',
+          consent_providers: hasHealthcareCoord ? 'authorized' : 'not_authorized',
+          consent_details: consentRecords, // Store full consent details
+        });
       } else {
-        // No intake found for this case
-        console.warn('No intake found for case:', caseId);
+        // No consent records found for this case
+        console.warn('No consent records found for case:', caseId);
         setConsentData({
           consent_signed: false,
           consent_signed_at: null,
