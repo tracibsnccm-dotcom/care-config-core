@@ -567,6 +567,29 @@ export default function IntakeWizard() {
 
     // First, create the case in rc_cases table
     console.log('IntakeWizard: About to insert rc_cases');
+    
+    // Prepare 4Ps data as JSON
+    const fourpsData = {
+      physical: Math.floor(fourPs.physical) || 1,
+      psychological: Math.floor(fourPs.psychological) || 1,
+      psychosocial: Math.floor(fourPs.psychosocial) || 1,
+      professional: Math.floor(fourPs.professional) || 1,
+    };
+    
+    // Prepare SDOH data as JSON
+    const sdohData = {
+      housing: sdoh.housing || 3,
+      food: sdoh.food || 3,
+      transport: sdoh.transport || 3,
+      insuranceGap: sdoh.insuranceGap || 3,
+      financial: sdoh.financial || 3,
+      employment: sdoh.employment || 3,
+      social_support: sdoh.social_support || 3,
+      safety: sdoh.safety || 3,
+      healthcare_access: sdoh.healthcare_access || 3,
+      income_range: sdoh.income_range || null,
+    };
+    
     const { error: caseError } = await supabaseInsert("rc_cases", {
       id: newCase.id,
       client_id: clientId, // Link to client record
@@ -575,6 +598,8 @@ export default function IntakeWizard() {
       case_status: 'intake_pending',
       case_number: clientIdResult.clientId, // Save the INT number
       date_of_injury: dateOfInjury, // Save date of injury
+      fourps: fourpsData, // Save 4Ps assessment as JSON
+      sdoh: sdohData, // Save SDOH assessment as JSON
       created_at: new Date().toISOString(),
     });
 
@@ -631,29 +656,34 @@ export default function IntakeWizard() {
           console.error("Error creating baseline check-in:", checkinError);
         }
 
-        // Save medications from intake to client_medications table
+        // Save medications from intake to rc_client_medications table
+        // Use clientId from rc_clients table, not auth user ID
         const allMeds = [
           ...preInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
             case_id: newCase.id,
-            client_id: userData.user.id,
+            client_id: clientId || userData.user.id, // Use rc_clients.id if available
             medication_name: med.brandName || med.genericName,
             dosage: med.dose || null,
             frequency: med.frequency || null,
             prescribing_doctor: med.prescriber || null,
             start_date: med.startDate || null,
             side_effects: med.notes || null,
+            purpose: med.purpose || null, // Add purpose field
+            prn: med.frequency?.toLowerCase().includes('prn') || med.frequency?.toLowerCase().includes('as needed') || false, // Determine PRN from frequency
             injury_timing: 'pre-injury',
             is_active: true,
           })),
           ...postInjuryMeds.filter(m => m.brandName.trim() || m.genericName.trim()).map(med => ({
             case_id: newCase.id,
-            client_id: userData.user.id,
+            client_id: clientId || userData.user.id, // Use rc_clients.id if available
             medication_name: med.brandName || med.genericName,
             dosage: med.dose || null,
             frequency: med.frequency || null,
             prescribing_doctor: med.prescriber || null,
             start_date: med.startDate || null,
             side_effects: med.notes || null,
+            purpose: med.purpose || null, // Add purpose field
+            prn: med.frequency?.toLowerCase().includes('prn') || med.frequency?.toLowerCase().includes('as needed') || false, // Determine PRN from frequency
             injury_timing: 'post-injury',
             is_active: true,
           })),
