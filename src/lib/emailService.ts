@@ -1,5 +1,5 @@
 // src/lib/emailService.ts
-// Frontend utility for sending emails via Supabase Edge Function
+// Frontend utility for sending emails via Vercel API route
 
 interface SendIntakeResumeEmailParams {
   to: string;
@@ -21,12 +21,7 @@ interface SendCaseCredentialsEmailParams {
  */
 export async function sendIntakeResumeEmail(params: SendIntakeResumeEmailParams): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) {
-      throw new Error("VITE_SUPABASE_URL is not configured");
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,12 +53,7 @@ export async function sendIntakeResumeEmail(params: SendIntakeResumeEmailParams)
  */
 export async function sendCaseCredentialsEmail(params: SendCaseCredentialsEmailParams): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) {
-      throw new Error("VITE_SUPABASE_URL is not configured");
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
