@@ -296,11 +296,12 @@ export default function AttorneyLanding() {
         <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {attorneyName ? `Welcome, ${attorneyName}` : 'Attorney Landing'}
+              {attorneyName && attorneyName.trim() ? `Welcome, ${attorneyName}` : 'Attorney Landing'}
             </h1>
-            {attorneyName && (
-              <p className="text-xs text-muted-foreground mt-1">Debug: attorneyName = "{attorneyName}"</p>
-            )}
+            {/* Debug info - remove after confirming it works */}
+            <p className="text-xs text-muted-foreground mt-1">
+              Debug: attorneyName = "{attorneyName}" (length: {attorneyName.length})
+            </p>
             <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
