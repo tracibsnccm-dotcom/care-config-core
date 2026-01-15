@@ -178,10 +178,12 @@ export default function AttorneyLanding() {
 
   const [tierData, setTierData] = useState<any>(null);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
+  const [attorneyName, setAttorneyName] = useState<string>("");
 
   useEffect(() => {
     if (!user) return;
     loadTierData();
+    loadAttorneyName();
   }, [user]);
 
   async function loadTierData() {
@@ -198,6 +200,38 @@ export default function AttorneyLanding() {
       setTierData(data);
     } catch (error) {
       console.error("Error loading tier data:", error);
+    }
+  }
+
+  async function loadAttorneyName() {
+    if (!user?.id) return;
+
+    try {
+      // Get rc_users record for this attorney
+      const { data: rcUser, error: rcUserError } = await supabase
+        .from("rc_users")
+        .select("full_name")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (rcUserError) throw rcUserError;
+      
+      if (rcUser?.full_name) {
+        setAttorneyName(rcUser.full_name);
+      } else {
+        // Fallback to profiles table if rc_users doesn't have it
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("display_name, full_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!profileError && profile) {
+          setAttorneyName(profile.full_name || profile.display_name || "");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading attorney name:", error);
     }
   }
 
@@ -239,7 +273,9 @@ export default function AttorneyLanding() {
       <div className="p-8 pb-24 lg:pb-8">
         <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Attorney Landing</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {attorneyName ? `Welcome, ${attorneyName}` : 'Attorney Landing'}
+            </h1>
             <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

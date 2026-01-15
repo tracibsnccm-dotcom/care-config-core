@@ -22,6 +22,9 @@ interface IntakeRow {
   case_id: string;
   case_number?: string | null;
   client: string;
+  client_name?: string;
+  date_of_injury?: string | null;
+  case_type?: string | null;
   stage: string;
   last_activity_iso: string;
   expires_iso: string;
@@ -106,8 +109,8 @@ export const AttorneyIntakeTracker = () => {
         }
       }
       
-      // Build query string for Supabase REST API
-      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number)&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      // Build query string for Supabase REST API - JOIN with rc_cases and rc_clients
+      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number,date_of_injury,rc_clients(first_name,last_name))&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
       
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
@@ -127,17 +130,67 @@ export const AttorneyIntakeTracker = () => {
         throw new Error('Expected array from Supabase query');
       }
 
-      // Filter out intakes where rc_cases doesn't match the attorney
+        // Filter out intakes where rc_cases doesn't match the attorney
+      // Also fetch client data for cases that don't have it in the nested join
       const filteredIntakes = scope === 'mine' && attorneyRcUserId
         ? intakes.filter((intake: any) => {
             const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
             return caseData && caseData.attorney_id === attorneyRcUserId;
           })
         : intakes;
+      
+      // For cases missing client data, fetch it separately
+      const casesNeedingClientData = filteredIntakes.filter((intake: any) => {
+        const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+        return caseData && caseData.client_id && !caseData.rc_clients;
+      });
+      
+      if (casesNeedingClientData.length > 0) {
+        const caseIds = casesNeedingClientData.map((intake: any) => {
+          const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+          return caseData?.client_id;
+        }).filter(Boolean);
+        
+        if (caseIds.length > 0) {
+          try {
+            const { data: clientsData } = await supabaseGet(
+              'rc_clients',
+              `id=in.(${caseIds.join(',')})&select=id,first_name,last_name`
+            );
+            
+            if (clientsData) {
+              const clientsMap = new Map(
+                (Array.isArray(clientsData) ? clientsData : [clientsData]).map((c: any) => [
+                  c.id,
+                  { first_name: c.first_name, last_name: c.last_name }
+                ])
+              );
+              
+              // Attach client data to cases
+              filteredIntakes.forEach((intake: any) => {
+                const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+                if (caseData && caseData.client_id && !caseData.rc_clients) {
+                  const clientInfo = clientsMap.get(caseData.client_id);
+                  if (clientInfo) {
+                    caseData.rc_clients = clientInfo;
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.error('Failed to fetch client data:', err);
+          }
+        }
+      }
 
       // Transform to IntakeRow format for display
       const transformedRows: IntakeRow[] = (filteredIntakes || []).map((intake: any) => {
         const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
+        const clientData = caseData?.rc_clients;
+        const clientName = clientData 
+          ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || 'Client'
+          : 'Client';
+        
         const isConfirmed = !!intake.attorney_attested_at;
         const isDeclined = intake.intake_status === 'attorney_declined_not_client';
         const isExpired = !isConfirmed && !isDeclined &&
@@ -157,7 +210,10 @@ export const AttorneyIntakeTracker = () => {
           intake_id: intake.id,
           case_id: intake.case_id,
           case_number: caseData?.case_number || null,
-          client: 'Client', // Will need to fetch client name separately if needed
+          client: clientName,
+          client_name: clientName,
+          date_of_injury: caseData?.date_of_injury || null,
+          case_type: caseData?.case_type || null,
           stage,
           last_activity_iso: intake.intake_submitted_at || new Date().toISOString(),
           expires_iso: intake.attorney_confirm_deadline_at || '',
@@ -548,8 +604,10 @@ export const AttorneyIntakeTracker = () => {
                     }}
                   />
                 </th>
-                <th className="p-2 text-left font-semibold">Client</th>
-                <th className="p-2 text-left font-semibold">Case ID</th>
+                <th className="p-2 text-left font-semibold">INT Number</th>
+                <th className="p-2 text-left font-semibold">Client Name</th>
+                <th className="p-2 text-left font-semibold">Date of Injury</th>
+                <th className="p-2 text-left font-semibold">Case Type</th>
                 <th className="p-2 text-left font-semibold">Status</th>
                 <th className="p-2 text-left font-semibold">Stage</th>
                 <th className="p-2 text-left font-semibold">Last Activity</th>
@@ -605,22 +663,32 @@ export const AttorneyIntakeTracker = () => {
                         }}
                       />
                     </td>
-                    <td className="p-2">{row.client}</td>
                     <td className="p-2">
-                      <div className="flex flex-col gap-1">
-                        {isConfirmed && row.case_number && (
-                          <div className="font-mono font-bold text-primary">
-                            {row.case_number}
-                          </div>
-                        )}
-                        <Button
-                          variant="link"
-                          onClick={() => handleViewIntake(row.case_id, row.intake_id)}
-                          className="p-0 h-auto text-primary hover:underline text-xs"
-                        >
-                          {row.case_id}
-                        </Button>
-                      </div>
+                      {row.case_number ? (
+                        <div className="font-mono font-bold text-primary">
+                          {row.case_number}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
+                      <Button
+                        variant="link"
+                        onClick={() => handleViewIntake(row.case_id, row.intake_id)}
+                        className="p-0 h-auto text-primary hover:underline text-xs mt-1"
+                      >
+                        {row.case_id.slice(0, 8)}...
+                      </Button>
+                    </td>
+                    <td className="p-2">
+                      <div className="font-medium">{row.client_name || row.client}</div>
+                    </td>
+                    <td className="p-2 text-sm text-muted-foreground">
+                      {row.date_of_injury 
+                        ? new Date(row.date_of_injury).toLocaleDateString()
+                        : 'N/A'}
+                    </td>
+                    <td className="p-2 text-sm text-muted-foreground">
+                      {row.case_type || 'N/A'}
                     </td>
                     <td className="p-2">
                       <Badge variant={statusVariant}>{statusLabel}</Badge>
@@ -672,7 +740,7 @@ export const AttorneyIntakeTracker = () => {
               })}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
                     No intakes found
                   </td>
                 </tr>
