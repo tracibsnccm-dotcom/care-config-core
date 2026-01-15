@@ -31,6 +31,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
+
+// Cache attorney name to persist across remounts
+let cachedAttorneyName: string | null = null;
 import NotificationCenter from "@/components/attorney/NotificationCenter";
 import MobileQuickActions from "@/components/attorney/MobileQuickActions";
 import BulkActionsBar from "@/components/attorney/BulkActionsBar";
@@ -270,6 +273,13 @@ export default function AttorneyLanding() {
 
   // Call loadAttorneyName when user becomes available with isMounted check
   useEffect(() => {
+    // Check cache first - if we have a cached name, use it immediately
+    if (cachedAttorneyName) {
+      console.log("AttorneyLanding: Using cached attorney name:", cachedAttorneyName);
+      setAttorneyName(cachedAttorneyName);
+      return;
+    }
+
     let isMounted = true;
     
     const fetchName = async () => {
@@ -310,9 +320,12 @@ export default function AttorneyLanding() {
         }
         
         if (rcUser?.full_name) {
-          console.log("Setting attorney name:", rcUser.full_name);
+          const name = rcUser.full_name;
+          console.log("Setting attorney name:", name);
+          // Cache the name
+          cachedAttorneyName = name;
           if (isMounted) {
-            setAttorneyName(rcUser.full_name);
+            setAttorneyName(name);
           }
         } else {
           console.log("fetchName: No full_name in rc_users, trying profiles fallback");
@@ -342,6 +355,10 @@ export default function AttorneyLanding() {
           if (!profileError && profile) {
             const name = profile.full_name || profile.display_name || "";
             console.log("Setting attorney name (from profiles):", name);
+            // Cache the name
+            if (name) {
+              cachedAttorneyName = name;
+            }
             if (isMounted) {
               setAttorneyName(name);
             }
