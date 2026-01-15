@@ -186,6 +186,10 @@ export default function AttorneyLanding() {
     loadAttorneyName();
   }, [user]);
 
+  useEffect(() => {
+    console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
+  }, [attorneyName]);
+
   async function loadTierData() {
     if (!user) return;
 
@@ -204,9 +208,13 @@ export default function AttorneyLanding() {
   }
 
   async function loadAttorneyName() {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("loadAttorneyName: No user ID available");
+      return;
+    }
 
     try {
+      console.log("loadAttorneyName: Fetching attorney name for user:", user.id);
       // Get rc_users record for this attorney
       const { data: rcUser, error: rcUserError } = await supabase
         .from("rc_users")
@@ -214,11 +222,18 @@ export default function AttorneyLanding() {
         .eq("auth_user_id", user.id)
         .maybeSingle();
 
-      if (rcUserError) throw rcUserError;
+      console.log("loadAttorneyName: rc_users query result:", { rcUser, rcUserError });
+
+      if (rcUserError) {
+        console.error("loadAttorneyName: rc_users error:", rcUserError);
+        throw rcUserError;
+      }
       
       if (rcUser?.full_name) {
+        console.log("Setting attorney name:", rcUser.full_name);
         setAttorneyName(rcUser.full_name);
       } else {
+        console.log("loadAttorneyName: No full_name in rc_users, trying profiles fallback");
         // Fallback to profiles table if rc_users doesn't have it
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
@@ -226,8 +241,14 @@ export default function AttorneyLanding() {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        console.log("loadAttorneyName: profiles query result:", { profile, profileError });
+
         if (!profileError && profile) {
-          setAttorneyName(profile.full_name || profile.display_name || "");
+          const name = profile.full_name || profile.display_name || "";
+          console.log("Setting attorney name (from profiles):", name);
+          setAttorneyName(name);
+        } else {
+          console.log("loadAttorneyName: No name found in profiles either");
         }
       }
     } catch (error) {
@@ -266,6 +287,7 @@ export default function AttorneyLanding() {
 
 
   console.log('=== AttorneyLanding: About to render RoleGuard ===');
+  console.log('AttorneyLanding: Current attorneyName state:', attorneyName);
   return (
     <AppLayout>
       <PolicyAcknowledgmentBanner />
@@ -276,6 +298,9 @@ export default function AttorneyLanding() {
             <h1 className="text-3xl font-bold text-foreground">
               {attorneyName ? `Welcome, ${attorneyName}` : 'Attorney Landing'}
             </h1>
+            {attorneyName && (
+              <p className="text-xs text-muted-foreground mt-1">Debug: attorneyName = "{attorneyName}"</p>
+            )}
             <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
