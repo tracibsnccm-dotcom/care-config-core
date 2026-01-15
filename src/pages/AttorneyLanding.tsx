@@ -150,6 +150,7 @@ function getStatusColor(status: CaseStatus): {
 }
 
 export default function AttorneyLanding() {
+  console.log("AttorneyLanding: Component rendering, about to set up useEffect");
   console.log('=== AttorneyLanding: Component function called ===');
   const navigate = useNavigate();
   const { user, roles } = useAuth();
@@ -180,36 +181,11 @@ export default function AttorneyLanding() {
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [attorneyName, setAttorneyName] = useState<string>("");
 
-  useEffect(() => {
-    if (!user) return;
-    loadTierData();
-    loadAttorneyName();
-  }, [user]);
-
-  useEffect(() => {
-    console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
-  }, [attorneyName]);
-
-  async function loadTierData() {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("attorney_metadata")
-        .select("tier")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setTierData(data);
-    } catch (error) {
-      console.error("Error loading tier data:", error);
-    }
-  }
-
-  async function loadAttorneyName() {
+  // Define loadAttorneyName BEFORE useEffect that uses it
+  const loadAttorneyName = async () => {
+    console.log("loadAttorneyName: Starting...");
     if (!user?.id) {
-      console.log("loadAttorneyName: No user ID available");
+      console.log("loadAttorneyName: No user ID available, user:", user);
       return;
     }
 
@@ -254,7 +230,41 @@ export default function AttorneyLanding() {
     } catch (error) {
       console.error("Error loading attorney name:", error);
     }
+  };
+
+  async function loadTierData() {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("attorney_metadata")
+        .select("tier")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setTierData(data);
+    } catch (error) {
+      console.error("Error loading tier data:", error);
+    }
   }
+
+  // Call loadAttorneyName on mount
+  useEffect(() => {
+    console.log("AttorneyLanding: useEffect for loadAttorneyName called");
+    loadAttorneyName();
+  }, []);
+
+  // Also call when user becomes available
+  useEffect(() => {
+    if (!user) return;
+    loadTierData();
+    loadAttorneyName();
+  }, [user]);
+
+  useEffect(() => {
+    console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
+  }, [attorneyName]);
 
   const usedProviders = providers.filter((p) => p.active).length;
   const providerRemain = Math.max(0, providerSlots - usedProviders);
