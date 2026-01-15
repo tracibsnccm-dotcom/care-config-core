@@ -1,0 +1,92 @@
+// src/lib/emailService.ts
+// Frontend utility for sending emails via Supabase Edge Function
+
+interface SendIntakeResumeEmailParams {
+  to: string;
+  intNumber: string;
+  resumeUrl: string;
+  baseUrl?: string;
+}
+
+interface SendCaseCredentialsEmailParams {
+  to: string;
+  caseId: string;
+  clientPin: string;
+  clientLoginUrl: string;
+  baseUrl?: string;
+}
+
+/**
+ * Send intake resume email to client when they save and exit
+ */
+export async function sendIntakeResumeEmail(params: SendIntakeResumeEmailParams): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) {
+      throw new Error("VITE_SUPABASE_URL is not configured");
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "intake-resume",
+        to: params.to,
+        intNumber: params.intNumber,
+        resumeUrl: params.resumeUrl,
+        baseUrl: params.baseUrl || window.location.origin,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { ok: result.ok || false };
+  } catch (error: any) {
+    console.error("[sendIntakeResumeEmail] Error:", error);
+    return { ok: false, error: error.message || "Failed to send email" };
+  }
+}
+
+/**
+ * Send case credentials email to client after attorney attestation
+ */
+export async function sendCaseCredentialsEmail(params: SendCaseCredentialsEmailParams): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) {
+      throw new Error("VITE_SUPABASE_URL is not configured");
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "case-credentials",
+        to: params.to,
+        caseId: params.caseId,
+        clientPin: params.clientPin,
+        clientLoginUrl: params.clientLoginUrl,
+        baseUrl: params.baseUrl || window.location.origin,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { ok: result.ok || false };
+  } catch (error: any) {
+    console.error("[sendCaseCredentialsEmail] Error:", error);
+    return { ok: false, error: error.message || "Failed to send email" };
+  }
+}

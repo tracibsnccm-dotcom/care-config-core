@@ -10,6 +10,7 @@ import { useAuth } from '@/auth/supabaseAuth';
 import { supabaseGet, supabaseUpdate, supabaseInsert } from '@/lib/supabaseRest';
 import { audit } from '@/lib/supabaseOperations';
 import { createAutoNote, generateAttestationNote } from '@/lib/autoNotes';
+import { sendCaseCredentialsEmail } from '@/lib/emailService';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -243,10 +244,10 @@ export function AttorneyAttestationCard({
       
       toast.success('Case confirmed! Case number and PIN generated.');
       
-      // Fire-and-forget: audit and notes (completely non-blocking)
+      // Fire-and-forget: audit, notes, and email (completely non-blocking)
       try {
         setTimeout(() => {
-          Promise.resolve().then(() => {
+          Promise.resolve().then(async () => {
             audit({
               action: 'attorney_confirmed',
               actorRole: 'attorney',
@@ -265,6 +266,47 @@ export function AttorneyAttestationCard({
               visibleToRN: true,
               visibleToAttorney: true
             }).catch(() => {});
+            
+            // Send credentials email to client
+            try {
+              // Get client email from rc_cases -> rc_clients
+              const { data: caseData } = await supabaseGet(
+                'rc_cases',
+                `select=id,client_id&id=eq.${intake.case_id}&limit=1`
+              );
+              
+              const caseRecord = Array.isArray(caseData) ? caseData[0] : caseData;
+              const clientId = caseRecord?.client_id;
+              
+              if (clientId) {
+                // Get client email
+                const { data: clientData } = await supabaseGet(
+                  'rc_clients',
+                  `select=email&id=eq.${clientId}&limit=1`
+                );
+                
+                const client = Array.isArray(clientData) ? clientData[0] : clientData;
+                const clientEmail = client?.email;
+                
+                if (clientEmail) {
+                  const clientLoginUrl = `${window.location.origin}/client-login`;
+                  await sendCaseCredentialsEmail({
+                    to: clientEmail,
+                    caseId: caseNumber,
+                    clientPin: clientPin,
+                    clientLoginUrl: clientLoginUrl,
+                  });
+                  console.log('Credentials email sent to client');
+                } else {
+                  console.warn('Client email not found, skipping credentials email');
+                }
+              } else {
+                console.warn('Client ID not found in case, skipping credentials email');
+              }
+            } catch (emailError) {
+              console.error('Error sending credentials email:', emailError);
+              // Don't show error to user - email is non-critical
+            }
           });
         }, 0);
       } catch (e) {

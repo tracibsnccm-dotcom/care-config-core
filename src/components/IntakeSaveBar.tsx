@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sendIntakeResumeEmail } from '@/lib/emailService';
+import { supabaseGet } from '@/lib/supabaseRest';
 
 interface IntakeSaveBarProps {
   formData: any;
   onSaveExit?: () => void;
+  intNumber?: string;
+  clientEmail?: string;
 }
 
 export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
@@ -143,40 +147,55 @@ export const IntakeSaveBar = ({ formData, onSaveExit }: IntakeSaveBarProps) => {
   };
 
   const handleExit = async () => {
-    // TODO: Re-enable when edge function CORS is fixed
-    // MVP: Skip edge function call due to CORS issues
-    console.log('Draft exit skipped - edge function disabled for MVP');
     await saveDraft();
-    onSaveExit?.();
     
-    // Original code below (commented out for MVP)
-    /*
-    await saveDraft();
-    if (draftId) {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intake-draft`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'exit', draft_id: draftId }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.resume_url) {
-          setResumeUrl(result.resume_url);
-          localStorage.setItem('rcms_resume_url', result.resume_url);
-          try {
-            await navigator.clipboard.writeText(result.resume_url);
-            toast.success('Resume link copied to clipboard');
-          } catch {
-            toast.info('Resume link saved');
+    // Send resume email if we have the required information
+    if (intNumber) {
+      try {
+        // Get client email if not provided
+        let emailToUse = clientEmail;
+        if (!emailToUse) {
+          const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+          if (intakeSessionId) {
+            try {
+              const { data: sessionData } = await supabaseGet(
+                'rc_client_intake_sessions',
+                `id=eq.${intakeSessionId}&select=email&limit=1`
+              );
+              if (sessionData) {
+                const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
+                emailToUse = session?.email || undefined;
+              }
+            } catch (e) {
+              console.error("Error loading intake session for email:", e);
+            }
           }
         }
+        
+        if (emailToUse) {
+          const resumeUrl = `${window.location.origin}/resume-intake?int=${intNumber}`;
+          const result = await sendIntakeResumeEmail({
+            to: emailToUse,
+            intNumber,
+            resumeUrl,
+          });
+          
+          if (result.ok) {
+            toast.success('Resume link sent to your email');
+          } else {
+            console.warn('Failed to send resume email:', result.error);
+            // Don't block exit if email fails
+          }
+        } else {
+          console.warn('Client email not found, skipping resume email');
+        }
+      } catch (error) {
+        console.error('Error sending resume email:', error);
+        // Don't block exit if email fails
       }
     }
+    
     onSaveExit?.();
-    */
   };
 
   const copyResumeLink = async () => {

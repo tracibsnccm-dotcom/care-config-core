@@ -1409,7 +1409,24 @@ export default function IntakeWizard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {!showWelcome && (
-        <IntakeSaveBar formData={formData} onSaveExit={() => navigate('/dashboard')} />
+        <IntakeSaveBar 
+          formData={formData} 
+          onSaveExit={() => navigate('/dashboard')}
+          intNumber={client.rcmsId}
+          clientEmail={(() => {
+            // Get client email from sessionStorage or intake session
+            const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+            if (intakeSessionId) {
+              // Try to get from sessionStorage first (set during IntakeIdentity)
+              const storedEmail = sessionStorage.getItem("rcms_client_email");
+              if (storedEmail) return storedEmail;
+              
+              // Fallback: query from intake session
+              // This will be async, so we'll handle it in the component
+            }
+            return undefined;
+          })()}
+        />
       )}
       <div className="max-w-4xl mx-auto py-8 px-4">
         {showWelcome ? (
