@@ -106,9 +106,10 @@ export default function RNPortalLogin() {
         return;
       }
 
-      // Step 3: Check if role is 'rn' or 'rn_cm' (case-insensitive)
+      // Step 3: Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
+      // Note: Provider role is separate and NOT used for nurses
       const userRole = userData.role.toLowerCase();
-      const isRN = userRole === "rn_cm" || userRole === "rn";
+      const isRN = userRole === "rn" || userRole === "rn_supervisor" || userRole === "rn_cm_supervisor";
       console.log('RNPortalLogin: Role check:', { userRole, isRN });
 
       if (!isRN) {
@@ -291,6 +292,22 @@ export default function RNPortalLogin() {
           <h3 className="text-2xl font-bold mb-6 text-center" style={{ color: colors.softPink }}>
             Sign In
           </h3>
+
+          {/* Login Instructions */}
+          <div 
+            className="mb-5 p-3 rounded-lg border-2"
+            style={{
+              backgroundColor: '#ede9fe',
+              borderColor: 'rgba(139, 92, 246, 0.2)',
+            }}
+          >
+            <p className="text-sm font-medium mb-1" style={{ color: colors.deepPurple }}>
+              Login requires Email + Password.
+            </p>
+            <p className="text-xs" style={{ color: colors.mediumPurple }}>
+              Nurse number is not a login credential (used for identification only).
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Input */}

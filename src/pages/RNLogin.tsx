@@ -83,9 +83,10 @@ export default function RNLogin() {
 
         console.log("RNLogin: User role found:", userData.role);
 
-        // Check if role is 'rn_cm' (case-insensitive)
+        // Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
+        // Note: Provider role is separate and NOT used for nurses
         const userRole = userData.role.toLowerCase();
-        const isRN = userRole === "rn_cm" || userRole === "rn";
+        const isRN = userRole === "rn" || userRole === "rn_supervisor" || userRole === "rn_cm_supervisor";
         console.log('RNLogin: Is RN?', isRN);
         if (!isRN) {
           console.error("RNLogin: User role is not RN:", userRole);
@@ -136,6 +137,16 @@ export default function RNLogin() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          {/* Login Instructions */}
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-foreground font-medium mb-1">
+              Login requires Email + Password.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Nurse number is not a login credential (used for identification only).
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">

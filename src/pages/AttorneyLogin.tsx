@@ -136,6 +136,16 @@ export default function AttorneyLogin() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          {/* Login Instructions */}
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-foreground font-medium mb-1">
+              Login requires Email + Password.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Attorney number is not a login credential (used for identification only).
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">

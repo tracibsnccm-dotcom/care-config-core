@@ -89,6 +89,16 @@ export default function Access() {
             </button>
           </div>
 
+          {/* Login Instructions */}
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-foreground font-medium mb-1">
+              Login requires Email + Password.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Attorney/Nurse number is not a login credential (used for identification only).
+            </p>
+          </div>
+
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground">Email</label>
