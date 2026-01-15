@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -26,26 +26,65 @@ interface RNNoteItem {
 }
 
 export default function RNSupervisor() {
+  console.log("RNSupervisor: start");
+  
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [supervisorEmail, setSupervisorEmail] = useState<string>("");
   const [supervisorName, setSupervisorName] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [checkins, setCheckins] = useState<CheckinItem[]>([]);
   const [notes, setNotes] = useState<RNNoteItem[]>([]);
   const [checkinsLoading, setCheckinsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initializedRef = useRef(false);
+
+  // Safety timeout: if initialization takes > 8000ms, stop loading
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      if (loading && !initializedRef.current) {
+        console.error("RNSupervisor: Loading timed out after 8 seconds");
+        setError("Loading timed out. Please refresh the page.");
+        setLoading(false);
+      }
+    }, 8000);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [loading]);
 
   // Check role and load supervisor profile
   useEffect(() => {
     const checkRoleAndLoadProfile = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) {
+        console.log("RNSupervisor: waiting for auth to load...");
+        return;
+      }
+
+      console.log("RNSupervisor: session/user loaded", { userId: user?.id, email: user?.email });
+
+      // Check if user is null (not logged in)
       if (!user?.id) {
+        console.error("RNSupervisor: No user found - not logged in");
+        setError("Not logged in. Please sign in to access the supervisor dashboard.");
         setLoading(false);
+        initializedRef.current = true;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         return;
       }
 
       try {
+        console.log("RNSupervisor: fetching profile for user", user.id);
+        
         // Check role and get profile data
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
@@ -54,28 +93,58 @@ export default function RNSupervisor() {
           .maybeSingle();
 
         if (profileError) {
-          console.error("Error fetching profile:", profileError);
+          console.error("RNSupervisor: Error fetching profile:", profileError);
+          setError(`Failed to load profile: ${profileError.message}`);
           setLoading(false);
+          initializedRef.current = true;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
           return;
         }
 
         if (profileData) {
-          setUserRole(profileData.role?.toLowerCase() || null);
+          const role = profileData.role?.toLowerCase() || null;
+          console.log("RNSupervisor: profile loaded", { role, fullName: profileData.full_name });
+          
+          setUserRole(role);
           setSupervisorName(profileData.full_name || "");
           setSupervisorEmail(profileData.email || user.email || "");
+
+          // Role guard: if not rn_supervisor, stop loading immediately
+          if (role !== "rn_supervisor") {
+            console.log("RNSupervisor: role is not rn_supervisor, stopping");
+            setLoading(false);
+            initializedRef.current = true;
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+            }
+            return;
+          }
         } else {
-          // Fallback to user email if no profile
-          setSupervisorEmail(user.email || "");
+          // No profile found
+          console.warn("RNSupervisor: No profile found for user");
+          setError("Profile not found. Please contact your administrator.");
+          setLoading(false);
+          initializedRef.current = true;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          return;
         }
-      } catch (error) {
-        console.error("Error checking role:", error);
-      } finally {
+      } catch (error: any) {
+        console.error("RNSupervisor: Error checking role:", error);
+        setError(`Error loading profile: ${error?.message || "Unknown error"}`);
         setLoading(false);
+        initializedRef.current = true;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
       }
     };
 
     checkRoleAndLoadProfile();
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, authLoading]);
 
   // Load recent check-ins
   const loadCheckins = async () => {
@@ -83,6 +152,8 @@ export default function RNSupervisor() {
 
     setCheckinsLoading(true);
     try {
+      console.log("RNSupervisor: loading checkins...");
+      
       // Try rc_client_checkins first
       const { data: checkinsData, error: checkinsError } = await supabase
         .from("rc_client_checkins")
@@ -101,15 +172,22 @@ export default function RNSupervisor() {
 
           if (!altError && altCheckinsData) {
             setCheckins(altCheckinsData);
+            console.log("RNSupervisor: checkins loaded", altCheckinsData.length);
+          } else {
+            console.log("RNSupervisor: checkins loaded", 0, "(table not accessible)");
           }
         } else {
-          console.error("Error loading check-ins:", checkinsError);
+          console.error("RNSupervisor: Error loading check-ins:", checkinsError);
+          // Don't set error - just show empty state
         }
       } else if (checkinsData) {
         setCheckins(checkinsData);
+        console.log("RNSupervisor: checkins loaded", checkinsData.length);
+      } else {
+        console.log("RNSupervisor: checkins loaded", 0);
       }
-    } catch (error) {
-      console.error("Error loading check-ins:", error);
+    } catch (error: any) {
+      console.error("RNSupervisor: Error loading check-ins:", error);
       // Don't crash - just show empty state
     } finally {
       setCheckinsLoading(false);
@@ -122,6 +200,8 @@ export default function RNSupervisor() {
 
     setNotesLoading(true);
     try {
+      console.log("RNSupervisor: loading notes...");
+      
       // Try rc_rn_notes first
       const { data: notesData, error: notesError } = await supabase
         .from("rc_rn_notes")
@@ -146,26 +226,36 @@ export default function RNSupervisor() {
               .filter((id: string | null) => id) as string[];
             
             if (authorIds.length > 0) {
-              const { data: authorData } = await supabase
-                .from("profiles")
-                .select("id, full_name")
-                .in("id", authorIds);
+              try {
+                const { data: authorData } = await supabase
+                  .from("profiles")
+                  .select("id, full_name")
+                  .in("id", authorIds);
 
-              const authorMap = new Map(
-                (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
-              );
+                const authorMap = new Map(
+                  (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
+                );
 
-              const notesWithAuthors = altNotesData.map((n: any) => ({
-                ...n,
-                author_name: authorMap.get(n.author_id) || "RN",
-              }));
-              setNotes(notesWithAuthors);
+                const notesWithAuthors = altNotesData.map((n: any) => ({
+                  ...n,
+                  author_name: authorMap.get(n.author_id) || "RN",
+                }));
+                setNotes(notesWithAuthors);
+                console.log("RNSupervisor: notes loaded", notesWithAuthors.length);
+              } catch (authorError) {
+                setNotes(altNotesData);
+                console.log("RNSupervisor: notes loaded", altNotesData.length, "(without author names)");
+              }
             } else {
               setNotes(altNotesData);
+              console.log("RNSupervisor: notes loaded", altNotesData.length);
             }
+          } else {
+            console.log("RNSupervisor: notes loaded", 0, "(table not accessible)");
           }
         } else {
-          console.error("Error loading RN notes:", notesError);
+          console.error("RNSupervisor: Error loading RN notes:", notesError);
+          // Don't set error - just show empty state
         }
       } else if (notesData) {
         // Try to get author names if author_id is present
@@ -189,16 +279,21 @@ export default function RNSupervisor() {
               author_name: authorMap.get(n.author_id) || "RN",
             }));
             setNotes(notesWithAuthors);
+            console.log("RNSupervisor: notes loaded", notesWithAuthors.length);
           } catch (authorError) {
             // If author lookup fails, just use notes without author names
             setNotes(notesData);
+            console.log("RNSupervisor: notes loaded", notesData.length, "(without author names)");
           }
         } else {
           setNotes(notesData);
+          console.log("RNSupervisor: notes loaded", notesData.length);
         }
+      } else {
+        console.log("RNSupervisor: notes loaded", 0);
       }
-    } catch (error) {
-      console.error("Error loading RN notes:", error);
+    } catch (error: any) {
+      console.error("RNSupervisor: Error loading RN notes:", error);
       // Don't crash - just show empty state
     } finally {
       setNotesLoading(false);
@@ -207,17 +302,56 @@ export default function RNSupervisor() {
 
   // Load data when role is confirmed
   useEffect(() => {
-    if (userRole === "rn_supervisor") {
+    if (userRole === "rn_supervisor" && !loading) {
       loadCheckins();
       loadNotes();
+      console.log("RNSupervisor: done");
     }
-  }, [userRole]);
+  }, [userRole, loading]);
+
+  // Mark as initialized when loading completes
+  useEffect(() => {
+    if (!loading && userRole !== null) {
+      initializedRef.current = true;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    }
+  }, [loading, userRole]);
 
   // Refresh handler
   const handleRefresh = () => {
     loadCheckins();
     loadNotes();
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <Card className="p-6 md:p-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <div className="mt-4 flex gap-3">
+              {error.includes("Not logged in") || error.includes("Profile not found") ? (
+                <Button onClick={() => navigate("/rn-login")} variant="outline">
+                  Go to RN Login
+                </Button>
+              ) : (
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Refresh Page
+                </Button>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Route guard: if not rn_supervisor, show not authorized
   if (loading) {
@@ -239,8 +373,9 @@ export default function RNSupervisor() {
           <Card className="p-6 md:p-8">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Not authorized</AlertTitle>
               <AlertDescription>
-                <strong>Not authorized.</strong> This dashboard is for RN Supervisors only.
+                This dashboard is for RN Supervisors only.
               </AlertDescription>
             </Alert>
             <div className="mt-4">
