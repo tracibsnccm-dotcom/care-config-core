@@ -29,7 +29,7 @@ import { AttorneyQuickActions } from "@/components/AttorneyQuickActions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import NotificationCenter from "@/components/attorney/NotificationCenter";
 import MobileQuickActions from "@/components/attorney/MobileQuickActions";
@@ -181,8 +181,8 @@ export default function AttorneyLanding() {
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [attorneyName, setAttorneyName] = useState<string>("");
 
-  // Define loadAttorneyName BEFORE useEffect that uses it
-  const loadAttorneyName = async () => {
+  // Define loadAttorneyName with useCallback to avoid stale closures
+  const loadAttorneyName = useCallback(async () => {
     console.log("loadAttorneyName: Starting...");
     if (!user?.id) {
       console.log("loadAttorneyName: No user ID available, user:", user);
@@ -230,7 +230,7 @@ export default function AttorneyLanding() {
     } catch (error) {
       console.error("Error loading attorney name:", error);
     }
-  };
+  }, [user]);
 
   async function loadTierData() {
     if (!user) return;
@@ -249,18 +249,13 @@ export default function AttorneyLanding() {
     }
   }
 
-  // Call loadAttorneyName on mount
-  useEffect(() => {
-    console.log("AttorneyLanding: useEffect for loadAttorneyName called");
-    loadAttorneyName();
-  }, []);
-
-  // Also call when user becomes available
+  // Call loadAttorneyName when user becomes available
   useEffect(() => {
     if (!user) return;
+    console.log("AttorneyLanding: useEffect triggered, user available:", user.id);
     loadTierData();
     loadAttorneyName();
-  }, [user]);
+  }, [user, loadAttorneyName]);
 
   useEffect(() => {
     console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
