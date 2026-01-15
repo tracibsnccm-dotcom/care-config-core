@@ -52,16 +52,12 @@ export default function RNSupervisor() {
         if (authError) {
           console.error("RNSupervisor: Auth error:", authError);
           setError(`Authentication error: ${authError.message}`);
-          setLoading(false);
-          initializedRef.current = true;
           return;
         }
 
         if (!user) {
           console.error("RNSupervisor: No user found - not logged in");
           setError("Not logged in. Please sign in to access the supervisor dashboard.");
-          setLoading(false);
-          initializedRef.current = true;
           return;
         }
 
@@ -78,8 +74,6 @@ export default function RNSupervisor() {
         if (profileError) {
           console.error("RNSupervisor: Error fetching profile:", profileError);
           setError(`Failed to load profile: ${profileError.message}`);
-          setLoading(false);
-          initializedRef.current = true;
           return;
         }
 
@@ -94,25 +88,22 @@ export default function RNSupervisor() {
           // Role guard: if not rn_supervisor, stop loading immediately
           if (role !== "rn_supervisor") {
             console.log("RNSupervisor: role is not rn_supervisor, stopping");
-            setLoading(false);
-            initializedRef.current = true;
             return;
           }
         } else {
           // No profile found
           console.warn("RNSupervisor: No profile found for user");
           setError("Profile not found. Please contact your administrator.");
-          setLoading(false);
-          initializedRef.current = true;
           return;
         }
 
-        // If we get here, user is authorized - loading will be set to false below
-        setLoading(false);
-        initializedRef.current = true;
+        // If we get here, user is authorized
       } catch (error: any) {
         console.error("RNSupervisor: Error in initialization:", error);
         setError(`Error loading dashboard: ${error?.message || "Unknown error"}`);
+      } finally {
+        // Always set loading to false and mark as initialized
+        console.log("RNSupervisor: initialization complete, setting loading = false");
         setLoading(false);
         initializedRef.current = true;
       }

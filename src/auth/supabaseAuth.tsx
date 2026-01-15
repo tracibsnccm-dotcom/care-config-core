@@ -27,9 +27,25 @@ function mapRcUserRoleToAppRole(rcRole: string): string {
   return roleMap[rcRole.toLowerCase()] || rcRole.toUpperCase();
 }
 
-// Fetch user roles from rc_users table
+// Fetch user roles from profiles table (preferred) or rc_users table (fallback)
 async function fetchUserRoles(authUserId: string): Promise<string[]> {
+  console.log('=== Auth: fetchUserRoles START for user', authUserId);
   try {
+    // Try profiles table first (preferred)
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authUserId)
+      .maybeSingle();
+
+    if (!profileError && profileData?.role) {
+      console.log('=== Auth: Role found in profiles:', profileData.role);
+      const appRole = mapRcUserRoleToAppRole(profileData.role);
+      return [appRole];
+    }
+
+    // Fallback to rc_users table
+    console.log('=== Auth: Trying rc_users table as fallback');
     const { data, error } = await supabase
       .from('rc_users')
       .select('role')
@@ -37,21 +53,24 @@ async function fetchUserRoles(authUserId: string): Promise<string[]> {
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching user roles from rc_users:', error);
+      console.error('=== Auth: Error fetching user roles from rc_users:', error);
       return [];
     }
 
     if (!data || !data.role) {
-      console.warn(`No role found in rc_users for user ${authUserId}`);
+      console.warn(`=== Auth: No role found in rc_users for user ${authUserId}`);
       return [];
     }
 
     // Map the role to app role format
     const appRole = mapRcUserRoleToAppRole(data.role);
+    console.log('=== Auth: Role found in rc_users:', data.role, 'mapped to:', appRole);
     return [appRole];
   } catch (error) {
-    console.error('Exception fetching user roles:', error);
+    console.error('=== Auth: Exception fetching user roles:', error);
     return [];
+  } finally {
+    console.log('=== Auth: fetchUserRoles END');
   }
 }
 
@@ -77,28 +96,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   console.log('=== Auth: AuthProvider render, authLoading =', authLoading);
   const [rolesLoading, setRolesLoading] = useState(true);
   const lastLoadedUserIdRef = useRef<string | null>(null);
+  const rolesLoadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch roles when user changes
   useEffect(() => {
     const fetchRoles = async () => {
-      if (user?.id) {
-        // Only set loading if this is a different user than the one we already loaded roles for
-        if (user.id !== lastLoadedUserIdRef.current) {
-          setRolesLoading(true);
+      console.log('=== Auth: fetchRoles START, user?.id =', user?.id);
+      
+      try {
+        if (user?.id) {
+          // Only set loading if this is a different user than the one we already loaded roles for
+          if (user.id !== lastLoadedUserIdRef.current) {
+            console.log('=== Auth: New user detected, setting rolesLoading = true');
+            setRolesLoading(true);
+          }
+          
+          const userRoles = await fetchUserRoles(user.id);
+          console.log('=== Auth: Roles fetched:', userRoles);
+          setRoles(userRoles);
+          lastLoadedUserIdRef.current = user.id;
+        } else {
+          console.log('=== Auth: No user, clearing roles');
+          setRoles([]);
+          lastLoadedUserIdRef.current = null;
         }
-        const userRoles = await fetchUserRoles(user.id);
-        setRoles(userRoles);
-        lastLoadedUserIdRef.current = user.id;
-        setRolesLoading(false);
-      } else {
+      } catch (error) {
+        console.error('=== Auth: Error in fetchRoles:', error);
+        // On error, set empty roles but don't block
         setRoles([]);
-        lastLoadedUserIdRef.current = null;
+      } finally {
+        console.log('=== Auth: fetchRoles END, setting rolesLoading = false');
         setRolesLoading(false);
       }
     };
 
     void fetchRoles();
   }, [user?.id]);
+
+  // Safety timeout for rolesLoading - ensure it always resolves
+  useEffect(() => {
+    if (rolesLoading) {
+      // Clear any existing timeout
+      if (rolesLoadingTimeoutRef.current) {
+        clearTimeout(rolesLoadingTimeoutRef.current);
+      }
+      
+      // Set a timeout to force rolesLoading to false after 5 seconds
+      rolesLoadingTimeoutRef.current = setTimeout(() => {
+        console.warn('=== Auth: Safety timeout triggered for rolesLoading - forcing to false ===');
+        setRolesLoading(false);
+      }, 5000);
+    } else {
+      // Clear timeout if rolesLoading becomes false
+      if (rolesLoadingTimeoutRef.current) {
+        clearTimeout(rolesLoadingTimeoutRef.current);
+        rolesLoadingTimeoutRef.current = null;
+      }
+    }
+
+    return () => {
+      if (rolesLoadingTimeoutRef.current) {
+        clearTimeout(rolesLoadingTimeoutRef.current);
+      }
+    };
+  }, [rolesLoading]);
 
   useEffect(() => {
     const init = async () => {
@@ -147,15 +208,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         // Fetch roles when auth state changes
         if (session?.user?.id) {
-          // Only set loading if this is a different user than the one we already loaded roles for
-          if (session.user.id !== lastLoadedUserIdRef.current) {
-            setRolesLoading(true);
+          try {
+            // Only set loading if this is a different user than the one we already loaded roles for
+            if (session.user.id !== lastLoadedUserIdRef.current) {
+              console.log('=== Auth: New user in onAuthStateChange, setting rolesLoading = true');
+              setRolesLoading(true);
+            }
+            const userRoles = await fetchUserRoles(session.user.id);
+            console.log('=== Auth: Roles fetched in onAuthStateChange:', userRoles);
+            setRoles(userRoles);
+            lastLoadedUserIdRef.current = session.user.id;
+          } catch (error) {
+            console.error('=== Auth: Error fetching roles in onAuthStateChange:', error);
+            setRoles([]);
+          } finally {
+            console.log('=== Auth: onAuthStateChange roles fetch END, setting rolesLoading = false');
+            setRolesLoading(false);
           }
-          const userRoles = await fetchUserRoles(session.user.id);
-          setRoles(userRoles);
-          lastLoadedUserIdRef.current = session.user.id;
-          setRolesLoading(false);
         } else {
+          console.log('=== Auth: No user in onAuthStateChange, clearing roles');
           setRoles([]);
           lastLoadedUserIdRef.current = null;
           setRolesLoading(false);
