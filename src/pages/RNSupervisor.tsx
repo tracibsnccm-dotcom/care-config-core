@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User } from "lucide-react";
@@ -29,7 +28,6 @@ export default function RNSupervisor() {
   console.log("RNSupervisor: start");
   
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
   const [supervisorEmail, setSupervisorEmail] = useState<string>("");
   const [supervisorName, setSupervisorName] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -39,53 +37,38 @@ export default function RNSupervisor() {
   const [notes, setNotes] = useState<RNNoteItem[]>([]);
   const [checkinsLoading, setCheckinsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initializedRef = useRef(false);
 
-  // Safety timeout: if initialization takes > 8000ms, stop loading
+  // Initialize: get user directly and check role
   useEffect(() => {
-    timeoutRef.current = setTimeout(() => {
-      if (loading && !initializedRef.current) {
-        console.error("RNSupervisor: Loading timed out after 8 seconds");
-        setError("Loading timed out. Please refresh the page.");
-        setLoading(false);
-      }
-    }, 8000);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [loading]);
-
-  // Check role and load supervisor profile
-  useEffect(() => {
-    const checkRoleAndLoadProfile = async () => {
-      // Wait for auth to finish loading
-      if (authLoading) {
-        console.log("RNSupervisor: waiting for auth to load...");
-        return;
-      }
-
-      console.log("RNSupervisor: session/user loaded", { userId: user?.id, email: user?.email });
-
-      // Check if user is null (not logged in)
-      if (!user?.id) {
-        console.error("RNSupervisor: No user found - not logged in");
-        setError("Not logged in. Please sign in to access the supervisor dashboard.");
-        setLoading(false);
-        initializedRef.current = true;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-        return;
-      }
-
+    const initialize = async () => {
+      if (initializedRef.current) return;
+      
       try {
-        console.log("RNSupervisor: fetching profile for user", user.id);
+        // Get user directly from Supabase auth
+        console.log("RNSupervisor: calling supabase.auth.getUser()");
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
         
-        // Check role and get profile data
+        if (authError) {
+          console.error("RNSupervisor: Auth error:", authError);
+          setError(`Authentication error: ${authError.message}`);
+          setLoading(false);
+          initializedRef.current = true;
+          return;
+        }
+
+        if (!user) {
+          console.error("RNSupervisor: No user found - not logged in");
+          setError("Not logged in. Please sign in to access the supervisor dashboard.");
+          setLoading(false);
+          initializedRef.current = true;
+          return;
+        }
+
+        console.log("RNSupervisor: user loaded", { userId: user.id, email: user.email });
+
+        // Fetch profile and role
+        console.log("RNSupervisor: fetching profile for user", user.id);
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("role, full_name, email")
@@ -97,9 +80,6 @@ export default function RNSupervisor() {
           setError(`Failed to load profile: ${profileError.message}`);
           setLoading(false);
           initializedRef.current = true;
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-          }
           return;
         }
 
@@ -116,9 +96,6 @@ export default function RNSupervisor() {
             console.log("RNSupervisor: role is not rn_supervisor, stopping");
             setLoading(false);
             initializedRef.current = true;
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-            }
             return;
           }
         } else {
@@ -127,24 +104,22 @@ export default function RNSupervisor() {
           setError("Profile not found. Please contact your administrator.");
           setLoading(false);
           initializedRef.current = true;
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-          }
           return;
         }
-      } catch (error: any) {
-        console.error("RNSupervisor: Error checking role:", error);
-        setError(`Error loading profile: ${error?.message || "Unknown error"}`);
+
+        // If we get here, user is authorized - loading will be set to false below
         setLoading(false);
         initializedRef.current = true;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
+      } catch (error: any) {
+        console.error("RNSupervisor: Error in initialization:", error);
+        setError(`Error loading dashboard: ${error?.message || "Unknown error"}`);
+        setLoading(false);
+        initializedRef.current = true;
       }
     };
 
-    checkRoleAndLoadProfile();
-  }, [user?.id, user?.email, authLoading]);
+    initialize();
+  }, []); // Run once on mount
 
   // Load recent check-ins
   const loadCheckins = async () => {
@@ -308,16 +283,6 @@ export default function RNSupervisor() {
       console.log("RNSupervisor: done");
     }
   }, [userRole, loading]);
-
-  // Mark as initialized when loading completes
-  useEffect(() => {
-    if (!loading && userRole !== null) {
-      initializedRef.current = true;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    }
-  }, [loading, userRole]);
 
   // Refresh handler
   const handleRefresh = () => {
