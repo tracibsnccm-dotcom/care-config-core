@@ -813,6 +813,21 @@ export default function IntakeWizard() {
           }
         }
 
+        // Mark the intake session as submitted/converted to prevent reuse
+        const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+        if (intakeSessionId) {
+          try {
+            await updateIntakeSession(intakeSessionId, {
+              intakeStatus: 'submitted',
+              caseId: newCase.id,
+            });
+            console.log('IntakeWizard: Marked intake session as submitted:', intakeSessionId);
+          } catch (e) {
+            console.error('Error marking intake session as submitted:', e);
+            // Non-critical error - continue with intake creation
+          }
+        }
+
         // Record intake completion in rc_client_intakes table (MVP: gates Client Portal access per-case)
         // Build intake_json payload with all intake data
         const nowISO = new Date().toISOString();

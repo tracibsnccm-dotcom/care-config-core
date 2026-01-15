@@ -44,7 +44,7 @@ export interface IntakeSession {
 
 /**
  * Create or update (upsert) INT intake session after minimum identity is collected
- * If session already exists for this email + attorney, updates it; otherwise creates new one
+ * If session already exists for this email + attorney within last 24 hours AND not submitted, updates it; otherwise creates new one
  */
 export async function createIntakeSession(params: CreateIntakeSessionParams): Promise<IntakeSession> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -52,9 +52,23 @@ export async function createIntakeSession(params: CreateIntakeSessionParams): Pr
 
   const emailLower = params.email.trim().toLowerCase();
   
-  // Check if session already exists (by email - one session per email/attorney combo)
+  // Build query to check for existing session by email + attorney_id
+  // More strict: same email AND same attorney = same session; different attorney = new session
+  let queryUrl = `${supabaseUrl}/rest/v1/rc_client_intake_sessions?email=eq.${emailLower}&select=*`;
+  
+  // If attorney_id is provided, include it in the query
+  if (params.attorneyId) {
+    queryUrl += `&attorney_id=eq.${params.attorneyId}`;
+  } else if (params.attorneyCode) {
+    queryUrl += `&attorney_code=eq.${params.attorneyCode}`;
+  }
+  
+  queryUrl += `&order=created_at.desc&limit=1`;
+  
+  console.log('[createIntakeSession] Checking for existing session:', { email: emailLower, attorneyId: params.attorneyId, attorneyCode: params.attorneyCode });
+  
   const existingResponse = await fetch(
-    `${supabaseUrl}/rest/v1/rc_client_intake_sessions?email=eq.${emailLower}&select=*&limit=1`,
+    queryUrl,
     {
       headers: {
         apikey: supabaseKey,
@@ -69,12 +83,53 @@ export async function createIntakeSession(params: CreateIntakeSessionParams): Pr
     const existing = await existingResponse.json();
     if (Array.isArray(existing) && existing.length > 0) {
       existingSession = existing[0];
-      // Check if expired or converted - if so, create new
-      if (new Date(existingSession.expires_at) < new Date() || 
-          existingSession.intake_status === 'converted' || 
-          existingSession.intake_status === 'submitted') {
+      console.log('[createIntakeSession] Found existing session:', { 
+        id: existingSession.id, 
+        intake_id: existingSession.intake_id,
+        created_at: existingSession.created_at,
+        intake_status: existingSession.intake_status,
+        expires_at: existingSession.expires_at 
+      });
+      
+      // STRICT CHECK: Only reuse if ALL conditions are met:
+      // 1. Not expired
+      // 2. Not submitted/converted
+      // 3. Created within last 24 hours
+      // 4. Attorney matches (if provided)
+      const now = new Date();
+      const createdAt = new Date(existingSession.created_at);
+      const expiresAt = new Date(existingSession.expires_at);
+      const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+      
+      const isExpired = expiresAt < now;
+      const isSubmitted = existingSession.intake_status === 'converted' || 
+                         existingSession.intake_status === 'submitted' ||
+                         existingSession.intake_status === 'completed';
+      const isOlderThan24Hours = hoursSinceCreation > 24;
+      
+      // Check attorney match
+      const attorneyMatches = 
+        (!params.attorneyId && !params.attorneyCode) || // No attorney specified = match any
+        (params.attorneyId && existingSession.attorney_id === params.attorneyId) ||
+        (params.attorneyCode && existingSession.attorney_code === params.attorneyCode);
+      
+      console.log('[createIntakeSession] Session validation:', {
+        isExpired,
+        isSubmitted,
+        isOlderThan24Hours,
+        hoursSinceCreation: hoursSinceCreation.toFixed(2),
+        attorneyMatches,
+        shouldReuse: !isExpired && !isSubmitted && !isOlderThan24Hours && attorneyMatches
+      });
+      
+      if (isExpired || isSubmitted || isOlderThan24Hours || !attorneyMatches) {
+        console.log('[createIntakeSession] Session is invalid for reuse, will create new session');
         existingSession = null;
+      } else {
+        console.log('[createIntakeSession] Reusing existing session:', existingSession.intake_id);
       }
+    } else {
+      console.log('[createIntakeSession] No existing session found');
     }
   }
 
@@ -124,13 +179,20 @@ export async function createIntakeSession(params: CreateIntakeSessionParams): Pr
   }
 
   // Create new session
+  // Use user's local date (not UTC) for INT number generation
   const today = new Date();
-  const yy = today.getFullYear().toString().slice(-2);
-  const mm = (today.getMonth() + 1).toString().padStart(2, '0');
-  const dd = today.getDate().toString().padStart(2, '0');
+  const localYear = today.getFullYear();
+  const localMonth = today.getMonth() + 1;
+  const localDay = today.getDate();
+  
+  const yy = localYear.toString().slice(-2);
+  const mm = localMonth.toString().padStart(2, '0');
+  const dd = localDay.toString().padStart(2, '0');
   const todayPrefix = `INT-${yy}${mm}${dd}-`;
 
-  // Get count of existing sessions today
+  console.log('[createIntakeSession] Generating new INT number with date:', { yy, mm, dd, prefix: todayPrefix });
+
+  // Get count of existing sessions today (including submitted/converted ones for sequence)
   const countResponse = await fetch(
     `${supabaseUrl}/rest/v1/rc_client_intake_sessions?intake_id=like.${todayPrefix}*&select=intake_id`,
     {
@@ -149,6 +211,7 @@ export async function createIntakeSession(params: CreateIntakeSessionParams): Pr
   }
 
   const intakeId = generateIntakeId(count + 1);
+  console.log('[createIntakeSession] Generated new INT number:', intakeId, '(sequence:', count + 1, ')');
   const resumeToken = generateResumeToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
