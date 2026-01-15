@@ -15,50 +15,61 @@ import { supabase } from "@/integrations/supabase/client";
  * Get all cases accessible to the authenticated attorney.
  * Returns released/closed/ready cases (never drafts).
  * 
- * Uses direct query to rc_cases with RLS policies enforcing:
- * - attorney_id must match the authenticated attorney's rc_users.id (via RLS)
- * - case_status must be 'released', 'closed', or 'ready' (not 'draft')
- * 
- * 'ready' status is included so attorneys can see cases that need attestation.
- * 
- * RLS policies automatically filter by attorney_id, so we just need to filter by status.
+ * Explicitly filters by attorney_id to ensure attorneys only see their own cases.
  * 
  * @returns Array of case objects with latest released/closed/ready version per revision chain
  */
 export async function getAttorneyCases() {
   console.log('=== getAttorneyCases: About to fetch cases ===');
   
-  // Get authenticated user for logging
+  // Get authenticated user
   const { data: { user: authUser } } = await supabase.auth.getUser();
   console.log('getAttorneyCases: Authenticated user ID:', authUser?.id);
   
-  // If user is authenticated, try to get their rc_user ID to log what attorney_id will be used
-  let attorneyRcUserId: string | null = null;
-  if (authUser?.id) {
-    const { data: rcUser } = await supabase
-      .from('rc_users')
-      .select('id, role')
-      .eq('auth_user_id', authUser.id)
-      .maybeSingle();
-    attorneyRcUserId = rcUser?.id || null;
-    console.log('getAttorneyCases: Attorney rc_user ID:', attorneyRcUserId);
-    console.log('getAttorneyCases: User role:', rcUser?.role);
+  if (!authUser?.id) {
+    console.error('getAttorneyCases: No authenticated user');
+    return [];
   }
+
+  // Get the attorney's rc_user ID to filter cases
+  const { data: rcUser, error: rcUserError } = await supabase
+    .from('rc_users')
+    .select('id, role')
+    .eq('auth_user_id', authUser.id)
+    .maybeSingle();
+
+  if (rcUserError) {
+    console.error('getAttorneyCases: Error fetching rc_user:', rcUserError);
+    throw rcUserError;
+  }
+
+  if (!rcUser || !rcUser.id) {
+    console.error('getAttorneyCases: No rc_user found for authenticated user');
+    return [];
+  }
+
+  if (rcUser.role !== 'attorney') {
+    console.warn('getAttorneyCases: User is not an attorney, role:', rcUser.role);
+    return [];
+  }
+
+  const attorneyRcUserId = rcUser.id;
+  console.log('getAttorneyCases: Attorney rc_user ID:', attorneyRcUserId);
+  console.log('getAttorneyCases: User role:', rcUser.role);
   
-  // Query rc_cases directly - RLS policies will automatically enforce:
-  // 1. Only cases where attorney_id matches the authenticated attorney's rc_users.id
-  // 2. User must be authenticated (auth.uid() IS NOT NULL)
-  // We filter for released/closed/ready status to ensure no drafts
+  // Query rc_cases with explicit attorney_id filter
+  // Filter for released/closed/ready status to ensure no drafts
   // 'ready' status is needed for attorneys to perform attestation
   const statusFilter = ['released', 'closed', 'ready'];
   console.log('getAttorneyCases: Query details:');
   console.log('  - Table: rc_cases');
   console.log('  - Filter: case_status IN', statusFilter);
-  console.log('  - RLS will filter by attorney_id:', attorneyRcUserId || '(from authenticated user)');
+  console.log('  - Filter: attorney_id =', attorneyRcUserId);
   
   const { data, error } = await supabase
     .from('rc_cases')
     .select('*')
+    .eq('attorney_id', attorneyRcUserId)
     .in('case_status', statusFilter)
     .order('updated_at', { ascending: false });
 
@@ -67,13 +78,12 @@ export async function getAttorneyCases() {
   console.log('getAttorneyCases: Cases data:', data);
   
   if (data && data.length > 0) {
-    console.log('getAttorneyCases: Case statuses in results:', data.map(c => ({ id: c.id, status: c.case_status })));
+    console.log('getAttorneyCases: Case statuses in results:', data.map(c => ({ id: c.id, status: c.case_status, attorney_id: c.attorney_id })));
   } else {
     console.log('getAttorneyCases: No cases returned - check if:');
-    console.log('  - RLS policies are blocking access');
-    console.log('  - attorney_id matches the user\'s rc_users.id');
+    console.log('  - attorney_id matches the user\'s rc_users.id:', attorneyRcUserId);
     console.log('  - case_status is in the filter:', statusFilter);
-    console.log('  - Try querying without status filter to see all accessible cases');
+    console.log('  - Cases exist in rc_cases with this attorney_id');
   }
   
   console.log('getAttorneyCases: Cases error:', error);
