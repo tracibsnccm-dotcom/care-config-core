@@ -167,22 +167,37 @@ export function AttorneyAttestationCard({
       const intake = Array.isArray(intakes) ? intakes[0] : intakes;
       if (!intake?.case_id) throw new Error('Intake not found');
       
-      const today = new Date();
-      const dateStr = `${today.getFullYear().toString().slice(-2)}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}`;
-      const prefix = `${attorneyCode}-${dateStr}-`;
-      
-      const { data: allCases } = await supabaseGet(
+      // Get existing case to retrieve current case_number (should be INT number)
+      const { data: caseData, error: caseDataError } = await supabaseGet(
         'rc_cases',
-        `select=id,case_number&attorney_id=eq.${attorneyId}&case_number=not.is.null`
+        `select=id,case_number&id=eq.${intake.case_id}&limit=1`
       );
       
-      const todayCases = Array.isArray(allCases) 
-        ? allCases.filter((c: any) => c.case_number?.startsWith(prefix))
-        : [];
+      if (caseDataError) throw new Error(`Failed to get case: ${caseDataError.message}`);
       
-      const sequence = todayCases.length + 1;
+      const existingCase = Array.isArray(caseData) ? caseData[0] : caseData;
+      const existingCaseNumber = existingCase?.case_number;
       
-      const caseNumber = generateCaseNumber(attorneyCode, sequence);
+      if (!existingCaseNumber) {
+        throw new Error('Case number not found - cannot convert INT number to attorney case number');
+      }
+      
+      // Convert INT number to attorney case number by replacing "INT" with attorney code
+      // Example: INT-260115-01M -> BG04-260115-01M
+      let caseNumber: string;
+      if (existingCaseNumber.startsWith('INT-')) {
+        // Replace "INT" with attorney code, keep the rest the same
+        caseNumber = existingCaseNumber.replace(/^INT-/, `${attorneyCode}-`);
+        console.log('[AttorneyAttestationCard] Converting case number:', { 
+          from: existingCaseNumber, 
+          to: caseNumber,
+          attorneyCode 
+        });
+      } else {
+        // If it's already in attorney format or unexpected format, use as-is
+        console.warn('[AttorneyAttestationCard] Case number does not start with INT-, using as-is:', existingCaseNumber);
+        caseNumber = existingCaseNumber;
+      }
       const clientPin = generatePIN();
       const now = new Date().toISOString();
       

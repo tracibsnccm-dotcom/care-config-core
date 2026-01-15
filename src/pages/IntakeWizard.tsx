@@ -925,18 +925,44 @@ export default function IntakeWizard() {
           console.error("Error recording intake completion:", intakeCompletionError);
           // Don't block submission if this fails, but log it
         } else {
-          // Link consent record to this intake
+          // Link consent record to this intake and case
           try {
             const consentSessionId = sessionStorage.getItem("rcms_consent_session_id");
             if (consentSessionId && intakeResult?.id) {
-              console.log('IntakeWizard: Linking consent to intake', { consentSessionId, intakeId: intakeResult.id });
+              console.log('IntakeWizard: Linking consent to intake and case', { 
+                consentSessionId, 
+                intakeId: intakeResult.id,
+                caseId: newCase.id 
+              });
+              
+              // First, try to add case_id if the column exists (might need migration)
+              const updateData: any = { 
+                client_intake_id: intakeResult.id,
+                // Note: case_id column may need to be added via migration if it doesn't exist
+                // For now, consents can be accessed via client_intake_id -> rc_client_intakes -> case_id
+              };
+              
               const { error: consentLinkError } = await supabaseUpdate(
                 'rc_client_consents',
                 `session_id=eq.${consentSessionId}`,
-                { client_intake_id: intakeResult.id }
+                updateData
               );
               if (consentLinkError) {
                 console.error('Failed to link consent to intake:', consentLinkError);
+                // If case_id column doesn't exist, try without it
+                if (consentLinkError.message?.includes('column') && consentLinkError.message?.includes('case_id')) {
+                  delete updateData.case_id;
+                  const { error: retryError } = await supabaseUpdate(
+                    'rc_client_consents',
+                    `session_id=eq.${consentSessionId}`,
+                    { client_intake_id: intakeResult.id }
+                  );
+                  if (retryError) {
+                    console.error('Failed to link consent (retry):', retryError);
+                  } else {
+                    console.log('IntakeWizard: Consent linked to intake successfully (without case_id)');
+                  }
+                }
               } else {
                 console.log('IntakeWizard: Consent linked to intake successfully');
               }
