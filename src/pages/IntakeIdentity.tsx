@@ -25,6 +25,7 @@ export default function IntakeIdentity() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [dateOfInjury, setDateOfInjury] = useState("");
   
   // Session state
   const [intakeId, setIntakeId] = useState<string>("");
@@ -120,6 +121,10 @@ export default function IntakeIdentity() {
       sessionStorage.setItem("rcms_current_attorney_id", session.attorneyId || "");
       sessionStorage.setItem("rcms_attorney_code", session.attorneyCode || "");
       sessionStorage.setItem("rcms_intake_created_at", session.createdAt);
+      // Store date of injury for later use
+      if (dateOfInjury) {
+        sessionStorage.setItem("rcms_date_of_injury", dateOfInjury);
+      }
 
       // Send resume email
       try {
@@ -272,6 +277,21 @@ export default function IntakeIdentity() {
                   placeholder="Enter your email address"
                   required
                   disabled={intakeSessionCreated}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date-of-injury">
+                  Date of Injury / Date of Loss
+                </Label>
+                <Input
+                  id="date-of-injury"
+                  type="date"
+                  value={dateOfInjury}
+                  onChange={(e) => setDateOfInjury(e.target.value)}
+                  placeholder="Select date of injury"
+                  disabled={intakeSessionCreated}
+                  max={new Date().toISOString().split('T')[0]}
                 />
               </div>
             </div>

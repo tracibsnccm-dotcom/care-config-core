@@ -487,18 +487,98 @@ export default function IntakeWizard() {
 
     console.log('IntakeWizard handleSubmit: Resolved attorneyId', attorneyId);
 
+    // Get client information from intake session or sessionStorage
+    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    let clientFirstName = "";
+    let clientLastName = "";
+    let clientEmail = "";
+    let clientPhone = client.phone || "";
+    
+    if (intakeSessionId) {
+      try {
+        const { data: sessionData } = await supabaseGet(
+          'rc_client_intake_sessions',
+          `id=eq.${intakeSessionId}&select=first_name,last_name,email&limit=1`
+        );
+        if (sessionData) {
+          const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
+          clientFirstName = session.first_name || "";
+          clientLastName = session.last_name || "";
+          clientEmail = session.email || "";
+        }
+      } catch (e) {
+        console.error("Error loading intake session:", e);
+      }
+    }
+
+    // Get date of injury from sessionStorage
+    const dateOfInjury = sessionStorage.getItem("rcms_date_of_injury") || intake.incidentDate || null;
+
+    // Create or find rc_clients record
+    let clientId: string | null = null;
+    if (clientFirstName && clientLastName && clientEmail) {
+      try {
+        // First, try to find existing client by email
+        const { data: existingClient } = await supabaseGet(
+          'rc_clients',
+          `email=eq.${clientEmail.toLowerCase()}&select=id&limit=1`
+        );
+        
+        if (existingClient) {
+          const client = Array.isArray(existingClient) ? existingClient[0] : existingClient;
+          clientId = client?.id || null;
+          
+          // Update existing client if needed
+          if (clientId) {
+            const { error: updateError } = await supabaseUpdate(
+              'rc_clients',
+              `id=eq.${clientId}`,
+              {
+                first_name: clientFirstName,
+                last_name: clientLastName,
+                email: clientEmail.toLowerCase(),
+                phone: clientPhone || null,
+              }
+            );
+            if (updateError) {
+              console.error("Error updating client:", updateError);
+            }
+          }
+        } else {
+          // Create new client
+          const { data: newClient, error: clientError } = await supabaseInsert("rc_clients", {
+            first_name: clientFirstName,
+            last_name: clientLastName,
+            email: clientEmail.toLowerCase(),
+            phone: clientPhone || null,
+          });
+          
+          if (clientError) {
+            console.error("Error creating client:", clientError);
+          } else {
+            const client = Array.isArray(newClient) ? newClient[0] : newClient;
+            clientId = client?.id || null;
+          }
+        }
+      } catch (e) {
+        console.error("Error creating/finding client:", e);
+      }
+    }
+
     // First, create the case in rc_cases table
     console.log('IntakeWizard: About to insert rc_cases');
     const { error: caseError } = await supabaseInsert("rc_cases", {
       id: newCase.id,
-      client_id: null, // Will be linked later
+      client_id: clientId, // Link to client record
       attorney_id: attorneyId, // Assign attorney if found
       case_type: intake.incidentType || 'MVA',
       case_status: 'intake_pending',
+      case_number: clientIdResult.clientId, // Save the INT number
+      date_of_injury: dateOfInjury, // Save date of injury
       created_at: new Date().toISOString(),
     });
 
-    console.log('IntakeWizard: rc_cases result', { error: caseError });
+    console.log('IntakeWizard: rc_cases result', { error: caseError, case_number: clientIdResult.clientId, client_id: clientId, date_of_injury: dateOfInjury });
 
     if (caseError) {
       console.error("Error creating case:", caseError);
