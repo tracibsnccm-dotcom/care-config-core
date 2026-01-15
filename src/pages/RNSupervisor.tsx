@@ -3,40 +3,41 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/auth/supabaseAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { AlertCircle, FileText, CheckCircle, Clock, ExternalLink } from "lucide-react";
+import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User } from "lucide-react";
 
-interface ReviewQueueItem {
+interface CheckinItem {
   id: string;
-  client_label: string | null;
-  case_status: string | null;
-  created_at: string | null;
-  needs_review_reason?: string;
+  case_id: string | null;
+  client_id: string | null;
+  created_at: string;
+  note?: string | null;
 }
 
-interface RecentlyReleasedItem {
+interface RNNoteItem {
   id: string;
-  client_label: string | null;
-  case_status: string | null;
-  released_at?: string | null;
-  updated_at: string | null;
+  case_id: string | null;
+  created_at: string;
+  note_text?: string | null;
+  author_id?: string | null;
+  author_name?: string | null;
 }
 
 export default function RNSupervisor() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [supervisorEmail, setSupervisorEmail] = useState<string>("");
   const [supervisorName, setSupervisorName] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
-  const [recentlyReleased, setRecentlyReleased] = useState<RecentlyReleasedItem[]>([]);
-  const [queueLoading, setQueueLoading] = useState(false);
-  const [releasedLoading, setReleasedLoading] = useState(false);
+  const [checkins, setCheckins] = useState<CheckinItem[]>([]);
+  const [notes, setNotes] = useState<RNNoteItem[]>([]);
+  const [checkinsLoading, setCheckinsLoading] = useState(false);
+  const [notesLoading, setNotesLoading] = useState(false);
 
-  // Check role and load supervisor name
+  // Check role and load supervisor profile
   useEffect(() => {
     const checkRoleAndLoadProfile = async () => {
       if (!user?.id) {
@@ -45,10 +46,10 @@ export default function RNSupervisor() {
       }
 
       try {
-        // Check role
+        // Check role and get profile data
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("role, full_name")
+          .select("role, full_name, email")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -61,6 +62,10 @@ export default function RNSupervisor() {
         if (profileData) {
           setUserRole(profileData.role?.toLowerCase() || null);
           setSupervisorName(profileData.full_name || "");
+          setSupervisorEmail(profileData.email || user.email || "");
+        } else {
+          // Fallback to user email if no profile
+          setSupervisorEmail(user.email || "");
         }
       } catch (error) {
         console.error("Error checking role:", error);
@@ -70,118 +75,149 @@ export default function RNSupervisor() {
     };
 
     checkRoleAndLoadProfile();
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
-  // Load review queue
-  useEffect(() => {
-    const loadReviewQueue = async () => {
-      if (userRole !== "rn_supervisor") return;
+  // Load recent check-ins
+  const loadCheckins = async () => {
+    if (userRole !== "rn_supervisor") return;
 
-      setQueueLoading(true);
-      try {
-        // Query cases that might need review
-        // For now, we'll look for cases with status that indicates review needed
-        // or cases with flags/issues. This can be expanded based on business logic.
-        const { data: casesData, error: casesError } = await supabase
-          .from("rc_cases")
-          .select("id, case_status, created_at")
-          .in("case_status", ["intake_pending", "review_needed", "pending_review"])
-          .order("created_at", { ascending: false })
-          .limit(20);
+    setCheckinsLoading(true);
+    try {
+      // Try rc_client_checkins first
+      const { data: checkinsData, error: checkinsError } = await supabase
+        .from("rc_client_checkins")
+        .select("id, case_id, client_id, created_at, note")
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-        if (casesError) {
-          console.error("Error loading review queue:", casesError);
-          // If rc_cases doesn't exist or has different structure, try cases table
-          const { data: altCasesData, error: altError } = await supabase
-            .from("cases")
-            .select("id, status, created_at, client_label")
-            .in("status", ["NEW", "AWAITING_CONSENT", "ROUTED"])
+      if (checkinsError) {
+        // If rc_client_checkins doesn't exist, try client_checkins
+        if (checkinsError.code === "PGRST116" || checkinsError.message.includes("does not exist")) {
+          const { data: altCheckinsData, error: altError } = await supabase
+            .from("client_checkins")
+            .select("id, case_id, client_id, created_at, note")
             .order("created_at", { ascending: false })
-            .limit(20);
-
-          if (!altError && altCasesData) {
-            const formatted = altCasesData.map((c: any) => ({
-              id: c.id,
-              client_label: c.client_label,
-              case_status: c.status,
-              created_at: c.created_at,
-            }));
-            setReviewQueue(formatted);
-          }
-        } else if (casesData) {
-          // Try to get client_label from related tables if available
-          const formatted = casesData.map((c: any) => ({
-            id: c.id,
-            client_label: null,
-            case_status: c.case_status,
-            created_at: c.created_at,
-          }));
-          setReviewQueue(formatted);
-        }
-      } catch (error) {
-        console.error("Error loading review queue:", error);
-      } finally {
-        setQueueLoading(false);
-      }
-    };
-
-    loadReviewQueue();
-  }, [userRole]);
-
-  // Load recently released cases
-  useEffect(() => {
-    const loadRecentlyReleased = async () => {
-      if (userRole !== "rn_supervisor") return;
-
-      setReleasedLoading(true);
-      try {
-        // Query cases with status 'released' or 'closed', ordered by release date
-        const { data: casesData, error: casesError } = await supabase
-          .from("rc_cases")
-          .select("id, case_status, released_at, updated_at, created_at")
-          .in("case_status", ["released", "closed"])
-          .order("released_at", { ascending: false })
-          .limit(10);
-
-        if (casesError) {
-          console.error("Error loading recently released:", casesError);
-          // Try cases table as fallback
-          const { data: altCasesData, error: altError } = await supabase
-            .from("cases")
-            .select("id, status, updated_at, created_at, client_label")
-            .in("status", ["released", "closed"])
-            .order("updated_at", { ascending: false })
             .limit(10);
 
-          if (!altError && altCasesData) {
-            const formatted = altCasesData.map((c: any) => ({
-              id: c.id,
-              client_label: c.client_label,
-              case_status: c.status,
-              released_at: null,
-              updated_at: c.updated_at || c.created_at,
-            }));
-            setRecentlyReleased(formatted);
+          if (!altError && altCheckinsData) {
+            setCheckins(altCheckinsData);
           }
-        } else if (casesData) {
-          const formatted = casesData.map((c: any) => ({
-            id: c.id,
-            client_label: null,
-            case_status: c.case_status,
-            released_at: c.released_at,
-            updated_at: c.updated_at || c.released_at || c.created_at,
-          }));
-          setRecentlyReleased(formatted);
+        } else {
+          console.error("Error loading check-ins:", checkinsError);
         }
-      } catch (error) {
-        console.error("Error loading recently released:", error);
-      } finally {
-        setReleasedLoading(false);
+      } else if (checkinsData) {
+        setCheckins(checkinsData);
       }
-    };
+    } catch (error) {
+      console.error("Error loading check-ins:", error);
+      // Don't crash - just show empty state
+    } finally {
+      setCheckinsLoading(false);
+    }
+  };
 
-    loadRecentlyReleased();
+  // Load recent RN notes
+  const loadNotes = async () => {
+    if (userRole !== "rn_supervisor") return;
+
+    setNotesLoading(true);
+    try {
+      // Try rc_rn_notes first
+      const { data: notesData, error: notesError } = await supabase
+        .from("rc_rn_notes")
+        .select("id, case_id, created_at, note_text, author_id")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (notesError) {
+        // If rc_rn_notes doesn't exist, try alternative table names
+        if (notesError.code === "PGRST116" || notesError.message.includes("does not exist")) {
+          // Try rn_notes as fallback
+          const { data: altNotesData, error: altError } = await supabase
+            .from("rn_notes")
+            .select("id, case_id, created_at, note_text, author_id")
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+          if (!altError && altNotesData) {
+            // Try to get author names
+            const authorIds = altNotesData
+              .map((n: any) => n.author_id)
+              .filter((id: string | null) => id) as string[];
+            
+            if (authorIds.length > 0) {
+              const { data: authorData } = await supabase
+                .from("profiles")
+                .select("id, full_name")
+                .in("id", authorIds);
+
+              const authorMap = new Map(
+                (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
+              );
+
+              const notesWithAuthors = altNotesData.map((n: any) => ({
+                ...n,
+                author_name: authorMap.get(n.author_id) || "RN",
+              }));
+              setNotes(notesWithAuthors);
+            } else {
+              setNotes(altNotesData);
+            }
+          }
+        } else {
+          console.error("Error loading RN notes:", notesError);
+        }
+      } else if (notesData) {
+        // Try to get author names if author_id is present
+        const authorIds = notesData
+          .map((n: any) => n.author_id)
+          .filter((id: string | null) => id) as string[];
+        
+        if (authorIds.length > 0) {
+          try {
+            const { data: authorData } = await supabase
+              .from("profiles")
+              .select("id, full_name")
+              .in("id", authorIds);
+
+            const authorMap = new Map(
+              (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
+            );
+
+            const notesWithAuthors = notesData.map((n: any) => ({
+              ...n,
+              author_name: authorMap.get(n.author_id) || "RN",
+            }));
+            setNotes(notesWithAuthors);
+          } catch (authorError) {
+            // If author lookup fails, just use notes without author names
+            setNotes(notesData);
+          }
+        } else {
+          setNotes(notesData);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading RN notes:", error);
+      // Don't crash - just show empty state
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  // Load data when role is confirmed
+  useEffect(() => {
+    if (userRole === "rn_supervisor") {
+      loadCheckins();
+      loadNotes();
+    }
   }, [userRole]);
+
+  // Refresh handler
+  const handleRefresh = () => {
+    loadCheckins();
+    loadNotes();
+  };
 
   // Route guard: if not rn_supervisor, show not authorized
   if (loading) {
@@ -208,8 +244,8 @@ export default function RNSupervisor() {
               </AlertDescription>
             </Alert>
             <div className="mt-4">
-              <Button onClick={() => navigate("/rn-console")} variant="outline">
-                Go to RN Portal
+              <Button onClick={() => navigate("/rn-login")} variant="outline">
+                Go to RN Login
               </Button>
             </div>
           </Card>
@@ -230,64 +266,102 @@ export default function RNSupervisor() {
                 Welcome, {supervisorName}
               </p>
             )}
+            {supervisorEmail && (
+              <p className="text-xs text-muted-foreground">
+                {supervisorEmail}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
-              Monitor case reviews and recently released cases.
+              Audit and oversight tools for RN supervisors.
             </p>
           </div>
         </Card>
 
-        {/* Review Queue Card */}
+        {/* Supervisor Tools Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Review Queue
+              Supervisor Tools
             </CardTitle>
             <CardDescription>
-              Cases requiring supervisor review
+              Quick access to RN portal and dashboard controls
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {queueLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading review queue...</div>
-            ) : reviewQueue.length === 0 ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => navigate("/rn-console")}
+                className="flex items-center gap-2"
+              >
+                Go to RN Console
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={checkinsLoading || notesLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${(checkinsLoading || notesLoading) ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent RN Check-ins Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Recent RN Check-ins
+            </CardTitle>
+            <CardDescription>
+              Last 10 client check-ins submitted by RNs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {checkinsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading check-ins...</div>
+            ) : checkins.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-                <p className="font-medium">All caught up!</p>
-                <p className="text-sm">No cases pending review at this time.</p>
+                <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-medium">No check-ins found</p>
+                <p className="text-sm">No recent check-ins are available at this time.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {reviewQueue.map((item) => (
+                {checkins.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-sm font-medium">
-                          {item.id.slice(0, 8)}...
-                        </span>
-                        {item.client_label && (
-                          <span className="text-sm text-muted-foreground">
-                            {item.client_label}
+                        {item.case_id && (
+                          <span className="font-mono text-sm font-medium">
+                            Case: {item.case_id.slice(0, 8)}...
                           </span>
                         )}
-                        <Badge variant="outline" className="text-xs">
-                          {item.case_status || "Unknown"}
-                        </Badge>
+                        {item.client_id && (
+                          <span className="text-sm text-muted-foreground">
+                            Client: {item.client_id.slice(0, 8)}...
+                          </span>
+                        )}
                       </div>
+                      {item.note && (
+                        <p className="text-sm text-foreground mt-1 line-clamp-2">
+                          {item.note}
+                        </p>
+                      )}
                       {item.created_at && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
                           <Clock className="h-3 w-3" />
-                          Created: {format(new Date(item.created_at), "MMM d, yyyy")}
+                          {format(new Date(item.created_at), "MMM d, yyyy 'at' h:mm a")}
                         </div>
                       )}
                     </div>
-                    <Button size="sm" variant="outline" className="ml-4">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -295,63 +369,59 @@ export default function RNSupervisor() {
           </CardContent>
         </Card>
 
-        {/* Recently Released Card */}
+        {/* Recent RN Notes Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Recently Released
+              <FileText className="h-5 w-5" />
+              Recent RN Notes
             </CardTitle>
             <CardDescription>
-              Cases released in the last 30 days
+              Last 10 clinical notes submitted by RNs
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {releasedLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading recently released cases...</div>
-            ) : recentlyReleased.length === 0 ? (
+            {notesLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading notes...</div>
+            ) : notes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-medium">No recent releases</p>
-                <p className="text-sm">No cases have been released recently.</p>
+                <p className="font-medium">No notes found</p>
+                <p className="text-sm">No recent RN notes are available at this time.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentlyReleased.map((item) => (
+                {notes.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-sm font-medium">
-                          {item.id.slice(0, 8)}...
-                        </span>
-                        {item.client_label && (
-                          <span className="text-sm text-muted-foreground">
-                            {item.client_label}
+                        {item.case_id && (
+                          <span className="font-mono text-sm font-medium">
+                            Case: {item.case_id.slice(0, 8)}...
                           </span>
                         )}
-                        <Badge
-                          variant={item.case_status === "closed" ? "destructive" : "default"}
-                          className="text-xs"
-                        >
-                          {item.case_status || "Unknown"}
-                        </Badge>
+                        {item.author_name && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            {item.author_name}
+                          </div>
+                        )}
                       </div>
-                      {item.updated_at && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {item.note_text && (
+                        <p className="text-sm text-foreground mt-1 line-clamp-3">
+                          {item.note_text}
+                        </p>
+                      )}
+                      {item.created_at && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
                           <Clock className="h-3 w-3" />
-                          {item.released_at
-                            ? `Released: ${format(new Date(item.released_at), "MMM d, yyyy")}`
-                            : `Updated: ${format(new Date(item.updated_at), "MMM d, yyyy")}`}
+                          {format(new Date(item.created_at), "MMM d, yyyy 'at' h:mm a")}
                         </div>
                       )}
                     </div>
-                    <Button size="sm" variant="outline" className="ml-4">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
                   </div>
                 ))}
               </div>
