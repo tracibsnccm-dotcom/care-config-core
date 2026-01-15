@@ -57,10 +57,10 @@ export function ConsentDocumentViewer({
         } else if (sessionId) {
           query += `&session_id=eq.${sessionId}`;
         } else if (caseId) {
-          // First get intake ID from case
+          // First get intake ID from case (get most recent intake)
           const { data: intakes } = await supabaseGet(
             'rc_client_intakes',
-            `select=id&case_id=eq.${caseId}&limit=1`
+            `select=id&case_id=eq.${caseId}&order=intake_submitted_at.desc&limit=1`
           );
           const intake = Array.isArray(intakes) ? intakes[0] : intakes;
           if (intake?.id) {
