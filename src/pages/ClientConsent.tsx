@@ -178,7 +178,7 @@ export default function ClientConsent() {
   const [showDeclineMessage, setShowDeclineMessage] = useState(false);
 
   // Attorney selection state
-  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, firm_name: string}[]>([]);
+  const [availableAttorneys, setAvailableAttorneys] = useState<{id: string, full_name: string, attorney_code: string | null}[]>([]);
   const [selectedAttorneyId, setSelectedAttorneyId] = useState<string>("");
   const [attorneyCode, setAttorneyCode] = useState<string>("");
 
@@ -189,8 +189,8 @@ export default function ClientConsent() {
     const loadAttorneys = async () => {
       console.log('ClientConsent: Loading attorneys...');
       const { data, error } = await supabaseGet(
-        'rc_attorneys',
-        'select=id,firm_name&is_active=eq.true&order=firm_name.asc'
+        'rc_users',
+        'select=id,full_name,attorney_code&role=eq.attorney&order=full_name.asc'
       );
       console.log('ClientConsent: Attorney load result', { data, error });
       if (!error && data) {
@@ -473,7 +473,7 @@ export default function ClientConsent() {
                         <SelectContent>
                           {availableAttorneys.map(attorney => (
                             <SelectItem key={attorney.id} value={attorney.id}>
-                              {attorney.firm_name}
+                              {attorney.full_name}{attorney.attorney_code ? ` (${attorney.attorney_code})` : ''}
                             </SelectItem>
                           ))}
                         </SelectContent>
