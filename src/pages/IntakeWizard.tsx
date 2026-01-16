@@ -529,23 +529,42 @@ export default function IntakeWizard() {
     let clientPhone = client.phone || "";
     let intakeIdFromSession: string | null = null; // The INT number from the session
     
+    console.log('IntakeWizard: intakeSessionId from sessionStorage:', intakeSessionId);
+    
     if (intakeSessionId) {
       try {
-        const { data: sessionData } = await supabaseGet(
+        const { data: sessionData, error: sessionError } = await supabaseGet(
           'rc_client_intake_sessions',
           `id=eq.${intakeSessionId}&select=first_name,last_name,email,intake_id&limit=1`
         );
+        
+        console.log('IntakeWizard: Session query result:', { data: sessionData, error: sessionError });
+        
         if (sessionData) {
           const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
           clientFirstName = session.first_name || "";
           clientLastName = session.last_name || "";
           clientEmail = session.email || "";
           intakeIdFromSession = session.intake_id || null; // Get the INT number from session
-          console.log('IntakeWizard: Retrieved intake_id from session:', intakeIdFromSession);
+          console.log('IntakeWizard: Got client info from session:', { clientFirstName, clientLastName, clientEmail, intakeIdFromSession });
         }
       } catch (e) {
         console.error("Error loading intake session:", e);
       }
+    }
+    
+    // FALLBACK: If we didn't get client info from database, try sessionStorage
+    if (!clientFirstName || !clientLastName || !clientEmail) {
+      console.log('IntakeWizard: Client info missing from database query, checking sessionStorage fallback');
+      const storedFirstName = sessionStorage.getItem("rcms_client_first_name");
+      const storedLastName = sessionStorage.getItem("rcms_client_last_name");
+      const storedEmail = sessionStorage.getItem("rcms_client_email");
+      
+      if (storedFirstName) clientFirstName = storedFirstName;
+      if (storedLastName) clientLastName = storedLastName;
+      if (storedEmail) clientEmail = storedEmail;
+      
+      console.log('IntakeWizard: After sessionStorage fallback:', { clientFirstName, clientLastName, clientEmail });
     }
 
     // Get date of injury from sessionStorage

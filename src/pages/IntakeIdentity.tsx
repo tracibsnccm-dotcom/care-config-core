@@ -121,6 +121,10 @@ export default function IntakeIdentity() {
       sessionStorage.setItem("rcms_current_attorney_id", session.attorneyId || "");
       sessionStorage.setItem("rcms_attorney_code", session.attorneyCode || "");
       sessionStorage.setItem("rcms_intake_created_at", session.createdAt);
+      // Store client info for fallback in IntakeWizard
+      sessionStorage.setItem("rcms_client_first_name", session.firstName || "");
+      sessionStorage.setItem("rcms_client_last_name", session.lastName || "");
+      sessionStorage.setItem("rcms_client_email", session.email || "");
       // Store date of injury for later use
       if (dateOfInjury) {
         sessionStorage.setItem("rcms_date_of_injury", dateOfInjury);
