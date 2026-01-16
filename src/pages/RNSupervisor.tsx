@@ -34,27 +34,15 @@ interface PendingCase {
     first_name: string | null;
     last_name: string | null;
   } | null;
-  rc_users?: {
-    full_name: string | null;
-    name?: string | null;
-    email: string | null;
-  } | null;
+  rc_users?: Record<string, any> | null;
 }
 
-interface AvailableRN {
+interface AvailableRN extends Record<string, any> {
   id: string;
-  full_name: string | null;
-  name?: string | null;
-  email: string | null;
-  is_active?: boolean | null;
 }
 
-interface SupervisorProfile {
+interface SupervisorProfile extends Record<string, any> {
   id: string;
-  full_name: string | null;
-  name?: string | null;
-  email: string | null;
-  role: string | null;
 }
 
 export default function RNSupervisor() {
@@ -83,48 +71,23 @@ export default function RNSupervisor() {
     try {
       setError(null);
 
-      // 1. Load supervisor profile with retry logic
-      let supervisor: SupervisorProfile | null = null;
-      let supervisorError: Error | null = null;
-      
-      // Try with full_name first
-      const { data: supervisorData, error: supervisorError1 } = await supabaseGet<SupervisorProfile[]>(
+      // 1. Load supervisor profile
+      const { data: supervisorData, error: supervisorError } = await supabaseGet<SupervisorProfile[]>(
         'rc_users',
-        `auth_user_id=eq.${authUser.id}&select=id,role,full_name,email&limit=1`
+        `auth_user_id=eq.${authUser.id}&select=*&limit=1`
       );
-
-      if (supervisorError1) {
-        const errorMsg = supervisorError1.message || '';
-        // Check if it's a column error (42703 = undefined column)
-        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column') || errorMsg.includes('full_name')) {
-          // Retry without full_name
-          const { data: supervisorData2, error: supervisorError2 } = await supabaseGet<SupervisorProfile[]>(
-            'rc_users',
-            `auth_user_id=eq.${authUser.id}&select=id,role,email&limit=1`
-          );
-          if (supervisorError2) {
-            supervisorError = supervisorError2;
-          } else {
-            const sup = Array.isArray(supervisorData2) ? supervisorData2[0] : supervisorData2;
-            supervisor = sup as SupervisorProfile;
-          }
-        } else {
-          supervisorError = supervisorError1;
-        }
-      } else {
-        supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
-      }
 
       if (supervisorError) {
         throw new Error(`Failed to load supervisor profile: ${supervisorError.message}`);
       }
 
+      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
       if (supervisor) {
-        const name = supervisor.full_name || supervisor.name || supervisor.email || supervisor.id.slice(0, 8) || "Supervisor";
+        const name = formatUserName(supervisor);
         setSupervisorName(name);
 
-        // Check role
-        const role = supervisor.role?.toLowerCase();
+        // Check role - try multiple possible role field names
+        const role = (supervisor.role || supervisor.user_role || supervisor.account_role || '')?.toLowerCase();
         if (role !== "rn_supervisor" && role !== "supervisor") {
           setError("Access denied. This dashboard is for RN Supervisors only.");
           setLoading(false);
@@ -192,24 +155,23 @@ export default function RNSupervisor() {
       const pending = cases.filter(c => !assignedCaseIds.has(c.id));
       setPendingCases(pending);
 
-      // 4. Load available RNs with retry logic
+      // 4. Load available RNs
       let rnsData: AvailableRN[] | null = null;
       let rnsError: Error | null = null;
       
-      // Try with full_name and is_active first
+      // Try with role filter first
       const { data: rnsData1, error: rnsError1 } = await supabaseGet<AvailableRN[]>(
         'rc_users',
-        'role=eq.rn&select=id,full_name,email,is_active'
+        'role=eq.rn&select=*'
       );
 
       if (rnsError1) {
         const errorMsg = rnsError1.message || '';
-        // Check if it's a column error
-        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column')) {
-          // Retry with minimal fields
+        // If role column doesn't exist, fallback to select all and filter in JS
+        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column') || errorMsg.includes('role')) {
           const { data: rnsData2, error: rnsError2 } = await supabaseGet<AvailableRN[]>(
             'rc_users',
-            'role=eq.rn&select=id,email'
+            'select=*'
           );
           if (rnsError2) {
             rnsError = rnsError2;
@@ -229,8 +191,13 @@ export default function RNSupervisor() {
         setAvailableRNs([]);
       } else {
         const rns = Array.isArray(rnsData) ? rnsData : (rnsData ? [rnsData] : []);
+        // Filter by role in JS if needed (if we got all users)
+        const rnRole = rnsError1 ? rns.filter((rn: any) => {
+          const role = (rn.role || rn.user_role || rn.account_role || '').toLowerCase();
+          return role === 'rn' || role === 'rn_cm';
+        }) : rns;
         // Filter by is_active if column exists, otherwise include all
-        const activeRNs = rns.filter(rn => rn.is_active !== false);
+        const activeRNs = rnRole.filter((rn: any) => rn.is_active !== false);
         setAvailableRNs(activeRNs);
       }
 
@@ -332,12 +299,25 @@ export default function RNSupervisor() {
     }
   };
 
-  // Format name helper for rc_users (full_name/name/email/id)
-  const formatUserName = (user: { full_name?: string | null; name?: string | null; email?: string | null; id?: string } | null | undefined): string => {
+  // Format name helper for rc_users - tries all possible name fields without requesting them
+  const formatUserName = (user: Record<string, any> | null | undefined): string => {
     if (!user) return "Unknown";
+    // Try all possible name fields in order of preference
     if (user.full_name) return user.full_name;
     if (user.name) return user.name;
+    if (user.display_name) return user.display_name;
+    if (user.username) return user.username;
+    if (user.user_name) return user.user_name;
+    // Try first_name + last_name if present
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`.trim();
+    }
+    if (user.first_name) return user.first_name;
+    if (user.last_name) return user.last_name;
+    // Try email fields
+    if (user.user_email) return user.user_email;
     if (user.email) return user.email;
+    // Fallback to short ID
     if (user.id) return user.id.slice(0, 8);
     return "Unknown";
   };
