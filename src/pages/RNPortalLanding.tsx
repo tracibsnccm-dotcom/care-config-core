@@ -126,13 +126,12 @@ export default function RNPortalLanding() {
         const data = await fetchRNMetrics();
         setMetricsData(data);
         
-        // Load RN name and ID
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        // Load RN name and ID using user from useAuth hook
+        if (authUser) {
           // Get RN user record from rc_users
           const { data: rnUserData, error: rnUserError } = await supabaseGet(
             'rc_users',
-            `auth_user_id=eq.${user.id}&select=id,full_name&limit=1`
+            `auth_user_id=eq.${authUser.id}&select=id,full_name&limit=1`
           );
 
           if (!rnUserError && rnUserData) {
@@ -148,7 +147,7 @@ export default function RNPortalLanding() {
           const { data: notes } = await supabase
             .from('rn_metric_notes')
             .select('metric_name')
-            .eq('rn_user_id', user.id);
+            .eq('rn_user_id', authUser.id);
           
           if (notes) {
             const uniqueMetrics = new Set(notes.map(n => n.metric_name));
@@ -162,8 +161,12 @@ export default function RNPortalLanding() {
       }
     };
     
-    loadData();
-  }, []);
+    if (authUser) {
+      loadData();
+    } else {
+      setMetricsLoading(false);
+    }
+  }, [authUser]);
 
 
   const handleMetricClick = (name: string, label: string, value: number, target: number) => {
@@ -175,18 +178,15 @@ export default function RNPortalLanding() {
     setNoteDialogOpen(open);
     
     // Refresh notes when dialog closes
-    if (!open) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: notes } = await supabase
-          .from('rn_metric_notes')
-          .select('metric_name')
-          .eq('rn_user_id', user.id);
-        
-        if (notes) {
-          const uniqueMetrics = new Set(notes.map(n => n.metric_name));
-          setMetricNotes(uniqueMetrics);
-        }
+    if (!open && authUser) {
+      const { data: notes } = await supabase
+        .from('rn_metric_notes')
+        .select('metric_name')
+        .eq('rn_user_id', authUser.id);
+      
+      if (notes) {
+        const uniqueMetrics = new Set(notes.map(n => n.metric_name));
+        setMetricNotes(uniqueMetrics);
       }
     }
   };
