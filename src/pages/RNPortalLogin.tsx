@@ -109,7 +109,8 @@ export default function RNPortalLogin() {
       // Step 3: Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
       // Note: Provider role is separate and NOT used for nurses
       const userRole = profileData.role.toLowerCase();
-      const isRN = userRole === "rn" || userRole === "rn_supervisor";
+      const allowedRoles = new Set(['rn', 'rn_supervisor']);
+      const isRN = allowedRoles.has(userRole);
       console.log('RNPortalLogin: Role check:', { userRole, isRN });
 
       if (!isRN) {

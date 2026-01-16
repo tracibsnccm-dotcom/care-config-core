@@ -86,13 +86,14 @@ export default function RNLogin() {
         // Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
         // Note: Provider role is separate and NOT used for nurses
         const userRole = profileData.role.toLowerCase();
-        const isRN = userRole === "rn" || userRole === "rn_supervisor";
+        const allowedRoles = new Set(['rn', 'rn_supervisor']);
+        const isRN = allowedRoles.has(userRole);
         console.log('RNLogin: Is RN?', isRN);
         if (!isRN) {
           console.error("RNLogin: User role is not RN:", userRole);
           // Sign out the user since they're not an RN
           await supabase.auth.signOut();
-          throw new Error("This login is for RN users only");
+          throw new Error("This portal is for RN staff only. Please contact support if you need access.");
         }
 
         // Route based on role
