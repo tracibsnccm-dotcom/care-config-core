@@ -8,7 +8,7 @@ export default function RNPortalLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -29,30 +29,44 @@ export default function RNPortalLogin() {
     setMounted(true);
   }, []);
 
+  // Timeout wrapper for async operations
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      )
+    ]);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     console.log('RNPortalLogin: ========== Login attempt started ==========');
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-
+    
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
     if (!trimmedEmail || !trimmedPassword) {
       console.log('RNPortalLogin: Validation failed - missing email or password');
       setError("Please enter both email and password");
-      setLoading(false);
       return;
     }
 
+    setSubmitting(true);
+    setError(null);
+    setSuccess(false);
+
     try {
-      // Step 1: Sign in with email and password
+      // Step 1: Sign in with email and password (with timeout)
       console.log('RNPortalLogin: Calling signInWithPassword with email:', trimmedEmail);
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
+      const { data: authData, error: authError } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password: trimmedPassword,
+        }),
+        12000,
+        "Login timed out. Please try again."
+      );
 
       console.log('RNPortalLogin: signInWithPassword result:', {
         hasData: !!authData,
@@ -65,77 +79,91 @@ export default function RNPortalLogin() {
       if (authError) {
         console.error('RNPortalLogin: signInWithPassword error:', authError);
         setError(authError.message || "Invalid email or password. Please try again.");
-        setLoading(false);
         return;
       }
 
       if (!authData || !authData.user) {
         console.error('RNPortalLogin: No user returned from signInWithPassword');
         setError("Login failed: No user returned. Please try again.");
-        setLoading(false);
         return;
       }
 
-      // Step 2: Check the user's profile and role in profiles table
-      console.log('RNPortalLogin: Checking profiles for role, id:', authData.user.id);
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", authData.user.id)
-        .maybeSingle();
+      // Step 2: Get user from auth (use getUser() as specified)
+      console.log('RNPortalLogin: Calling getUser() for user ID:', authData.user.id);
+      const { data: userData, error: getUserError } = await withTimeout(
+        supabase.auth.getUser(),
+        12000,
+        "Login timed out. Please try again."
+      );
 
-      console.log('RNPortalLogin: profiles query result:', {
-        hasData: !!profileData,
-        role: profileData?.role,
-        error: profileError
+      if (getUserError || !userData?.user) {
+        console.error('RNPortalLogin: getUser() error:', getUserError);
+        setError("Failed to verify user session. Please try again.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      const userId = userData.user.id;
+      console.log('RNPortalLogin: Using user ID from getUser():', userId);
+
+      // Step 3: Fetch rc_users by auth_user_id (with timeout)
+      console.log('RNPortalLogin: Checking rc_users for role, auth_user_id:', userId);
+      const { data: rcUserData, error: rcUserError } = await withTimeout(
+        supabase
+          .from("rc_users")
+          .select("role,full_name")
+          .eq("auth_user_id", userId)
+          .maybeSingle(),
+        12000,
+        "Login timed out. Please try again."
+      );
+
+      console.log('RNPortalLogin: rc_users query result:', {
+        hasData: !!rcUserData,
+        role: rcUserData?.role,
+        error: rcUserError
       });
 
-      if (profileError) {
-        console.error('RNPortalLogin: profiles query error:', profileError);
-        setError(`Failed to verify user profile: ${profileError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      if (!profileData || !profileData.role) {
-        console.error('RNPortalLogin: No profile or role found for user');
-        // Sign out the user since they don't have a profile/role
+      if (rcUserError) {
+        console.error('RNPortalLogin: rc_users query error:', rcUserError);
+        setError(`Failed to verify staff profile: ${rcUserError.message}`);
         await supabase.auth.signOut();
-        setError("User account not found. Please contact your administrator.");
-        setLoading(false);
         return;
       }
 
-      // Step 3: Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
-      // Note: Provider role is separate and NOT used for nurses
-      const userRole = profileData.role.toLowerCase();
+      if (!rcUserData || !rcUserData.role) {
+        console.error('RNPortalLogin: No staff profile found for user');
+        await supabase.auth.signOut();
+        setError("No staff profile found. Please contact your administrator.");
+        return;
+      }
+
+      // Step 4: Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
+      const userRole = rcUserData.role.toLowerCase();
       const allowedRoles = new Set(['rn', 'rn_supervisor']);
       const isRN = allowedRoles.has(userRole);
       console.log('RNPortalLogin: Role check:', { userRole, isRN });
 
       if (!isRN) {
         console.error('RNPortalLogin: User is not an RN, role:', userRole);
-        // Sign out the user since they're not an RN
         await supabase.auth.signOut();
         setError("This portal is for RN staff only. Please contact support if you need access.");
-        setLoading(false);
         return;
       }
 
-      // Step 4: Route based on role
+      // Step 5: Route based on role
       let redirectPath = '/rn-console'; // Default for 'rn' role
       if (userRole === "rn_supervisor") {
         redirectPath = '/rn-supervisor';
       }
 
-      // Step 5: Success! Immediately redirect - don't wait for anything else
+      // Step 6: Success! Set success state and redirect
       console.log('RNPortalLogin: ========== Login successful! RN role confirmed. Redirecting immediately ==========');
-      console.log('RNPortalLogin: User ID:', authData.user.id);
-      console.log('RNPortalLogin: Role:', profileData.role);
+      console.log('RNPortalLogin: User ID:', userId);
+      console.log('RNPortalLogin: Role:', rcUserData.role);
       console.log('RNPortalLogin: Redirecting to:', redirectPath);
       
       setSuccess(true);
-      setLoading(false);
       
       // Immediate redirect - background processes can handle themselves
       window.location.href = redirectPath;
@@ -143,8 +171,18 @@ export default function RNPortalLogin() {
     } catch (err: any) {
       console.error("RNPortalLogin: Unexpected error caught:", err);
       console.error("RNPortalLogin: Error stack:", err?.stack);
-      setError(err?.message || "An unexpected error occurred. Please try again.");
-      setLoading(false);
+      const errorMessage = err?.message || "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+      // Sign out on any error to ensure clean state
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutErr) {
+        console.error("RNPortalLogin: Error signing out:", signOutErr);
+      }
+    } finally {
+      // ALWAYS clear submitting state - this ensures spinner never hangs
+      console.log('RNPortalLogin: Setting submitting to false');
+      setSubmitting(false);
       setSuccess(false);
     }
   }
@@ -335,7 +373,7 @@ export default function RNPortalLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@example.com"
-                  disabled={loading || success}
+                  disabled={submitting || success}
                 />
               </div>
             </div>
@@ -358,13 +396,13 @@ export default function RNPortalLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  disabled={loading || success}
+                  disabled={submitting || success}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={loading || success}
+                  disabled={submitting || success}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -388,26 +426,26 @@ export default function RNPortalLogin() {
             {/* Sign In Button */}
             <Button
               type="submit"
-              disabled={loading || success}
+              disabled={submitting || success}
               className="w-full py-6 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden text-white border-0"
               style={{
-                background: loading || success ? colors.softPink : buttonGradient,
+                background: submitting || success ? colors.softPink : buttonGradient,
                 boxShadow: '0 4px 15px rgba(232, 121, 249, 0.4)',
               }}
               onMouseEnter={(e) => {
-                if (!loading && !success) {
+                if (!submitting && !success) {
                   e.currentTarget.style.background = buttonGradientHover;
                   e.currentTarget.style.boxShadow = '0 6px 20px rgba(232, 121, 249, 0.5)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!loading && !success) {
+                if (!submitting && !success) {
                   e.currentTarget.style.background = buttonGradient;
                   e.currentTarget.style.boxShadow = '0 4px 15px rgba(232, 121, 249, 0.4)';
                 }
               }}
             >
-              {loading ? (
+              {submitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">⏳</span>
                   Signing you in...
@@ -428,7 +466,7 @@ export default function RNPortalLogin() {
                 type="button"
                 className="text-sm hover:underline transition-colors font-medium"
                 style={{ color: colors.softPink }}
-                disabled={loading || success}
+                disabled={submitting || success}
               >
                 Forgot Password?
               </button>
