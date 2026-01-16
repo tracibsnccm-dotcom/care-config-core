@@ -244,6 +244,7 @@ export default function RNSupervisor() {
 
   // Load on mount and when user changes
   useEffect(() => {
+    console.log("RNSupervisor.tsx mounted - build 1de1a5e", new Date().toISOString());
     loadAll();
   }, [authUser?.id]);
 
@@ -390,6 +391,22 @@ export default function RNSupervisor() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary py-8 px-4">
+      {/* Build marker badge */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        backgroundColor: 'black',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        zIndex: 99999,
+        fontFamily: 'monospace'
+      }}>
+        RN SUPERVISOR BUILD: 1de1a5e
+      </div>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <Card className="p-6 md:p-8">
