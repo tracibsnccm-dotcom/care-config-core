@@ -156,7 +156,7 @@ export default function RNSupervisor() {
     };
 
     initialize();
-  }, []); // Run once on mount
+  }, [user]); // Re-run when user becomes available
 
   // Load recent check-ins
   const loadCheckins = async () => {
