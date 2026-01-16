@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabaseGet, supabaseInsert, supabaseUpdate } from "@/lib/supabaseRest";
 import { useAuth } from "@/auth/supabaseAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertCircle, Users, CheckCircle2, User } from "lucide-react";
 import {
@@ -108,6 +109,21 @@ export default function RNSupervisor() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [selectedRNId, setSelectedRNId] = useState<string>("");
+
+  // Session Debug State
+  const [sessionDebug, setSessionDebug] = useState<{
+    supabaseUser: { id: string | null; email: string | null } | null;
+    hasSession: boolean;
+    supabaseUrl: string;
+    sessionError: string | null;
+    getUserError: string | null;
+  }>({
+    supabaseUser: null,
+    hasSession: false,
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL || "NOT SET",
+    sessionError: null,
+    getUserError: null,
+  });
   const [assigning, setAssigning] = useState(false);
 
   // Load all data
@@ -279,6 +295,50 @@ export default function RNSupervisor() {
       setLoading(false);
     }
   };
+
+  // Load session debug info
+  useEffect(() => {
+    const loadSessionDebug = async () => {
+      try {
+        // Get session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const hasSession = !!sessionData?.session;
+
+        // Get user
+        let supabaseUser: { id: string | null; email: string | null } | null = null;
+        let getUserError: string | null = null;
+        
+        try {
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) {
+            getUserError = userError.message;
+          } else {
+            supabaseUser = {
+              id: userData?.user?.id || null,
+              email: userData?.user?.email || null,
+            };
+          }
+        } catch (err: any) {
+          getUserError = err.message || "Unknown error";
+        }
+
+        setSessionDebug({
+          supabaseUser,
+          hasSession,
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL || "NOT SET",
+          sessionError: sessionError?.message || null,
+          getUserError,
+        });
+      } catch (err: any) {
+        setSessionDebug((prev) => ({
+          ...prev,
+          sessionError: err.message || "Unknown error",
+        }));
+      }
+    };
+
+    void loadSessionDebug();
+  }, [authUser?.id]); // Re-run when auth user changes
 
   // Load on mount and when user changes
   useEffect(() => {
@@ -464,6 +524,59 @@ export default function RNSupervisor() {
         RN SUPERVISOR BUILD: 1de1a5e
       </div>
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Session Debug Panel */}
+        <Card className="p-4 border-yellow-500 border-2 bg-yellow-50 dark:bg-yellow-950">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Session Debug</CardTitle>
+            <CardDescription className="text-xs">
+              Debug information for auth session investigation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <div className="font-semibold mb-1">useAuth user:</div>
+                <div className="font-mono text-xs space-y-1">
+                  <div>ID: {authUser?.id || "(null)"}</div>
+                  <div>Email: {authUser?.email || "(null)"}</div>
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">supabase.auth.getUser():</div>
+                <div className="font-mono text-xs space-y-1">
+                  <div>ID: {sessionDebug.supabaseUser?.id || "(null)"}</div>
+                  <div>Email: {sessionDebug.supabaseUser?.email || "(null)"}</div>
+                  {sessionDebug.getUserError && (
+                    <div className="text-red-600">Error: {sessionDebug.getUserError}</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">supabase.auth.getSession():</div>
+                <div className="font-mono text-xs">
+                  hasSession: {sessionDebug.hasSession ? "true" : "false"}
+                  {sessionDebug.sessionError && (
+                    <div className="text-red-600 mt-1">Error: {sessionDebug.sessionError}</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">VITE_SUPABASE_URL:</div>
+                <div className="font-mono text-xs break-all">{sessionDebug.supabaseUrl}</div>
+              </div>
+            </div>
+            {authUser?.id && sessionDebug.supabaseUser?.id && authUser.id !== sessionDebug.supabaseUser.id && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="text-xs">⚠️ User ID Mismatch</AlertTitle>
+                <AlertDescription className="text-xs">
+                  useAuth user ID ({authUser.id.slice(0, 8)}...) differs from supabase.auth.getUser() ID ({sessionDebug.supabaseUser.id.slice(0, 8)}...)
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Header */}
         <Card className="p-6 md:p-8">
           <div className="space-y-2">
