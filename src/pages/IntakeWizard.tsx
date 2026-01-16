@@ -427,6 +427,9 @@ export default function IntakeWizard() {
 
     const masked = maskName(client.fullName || "");
     
+    // Get intake_session_id from sessionStorage - declare at function scope for use throughout
+    const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+    
     // Get intake_id from sessionStorage - it was stored during IntakeIdentity
     // The intake_id is the INT number (e.g., INT-260115-02V) and MUST be used as the case_number
     let caseNumber: string | null = sessionStorage.getItem("rcms_intake_id");
@@ -435,7 +438,6 @@ export default function IntakeWizard() {
       console.log('IntakeWizard: Using intake_id from sessionStorage as case_number:', caseNumber);
     } else {
       // Fallback: try to get from database if sessionStorage is empty
-      const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
       if (intakeSessionId) {
         try {
           const { data: sessionData } = await supabaseGet(
@@ -520,7 +522,7 @@ export default function IntakeWizard() {
     console.log('IntakeWizard handleSubmit: Resolved attorneyId', attorneyId);
 
     // Get client information from intake session or sessionStorage
-    // Reuse intakeSessionId that was already declared above for case number lookup
+    // intakeSessionId is now declared at function scope above, so it's available here
     let clientFirstName = "";
     let clientLastName = "";
     let clientEmail = "";
