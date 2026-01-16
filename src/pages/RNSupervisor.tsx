@@ -192,11 +192,36 @@ export default function RNSupervisor() {
       const pending = cases.filter(c => !assignedCaseIds.has(c.id));
       setPendingCases(pending);
 
-      // 4. Load available RNs
-      const { data: rnsData, error: rnsError } = await supabaseGet<AvailableRN[]>(
+      // 4. Load available RNs with retry logic
+      let rnsData: AvailableRN[] | null = null;
+      let rnsError: Error | null = null;
+      
+      // Try with full_name and is_active first
+      const { data: rnsData1, error: rnsError1 } = await supabaseGet<AvailableRN[]>(
         'rc_users',
-        'role=eq.rn&select=id,first_name,last_name,full_name,is_active'
+        'role=eq.rn&select=id,full_name,email,is_active'
       );
+
+      if (rnsError1) {
+        const errorMsg = rnsError1.message || '';
+        // Check if it's a column error
+        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column')) {
+          // Retry with minimal fields
+          const { data: rnsData2, error: rnsError2 } = await supabaseGet<AvailableRN[]>(
+            'rc_users',
+            'role=eq.rn&select=id,email'
+          );
+          if (rnsError2) {
+            rnsError = rnsError2;
+          } else {
+            rnsData = rnsData2;
+          }
+        } else {
+          rnsError = rnsError1;
+        }
+      } else {
+        rnsData = rnsData1;
+      }
 
       if (rnsError) {
         console.warn("Failed to load RNs:", rnsError);
@@ -416,16 +441,11 @@ export default function RNSupervisor() {
                     </thead>
                     <tbody>
                       {pendingCases.map((caseItem) => {
-                        const clientName = formatName(
+                        const clientName = formatClientName(
                           caseItem.rc_clients?.first_name || null,
-                          caseItem.rc_clients?.last_name || null,
-                          null
+                          caseItem.rc_clients?.last_name || null
                         );
-                        const attorneyName = formatName(
-                          caseItem.rc_users?.first_name || null,
-                          caseItem.rc_users?.last_name || null,
-                          caseItem.rc_users?.full_name || null
-                        );
+                        const attorneyName = formatUserName(caseItem.rc_users);
                         const caseNumber = caseItem.case_number || caseItem.id.slice(0, 8);
 
                         return (
