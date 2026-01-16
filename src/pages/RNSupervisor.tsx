@@ -35,25 +35,25 @@ interface PendingCase {
     last_name: string | null;
   } | null;
   rc_users?: {
-    first_name: string | null;
-    last_name: string | null;
     full_name: string | null;
+    name?: string | null;
+    email: string | null;
   } | null;
 }
 
 interface AvailableRN {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
   full_name: string | null;
+  name?: string | null;
+  email: string | null;
   is_active?: boolean | null;
 }
 
 interface SupervisorProfile {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
   full_name: string | null;
+  name?: string | null;
+  email: string | null;
   role: string | null;
 }
 
@@ -83,22 +83,44 @@ export default function RNSupervisor() {
     try {
       setError(null);
 
-      // 1. Load supervisor profile
-      const { data: supervisorData, error: supervisorError } = await supabaseGet<SupervisorProfile[]>(
+      // 1. Load supervisor profile with retry logic
+      let supervisor: SupervisorProfile | null = null;
+      let supervisorError: Error | null = null;
+      
+      // Try with full_name first
+      const { data: supervisorData, error: supervisorError1 } = await supabaseGet<SupervisorProfile[]>(
         'rc_users',
-        `auth_user_id=eq.${authUser.id}&select=id,first_name,last_name,full_name,role&limit=1`
+        `auth_user_id=eq.${authUser.id}&select=id,role,full_name,email&limit=1`
       );
+
+      if (supervisorError1) {
+        const errorMsg = supervisorError1.message || '';
+        // Check if it's a column error (42703 = undefined column)
+        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column') || errorMsg.includes('full_name')) {
+          // Retry without full_name
+          const { data: supervisorData2, error: supervisorError2 } = await supabaseGet<SupervisorProfile[]>(
+            'rc_users',
+            `auth_user_id=eq.${authUser.id}&select=id,role,email&limit=1`
+          );
+          if (supervisorError2) {
+            supervisorError = supervisorError2;
+          } else {
+            const sup = Array.isArray(supervisorData2) ? supervisorData2[0] : supervisorData2;
+            supervisor = sup as SupervisorProfile;
+          }
+        } else {
+          supervisorError = supervisorError1;
+        }
+      } else {
+        supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
+      }
 
       if (supervisorError) {
         throw new Error(`Failed to load supervisor profile: ${supervisorError.message}`);
       }
 
-      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
       if (supervisor) {
-        const name = supervisor.full_name || 
-          (supervisor.first_name && supervisor.last_name 
-            ? `${supervisor.first_name} ${supervisor.last_name}`.trim()
-            : supervisor.first_name || supervisor.last_name || "Supervisor");
+        const name = supervisor.full_name || supervisor.name || supervisor.email || supervisor.id.slice(0, 8) || "Supervisor";
         setSupervisorName(name);
 
         // Check role
@@ -114,11 +136,36 @@ export default function RNSupervisor() {
         return;
       }
 
-      // 2. Load pending cases (attorney_confirmed)
-      const { data: casesData, error: casesError } = await supabaseGet<PendingCase[]>(
+      // 2. Load pending cases (attorney_confirmed) with retry logic
+      let casesData: PendingCase[] | null = null;
+      let casesError: Error | null = null;
+      
+      // Try with full_name first
+      const { data: casesData1, error: casesError1 } = await supabaseGet<PendingCase[]>(
         'rc_cases',
-        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(first_name,last_name,full_name)'
+        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(full_name,email)'
       );
+
+      if (casesError1) {
+        const errorMsg = casesError1.message || '';
+        // Check if it's a column error
+        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column') || errorMsg.includes('full_name')) {
+          // Retry without full_name
+          const { data: casesData2, error: casesError2 } = await supabaseGet<PendingCase[]>(
+            'rc_cases',
+            'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(email)'
+          );
+          if (casesError2) {
+            casesError = casesError2;
+          } else {
+            casesData = casesData2;
+          }
+        } else {
+          casesError = casesError1;
+        }
+      } else {
+        casesData = casesData1;
+      }
 
       if (casesError) {
         throw new Error(`Failed to load cases: ${casesError.message}`);
@@ -259,9 +306,18 @@ export default function RNSupervisor() {
     }
   };
 
-  // Format name helper
-  const formatName = (first: string | null, last: string | null, full: string | null): string => {
-    if (full) return full;
+  // Format name helper for rc_users (full_name/name/email/id)
+  const formatUserName = (user: { full_name?: string | null; name?: string | null; email?: string | null; id?: string } | null | undefined): string => {
+    if (!user) return "Unknown";
+    if (user.full_name) return user.full_name;
+    if (user.name) return user.name;
+    if (user.email) return user.email;
+    if (user.id) return user.id.slice(0, 8);
+    return "Unknown";
+  };
+
+  // Format name helper for rc_clients (first_name/last_name)
+  const formatClientName = (first: string | null, last: string | null): string => {
     if (first && last) return `${first} ${last}`.trim();
     return first || last || "Unknown";
   };
@@ -427,7 +483,7 @@ export default function RNSupervisor() {
                   </SelectTrigger>
                   <SelectContent>
                     {availableRNs.map((rn) => {
-                      const rnName = formatName(rn.first_name, rn.last_name, rn.full_name);
+                      const rnName = formatUserName(rn);
                       return (
                         <SelectItem key={rn.id} value={rn.id}>
                           {rnName}
