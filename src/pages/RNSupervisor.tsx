@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet, supabaseInsert, supabaseUpdate } from "@/lib/supabaseRest";
 import { useAuth } from "@/auth/supabaseAuth";
 import { format } from "date-fns";
-import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User, Users, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Users, CheckCircle2, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,432 +24,156 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-interface CheckinItem {
-  id: string;
-  case_id: string | null;
-  client_id: string | null;
-  created_at: string;
-  note?: string | null;
-}
-
-interface RNNoteItem {
-  id: string;
-  case_id: string | null;
-  created_at: string;
-  note_text?: string | null;
-  author_id?: string | null;
-  author_name?: string | null;
-}
-
 interface PendingCase {
   id: string;
   case_number: string | null;
   case_type: string | null;
   date_of_injury: string | null;
-  attorney_id: string | null;
+  attorney_attested_at: string | null;
   rc_clients?: {
     first_name: string | null;
     last_name: string | null;
   } | null;
   rc_users?: {
+    first_name: string | null;
+    last_name: string | null;
     full_name: string | null;
   } | null;
 }
 
 interface AvailableRN {
   id: string;
+  first_name: string | null;
+  last_name: string | null;
   full_name: string | null;
+  is_active?: boolean | null;
+}
+
+interface SupervisorProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  role: string | null;
 }
 
 export default function RNSupervisor() {
-  console.log("RNSupervisor: start");
-  
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [supervisorEmail, setSupervisorEmail] = useState<string>("");
+  const { user: authUser } = useAuth();
+
+  // State
   const [supervisorName, setSupervisorName] = useState<string>("");
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [checkins, setCheckins] = useState<CheckinItem[]>([]);
-  const [notes, setNotes] = useState<RNNoteItem[]>([]);
-  const [checkinsLoading, setCheckinsLoading] = useState(false);
-  const [notesLoading, setNotesLoading] = useState(false);
   const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
   const [availableRNs, setAvailableRNs] = useState<AvailableRN[]>([]);
-  const [pendingCasesLoading, setPendingCasesLoading] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [selectedRNId, setSelectedRNId] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
-  const initializedRef = useRef(false);
 
-  // Initialize: get user directly and check role
-  useEffect(() => {
-    const initialize = async () => {
-      if (initializedRef.current) return;
-      if (!user) return; // Wait for user to be available
-      
-      try {
-        // Check if user is available from useAuth hook
-        if (!user) {
-          console.error("RNSupervisor: No user found - not logged in");
-          setError("Not logged in. Please sign in to access the supervisor dashboard.");
+  // Load all data
+  const loadAll = async () => {
+    if (!authUser?.id) {
+      setError("Not logged in. Please sign in to access the supervisor dashboard.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+
+      // 1. Load supervisor profile
+      const { data: supervisorData, error: supervisorError } = await supabaseGet<SupervisorProfile[]>(
+        'rc_users',
+        `auth_user_id=eq.${authUser.id}&select=id,first_name,last_name,full_name,role&limit=1`
+      );
+
+      if (supervisorError) {
+        throw new Error(`Failed to load supervisor profile: ${supervisorError.message}`);
+      }
+
+      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
+      if (supervisor) {
+        const name = supervisor.full_name || 
+          (supervisor.first_name && supervisor.last_name 
+            ? `${supervisor.first_name} ${supervisor.last_name}`.trim()
+            : supervisor.first_name || supervisor.last_name || "Supervisor");
+        setSupervisorName(name);
+
+        // Check role
+        const role = supervisor.role?.toLowerCase();
+        if (role !== "rn_supervisor" && role !== "supervisor") {
+          setError("Access denied. This dashboard is for RN Supervisors only.");
           setLoading(false);
           return;
         }
-
-        console.log("RNSupervisor: user loaded from useAuth", { userId: user.id, email: user.email });
-
-        // Fetch supervisor info from rc_users
-        console.log("RNSupervisor: fetching supervisor info from rc_users for user", user.id);
-        const { data: supervisorData, error: supervisorError } = await supabaseGet(
-          'rc_users',
-          `auth_user_id=eq.${user.id}&select=id,role,full_name&limit=1`
-        );
-
-        if (supervisorError) {
-          console.error("RNSupervisor: Error fetching supervisor info:", supervisorError);
-          setError(`Failed to load supervisor info: ${supervisorError.message}`);
-          return;
-        }
-
-        if (supervisorData) {
-          const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
-          if (supervisor) {
-            const role = supervisor.role?.toLowerCase() || null;
-            console.log("RNSupervisor: supervisor info loaded", { role, fullName: supervisor.full_name });
-            
-            setUserRole(role);
-            setSupervisorName(supervisor.full_name || "");
-            setSupervisorEmail(user.email || "");
-
-            // Role guard: if not rn_supervisor, stop loading immediately
-            if (role !== "rn_supervisor" && role !== "supervisor") {
-              console.log("RNSupervisor: role is not rn_supervisor/supervisor, stopping");
-              return;
-            }
-          } else {
-            // No supervisor record found
-            console.warn("RNSupervisor: No supervisor record found for user");
-            setError("Supervisor record not found. Please contact your administrator.");
-            return;
-          }
-        } else {
-          // No supervisor record found
-          console.warn("RNSupervisor: No supervisor record found for user");
-          setError("Supervisor record not found. Please contact your administrator.");
-          return;
-        }
-
-        // If we get here, user is authorized
-      } catch (error: any) {
-        console.error("RNSupervisor: Error in initialization:", error);
-        setError(`Error loading dashboard: ${error?.message || "Unknown error"}`);
-      } finally {
-        // Always set loading to false and mark as initialized
-        console.log("RNSupervisor: initialization complete, setting loading = false");
+      } else {
+        setError("Supervisor profile not found. Please contact your administrator.");
         setLoading(false);
-        initializedRef.current = true;
-      }
-    };
-
-    initialize();
-  }, [user]); // Re-run when user becomes available
-
-  // Load recent check-ins
-  const loadCheckins = async () => {
-    if (userRole !== "rn_supervisor") return;
-
-    setCheckinsLoading(true);
-    try {
-      console.log("RNSupervisor: loading checkins...");
-      
-      // Try rc_client_checkins first
-      const { data: checkinsData, error: checkinsError } = await supabase
-        .from("rc_client_checkins")
-        .select("id, case_id, client_id, created_at, note")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (checkinsError) {
-        // If rc_client_checkins doesn't exist, try client_checkins
-        if (checkinsError.code === "PGRST116" || checkinsError.message.includes("does not exist")) {
-          const { data: altCheckinsData, error: altError } = await supabase
-            .from("client_checkins")
-            .select("id, case_id, client_id, created_at, note")
-            .order("created_at", { ascending: false })
-            .limit(10);
-
-          if (!altError && altCheckinsData) {
-            setCheckins(altCheckinsData);
-            console.log("RNSupervisor: checkins loaded", altCheckinsData.length);
-          } else {
-            console.log("RNSupervisor: checkins loaded", 0, "(table not accessible)");
-          }
-        } else {
-          console.error("RNSupervisor: Error loading check-ins:", checkinsError);
-          // Don't set error - just show empty state
-        }
-      } else if (checkinsData) {
-        setCheckins(checkinsData);
-        console.log("RNSupervisor: checkins loaded", checkinsData.length);
-      } else {
-        console.log("RNSupervisor: checkins loaded", 0);
-      }
-    } catch (error: any) {
-      console.error("RNSupervisor: Error loading check-ins:", error);
-      // Don't crash - just show empty state
-    } finally {
-      setCheckinsLoading(false);
-    }
-  };
-
-  // Load recent RN notes
-  const loadNotes = async () => {
-    if (userRole !== "rn_supervisor") return;
-
-    setNotesLoading(true);
-    try {
-      console.log("RNSupervisor: loading notes...");
-      
-      // Try rc_rn_notes first
-      const { data: notesData, error: notesError } = await supabase
-        .from("rc_rn_notes")
-        .select("id, case_id, created_at, note_text, author_id")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (notesError) {
-        // If rc_rn_notes doesn't exist, try alternative table names
-        if (notesError.code === "PGRST116" || notesError.message.includes("does not exist")) {
-          // Try rn_notes as fallback
-          const { data: altNotesData, error: altError } = await supabase
-            .from("rn_notes")
-            .select("id, case_id, created_at, note_text, author_id")
-            .order("created_at", { ascending: false })
-            .limit(10);
-
-          if (!altError && altNotesData) {
-            // Try to get author names
-            const authorIds = altNotesData
-              .map((n: any) => n.author_id)
-              .filter((id: string | null) => id) as string[];
-            
-            if (authorIds.length > 0) {
-              try {
-                const { data: authorData } = await supabase
-                  .from("profiles")
-                  .select("id, full_name")
-                  .in("id", authorIds);
-
-                const authorMap = new Map(
-                  (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
-                );
-
-                const notesWithAuthors = altNotesData.map((n: any) => ({
-                  ...n,
-                  author_name: authorMap.get(n.author_id) || "RN",
-                }));
-                setNotes(notesWithAuthors);
-                console.log("RNSupervisor: notes loaded", notesWithAuthors.length);
-              } catch (authorError) {
-                setNotes(altNotesData);
-                console.log("RNSupervisor: notes loaded", altNotesData.length, "(without author names)");
-              }
-            } else {
-              setNotes(altNotesData);
-              console.log("RNSupervisor: notes loaded", altNotesData.length);
-            }
-          } else {
-            console.log("RNSupervisor: notes loaded", 0, "(table not accessible)");
-          }
-        } else {
-          console.error("RNSupervisor: Error loading RN notes:", notesError);
-          // Don't set error - just show empty state
-        }
-      } else if (notesData) {
-        // Try to get author names if author_id is present
-        const authorIds = notesData
-          .map((n: any) => n.author_id)
-          .filter((id: string | null) => id) as string[];
-        
-        if (authorIds.length > 0) {
-          try {
-            const { data: authorData } = await supabase
-              .from("profiles")
-              .select("id, full_name")
-              .in("id", authorIds);
-
-            const authorMap = new Map(
-              (authorData || []).map((a: any) => [a.id, a.full_name || "RN"])
-            );
-
-            const notesWithAuthors = notesData.map((n: any) => ({
-              ...n,
-              author_name: authorMap.get(n.author_id) || "RN",
-            }));
-            setNotes(notesWithAuthors);
-            console.log("RNSupervisor: notes loaded", notesWithAuthors.length);
-          } catch (authorError) {
-            // If author lookup fails, just use notes without author names
-            setNotes(notesData);
-            console.log("RNSupervisor: notes loaded", notesData.length, "(without author names)");
-          }
-        } else {
-          setNotes(notesData);
-          console.log("RNSupervisor: notes loaded", notesData.length);
-        }
-      } else {
-        console.log("RNSupervisor: notes loaded", 0);
-      }
-    } catch (error: any) {
-      console.error("RNSupervisor: Error loading RN notes:", error);
-      // Don't crash - just show empty state
-    } finally {
-      setNotesLoading(false);
-    }
-  };
-
-  // Load pending cases
-  const loadPendingCases = async () => {
-    if (userRole !== "rn_supervisor") return;
-
-    setPendingCasesLoading(true);
-    try {
-      console.log("RNSupervisor: loading pending cases...");
-      
-      // Get cases that are attorney_confirmed
-      const { data: casesData, error: casesError } = await supabaseGet(
-        'rc_cases',
-        'case_status=eq.attorney_confirmed&select=id,case_number,case_type,date_of_injury,attorney_id,client_id'
-      );
-
-      if (casesError) {
-        console.error("RNSupervisor: Error loading cases:", casesError);
         return;
       }
 
-      // Get existing assignments to filter out already assigned cases
-      const { data: assignmentsData, error: assignmentsError } = await supabaseGet(
+      // 2. Load pending cases (attorney_confirmed)
+      const { data: casesData, error: casesError } = await supabaseGet<PendingCase[]>(
+        'rc_cases',
+        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(first_name,last_name,full_name)'
+      );
+
+      if (casesError) {
+        throw new Error(`Failed to load cases: ${casesError.message}`);
+      }
+
+      // 3. Load existing assignments
+      const { data: assignmentsData, error: assignmentsError } = await supabaseGet<{ case_id: string }[]>(
         'rc_case_assignments',
         'status=in.(pending_acceptance,active)&select=case_id'
       );
 
       if (assignmentsError) {
-        console.error("RNSupervisor: Error loading assignments:", assignmentsError);
-        // Continue anyway - might be table doesn't exist yet
+        // Log but don't fail - assignments table might not exist yet
+        console.warn("Failed to load assignments:", assignmentsError);
       }
 
+      // Filter out cases that already have assignments
       const assignedCaseIds = new Set(
         (Array.isArray(assignmentsData) ? assignmentsData : assignmentsData ? [assignmentsData] : [])
-          .map((a: any) => a.case_id)
+          .map(a => a.case_id)
       );
 
       const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
-      const pending = cases.filter((c: any) => !assignedCaseIds.has(c.id));
+      const pending = cases.filter(c => !assignedCaseIds.has(c.id));
+      setPendingCases(pending);
 
-      // Fetch client and attorney names separately for each case
-      const pendingWithDetails = await Promise.all(
-        pending.map(async (caseItem: any) => {
-          let clientName = null;
-          let attorneyName = null;
-
-          // Fetch client name
-          if (caseItem.client_id) {
-            try {
-              const { data: clientData } = await supabaseGet(
-                'rc_clients',
-                `id=eq.${caseItem.client_id}&select=first_name,last_name&limit=1`
-              );
-              const client = Array.isArray(clientData) ? clientData[0] : clientData;
-              if (client) {
-                clientName = {
-                  first_name: client.first_name,
-                  last_name: client.last_name,
-                };
-              }
-            } catch (e) {
-              console.error("Error fetching client:", e);
-            }
-          }
-
-          // Fetch attorney name
-          if (caseItem.attorney_id) {
-            try {
-              const { data: attorneyData } = await supabaseGet(
-                'rc_users',
-                `id=eq.${caseItem.attorney_id}&select=full_name&limit=1`
-              );
-              const attorney = Array.isArray(attorneyData) ? attorneyData[0] : attorneyData;
-              if (attorney) {
-                attorneyName = { full_name: attorney.full_name };
-              }
-            } catch (e) {
-              console.error("Error fetching attorney:", e);
-            }
-          }
-
-          return {
-            ...caseItem,
-            rc_clients: clientName,
-            rc_users: attorneyName,
-          };
-        })
-      );
-
-      setPendingCases(pendingWithDetails);
-      console.log("RNSupervisor: pending cases loaded", pendingWithDetails.length);
-    } catch (error: any) {
-      console.error("RNSupervisor: Error loading pending cases:", error);
-    } finally {
-      setPendingCasesLoading(false);
-    }
-  };
-
-  // Load available RNs
-  const loadAvailableRNs = async () => {
-    if (userRole !== "rn_supervisor") return;
-
-    try {
-      console.log("RNSupervisor: loading available RNs...");
-      
-      const { data: rnsData, error: rnsError } = await supabaseGet(
+      // 4. Load available RNs
+      const { data: rnsData, error: rnsError } = await supabaseGet<AvailableRN[]>(
         'rc_users',
-        'role=eq.rn_cm&select=id,full_name&order=full_name.asc'
+        'role=eq.rn&select=id,first_name,last_name,full_name,is_active'
       );
 
       if (rnsError) {
-        console.error("RNSupervisor: Error loading RNs:", rnsError);
-        return;
+        console.warn("Failed to load RNs:", rnsError);
+        // Don't fail - just show empty list
+        setAvailableRNs([]);
+      } else {
+        const rns = Array.isArray(rnsData) ? rnsData : (rnsData ? [rnsData] : []);
+        // Filter by is_active if column exists, otherwise include all
+        const activeRNs = rns.filter(rn => rn.is_active !== false);
+        setAvailableRNs(activeRNs);
       }
 
-      const rns = Array.isArray(rnsData) ? rnsData : (rnsData ? [rnsData] : []);
-      setAvailableRNs(rns);
-      console.log("RNSupervisor: available RNs loaded", rns.length);
-    } catch (error: any) {
-      console.error("RNSupervisor: Error loading RNs:", error);
+    } catch (err: any) {
+      console.error("Error loading data:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Load data when role is confirmed
+  // Load on mount and when user changes
   useEffect(() => {
-    if (userRole === "rn_supervisor" && !loading) {
-      loadCheckins();
-      loadNotes();
-      loadPendingCases();
-      loadAvailableRNs();
-      console.log("RNSupervisor: done");
-    }
-  }, [userRole, loading]);
-
-  // Refresh handler
-  const handleRefresh = () => {
-    loadCheckins();
-    loadNotes();
-    loadPendingCases();
-    loadAvailableRNs();
-  };
+    loadAll();
+  }, [authUser?.id]);
 
   // Handle assign button click
   const handleAssignClick = (caseId: string) => {
@@ -466,18 +189,17 @@ export default function RNSupervisor() {
       return;
     }
 
+    if (!authUser?.id) {
+      toast.error("Not authenticated");
+      return;
+    }
+
     setAssigning(true);
     try {
-      // Get current user ID for assigned_by
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
-
       // Get supervisor's rc_users ID
-      const { data: supervisorData } = await supabaseGet(
+      const { data: supervisorData } = await supabaseGet<SupervisorProfile[]>(
         'rc_users',
-        `auth_user_id=eq.${user.id}&select=id&limit=1`
+        `auth_user_id=eq.${authUser.id}&select=id&limit=1`
       );
       const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
       const supervisorId = supervisor?.id || null;
@@ -516,19 +238,36 @@ export default function RNSupervisor() {
       setAssignDialogOpen(false);
       setSelectedCaseId(null);
       setSelectedRNId("");
-      
-      // Refresh pending cases
-      loadPendingCases();
-    } catch (error: any) {
-      console.error("Error assigning case:", error);
-      toast.error(error.message || "Failed to assign case");
+
+      // Refresh the queue
+      await loadAll();
+    } catch (err: any) {
+      console.error("Error assigning case:", err);
+      toast.error(err.message || "Failed to assign case");
     } finally {
       setAssigning(false);
     }
   };
 
+  // Format date helper
+  const formatDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return "—";
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy");
+    } catch {
+      return "—";
+    }
+  };
+
+  // Format name helper
+  const formatName = (first: string | null, last: string | null, full: string | null): string => {
+    if (full) return full;
+    if (first && last) return `${first} ${last}`.trim();
+    return first || last || "Unknown";
+  };
+
   // Show error state
-  if (error) {
+  if (error && !loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary py-8 px-4">
         <div className="max-w-4xl mx-auto">
@@ -539,13 +278,13 @@ export default function RNSupervisor() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
             <div className="mt-4 flex gap-3">
-              {error.includes("Not logged in") || error.includes("Profile not found") ? (
+              {error.includes("Not logged in") || error.includes("not found") ? (
                 <Button onClick={() => navigate("/rn-login")} variant="outline">
                   Go to RN Login
                 </Button>
               ) : (
-                <Button onClick={() => window.location.reload()} variant="outline">
-                  Refresh Page
+                <Button onClick={() => loadAll()} variant="outline">
+                  Retry
                 </Button>
               )}
             </div>
@@ -555,36 +294,13 @@ export default function RNSupervisor() {
     );
   }
 
-  // Route guard: if not rn_supervisor, show not authorized
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary py-8 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <Card className="p-6 md:p-8">
             <div className="text-center text-muted-foreground">Loading...</div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (userRole !== "rn_supervisor") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary-light to-primary py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Card className="p-6 md:p-8">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Not authorized</AlertTitle>
-              <AlertDescription>
-                This dashboard is for RN Supervisors only.
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4">
-              <Button onClick={() => navigate("/rn-login")} variant="outline">
-                Go to RN Login
-              </Button>
-            </div>
           </Card>
         </div>
       </div>
@@ -603,110 +319,13 @@ export default function RNSupervisor() {
                 Welcome, {supervisorName}
               </p>
             )}
-            {supervisorEmail && (
-              <p className="text-xs text-muted-foreground">
-                {supervisorEmail}
-              </p>
-            )}
             <p className="text-sm text-muted-foreground">
-              Audit and oversight tools for RN supervisors.
+              Manage case assignments and oversee RN activities.
             </p>
           </div>
         </Card>
 
-        {/* Supervisor Tools Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Supervisor Tools
-            </CardTitle>
-            <CardDescription>
-              Quick access to RN portal and dashboard controls
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={() => navigate("/rn-console")}
-                className="flex items-center gap-2"
-              >
-                Go to RN Console
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={checkinsLoading || notesLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${(checkinsLoading || notesLoading) ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent RN Check-ins Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Recent RN Check-ins
-            </CardTitle>
-            <CardDescription>
-              Last 10 client check-ins submitted by RNs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {checkinsLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading check-ins...</div>
-            ) : checkins.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-medium">No check-ins found</p>
-                <p className="text-sm">No recent check-ins are available at this time.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {checkins.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {item.case_id && (
-                          <span className="font-mono text-sm font-medium">
-                            Case: {item.case_id.slice(0, 8)}...
-                          </span>
-                        )}
-                        {item.client_id && (
-                          <span className="text-sm text-muted-foreground">
-                            Client: {item.client_id.slice(0, 8)}...
-                          </span>
-                        )}
-                      </div>
-                      {item.note && (
-                        <p className="text-sm text-foreground mt-1 line-clamp-2">
-                          {item.note}
-                        </p>
-                      )}
-                      {item.created_at && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(item.created_at), "MMM d, yyyy 'at' h:mm a")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pending Assignment Queue Card */}
+        {/* Pending Assignment Queue */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -718,123 +337,73 @@ export default function RNSupervisor() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {pendingCasesLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading pending cases...</div>
-            ) : pendingCases.length === 0 ? (
+            {pendingCases.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-medium">No pending cases</p>
+                <p className="font-medium">No cases waiting for assignment.</p>
                 <p className="text-sm">All attorney-confirmed cases have been assigned.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingCases.map((caseItem) => {
-                  const clientName = caseItem.rc_clients
-                    ? `${caseItem.rc_clients.first_name || ''} ${caseItem.rc_clients.last_name || ''}`.trim()
-                    : 'N/A';
-                  const attorneyName = caseItem.rc_users?.full_name || 'N/A';
-                  
-                  return (
-                    <div
-                      key={caseItem.id}
-                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-mono text-sm font-semibold">
-                            {caseItem.case_number || 'N/A'}
-                          </span>
-                          {caseItem.case_type && (
-                            <span className="text-xs px-2 py-1 bg-muted rounded">
-                              {caseItem.case_type}
-                            </span>
-                          )}
-                        </div>
-                        <div className="space-y-1 text-sm">
-                          <div>
-                            <span className="font-medium">Client:</span> {clientName}
-                          </div>
-                          {caseItem.date_of_injury && (
-                            <div>
-                              <span className="font-medium">Date of Injury:</span>{' '}
-                              {format(new Date(caseItem.date_of_injury), "MMM d, yyyy")}
-                            </div>
-                          )}
-                          <div>
-                            <span className="font-medium">Attorney:</span> {attorneyName}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => handleAssignClick(caseItem.id)}
-                        size="sm"
-                        className="ml-4"
-                      >
-                        Assign
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-semibold text-sm">Case Number</th>
+                        <th className="text-left p-2 font-semibold text-sm">Client Name</th>
+                        <th className="text-left p-2 font-semibold text-sm">Date of Injury</th>
+                        <th className="text-left p-2 font-semibold text-sm">Attorney</th>
+                        <th className="text-left p-2 font-semibold text-sm">Attested</th>
+                        <th className="text-left p-2 font-semibold text-sm">Case Type</th>
+                        <th className="text-left p-2 font-semibold text-sm">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingCases.map((caseItem) => {
+                        const clientName = formatName(
+                          caseItem.rc_clients?.first_name || null,
+                          caseItem.rc_clients?.last_name || null,
+                          null
+                        );
+                        const attorneyName = formatName(
+                          caseItem.rc_users?.first_name || null,
+                          caseItem.rc_users?.last_name || null,
+                          caseItem.rc_users?.full_name || null
+                        );
+                        const caseNumber = caseItem.case_number || caseItem.id.slice(0, 8);
 
-        {/* Recent RN Notes Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Recent RN Notes
-            </CardTitle>
-            <CardDescription>
-              Last 10 clinical notes submitted by RNs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {notesLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading notes...</div>
-            ) : notes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-medium">No notes found</p>
-                <p className="text-sm">No recent RN notes are available at this time.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {notes.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {item.case_id && (
-                          <span className="font-mono text-sm font-medium">
-                            Case: {item.case_id.slice(0, 8)}...
-                          </span>
-                        )}
-                        {item.author_name && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <User className="h-3 w-3" />
-                            {item.author_name}
-                          </div>
-                        )}
-                      </div>
-                      {item.note_text && (
-                        <p className="text-sm text-foreground mt-1 line-clamp-3">
-                          {item.note_text}
-                        </p>
-                      )}
-                      {item.created_at && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(item.created_at), "MMM d, yyyy 'at' h:mm a")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                        return (
+                          <tr key={caseItem.id} className="border-b hover:bg-muted/50">
+                            <td className="p-2">
+                              <span className="font-mono text-sm">{caseNumber}</span>
+                            </td>
+                            <td className="p-2 text-sm">{clientName}</td>
+                            <td className="p-2 text-sm">{formatDate(caseItem.date_of_injury)}</td>
+                            <td className="p-2 text-sm">{attorneyName}</td>
+                            <td className="p-2 text-sm">{formatDate(caseItem.attorney_attested_at)}</td>
+                            <td className="p-2 text-sm">
+                              {caseItem.case_type ? (
+                                <span className="px-2 py-1 bg-muted rounded text-xs">
+                                  {caseItem.case_type}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="p-2">
+                              <Button
+                                onClick={() => handleAssignClick(caseItem.id)}
+                                size="sm"
+                              >
+                                Assign
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </CardContent>
@@ -857,11 +426,14 @@ export default function RNSupervisor() {
                     <SelectValue placeholder="Choose an RN..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRNs.map((rn) => (
-                      <SelectItem key={rn.id} value={rn.id}>
-                        {rn.full_name || `RN ${rn.id.slice(0, 8)}`}
-                      </SelectItem>
-                    ))}
+                    {availableRNs.map((rn) => {
+                      const rnName = formatName(rn.first_name, rn.last_name, rn.full_name);
+                      return (
+                        <SelectItem key={rn.id} value={rn.id}>
+                          {rnName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
