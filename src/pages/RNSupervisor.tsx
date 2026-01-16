@@ -45,6 +45,56 @@ interface SupervisorProfile extends Record<string, any> {
   id: string;
 }
 
+// Helper function to load rc_users profile by trying multiple column names
+async function loadRcUserProfileForAuthId(authId: string): Promise<Record<string, any> | null> {
+  // Try auth_user_id first
+  const { data: data1, error: error1 } = await supabaseGet<Record<string, any>[]>(
+    'rc_users',
+    `auth_user_id=eq.${authId}&select=*&limit=1`
+  );
+
+  if (!error1 && data1) {
+    const result = Array.isArray(data1) ? data1[0] : data1;
+    if (result) return result;
+  }
+
+  // Check if error is column-related
+  const errorMsg1 = error1?.message || '';
+  const isColumnError1 = errorMsg1.includes('42703') || errorMsg1.includes('does not exist') || errorMsg1.includes('column') || errorMsg1.includes('auth_user_id');
+
+  // Try user_id if auth_user_id column doesn't exist or no results
+  if (isColumnError1 || (!error1 && (!data1 || (Array.isArray(data1) && data1.length === 0)))) {
+    const { data: data2, error: error2 } = await supabaseGet<Record<string, any>[]>(
+      'rc_users',
+      `user_id=eq.${authId}&select=*&limit=1`
+    );
+
+    if (!error2 && data2) {
+      const result = Array.isArray(data2) ? data2[0] : data2;
+      if (result) return result;
+    }
+
+    // Check if user_id column error
+    const errorMsg2 = error2?.message || '';
+    const isColumnError2 = errorMsg2.includes('42703') || errorMsg2.includes('does not exist') || errorMsg2.includes('column') || errorMsg2.includes('user_id');
+
+    // Fallback to id if both previous columns don't exist or no results
+    if (isColumnError2 || (!error2 && (!data2 || (Array.isArray(data2) && data2.length === 0)))) {
+      const { data: data3, error: error3 } = await supabaseGet<Record<string, any>[]>(
+        'rc_users',
+        `id=eq.${authId}&select=*&limit=1`
+      );
+
+      if (!error3 && data3) {
+        const result = Array.isArray(data3) ? data3[0] : data3;
+        if (result) return result;
+      }
+    }
+  }
+
+  return null;
+}
+
 export default function RNSupervisor() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -71,64 +121,31 @@ export default function RNSupervisor() {
     try {
       setError(null);
 
-      // 1. Load supervisor profile
-      const { data: supervisorData, error: supervisorError } = await supabaseGet<SupervisorProfile[]>(
-        'rc_users',
-        `auth_user_id=eq.${authUser.id}&select=*&limit=1`
-      );
+      // 1. Load supervisor profile using helper with fallbacks
+      const supervisor = await loadRcUserProfileForAuthId(authUser.id);
 
-      if (supervisorError) {
-        throw new Error(`Failed to load supervisor profile: ${supervisorError.message}`);
-      }
-
-      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
-      if (supervisor) {
-        const name = formatUserName(supervisor);
-        setSupervisorName(name);
-
-        // Check role - try multiple possible role field names
-        const role = (supervisor.role || supervisor.user_role || supervisor.account_role || '')?.toLowerCase();
-        if (role !== "rn_supervisor" && role !== "supervisor") {
-          setError("Access denied. This dashboard is for RN Supervisors only.");
-          setLoading(false);
-          return;
-        }
-      } else {
-        setError("Supervisor profile not found. Please contact your administrator.");
+      if (!supervisor) {
+        setError("No supervisor profile row found for your auth account.");
         setLoading(false);
         return;
       }
 
-      // 2. Load pending cases (attorney_confirmed) with retry logic
-      let casesData: PendingCase[] | null = null;
-      let casesError: Error | null = null;
-      
-      // Try with full_name first
-      const { data: casesData1, error: casesError1 } = await supabaseGet<PendingCase[]>(
-        'rc_cases',
-        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(full_name,email)'
-      );
+      const name = formatUserName(supervisor);
+      setSupervisorName(name);
 
-      if (casesError1) {
-        const errorMsg = casesError1.message || '';
-        // Check if it's a column error
-        if (errorMsg.includes('42703') || errorMsg.includes('does not exist') || errorMsg.includes('column') || errorMsg.includes('full_name')) {
-          // Retry without full_name
-          const { data: casesData2, error: casesError2 } = await supabaseGet<PendingCase[]>(
-            'rc_cases',
-            'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(email)'
-          );
-          if (casesError2) {
-            casesError = casesError2;
-          } else {
-            casesData = casesData2;
-          }
-        } else {
-          casesError = casesError1;
-        }
-      } else {
-        casesData = casesData1;
+      // Check role - try multiple possible role field names
+      const role = (supervisor.role || supervisor.user_role || supervisor.account_role || '')?.toLowerCase();
+      if (role !== "rn_supervisor" && role !== "supervisor") {
+        setError("Access denied. This dashboard is for RN Supervisors only.");
+        setLoading(false);
+        return;
       }
+
+      // 2. Load pending cases (attorney_confirmed)
+      const { data: casesData, error: casesError } = await supabaseGet<PendingCase[]>(
+        'rc_cases',
+        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(*)'
+      );
 
       if (casesError) {
         throw new Error(`Failed to load cases: ${casesError.message}`);
@@ -236,12 +253,8 @@ export default function RNSupervisor() {
 
     setAssigning(true);
     try {
-      // Get supervisor's rc_users ID
-      const { data: supervisorData } = await supabaseGet<SupervisorProfile[]>(
-        'rc_users',
-        `auth_user_id=eq.${authUser.id}&select=id&limit=1`
-      );
-      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
+      // Get supervisor's rc_users ID using helper
+      const supervisor = await loadRcUserProfileForAuthId(authUser.id);
       const supervisorId = supervisor?.id || null;
 
       // Insert assignment
@@ -337,10 +350,19 @@ export default function RNSupervisor() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div>{error}</div>
+                  {authUser?.id && (
+                    <div className="text-xs mt-2 font-mono text-muted-foreground">
+                      Auth User ID: {authUser.id}
+                    </div>
+                  )}
+                </div>
+              </AlertDescription>
             </Alert>
             <div className="mt-4 flex gap-3">
-              {error.includes("Not logged in") || error.includes("not found") ? (
+              {error.includes("Not logged in") || error.includes("not found") || error.includes("No supervisor profile") ? (
                 <Button onClick={() => navigate("/rn-login")} variant="outline">
                   Go to RN Login
                 </Button>
