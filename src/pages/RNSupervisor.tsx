@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseGet, supabaseInsert, supabaseUpdate } from "@/lib/supabaseRest";
+import { useAuth } from "@/auth/supabaseAuth";
 import { format } from "date-fns";
 import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User, Users, CheckCircle2 } from "lucide-react";
 import {
@@ -65,6 +66,7 @@ export default function RNSupervisor() {
   console.log("RNSupervisor: start");
   
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [supervisorEmail, setSupervisorEmail] = useState<string>("");
   const [supervisorName, setSupervisorName] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -87,25 +89,18 @@ export default function RNSupervisor() {
   useEffect(() => {
     const initialize = async () => {
       if (initializedRef.current) return;
+      if (!user) return; // Wait for user to be available
       
       try {
-        // Get user directly from Supabase auth
-        console.log("RNSupervisor: calling supabase.auth.getUser()");
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error("RNSupervisor: Auth error:", authError);
-          setError(`Authentication error: ${authError.message}`);
-          return;
-        }
-
+        // Check if user is available from useAuth hook
         if (!user) {
           console.error("RNSupervisor: No user found - not logged in");
           setError("Not logged in. Please sign in to access the supervisor dashboard.");
+          setLoading(false);
           return;
         }
 
-        console.log("RNSupervisor: user loaded", { userId: user.id, email: user.email });
+        console.log("RNSupervisor: user loaded from useAuth", { userId: user.id, email: user.email });
 
         // Fetch supervisor info from rc_users
         console.log("RNSupervisor: fetching supervisor info from rc_users for user", user.id);
