@@ -48,6 +48,7 @@ import { MetricNoteDialog } from "@/components/MetricNoteDialog";
 import { useEffect, useState } from "react";
 import { fetchRNMetrics, type RNMetricsData } from "@/lib/rnMetrics";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet, supabaseUpdate } from "@/lib/supabaseRest";
 import { RNQuickActionsBar } from "@/components/RNQuickActionsBar";
 import { RNRecentActivityFeed } from "@/components/RNRecentActivityFeed";
 import { RNUpcomingDeadlines } from "@/components/RNUpcomingDeadlines";
@@ -64,6 +65,7 @@ import { RNNavigationGuard } from "@/components/RNNavigationGuard";
 import { WorkQueue } from "@/components/rn/WorkQueue";
 import PendingCasesSection from "@/components/rn/PendingCasesSection";
 import ActiveCasesSection from "@/components/rn/ActiveCasesSection";
+import { toast } from "sonner";
 
 interface CaseItem {
   id: string;
@@ -105,6 +107,8 @@ export default function RNPortalLanding() {
   const [activeCases, setActiveCases] = useState<CaseItem[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
+  const [rnName, setRnName] = useState<string>("");
+  const [rnUserId, setRnUserId] = useState<string | null>(null);
 
   const newAssignments = assignments.filter((a) => {
     const assignedDate = new Date(a.assigned_at);
@@ -122,9 +126,25 @@ export default function RNPortalLanding() {
         const data = await fetchRNMetrics();
         setMetricsData(data);
         
-        // Load notes for current user
+        // Load RN name and ID
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Get RN user record from rc_users
+          const { data: rnUserData, error: rnUserError } = await supabaseGet(
+            'rc_users',
+            `auth_user_id=eq.${user.id}&select=id,full_name&limit=1`
+          );
+
+          if (!rnUserError && rnUserData) {
+            const rnUser = Array.isArray(rnUserData) ? rnUserData[0] : rnUserData;
+            if (rnUser) {
+              setRnUserId(rnUser.id);
+              const fullName = rnUser.full_name || 'RN';
+              setRnName(fullName);
+            }
+          }
+        
+          // Load notes for current user
           const { data: notes } = await supabase
             .from('rn_metric_notes')
             .select('metric_name')
@@ -237,7 +257,7 @@ export default function RNPortalLanding() {
           )}
 
           {/* PENDING CASES SECTION */}
-          <PendingCasesSection />
+          <PendingCasesSection rnUserId={rnUserId} />
 
           {/* Today's Priorities and Caseload At-a-Glance */}
           <section className="mb-6">
