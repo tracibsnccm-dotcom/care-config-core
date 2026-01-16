@@ -51,47 +51,53 @@ export default function RNLogin() {
         throw new Error("Login failed: No user returned");
       }
 
-      console.log("RNLogin: User authenticated, checking profile role for user ID:", authData.user.id);
+      console.log("RNLogin: User authenticated, checking rc_users profile for auth_user_id:", authData.user.id);
 
-      // Check the user's profile and role in profiles table
-      const profileCheckPromise = supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", authData.user.id)
-        .maybeSingle();
+      // Helper function to fetch current user's rc_users profile by auth_user_id ONLY
+      async function fetchMyRcUser(authUserId: string) {
+        const { data, error } = await supabase
+          .from("rc_users")
+          .select("*")
+          .eq("auth_user_id", authUserId)
+          .maybeSingle();
+        return { data, error };
+      }
 
+      // Fetch current user's rc_users profile - auth_user_id ONLY, NO role filter
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile check timeout')), 3000)
+        setTimeout(() => reject(new Error('Profile check timeout')), 12000)
       );
 
       try {
-        const { data: profileData, error: profileError } = await Promise.race([profileCheckPromise, timeoutPromise]) as any;
+        const { data: rcUserData, error: rcUserError } = await Promise.race([
+          fetchMyRcUser(authData.user.id),
+          timeoutPromise
+        ]) as any;
 
-        console.log('RNLogin: Profile query result:', profileData, profileError);
+        console.log('RNLogin: rc_users query result:', rcUserData, rcUserError);
 
-        if (profileError) {
-          console.error("RNLogin: Error checking user profile:", profileError);
-          throw new Error(`Failed to verify user profile: ${profileError.message}`);
-        }
-
-        if (!profileData || !profileData.role) {
-          console.error("RNLogin: No profile or role found for user");
-          // Sign out the user since they don't have a profile/role
+        if (rcUserError) {
+          console.error("RNLogin: Error checking rc_users profile:", rcUserError);
           await supabase.auth.signOut();
-          throw new Error("User account not found. Please contact your administrator.");
+          throw new Error(`Failed to verify staff profile: ${rcUserError.message}`);
         }
 
-        console.log("RNLogin: User profile role found:", profileData.role);
+        if (!rcUserData || !rcUserData.role) {
+          console.error("RNLogin: No staff profile or role found for user");
+          await supabase.auth.signOut();
+          throw new Error("No staff profile found. Please contact your administrator.");
+        }
 
-        // Check if role is 'rn' or 'rn_supervisor' (case-insensitive)
-        // Note: Provider role is separate and NOT used for nurses
-        const userRole = profileData.role.toLowerCase();
+        console.log("RNLogin: rc_users role found:", rcUserData.role);
+
+        // Check role AFTER fetching - role gating happens here, not in query
+        const userRole = (rcUserData.role || rcUserData.user_role || rcUserData.account_role || '').toLowerCase();
         const allowedRoles = new Set(['rn', 'rn_supervisor']);
         const isRN = allowedRoles.has(userRole);
-        console.log('RNLogin: Is RN?', isRN);
+        console.log('RNLogin: Is RN?', isRN, 'Role:', userRole);
+        
         if (!isRN) {
           console.error("RNLogin: User role is not RN:", userRole);
-          // Sign out the user since they're not an RN
           await supabase.auth.signOut();
           throw new Error("This portal is for RN staff only. Please contact support if you need access.");
         }
@@ -106,13 +112,7 @@ export default function RNLogin() {
         // Success! Redirect with full page reload to ensure proper component mounting
         window.location.href = redirectPath;
       } catch (err: any) {
-        // If timeout or other error, assume RN and proceed (RNConsole will handle any issues)
-        if (err.message === 'Profile check timeout') {
-          console.log('RNLogin: Profile check failed or timed out, proceeding anyway');
-          window.location.href = '/rn-console';
-          return;
-        }
-        // Re-throw other errors to be handled by outer catch
+        // Re-throw all errors to be handled by outer catch (no timeout bypass)
         throw err;
       }
     } catch (err: any) {
