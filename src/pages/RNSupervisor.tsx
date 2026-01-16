@@ -4,8 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseGet, supabaseInsert, supabaseUpdate } from "@/lib/supabaseRest";
 import { format } from "date-fns";
-import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User } from "lucide-react";
+import { AlertCircle, FileText, RefreshCw, ArrowRight, Clock, User, Users, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface CheckinItem {
   id: string;
@@ -24,6 +41,26 @@ interface RNNoteItem {
   author_name?: string | null;
 }
 
+interface PendingCase {
+  id: string;
+  case_number: string | null;
+  case_type: string | null;
+  date_of_injury: string | null;
+  attorney_id: string | null;
+  rc_clients?: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+  rc_users?: {
+    full_name: string | null;
+  } | null;
+}
+
+interface AvailableRN {
+  id: string;
+  full_name: string | null;
+}
+
 export default function RNSupervisor() {
   console.log("RNSupervisor: start");
   
@@ -37,6 +74,13 @@ export default function RNSupervisor() {
   const [notes, setNotes] = useState<RNNoteItem[]>([]);
   const [checkinsLoading, setCheckinsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
+  const [availableRNs, setAvailableRNs] = useState<AvailableRN[]>([]);
+  const [pendingCasesLoading, setPendingCasesLoading] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedRNId, setSelectedRNId] = useState<string>("");
+  const [assigning, setAssigning] = useState(false);
   const initializedRef = useRef(false);
 
   // Initialize: get user directly and check role
@@ -266,11 +310,134 @@ export default function RNSupervisor() {
     }
   };
 
+  // Load pending cases
+  const loadPendingCases = async () => {
+    if (userRole !== "rn_supervisor") return;
+
+    setPendingCasesLoading(true);
+    try {
+      console.log("RNSupervisor: loading pending cases...");
+      
+      // Get cases that are attorney_confirmed
+      const { data: casesData, error: casesError } = await supabaseGet(
+        'rc_cases',
+        'case_status=eq.attorney_confirmed&select=id,case_number,case_type,date_of_injury,attorney_id,client_id'
+      );
+
+      if (casesError) {
+        console.error("RNSupervisor: Error loading cases:", casesError);
+        return;
+      }
+
+      // Get existing assignments to filter out already assigned cases
+      const { data: assignmentsData, error: assignmentsError } = await supabaseGet(
+        'rc_case_assignments',
+        'status=in.(pending_acceptance,active)&select=case_id'
+      );
+
+      if (assignmentsError) {
+        console.error("RNSupervisor: Error loading assignments:", assignmentsError);
+        // Continue anyway - might be table doesn't exist yet
+      }
+
+      const assignedCaseIds = new Set(
+        (Array.isArray(assignmentsData) ? assignmentsData : assignmentsData ? [assignmentsData] : [])
+          .map((a: any) => a.case_id)
+      );
+
+      const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
+      const pending = cases.filter((c: any) => !assignedCaseIds.has(c.id));
+
+      // Fetch client and attorney names separately for each case
+      const pendingWithDetails = await Promise.all(
+        pending.map(async (caseItem: any) => {
+          let clientName = null;
+          let attorneyName = null;
+
+          // Fetch client name
+          if (caseItem.client_id) {
+            try {
+              const { data: clientData } = await supabaseGet(
+                'rc_clients',
+                `id=eq.${caseItem.client_id}&select=first_name,last_name&limit=1`
+              );
+              const client = Array.isArray(clientData) ? clientData[0] : clientData;
+              if (client) {
+                clientName = {
+                  first_name: client.first_name,
+                  last_name: client.last_name,
+                };
+              }
+            } catch (e) {
+              console.error("Error fetching client:", e);
+            }
+          }
+
+          // Fetch attorney name
+          if (caseItem.attorney_id) {
+            try {
+              const { data: attorneyData } = await supabaseGet(
+                'rc_users',
+                `id=eq.${caseItem.attorney_id}&select=full_name&limit=1`
+              );
+              const attorney = Array.isArray(attorneyData) ? attorneyData[0] : attorneyData;
+              if (attorney) {
+                attorneyName = { full_name: attorney.full_name };
+              }
+            } catch (e) {
+              console.error("Error fetching attorney:", e);
+            }
+          }
+
+          return {
+            ...caseItem,
+            rc_clients: clientName,
+            rc_users: attorneyName,
+          };
+        })
+      );
+
+      setPendingCases(pendingWithDetails);
+      console.log("RNSupervisor: pending cases loaded", pendingWithDetails.length);
+    } catch (error: any) {
+      console.error("RNSupervisor: Error loading pending cases:", error);
+    } finally {
+      setPendingCasesLoading(false);
+    }
+  };
+
+  // Load available RNs
+  const loadAvailableRNs = async () => {
+    if (userRole !== "rn_supervisor") return;
+
+    try {
+      console.log("RNSupervisor: loading available RNs...");
+      
+      const { data: rnsData, error: rnsError } = await supabaseGet(
+        'rc_users',
+        'role=eq.rn_cm&select=id,full_name&order=full_name.asc'
+      );
+
+      if (rnsError) {
+        console.error("RNSupervisor: Error loading RNs:", rnsError);
+        return;
+      }
+
+      const rns = Array.isArray(rnsData) ? rnsData : (rnsData ? [rnsData] : []);
+      setAvailableRNs(rns);
+      console.log("RNSupervisor: available RNs loaded", rns.length);
+    } catch (error: any) {
+      console.error("RNSupervisor: Error loading RNs:", error);
+    }
+  };
+
   // Load data when role is confirmed
   useEffect(() => {
     if (userRole === "rn_supervisor" && !loading) {
       loadCheckins();
       loadNotes();
+      loadPendingCases();
+      loadAvailableRNs();
       console.log("RNSupervisor: done");
     }
   }, [userRole, loading]);
@@ -279,6 +446,83 @@ export default function RNSupervisor() {
   const handleRefresh = () => {
     loadCheckins();
     loadNotes();
+    loadPendingCases();
+    loadAvailableRNs();
+  };
+
+  // Handle assign button click
+  const handleAssignClick = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    setSelectedRNId("");
+    setAssignDialogOpen(true);
+  };
+
+  // Handle assignment confirmation
+  const handleAssignConfirm = async () => {
+    if (!selectedCaseId || !selectedRNId) {
+      toast.error("Please select an RN to assign");
+      return;
+    }
+
+    setAssigning(true);
+    try {
+      // Get current user ID for assigned_by
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
+      // Get supervisor's rc_users ID
+      const { data: supervisorData } = await supabaseGet(
+        'rc_users',
+        `auth_user_id=eq.${user.id}&select=id&limit=1`
+      );
+      const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
+      const supervisorId = supervisor?.id || null;
+
+      // Insert assignment
+      const { error: assignError } = await supabaseInsert(
+        'rc_case_assignments',
+        {
+          case_id: selectedCaseId,
+          user_id: selectedRNId,
+          status: 'pending_acceptance',
+          assigned_at: new Date().toISOString(),
+          assigned_by: supervisorId,
+        }
+      );
+
+      if (assignError) {
+        throw new Error(`Failed to create assignment: ${assignError.message}`);
+      }
+
+      // Update case status
+      const { error: caseError } = await supabaseUpdate(
+        'rc_cases',
+        `id=eq.${selectedCaseId}`,
+        {
+          case_status: 'assigned_to_rn',
+        }
+      );
+
+      if (caseError) {
+        console.error("Error updating case status:", caseError);
+        // Don't throw - assignment was created successfully
+      }
+
+      toast.success("Case assigned successfully");
+      setAssignDialogOpen(false);
+      setSelectedCaseId(null);
+      setSelectedRNId("");
+      
+      // Refresh pending cases
+      loadPendingCases();
+    } catch (error: any) {
+      console.error("Error assigning case:", error);
+      toast.error(error.message || "Failed to assign case");
+    } finally {
+      setAssigning(false);
+    }
   };
 
   // Show error state
@@ -460,6 +704,80 @@ export default function RNSupervisor() {
           </CardContent>
         </Card>
 
+        {/* Pending Assignment Queue Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Pending Assignment Queue
+            </CardTitle>
+            <CardDescription>
+              Cases awaiting RN assignment (attorney confirmed, not yet assigned)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pendingCasesLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading pending cases...</div>
+            ) : pendingCases.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-medium">No pending cases</p>
+                <p className="text-sm">All attorney-confirmed cases have been assigned.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingCases.map((caseItem) => {
+                  const clientName = caseItem.rc_clients
+                    ? `${caseItem.rc_clients.first_name || ''} ${caseItem.rc_clients.last_name || ''}`.trim()
+                    : 'N/A';
+                  const attorneyName = caseItem.rc_users?.full_name || 'N/A';
+                  
+                  return (
+                    <div
+                      key={caseItem.id}
+                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-mono text-sm font-semibold">
+                            {caseItem.case_number || 'N/A'}
+                          </span>
+                          {caseItem.case_type && (
+                            <span className="text-xs px-2 py-1 bg-muted rounded">
+                              {caseItem.case_type}
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div>
+                            <span className="font-medium">Client:</span> {clientName}
+                          </div>
+                          {caseItem.date_of_injury && (
+                            <div>
+                              <span className="font-medium">Date of Injury:</span>{' '}
+                              {format(new Date(caseItem.date_of_injury), "MMM d, yyyy")}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">Attorney:</span> {attorneyName}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleAssignClick(caseItem.id)}
+                        size="sm"
+                        className="ml-4"
+                      >
+                        Assign
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Recent RN Notes Card */}
         <Card>
           <CardHeader>
@@ -519,6 +837,54 @@ export default function RNSupervisor() {
             )}
           </CardContent>
         </Card>
+
+        {/* Assign RN Dialog */}
+        <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Case to RN</DialogTitle>
+              <DialogDescription>
+                Select an RN to assign this case to. The RN will receive a notification to accept the assignment.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select RN</label>
+                <Select value={selectedRNId} onValueChange={setSelectedRNId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an RN..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRNs.map((rn) => (
+                      <SelectItem key={rn.id} value={rn.id}>
+                        {rn.full_name || `RN ${rn.id.slice(0, 8)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAssignDialogOpen(false);
+                  setSelectedCaseId(null);
+                  setSelectedRNId("");
+                }}
+                disabled={assigning}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignConfirm}
+                disabled={assigning || !selectedRNId}
+              >
+                {assigning ? "Assigning..." : "Assign Case"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
