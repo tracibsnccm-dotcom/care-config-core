@@ -107,37 +107,44 @@ export default function RNSupervisor() {
 
         console.log("RNSupervisor: user loaded", { userId: user.id, email: user.email });
 
-        // Fetch profile and role
-        console.log("RNSupervisor: fetching profile for user", user.id);
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("role, full_name, email")
-          .eq("id", user.id)
-          .maybeSingle();
+        // Fetch supervisor info from rc_users
+        console.log("RNSupervisor: fetching supervisor info from rc_users for user", user.id);
+        const { data: supervisorData, error: supervisorError } = await supabaseGet(
+          'rc_users',
+          `auth_user_id=eq.${user.id}&select=id,role,full_name&limit=1`
+        );
 
-        if (profileError) {
-          console.error("RNSupervisor: Error fetching profile:", profileError);
-          setError(`Failed to load profile: ${profileError.message}`);
+        if (supervisorError) {
+          console.error("RNSupervisor: Error fetching supervisor info:", supervisorError);
+          setError(`Failed to load supervisor info: ${supervisorError.message}`);
           return;
         }
 
-        if (profileData) {
-          const role = profileData.role?.toLowerCase() || null;
-          console.log("RNSupervisor: profile loaded", { role, fullName: profileData.full_name });
-          
-          setUserRole(role);
-          setSupervisorName(profileData.full_name || "");
-          setSupervisorEmail(profileData.email || user.email || "");
+        if (supervisorData) {
+          const supervisor = Array.isArray(supervisorData) ? supervisorData[0] : supervisorData;
+          if (supervisor) {
+            const role = supervisor.role?.toLowerCase() || null;
+            console.log("RNSupervisor: supervisor info loaded", { role, fullName: supervisor.full_name });
+            
+            setUserRole(role);
+            setSupervisorName(supervisor.full_name || "");
+            setSupervisorEmail(user.email || "");
 
-          // Role guard: if not rn_supervisor, stop loading immediately
-          if (role !== "rn_supervisor") {
-            console.log("RNSupervisor: role is not rn_supervisor, stopping");
+            // Role guard: if not rn_supervisor, stop loading immediately
+            if (role !== "rn_supervisor" && role !== "supervisor") {
+              console.log("RNSupervisor: role is not rn_supervisor/supervisor, stopping");
+              return;
+            }
+          } else {
+            // No supervisor record found
+            console.warn("RNSupervisor: No supervisor record found for user");
+            setError("Supervisor record not found. Please contact your administrator.");
             return;
           }
         } else {
-          // No profile found
-          console.warn("RNSupervisor: No profile found for user");
-          setError("Profile not found. Please contact your administrator.");
+          // No supervisor record found
+          console.warn("RNSupervisor: No supervisor record found for user");
+          setError("Supervisor record not found. Please contact your administrator.");
           return;
         }
 
