@@ -141,17 +141,19 @@ export default function RNSupervisor() {
         return;
       }
 
-      // 2. Load pending cases (attorney_confirmed)
+      // 2. Load pending cases (attorney_confirmed) - no FK joins
       const { data: casesData, error: casesError } = await supabaseGet<PendingCase[]>(
         'rc_cases',
-        'case_status=eq.attorney_confirmed&select=id,case_number,client_id,attorney_id,case_type,date_of_injury,attorney_attested_at,rc_clients(first_name,last_name),rc_users!attorney_id(*)'
+        'case_status=eq.attorney_confirmed&select=*'
       );
 
       if (casesError) {
         throw new Error(`Failed to load cases: ${casesError.message}`);
       }
 
-      // 3. Load existing assignments
+      const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
+
+      // 2a. Load existing assignments to filter out already assigned cases
       const { data: assignmentsData, error: assignmentsError } = await supabaseGet<{ case_id: string }[]>(
         'rc_case_assignments',
         'status=in.(pending_acceptance,active)&select=case_id'
@@ -168,9 +170,61 @@ export default function RNSupervisor() {
           .map(a => a.case_id)
       );
 
-      const cases = Array.isArray(casesData) ? casesData : (casesData ? [casesData] : []);
       const pending = cases.filter(c => !assignedCaseIds.has(c.id));
-      setPendingCases(pending);
+
+      // 2b. Load attorneys (all rc_users) and build name map
+      const { data: allUsersData, error: usersError } = await supabaseGet<Record<string, any>[]>(
+        'rc_users',
+        'select=*'
+      );
+
+      const attorneyMap = new Map<string, Record<string, any>>();
+      if (!usersError && allUsersData) {
+        const allUsers = Array.isArray(allUsersData) ? allUsersData : [allUsersData];
+        allUsers.forEach((user: any) => {
+          if (user.id) {
+            attorneyMap.set(user.id, user);
+          }
+        });
+      }
+
+      // 2c. Load clients and build name map
+      const clientIds = [...new Set(pending.map(c => c.client_id).filter(Boolean))];
+      const clientMap = new Map<string, Record<string, any>>();
+      
+      if (clientIds.length > 0) {
+        // Build OR filter for client IDs
+        const clientIdsFilter = clientIds.map(id => `id.eq.${id}`).join(',');
+        const { data: clientsData, error: clientsError } = await supabaseGet<Record<string, any>[]>(
+          'rc_clients',
+          `or=(${clientIdsFilter})&select=*`
+        );
+
+        if (!clientsError && clientsData) {
+          const clients = Array.isArray(clientsData) ? clientsData : [clientsData];
+          clients.forEach((client: any) => {
+            if (client.id) {
+              clientMap.set(client.id, client);
+            }
+          });
+        }
+      }
+
+      // 2d. Enhance pending cases with resolved names
+      const pendingWithNames: PendingCase[] = pending.map((c: any) => {
+        const attorney = c.attorney_id ? attorneyMap.get(c.attorney_id) : null;
+        const client = c.client_id ? clientMap.get(c.client_id) : null;
+        return {
+          ...c,
+          rc_users: attorney || null,
+          rc_clients: client ? {
+            first_name: client.first_name || null,
+            last_name: client.last_name || null,
+          } : null,
+        };
+      });
+
+      setPendingCases(pendingWithNames);
 
       // 4. Load available RNs
       let rnsData: AvailableRN[] | null = null;
