@@ -851,7 +851,7 @@ export default function IntakeWizard() {
         }
 
         // Mark the intake session as submitted/converted to prevent reuse
-        const intakeSessionId = sessionStorage.getItem("rcms_intake_session_id");
+        // Use intakeSessionId from function scope (declared at line 431)
         if (intakeSessionId) {
           try {
             await updateIntakeSession(intakeSessionId, {
