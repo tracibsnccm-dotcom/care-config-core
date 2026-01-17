@@ -35,7 +35,6 @@ import { toast } from "@/hooks/use-toast";
 // Cache attorney name to persist across remounts
 let cachedAttorneyName: string | null = null;
 import NotificationCenter from "@/components/attorney/NotificationCenter";
-import MobileQuickActions from "@/components/attorney/MobileQuickActions";
 import BulkActionsBar from "@/components/attorney/BulkActionsBar";
 import AdvancedFilters from "@/components/attorney/AdvancedFilters";
 import ExportCenter from "@/components/attorney/ExportCenter";
@@ -464,11 +463,6 @@ export default function AttorneyLanding() {
                 </Tooltip>
               </TooltipProvider>
               
-              <div className="text-sm text-muted-foreground">
-                Next reset: <b className="text-foreground">{fmtDate(nextReset)}</b> &middot; Swaps
-                remaining:{" "}
-                <b className="text-foreground">{Math.max(0, swapsCap - swapsUsed)}</b>
-              </div>
             </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
@@ -487,65 +481,6 @@ export default function AttorneyLanding() {
               value={`${usedProviders}/${providerSlots}`}
               note={`${providerRemain} remaining`}
             />
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button 
-              onClick={() => navigate("/rn-clinical-liaison")} 
-              className="bg-[#128f8b] text-white hover:bg-[#128f8b]/90"
-            >
-              <Stethoscope className="w-4 h-4 mr-2" />
-              RN CM / Clinical Liaison
-            </Button>
-            <Button onClick={() => navigate("/reports")} variant="outline">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              View Reports
-            </Button>
-            <Button
-              onClick={() => navigate("/providers")}
-              disabled={!routerEnabled}
-              aria-disabled={!routerEnabled}
-              title={!routerEnabled ? "Provider router not included in this tier" : ""}
-              variant="outline"
-            >
-              <Stethoscope className="w-4 h-4 mr-2" />
-              View Providers
-            </Button>
-            <Button
-              onClick={() => navigate("/router")}
-              disabled={!routerEnabled}
-              aria-disabled={!routerEnabled}
-              title={!routerEnabled ? "Provider router not included in this tier" : ""}
-              variant="outline"
-            >
-              <Stethoscope className="w-4 h-4 mr-2" />
-              Route Cases
-            </Button>
-            <Button onClick={() => navigate("/cases")} variant="outline">
-              <FolderOpen className="w-4 h-4 mr-2" />
-              View Cases
-            </Button>
-            <Button onClick={() => navigate("/attorney/billing")} variant="outline">
-              Billing & Subscription
-            </Button>
-            <Button onClick={() => navigate("/attorney/settings")} variant="outline">
-              Attorney Settings
-            </Button>
-            <Button onClick={() => navigate("/referrals")} variant="outline">
-              Referrals
-            </Button>
-            <Button
-              onClick={() =>
-                alert("Exports index (stub). Use per-case exports in Dashboard.")
-              }
-              disabled={!exportAllowed}
-              aria-disabled={!exportAllowed}
-              title={!exportAllowed ? "Your role cannot export" : ""}
-              variant="outline"
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              Exports
-            </Button>
           </div>
         </Card>
 
@@ -580,19 +515,6 @@ export default function AttorneyLanding() {
             </div>
           </Card>
 
-          <Card className="p-6 border-border">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 rounded-lg bg-success/10">
-                <FolderOpen className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Router Status</p>
-                <p className="text-sm font-semibold text-foreground">
-                  {routerEnabled ? "Enabled" : "Not Available"}
-                </p>
-              </div>
-            </div>
-          </Card>
         </div>
 
         {/* Quick Actions Dashboard + Pending Intakes */}
@@ -949,8 +871,6 @@ export default function AttorneyLanding() {
           itemType="cases"
         />
 
-        {/* Mobile Quick Actions Bar */}
-        <MobileQuickActions />
       </div>
     </AppLayout>
   );

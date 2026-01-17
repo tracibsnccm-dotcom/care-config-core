@@ -10,13 +10,16 @@ import {
   BarChart3,
   Wallet,
   Settings,
-  MessageSquare
+  MessageSquare,
+  Calendar,
+  BookOpen
 } from "lucide-react";
 
 export function AttorneyQuickActions() {
   const navigate = useNavigate();
 
-  const actions = [
+  // Tier 1: Primary actions (largest)
+  const tier1Actions = [
     {
       icon: FolderOpen,
       label: "View Cases",
@@ -28,29 +31,15 @@ export function AttorneyQuickActions() {
       icon: Clock,
       label: "Pending Assignments",
       description: "Review new client offers",
-      onClick: () => navigate("/attorney-landing"),
+      onClick: () => navigate("/attorney-console"),
       color: "bg-amber-500/10 text-amber-600",
     },
     {
       icon: Stethoscope,
-      label: "RN Liaison",
+      label: "RN CM / Clinical Liaison",
       description: "Clinical coordination",
       onClick: () => navigate("/rn-clinical-liaison"),
       color: "bg-teal-500/10 text-teal-600",
-    },
-    {
-      icon: Users,
-      label: "Providers",
-      description: "Manage provider network",
-      onClick: () => navigate("/providers"),
-      color: "bg-blue-500/10 text-blue-600",
-    },
-    {
-      icon: BarChart3,
-      label: "Reports",
-      description: "View analytics & reports",
-      onClick: () => navigate("/reports"),
-      color: "bg-purple-500/10 text-purple-600",
     },
     {
       icon: FileText,
@@ -59,9 +48,52 @@ export function AttorneyQuickActions() {
       onClick: () => navigate("/document-hub"),
       color: "bg-green-500/10 text-green-600",
     },
+  ];
+
+  // Tier 2: Supporting actions (medium)
+  const tier2Actions = [
+    {
+      icon: MessageSquare,
+      label: "Communication",
+      description: "Client messages",
+      onClick: () => navigate("/attorney-console"),
+      color: "bg-blue-500/10 text-blue-600",
+    },
+    {
+      icon: Calendar,
+      label: "Calendar",
+      description: "Schedule & events",
+      onClick: () => navigate("/attorney-console"),
+      color: "bg-purple-500/10 text-purple-600",
+    },
+    {
+      icon: BookOpen,
+      label: "Case Notes",
+      description: "View case notes",
+      onClick: () => navigate("/attorney-console"),
+      color: "bg-indigo-500/10 text-indigo-600",
+    },
+    {
+      icon: Users,
+      label: "Providers",
+      description: "Manage provider network",
+      onClick: () => navigate("/providers"),
+      color: "bg-cyan-500/10 text-cyan-600",
+    },
+    {
+      icon: BarChart3,
+      label: "Reports",
+      description: "View analytics & reports",
+      onClick: () => navigate("/reports"),
+      color: "bg-orange-500/10 text-orange-600",
+    },
+  ];
+
+  // Tier 3: Admin actions (small)
+  const tier3Actions = [
     {
       icon: Wallet,
-      label: "Billing & eWallet",
+      label: "Billing & Subscription",
       description: "Manage payments",
       onClick: () => navigate("/attorney/billing"),
       color: "bg-[#b09837]/10 text-[#b09837]",
@@ -70,7 +102,7 @@ export function AttorneyQuickActions() {
       icon: Settings,
       label: "Settings",
       description: "Account preferences",
-      onClick: () => navigate("/settings"),
+      onClick: () => navigate("/attorney/settings"),
       color: "bg-gray-500/10 text-gray-600",
     },
   ];
@@ -83,29 +115,89 @@ export function AttorneyQuickActions() {
           Quick Actions
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {actions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Button
-                key={action.label}
-                variant="outline"
-                className="h-auto flex-col items-start p-4 hover:border-primary"
-                onClick={action.onClick}
-              >
-                <div className={`p-2 rounded-lg mb-2 ${action.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-sm">{action.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {action.description}
-                  </p>
-                </div>
-              </Button>
-            );
-          })}
+      <CardContent className="space-y-6">
+        {/* Tier 1: Primary Actions */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Primary Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tier1Actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.label}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-5 hover:border-primary"
+                  onClick={action.onClick}
+                >
+                  <div className={`p-3 rounded-lg mb-3 ${action.color}`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-base">{action.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {action.description}
+                    </p>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tier 2: Supporting Actions */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Supporting Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            {tier2Actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.label}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4 hover:border-primary"
+                  onClick={action.onClick}
+                >
+                  <div className={`p-2 rounded-lg mb-2 ${action.color}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-sm">{action.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {action.description}
+                    </p>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tier 3: Admin Actions */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Administrative</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tier3Actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.label}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-3 hover:border-primary"
+                  onClick={action.onClick}
+                >
+                  <div className={`p-2 rounded-lg mb-2 ${action.color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-sm">{action.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {action.description}
+                    </p>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>
