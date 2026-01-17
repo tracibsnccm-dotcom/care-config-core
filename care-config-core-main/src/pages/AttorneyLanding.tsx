@@ -26,7 +26,6 @@ import { EWalletSummary } from "@/components/EWalletSummary";
 import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
 import { AttorneyQuickActions } from "@/components/AttorneyQuickActions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -396,33 +395,8 @@ export default function AttorneyLanding() {
           <AttorneyIntakeTracker />
         </div>
 
-        {/* Tabbed Interface for Attorney Tools */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto gap-2 bg-muted/50 p-2">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="communication">Communication</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar</TabsTrigger>
-            <TabsTrigger value="settlement">Settlement</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="features">Features & Tiers</TabsTrigger>
-            <TabsTrigger value="expert-witnesses">Expert Witnesses</TabsTrigger>
-            <TabsTrigger value="evidence">Evidence</TabsTrigger>
-            <TabsTrigger value="provider-network">Provider Network</TabsTrigger>
-            <TabsTrigger value="billing">Billing & Invoicing</TabsTrigger>
-            <TabsTrigger value="marketing">Marketing & Leads</TabsTrigger>
-              <TabsTrigger value="ai-prioritization">AI Prioritization</TabsTrigger>
-              <TabsTrigger value="ai-settlement">AI Settlement</TabsTrigger>
-              <TabsTrigger value="ai-documents">AI Documents</TabsTrigger>
-              <TabsTrigger value="modules">Modules & Add-Ons</TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab - Case Tracking */}
-          <TabsContent value="overview" className="space-y-6">
+        {/* Overview Content - Case Tracking */}
+        <div className="space-y-6">
             <div className="flex justify-end mb-4">
               <AdvancedFilters 
                 onApplyFilters={(filters) => console.log("Filters applied:", filters)} 
@@ -521,157 +495,7 @@ export default function AttorneyLanding() {
               <RecentActivityFeed />
               <PinnedCasesWidget />
             </div>
-          </TabsContent>
-
-          {/* Performance Dashboard Tab */}
-        <TabsContent value="performance">
-          <PerformanceDashboard />
-        </TabsContent>
-        
-        <TabsContent value="time-tracking">
-          <TimeTrackingBilling />
-        </TabsContent>
-        
-        <TabsContent value="case-notes">
-          <CaseNotesHub />
-        </TabsContent>
-        
-        <TabsContent value="compliance">
-          <ComplianceRiskManagement />
-        </TabsContent>
-        
-        <TabsContent value="discovery">
-          <DiscoveryManagement />
-        </TabsContent>
-        
-        <TabsContent value="financial">
-          <FinancialDashboard />
-        </TabsContent>
-        
-        <TabsContent value="team">
-          <TeamCollaborationCenter />
-        </TabsContent>
-        
-        <TabsContent value="predictions">
-          <CaseOutcomePredictions />
-        </TabsContent>
-        
-        <TabsContent value="conflicts">
-          <ConflictChecker />
-        </TabsContent>
-        
-        <TabsContent value="forms">
-          <LegalFormsLibrary />
-        </TabsContent>
-        
-        <TabsContent value="court-filing">
-          <CourtFilingIntegration />
-        </TabsContent>
-        
-        <TabsContent value="rn-value">
-          <RNValueMetrics attorneyId={user?.id || ""} />
-        </TabsContent>
-        
-        <TabsContent value="sol-tracker">
-          <StatutesOfLimitationsTracker />
-        </TabsContent>
-        
-        <TabsContent value="medical-liens">
-          <MedicalLienManagement />
-        </TabsContent>
-        
-        <TabsContent value="bill-review">
-          <MedicalBillReview />
-        </TabsContent>
-        
-        <TabsContent value="settlement-calc">
-          <SettlementCalculator />
-        </TabsContent>
-        
-        <TabsContent value="trust">
-          <TrustAccounting />
-        </TabsContent>
-        
-              <TabsContent value="features">
-                <FeatureLibrary />
-              </TabsContent>
-
-              <TabsContent value="expert-witnesses">
-                <ExpertWitnessManagement />
-              </TabsContent>
-
-              <TabsContent value="evidence">
-                <EvidenceRepository />
-              </TabsContent>
-
-              <TabsContent value="provider-network">
-                <MedicalProviderNetwork />
-              </TabsContent>
-
-              <TabsContent value="billing">
-                <ClientBillingInvoicing />
-              </TabsContent>
-
-              <TabsContent value="marketing">
-                <MarketingLeadManagement />
-              </TabsContent>
-
-              <TabsContent value="ai-prioritization">
-                <AICasePrioritization cases={cases} />
-              </TabsContent>
-
-              <TabsContent value="ai-settlement">
-                <AISettlementPredictor caseData={cases[0]} />
-              </TabsContent>
-
-              <TabsContent value="ai-documents">
-                <AIDocumentAssembly caseData={cases[0]} />
-              </TabsContent>
-
-              <TabsContent value="modules">
-                <FeatureLibrary />
-              </TabsContent>
-
-          {/* Document Hub Tab */}
-          <TabsContent value="documents">
-            <DocumentHub />
-          </TabsContent>
-
-          {/* Client Communication Tab */}
-          <TabsContent value="communication">
-            <ClientCommunicationCenter />
-          </TabsContent>
-
-          {/* Calendar Tab */}
-          <TabsContent value="calendar">
-            <CalendarScheduling />
-          </TabsContent>
-
-          {/* Settlement Management Tab */}
-          <TabsContent value="settlement">
-            <SettlementManagement />
-          </TabsContent>
-
-          {/* Case Analytics Tab */}
-          <TabsContent value="analytics">
-            <CaseAnalyticsInsights />
-          </TabsContent>
-
-          {/* Task & Deadline Manager Tab */}
-          <TabsContent value="tasks">
-            <TaskDeadlineManager />
-          </TabsContent>
-
-          {/* Referral Network Tab */}
-          <TabsContent value="referrals">
-            <ReferralNetworkManagement />
-          </TabsContent>
-
-          {/* Integration Settings Tab */}
-          <TabsContent value="integrations">
-            <IntegrationSettings />
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* Bulk Actions Bar - shown when items are selected */}
         <BulkActionsBar 
