@@ -719,6 +719,27 @@ export default function AttorneyLanding() {
               <RecentActivityFeed />
               <PinnedCasesWidget />
             </div>
+
+            {/* Expired Intakes Monthly Stat */}
+            <div className="mb-4">
+              <Card className="p-4 border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">
+                      Expired Intakes (Data Deleted)
+                    </p>
+                    <p className="text-2xl font-bold text-amber-600">
+                      {expiredIntakesCount}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Pending Intakes Queue */}
+            <div className="mb-6">
+              <AttorneyIntakeTracker />
+            </div>
           </TabsContent>
 
           {/* DISABLED - Phase 6+ feature */}
@@ -917,27 +938,6 @@ export default function AttorneyLanding() {
             </TabsContent>
           )}
         </Tabs>
-
-        {/* Expired Intakes Monthly Stat */}
-        <div className="mb-4">
-          <Card className="p-4 border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground mb-1">
-                  Expired Intakes (Data Deleted)
-                </p>
-                <p className="text-2xl font-bold text-amber-600">
-                  {expiredIntakesCount}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Pending Intakes Queue */}
-        <div className="mb-6">
-          <AttorneyIntakeTracker />
-        </div>
 
         {/* Bulk Actions Bar - shown when items are selected */}
         <BulkActionsBar 
