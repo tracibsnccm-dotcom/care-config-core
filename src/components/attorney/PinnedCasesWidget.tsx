@@ -46,8 +46,8 @@ export default function PinnedCasesWidget() {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Pin className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Pinned Cases</h3>
@@ -59,12 +59,9 @@ export default function PinnedCasesWidget() {
 
       <div className="space-y-3">
         {pinnedCases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground mb-1">No pinned cases</p>
-            <p className="text-xs text-muted-foreground">
-              Pin important cases for quick access
-            </p>
+          <div className="flex items-center gap-2 py-4">
+            <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <p className="text-sm text-muted-foreground">No pinned cases. Pin from case list for quick access.</p>
           </div>
         ) : (
           pinnedCases.map((c) => (
@@ -113,8 +110,8 @@ export default function PinnedCasesWidget() {
       </div>
 
       {pinnedCases.length === 0 && cases.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <p className="text-xs text-muted-foreground mb-2">Suggested cases to pin:</p>
+        <div className="mt-2 space-y-2">
+          <p className="text-xs text-muted-foreground mb-1">Suggested cases to pin:</p>
           {cases.slice(0, 3).map((c) => (
             <Button
               key={c.id}

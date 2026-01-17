@@ -57,23 +57,23 @@ export default function RecentActivityFeed() {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-foreground">Recent Activity</h3>
         <Badge variant="secondary" className="text-xs">
           Last 24 hours
         </Badge>
       </div>
 
-      <ScrollArea className="h-[400px] pr-4">
-        <div className="space-y-4">
-          {activities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No recent activity</p>
-            </div>
-          ) : (
-            activities.map((activity) => (
+      {activities.length === 0 ? (
+        <div className="flex items-center gap-2 py-4">
+          <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <p className="text-sm text-muted-foreground">No recent activity</p>
+        </div>
+      ) : (
+        <ScrollArea className="max-h-[200px] pr-4">
+          <div className="space-y-4">
+            {activities.map((activity) => (
               <div
                 key={activity.id}
                 onClick={() => handleActivityClick(activity)}
@@ -92,10 +92,10 @@ export default function RecentActivityFeed() {
                   </p>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
     </Card>
   );
 }

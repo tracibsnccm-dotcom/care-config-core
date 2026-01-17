@@ -620,7 +620,7 @@ export default function AttorneyLanding() {
           </TabsList>
 
           {/* Overview Tab - Case Tracking */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-4">
             <div className="flex justify-end mb-4">
               <AdvancedFilters 
                 onApplyFilters={(filters) => console.log("Filters applied:", filters)} 
@@ -629,8 +629,8 @@ export default function AttorneyLanding() {
             </div>
             {/* CRITICAL: 72-hour cases */}
             {criticalCases.length > 0 && (
-              <Card className="p-6 border-destructive bg-destructive/5">
-                <div className="flex items-start gap-3 mb-4">
+              <Card className="p-4 border-destructive bg-destructive/5">
+                <div className="flex items-start gap-3 mb-3">
                   <AlertTriangle className="w-6 h-6 text-destructive mt-1" />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-destructive mb-1">
@@ -651,8 +651,8 @@ export default function AttorneyLanding() {
             )}
 
             {/* Recently Opened Cases */}
-            <Card className="p-6 border-border">
-              <div className="flex items-center gap-3 mb-4">
+            <Card className="p-4 border-border">
+              <div className="flex items-center gap-3 mb-3">
                 <FolderOpen className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold text-foreground">
                   Recently Opened Cases (Last 7 Days)
@@ -683,8 +683,8 @@ export default function AttorneyLanding() {
             </Card>
 
             {/* Cases Needing Attention */}
-            <Card className="p-6 border-border">
-              <div className="flex items-center gap-3 mb-4">
+            <Card className="p-4 border-border">
+              <div className="flex items-center gap-3 mb-3">
                 <Clock className="w-5 h-5 text-warning" />
                 <h3 className="text-lg font-semibold text-foreground">
                   Cases Needing Attention (30+ Days)
@@ -715,7 +715,7 @@ export default function AttorneyLanding() {
             </Card>
 
             {/* Recent Activity and Pinned Cases */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <RecentActivityFeed />
               <PinnedCasesWidget />
             </div>
