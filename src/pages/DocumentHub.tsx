@@ -127,6 +127,20 @@ export default function DocumentHub() {
 
   return (
     <AppLayout>
+      {/* Build Stamp - Temporary Diagnostic Marker */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '8px',
+          right: '8px',
+          fontSize: '12px',
+          color: '#6b7280',
+          zIndex: 99999,
+          fontFamily: 'monospace',
+        }}
+      >
+        BUILD_STAMP: DOCUMENT_HUB_DEBUG_2026_01_17
+      </div>
       <div className="p-8">
         {/* Header */}
         <div className="mb-8">
