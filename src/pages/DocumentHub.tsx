@@ -44,7 +44,7 @@ export default function DocumentHub() {
   const [showSensitiveOnly, setShowSensitiveOnly] = useState(false);
   const [showAwaitingOnly, setShowAwaitingOnly] = useState(false);
   const [showMyUploadsOnly, setShowMyUploadsOnly] = useState(false);
-  const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   // Filter documents
@@ -191,18 +191,18 @@ export default function DocumentHub() {
           documents={regularDocuments}
           currentUserId={currentUserId}
           onMarkAsRead={markAsRead}
-          onPreview={(doc) => setPreviewDocument(doc)}
+          onPreview={(doc) => setSelectedDoc(doc)}
           getDocumentTypeColor={getDocumentTypeColor}
           cases={cases}
           onUpdate={refetch}
         />
       </div>
 
-      {/* Modals */}
+      {/* Document Preview Panel */}
       <DocumentPreviewDrawer
-        document={previewDocument}
-        isOpen={!!previewDocument}
-        onClose={() => setPreviewDocument(null)}
+        document={selectedDoc}
+        isOpen={true}
+        onClose={() => setSelectedDoc(null)}
         onUpdate={refetch}
       />
       

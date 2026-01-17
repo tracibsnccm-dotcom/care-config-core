@@ -112,12 +112,17 @@ export function DocumentPreviewDrawer({
     if (!document) return;
     
     try {
-      const { data } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(document.file_path, 3600);
+      const { data, error } = await supabase.rpc("rpc_get_document_signed_url", {
+        document_id: document.id,
+      });
 
-      if (data?.signedUrl) {
-        setPreviewUrl(data.signedUrl);
+      if (error) {
+        console.error("Error getting signed URL:", error);
+        return;
+      }
+
+      if (data?.signed_url) {
+        setPreviewUrl(data.signed_url);
       }
     } catch (error) {
       console.error("Error generating preview URL:", error);
@@ -180,25 +185,94 @@ export function DocumentPreviewDrawer({
     }
   };
 
-  const handleDownload = async () => {
-    if (!document || !previewUrl) return;
+  const handleView = async () => {
+    if (!document) return;
+
+    console.log("VIEW_CLICK", { 
+      id: document.id, 
+      path: document.file_path, 
+      mime: document.mime_type 
+    });
 
     try {
-      await supabase.rpc("log_document_activity", {
+      const { data, error } = await supabase.rpc("rpc_get_document_signed_url", {
         p_document_id: document.id,
-        p_action_type: "downloaded",
       });
 
-      window.open(previewUrl, "_blank");
+      if (error) {
+        console.error("Error getting signed URL for view:", error);
+        toast({
+          title: "Error",
+          description: "Failed to get document URL",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.signed_url) {
+        window.open(data.signed_url, "_blank");
+      }
     } catch (error) {
-      console.error("Error downloading:", error);
+      console.error("Error viewing document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open document",
+        variant: "destructive",
+      });
     }
   };
 
-  if (!document) return null;
+  const handleDownload = async () => {
+    if (!document) return;
 
-  const isPdf = document.mime_type?.includes("pdf") || document.file_name.toLowerCase().endsWith(".pdf");
-  const isImage = document.mime_type?.startsWith("image/");
+    console.log("DOWNLOAD_CLICK", { 
+      id: document.id, 
+      path: document.file_path, 
+      mime: document.mime_type 
+    });
+
+    try {
+      const { data, error } = await supabase.rpc("rpc_get_document_signed_url", {
+        p_document_id: document.id,
+      });
+
+      if (error) {
+        console.error("Error getting signed URL for download:", error);
+        toast({
+          title: "Error",
+          description: "Failed to get document URL",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.signed_url) {
+        // Create a temporary anchor element to trigger download
+        const link = window.document.createElement("a");
+        link.href = data.signed_url;
+        link.download = document.file_name;
+        link.target = "_blank";
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+
+        // Log download activity
+        await supabase.rpc("log_document_activity", {
+          p_document_id: document.id,
+          p_action_type: "downloaded",
+        });
+      }
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isPdf = document?.mime_type?.startsWith("application/pdf") || false;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -206,169 +280,193 @@ export function DocumentPreviewDrawer({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            {document.file_name}
+            Document Preview
           </SheetTitle>
           <SheetDescription>
-            Document preview and details
+            View and download document details
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
-          {/* Preview */}
-          <div>
-            <h3 className="font-semibold mb-2">Preview</h3>
-            <div className="border rounded-lg overflow-hidden bg-muted/20">
-              {previewUrl && isPdf ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-96"
-                  title="Document Preview"
-                />
-              ) : previewUrl && isImage ? (
-                <img
-                  src={previewUrl}
-                  alt={document.file_name}
-                  className="w-full h-auto"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                  <FileText className="w-16 h-16 mb-4 opacity-50" />
-                  <p>Preview not available for this file type</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={handleDownload}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download to View
-                  </Button>
-                </div>
-              )}
+          {!document ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+              <FileText className="w-16 h-16 mb-4 opacity-50" />
+              <p className="text-lg font-medium">Select a document to view details</p>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Case Information */}
-          {caseInfo && (
-            <div>
-              <h3 className="font-semibold mb-3">Case Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Case ID:</span>
-                  <span className="font-mono">{caseInfo.id}</span>
+          ) : (
+            <>
+              {/* Document Information */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2 text-sm text-muted-foreground">File Name</h3>
+                  <p className="text-base font-medium">{document.file_name}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
-                  <Badge variant="outline">{caseInfo.status}</Badge>
+
+                <div>
+                  <h3 className="font-semibold mb-2 text-sm text-muted-foreground">MIME Type</h3>
+                  <p className="text-sm">{document.mime_type || "Unknown"}</p>
                 </div>
-                {caseInfo.client_label && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Client:</span>
-                    <span>{caseInfo.client_label}</span>
-                  </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Created At</h3>
+                  <p className="text-sm">{format(new Date(document.created_at), "MMM dd, yyyy HH:mm")}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Status</h3>
+                  <Badge variant={document.status === "reviewed" ? "default" : "secondary"}>
+                    {document.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {isPdf ? (
+                  <>
+                    <Button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleView(); 
+                      }}
+                      disabled={!document}
+                      className="w-full"
+                      variant="default"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </Button>
+                    <Button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleDownload(); 
+                      }}
+                      disabled={!document}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Preview not available for this file type.
+                    </p>
+                    <Button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleDownload(); 
+                      }}
+                      disabled={!document}
+                      className="w-full"
+                      variant="default"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </>
                 )}
               </div>
-            </div>
-          )}
 
-          <Separator />
+              <Separator />
 
-          {/* Document Details */}
-          <div>
-            <h3 className="font-semibold mb-3">Document Details</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Type:</span>
-                <Badge>{document.document_type}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Category:</span>
-                <Badge variant="outline">{document.category || "Other"}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <Badge variant={document.status === "reviewed" ? "default" : "secondary"}>
-                  {document.status}
-                </Badge>
-              </div>
-              {document.is_sensitive && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Sensitivity:</span>
-                  <Badge variant="destructive">🔒 Sensitive</Badge>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Uploaded:</span>
-                <span>{format(new Date(document.created_at), "MMM dd, yyyy HH:mm")}</span>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Notes */}
-          <div>
-            <Label htmlFor="drawer-note" className="text-base font-semibold">
-              Notes
-            </Label>
-            <p className="text-sm text-muted-foreground mb-3">
-              Changes will sync to case notes automatically
-            </p>
-            <Textarea
-              id="drawer-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Add notes about this document..."
-              rows={4}
-              className="mb-3"
-            />
-            <Button onClick={handleSaveNote} disabled={saving || note === document.note}>
-              {saving ? "Saving..." : "Save Note"}
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Activity History */}
-          <div>
-            <h3 className="font-semibold mb-3">Activity History</h3>
-            <ScrollArea className="h-64">
-              {activityLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activity recorded</p>
-              ) : (
-                <div className="space-y-3">
-                  {activityLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex gap-3 text-sm border-l-2 border-border pl-3"
-                    >
-                      <div className="flex-shrink-0 mt-1">
-                        {log.action_type === "viewed" && <Eye className="w-4 h-4 text-blue-500" />}
-                        {log.action_type === "downloaded" && <Download className="w-4 h-4 text-green-500" />}
-                        {log.action_type === "marked_sensitive" && <FileText className="w-4 h-4 text-red-500" />}
-                        {log.action_type === "shared" && <User className="w-4 h-4 text-purple-500" />}
-                        {!["viewed", "downloaded", "marked_sensitive", "shared"].includes(log.action_type) && (
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                        )}
+              {/* Case Information */}
+              {caseInfo && (
+                <>
+                  <div>
+                    <h3 className="font-semibold mb-3">Case Information</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Case ID:</span>
+                        <span className="font-mono">{caseInfo.id}</span>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {log.action_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                        </div>
-                        <div className="text-muted-foreground">
-                          {log.performed_by_name} ({log.performed_by_role})
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
-                        </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant="outline">{caseInfo.status}</Badge>
                       </div>
+                      {caseInfo.client_label && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Client:</span>
+                          <span>{caseInfo.client_label}</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                  <Separator />
+                </>
               )}
-            </ScrollArea>
-          </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="drawer-note" className="text-base font-semibold">
+                  Notes
+                </Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Changes will sync to case notes automatically
+                </p>
+                <Textarea
+                  id="drawer-note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Add notes about this document..."
+                  rows={4}
+                  className="mb-3"
+                />
+                <Button onClick={handleSaveNote} disabled={saving || note === document.note}>
+                  {saving ? "Saving..." : "Save Note"}
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Activity History */}
+              <div>
+                <h3 className="font-semibold mb-3">Activity History</h3>
+                <ScrollArea className="h-64">
+                  {activityLogs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No activity recorded</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {activityLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex gap-3 text-sm border-l-2 border-border pl-3"
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {log.action_type === "viewed" && <Eye className="w-4 h-4 text-blue-500" />}
+                            {log.action_type === "downloaded" && <Download className="w-4 h-4 text-green-500" />}
+                            {log.action_type === "marked_sensitive" && <FileText className="w-4 h-4 text-red-500" />}
+                            {log.action_type === "shared" && <User className="w-4 h-4 text-purple-500" />}
+                            {!["viewed", "downloaded", "marked_sensitive", "shared"].includes(log.action_type) && (
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">
+                              {log.action_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {log.performed_by_name} ({log.performed_by_role})
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
