@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,19 +86,18 @@ export function AttorneyCommunicationCenter() {
   const [sending, setSending] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
 
-  // New request form
+  // Create Request form: request_type, priority, body only
   const [formType, setFormType] = useState<string>(REQUEST_TYPES[0]);
   const [formPriority, setFormPriority] = useState<string>("Normal");
-  const [formSubject, setFormSubject] = useState("");
   const [formBody, setFormBody] = useState("");
-  const [formDueAt, setFormDueAt] = useState("");
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const headers = () => ({ apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` });
 
   // -------------------------------------------------------------------------
-  // Fetch cases (attorney's assigned)
+  // Fetch cases: rc_case_assignments (fallback case_assignments), then rc_cases
+  // Only set COMM-FETCH-ERROR when the query truly errors (!res.ok), not for empty []
   // -------------------------------------------------------------------------
   const fetchCases = useCallback(async () => {
     if (!user?.id) {
@@ -107,29 +105,46 @@ export function AttorneyCommunicationCenter() {
       return;
     }
     try {
-      const r = await fetch(
-        `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
+      // Prefer rc_case_assignments (status=active); fallback to case_assignments (role=ATTORNEY)
+      let r = await fetch(
+        `${supabaseUrl}/rest/v1/rc_case_assignments?user_id=eq.${user.id}&status=eq.active&select=case_id`,
         { headers: headers() }
       );
       if (!r.ok) {
+        r = await fetch(
+          `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
+          { headers: headers() }
+        );
+      }
+      if (!r.ok) {
         setErrorCode("COMM-FETCH-ERROR");
         setCases([]);
+        setLoading(false);
         return;
       }
       const assignments = (await r.json()) || [];
-      const caseIds = assignments.map((a: { case_id: string }) => a.case_id).filter(Boolean);
+      const caseIds = assignments.map((a: { case_id?: string }) => a.case_id).filter(Boolean);
       if (caseIds.length === 0) {
         setCases([]);
         setErrorCode(null);
+        setLoading(false);
         return;
       }
-      const casesRes = await fetch(
+      // rc_cases; if embed fails, retry without rc_clients
+      let casesRes = await fetch(
         `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
         { headers: headers() }
       );
       if (!casesRes.ok) {
+        casesRes = await fetch(
+          `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id&order=case_number.asc`,
+          { headers: headers() }
+        );
+      }
+      if (!casesRes.ok) {
         setErrorCode("COMM-FETCH-ERROR");
         setCases([]);
+        setLoading(false);
         return;
       }
       const data = (await casesRes.json()) || [];
@@ -158,7 +173,8 @@ export function AttorneyCommunicationCenter() {
   }, [fetchCases]);
 
   // -------------------------------------------------------------------------
-  // Fetch requests for selected case
+  // Fetch requests for selected case from rc_case_requests
+  // Empty result (200 []) is not an error; do not set errorCode
   // -------------------------------------------------------------------------
   const fetchRequests = useCallback(async () => {
     if (!selectedCaseId) {
@@ -174,11 +190,12 @@ export function AttorneyCommunicationCenter() {
       );
       if (!r.ok) {
         setRequests([]);
+        setUpdatesByRequestId({});
+        setRequestsLoading(false);
         return;
       }
       const list: CaseRequest[] = await r.json();
       setRequests(list || []);
-      // Fetch updates for each request
       const map: Record<string, CaseRequestUpdate[]> = {};
       for (const req of list || []) {
         const u = await fetch(
@@ -206,7 +223,7 @@ export function AttorneyCommunicationCenter() {
   }, [fetchRequests]);
 
   // -------------------------------------------------------------------------
-  // Create request
+  // Create Request: request_type, priority, body → rc_case_requests
   // -------------------------------------------------------------------------
   const createRequest = async () => {
     if (!selectedCaseId || !formBody.trim() || !user?.id) {
@@ -215,7 +232,7 @@ export function AttorneyCommunicationCenter() {
     }
     setSending(true);
     try {
-      const r = await fetch(`${supabaseUrl}/rest/v1/rc_case_requests`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/rc_case_requests`, {
         method: "POST",
         headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation" },
         body: JSON.stringify({
@@ -224,19 +241,17 @@ export function AttorneyCommunicationCenter() {
           created_by_role: "attorney",
           request_type: formType,
           priority: formPriority,
-          due_at: formDueAt || null,
-          subject: formSubject.trim() || null,
           body: formBody.trim(),
+          subject: null,
+          due_at: null,
         }),
       });
-      if (!r.ok) {
-        const t = await r.text();
+      if (!res.ok) {
+        const t = await res.text();
         throw new Error(t || "Failed to create request");
       }
       setNewRequestOpen(false);
-      setFormSubject("");
       setFormBody("");
-      setFormDueAt("");
       setFormType(REQUEST_TYPES[0]);
       setFormPriority("Normal");
       toast({ title: "Request created", description: "Your clinical request has been submitted." });
@@ -248,9 +263,6 @@ export function AttorneyCommunicationCenter() {
     }
   };
 
-  // -------------------------------------------------------------------------
-  // Add update (attorney)
-  // -------------------------------------------------------------------------
   const addUpdate = async () => {
     if (!selectedRequestId || !addUpdateBody.trim() || !selectedCaseId || !user?.id) {
       toast({ title: "Error", description: "Request, message, and sign-in are required.", variant: "destructive" });
@@ -258,7 +270,7 @@ export function AttorneyCommunicationCenter() {
     }
     setSending(true);
     try {
-      const r = await fetch(`${supabaseUrl}/rest/v1/rc_case_request_updates`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/rc_case_request_updates`, {
         method: "POST",
         headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation" },
         body: JSON.stringify({
@@ -269,8 +281,8 @@ export function AttorneyCommunicationCenter() {
           body: addUpdateBody.trim(),
         }),
       });
-      if (!r.ok) {
-        const t = await r.text();
+      if (!res.ok) {
+        const t = await res.text();
         throw new Error(t || "Failed to add update");
       }
       setAddUpdateBody("");
@@ -342,7 +354,6 @@ export function AttorneyCommunicationCenter() {
         </CardHeader>
       </Card>
 
-      {/* Case selector */}
       <div className="flex items-center gap-2 flex-wrap">
         <Label className="text-slate-700">Case</Label>
         <Select
@@ -385,7 +396,6 @@ export function AttorneyCommunicationCenter() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Requests */}
           <TabsContent value="requests" className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => setNewRequestOpen(true)} className="bg-blue-600 hover:bg-blue-700">
@@ -397,7 +407,6 @@ export function AttorneyCommunicationCenter() {
               <div className="py-8 text-center text-slate-600">Loading requests…</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Left: list */}
                 <Card className="border-slate-200">
                   <CardHeader className="py-3">
                     <CardTitle className="text-base">Requests</CardTitle>
@@ -405,7 +414,12 @@ export function AttorneyCommunicationCenter() {
                   <CardContent className="pt-0">
                     <ScrollArea className="h-[400px]">
                       {requests.length === 0 ? (
-                        <div className="py-6 text-center text-slate-500 text-sm">No requests yet. Create one to get started.</div>
+                        <div className="py-6 text-center">
+                          <p className="text-slate-500 text-sm mb-3">No requests yet for this case.</p>
+                          <Button onClick={() => setNewRequestOpen(true)} variant="outline" size="sm">
+                            Create Request
+                          </Button>
+                        </div>
                       ) : (
                         <div className="space-y-2">
                           {requests.map((r) => (
@@ -444,7 +458,6 @@ export function AttorneyCommunicationCenter() {
                   </CardContent>
                 </Card>
 
-                {/* Right: detail + timeline + Add Update */}
                 <Card className="border-slate-200">
                   <CardHeader className="py-3">
                     <CardTitle className="text-base">Detail & Updates</CardTitle>
@@ -533,7 +546,6 @@ export function AttorneyCommunicationCenter() {
             )}
           </TabsContent>
 
-          {/* Tab: All Activity */}
           <TabsContent value="all-activity" className="space-y-4">
             {allActivityItems.length === 0 ? (
               <Card className="bg-slate-50 border-slate-200">
@@ -579,11 +591,10 @@ export function AttorneyCommunicationCenter() {
         </Tabs>
       )}
 
-      {/* New Request Dialog */}
       <Dialog open={newRequestOpen} onOpenChange={setNewRequestOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>New Clinical Request</DialogTitle>
+            <DialogTitle>Create Request</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
@@ -611,14 +622,6 @@ export function AttorneyCommunicationCenter() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Due date (optional)</Label>
-              <Input type="date" value={formDueAt} onChange={(e) => setFormDueAt(e.target.value)} />
-            </div>
-            <div>
-              <Label>Subject (optional)</Label>
-              <Input value={formSubject} onChange={(e) => setFormSubject(e.target.value)} placeholder="Brief subject" />
             </div>
           </div>
           <DialogFooter>
