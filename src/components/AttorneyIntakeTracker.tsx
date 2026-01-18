@@ -20,6 +20,9 @@ import { supabaseGet } from '@/lib/supabaseRest';
 interface IntakeRow {
   intake_id?: string;
   case_id: string;
+  /** Original INT (e.g. INT-YYMMDD-##X) from rc_client_intake_sessions.intake_id; never replaced. */
+  int_number: string | null;
+  /** Assigned case number from rc_cases.case_number after confirmation; else "Pending". */
   case_number?: string | null;
   client: string;
   client_name?: string;
@@ -183,6 +186,21 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
         }
       }
 
+      // Fetch original INT numbers from rc_client_intake_sessions (intake_id = INT-YYMMDD-##X)
+      const allCaseIds = (filteredIntakes || []).map((i: any) => i.case_id).filter(Boolean);
+      const sessionMap = new Map<string, string>();
+      if (allCaseIds.length > 0) {
+        try {
+          const { data: sessions } = await supabaseGet(
+            'rc_client_intake_sessions',
+            `case_id=in.(${allCaseIds.join(',')})&select=case_id,intake_id`
+          );
+          (Array.isArray(sessions) ? sessions : []).forEach((s: any) => {
+            if (s?.case_id && s?.intake_id) sessionMap.set(s.case_id, s.intake_id);
+          });
+        } catch (_) {}
+      }
+
       // Transform to IntakeRow format for display
       const transformedRows: IntakeRow[] = (filteredIntakes || []).map((intake: any) => {
         const caseData = Array.isArray(intake.rc_cases) ? intake.rc_cases[0] : intake.rc_cases;
@@ -206,10 +224,13 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
           stage = 'Expired';
         }
         
+        const cn = caseData?.case_number ?? null;
+        const origInt = sessionMap.get(intake.case_id) ?? (cn && String(cn).startsWith('INT-') ? cn : null) ?? null;
         return {
           intake_id: intake.id,
           case_id: intake.case_id,
-          case_number: caseData?.case_number || null,
+          int_number: origInt,
+          case_number: cn,
           client: clientName,
           client_name: clientName,
           date_of_injury: caseData?.date_of_injury || null,
@@ -606,6 +627,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                   />
                 </th>
                 <th className="p-2 text-left font-semibold">INT Number</th>
+                <th className="p-2 text-left font-semibold">Case Number</th>
                 <th className="p-2 text-left font-semibold">Client Name</th>
                 <th className="p-2 text-left font-semibold">Date of Injury</th>
                 <th className="p-2 text-left font-semibold">Case Type</th>
@@ -665,13 +687,9 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                       />
                     </td>
                     <td className="p-2">
-                      {row.case_number ? (
-                        <div className="font-mono font-bold text-primary">
-                          {row.case_number}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">N/A</span>
-                      )}
+                      <div className="font-mono font-bold text-primary">
+                        {row.int_number || '—'}
+                      </div>
                       <Button
                         variant="link"
                         onClick={() => handleViewIntake(row.case_id, row.intake_id)}
@@ -679,6 +697,13 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                       >
                         {row.case_id.slice(0, 8)}...
                       </Button>
+                    </td>
+                    <td className="p-2">
+                      {row.attorney_attested_at ? (
+                        <span className="font-mono text-sm">{row.case_number || '—'}</span>
+                      ) : (
+                        <Badge variant="secondary">Pending</Badge>
+                      )}
                     </td>
                     <td className="p-2">
                       <div className="font-medium">{row.client_name || row.client}</div>
@@ -741,7 +766,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
               })}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={12} className="p-8 text-center text-muted-foreground">
                     No intakes found
                   </td>
                 </tr>
