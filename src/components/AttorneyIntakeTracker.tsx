@@ -427,25 +427,23 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
             intakeJson={selectedIntake.intake_json}
             resolved={resolution || (isConfirmed ? "CONFIRMED" : null)}
             onResolved={(res, timestamp, updatedJson) => {
-              // Immediately set resolution to stop countdown
               setResolution(res);
               setAttestationKey(prev => prev + 1);
               if (res === "CONFIRMED") {
-                // Immediately update state with attorney_attested_at to stop countdown
                 setSelectedIntake(prev => prev ? {
                   ...prev,
                   attorney_attested_at: timestamp,
                   intake_json: updatedJson
                 } : null);
+                // Refetch pending-intakes so the list reflects confirmed state (case number, status) from same source of truth
+                loadData();
               } else if (res === "DECLINED") {
-                // DO NOT set attorney_attested_at; decline is not attestation
                 setSelectedIntake(prev => prev ? {
                   ...prev,
                   intake_json: updatedJson
                 } : null);
+                loadData();
               }
-              // Don't re-fetch here - it causes the component to re-render and lose localConfirmed state
-              // The user can click "Back to Intake List" when ready, which will refresh the data
             }}
             onAttested={(attestedAt, updatedJson) => {
               // Keep this for backward compatibility, but resolution state is primary

@@ -159,7 +159,7 @@ export function AttorneyAttestationCard({
       
       const { data: intakes, error: intakesError } = await supabaseGet(
         'rc_client_intakes', 
-        `select=id,case_id,intake_json&id=eq.${intakeId}&limit=1`
+        `select=id,case_id,intake_json,attorney_attested_at&id=eq.${intakeId}&limit=1`
       );
       
       if (intakesError) throw new Error(`Failed to get intake: ${intakesError.message}`);
@@ -167,16 +167,37 @@ export function AttorneyAttestationCard({
       const intake = Array.isArray(intakes) ? intakes[0] : intakes;
       if (!intake?.case_id) throw new Error('Intake not found');
       
-      // Get existing case to retrieve current case_number (should be INT number)
+      // Get existing case: case_number, client_pin, case_status (source of truth for PIN and case number)
       const { data: caseData, error: caseDataError } = await supabaseGet(
         'rc_cases',
-        `select=id,case_number&id=eq.${intake.case_id}&limit=1`
+        `select=id,case_number,client_pin,case_status&id=eq.${intake.case_id}&limit=1`
       );
       
       if (caseDataError) throw new Error(`Failed to get case: ${caseDataError.message}`);
       
       const existingCase = Array.isArray(caseData) ? caseData[0] : caseData;
       const existingCaseNumber = existingCase?.case_number;
+      
+      // Idempotency: if already confirmed, return existing case_number and PIN without generating new values
+      const alreadyConfirmed = !!intake.attorney_attested_at ||
+        (!!(existingCase?.client_pin) && existingCase?.case_status === 'attorney_confirmed');
+      if (alreadyConfirmed && existingCase?.case_number) {
+        const caseNumber = existingCase.case_number;
+        const clientPin = existingCase.client_pin ?? '';
+        const confirmedAt = intake.attorney_attested_at
+          || (typeof intake?.intake_json?.compliance?.attorney_confirmation_receipt?.confirmed_at === 'string'
+            ? intake.intake_json.compliance.attorney_confirmation_receipt.confirmed_at : null)
+          || new Date().toISOString();
+        const confirmation: ConfirmationData = { caseNumber, clientPin, confirmedAt };
+        sessionStorage.setItem(`attestation_${intakeId}`, JSON.stringify(confirmation));
+        setConfirmationData(confirmation);
+        setViewState('confirmed');
+        if (onResolved) onResolved('CONFIRMED', confirmedAt, intake.intake_json || {});
+        if (onAttested) onAttested(confirmedAt, intake.intake_json || {});
+        toast.success('Already confirmed. Displaying existing case number and PIN.');
+        setIsSubmitting(false);
+        return;
+      }
       
       if (!existingCaseNumber) {
         throw new Error('Case number not found - cannot convert INT number to attorney case number');
@@ -186,15 +207,9 @@ export function AttorneyAttestationCard({
       // Example: INT-260115-01M -> BG04-260115-01M
       let caseNumber: string;
       if (existingCaseNumber.startsWith('INT-')) {
-        // Replace "INT" with attorney code, keep the rest the same
         caseNumber = existingCaseNumber.replace(/^INT-/, `${attorneyCode}-`);
-        console.log('[AttorneyAttestationCard] Converting case number:', { 
-          from: existingCaseNumber, 
-          to: caseNumber,
-          attorneyCode 
-        });
+        console.log('[AttorneyAttestationCard] Converting case number:', { from: existingCaseNumber, to: caseNumber, attorneyCode });
       } else {
-        // If it's already in attorney format or unexpected format, use as-is
         console.warn('[AttorneyAttestationCard] Case number does not start with INT-, using as-is:', existingCaseNumber);
         caseNumber = existingCaseNumber;
       }
