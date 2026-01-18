@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,10 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Calendar, MessageSquare, Plus } from "lucide-react";
+import { FileText, Calendar, MessageSquare, Plus, Inbox } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
+
+// Gate: fallback "Select a case" for testing only in dev or when VITE_ENABLE_DEMO is true.
+// In production, the fallback UI is hidden.
+const allowUnassignedCaseSelect =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO === "true";
+
+// localStorage key for the fallback-selected case (used when 0 assigned cases).
+const FALLBACK_CASE_KEY = "rcms_attorney_comm_fallback_case_id";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,6 +75,17 @@ interface CaseRequestUpdate {
 const REQUEST_TYPES = ["Clarification", "Record Gap", "Timeline", "Clinical Summary", "Other"] as const;
 const PRIORITIES = ["Low", "Normal", "High", "Urgent"] as const;
 
+function mapCase(c: any): Case {
+  return {
+    id: c.id,
+    case_number: c.case_number,
+    client_id: c.client_id,
+    client_name: c.rc_clients
+      ? `${c.rc_clients.first_name || ""} ${c.rc_clients.last_name || ""}`.trim()
+      : undefined,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -86,6 +106,11 @@ export function AttorneyCommunicationCenter() {
   const [sending, setSending] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
 
+  // Fallback case list when 0 assigned (gated by allowUnassignedCaseSelect)
+  const [fallbackCases, setFallbackCases] = useState<Case[]>([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const hasTriedRestore = useRef(false);
+
   // Create Request form: request_type, priority, body only
   const [formType, setFormType] = useState<string>(REQUEST_TYPES[0]);
   const [formPriority, setFormPriority] = useState<string>("Normal");
@@ -98,6 +123,7 @@ export function AttorneyCommunicationCenter() {
   // -------------------------------------------------------------------------
   // Fetch cases: rc_case_assignments (fallback case_assignments), then rc_cases
   // Only set COMM-FETCH-ERROR when the query truly errors (!res.ok), not for empty []
+  // When we get assigned cases, clear the fallback localStorage.
   // -------------------------------------------------------------------------
   const fetchCases = useCallback(async () => {
     if (!user?.id) {
@@ -105,7 +131,6 @@ export function AttorneyCommunicationCenter() {
       return;
     }
     try {
-      // Prefer rc_case_assignments (status=active); fallback to case_assignments (role=ATTORNEY)
       let r = await fetch(
         `${supabaseUrl}/rest/v1/rc_case_assignments?user_id=eq.${user.id}&status=eq.active&select=case_id`,
         { headers: headers() }
@@ -130,7 +155,6 @@ export function AttorneyCommunicationCenter() {
         setLoading(false);
         return;
       }
-      // rc_cases; if embed fails, retry without rc_clients
       let casesRes = await fetch(
         `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
         { headers: headers() }
@@ -148,17 +172,11 @@ export function AttorneyCommunicationCenter() {
         return;
       }
       const data = (await casesRes.json()) || [];
-      setCases(
-        data.map((c: any) => ({
-          id: c.id,
-          case_number: c.case_number,
-          client_id: c.client_id,
-          client_name: c.rc_clients
-            ? `${c.rc_clients.first_name || ""} ${c.rc_clients.last_name || ""}`.trim()
-            : undefined,
-        }))
-      );
+      setCases(data.map(mapCase));
       setErrorCode(null);
+      try {
+        localStorage.removeItem(FALLBACK_CASE_KEY);
+      } catch (_) {}
     } catch (e) {
       console.error("AttorneyCommunicationCenter: fetchCases", e);
       setErrorCode("COMM-FETCH-ERROR");
@@ -173,8 +191,80 @@ export function AttorneyCommunicationCenter() {
   }, [fetchCases]);
 
   // -------------------------------------------------------------------------
+  // Restore: when 0 assigned and gated, try to restore last fallback-selected case from localStorage.
+  // Run once. On success set cases + selectedCaseId; on failure clear localStorage.
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (loading || cases.length > 0 || !allowUnassignedCaseSelect || hasTriedRestore.current) return;
+    hasTriedRestore.current = true;
+    const stored = typeof window !== "undefined" ? localStorage.getItem(FALLBACK_CASE_KEY) : null;
+    if (!stored?.trim()) return;
+    (async () => {
+      try {
+        let res = await fetch(
+          `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&select=id,case_number,client_id,rc_clients(first_name,last_name)`,
+          { headers: headers() }
+        );
+        if (!res.ok) {
+          res = await fetch(
+            `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&select=id,case_number,client_id`,
+            { headers: headers() }
+          );
+        }
+        if (!res.ok) {
+          localStorage.removeItem(FALLBACK_CASE_KEY);
+          return;
+        }
+        const arr = (await res.json()) || [];
+        if (arr.length === 0) {
+          localStorage.removeItem(FALLBACK_CASE_KEY);
+          return;
+        }
+        const c = mapCase(arr[0]);
+        setCases([c]);
+        setSelectedCaseId(c.id);
+      } catch (_) {
+        try {
+          localStorage.removeItem(FALLBACK_CASE_KEY);
+        } catch (_) {}
+      }
+    })();
+  }, [loading, cases.length, supabaseUrl]);
+
+  // -------------------------------------------------------------------------
+  // Fetch fallback case list (recent rc_cases) when 0 assigned and gated. Used for "Select a case" testing.
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (cases.length > 0 || !allowUnassignedCaseSelect) return;
+    setFallbackLoading(true);
+    (async () => {
+      try {
+        let res = await fetch(
+          `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id,rc_clients(first_name,last_name)&order=created_at.desc&limit=50`,
+          { headers: headers() }
+        );
+        if (!res.ok) {
+          res = await fetch(
+            `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id&order=created_at.desc&limit=50`,
+            { headers: headers() }
+          );
+        }
+        if (res.ok) {
+          const data = (await res.json()) || [];
+          setFallbackCases(data.map(mapCase));
+        } else {
+          setFallbackCases([]);
+        }
+      } catch (_) {
+        setFallbackCases([]);
+      } finally {
+        setFallbackLoading(false);
+      }
+    })();
+  }, [cases.length, supabaseUrl]);
+
+  // -------------------------------------------------------------------------
   // Fetch requests for selected case from rc_case_requests
-  // Empty result (200 []) is not an error; do not set errorCode
   // -------------------------------------------------------------------------
   const fetchRequests = useCallback(async () => {
     if (!selectedCaseId) {
@@ -222,9 +312,6 @@ export function AttorneyCommunicationCenter() {
     fetchRequests();
   }, [fetchRequests]);
 
-  // -------------------------------------------------------------------------
-  // Create Request: request_type, priority, body → rc_case_requests
-  // -------------------------------------------------------------------------
   const createRequest = async () => {
     if (!selectedCaseId || !formBody.trim() || !user?.id) {
       toast({ title: "Error", description: "Case, message, and sign-in are required.", variant: "destructive" });
@@ -295,9 +382,6 @@ export function AttorneyCommunicationCenter() {
     }
   };
 
-  // -------------------------------------------------------------------------
-  // All Activity: requests + updates, newest first
-  // -------------------------------------------------------------------------
   const allActivityItems: { kind: "request" | "update"; createdAt: string; req: CaseRequest; update?: CaseRequestUpdate }[] = [];
   for (const req of requests) {
     allActivityItems.push({ kind: "request", createdAt: req.created_at, req });
@@ -309,6 +393,20 @@ export function AttorneyCommunicationCenter() {
 
   const selectedRequest = selectedRequestId ? requests.find((r) => r.id === selectedRequestId) : null;
   const selectedUpdates = selectedRequestId ? (updatesByRequestId[selectedRequestId] || []) : [];
+
+  // -------------------------------------------------------------------------
+  // No assigned cases: premium state + CTA + gated fallback selector
+  // -------------------------------------------------------------------------
+  const handleFallbackCaseSelect = (caseId: string) => {
+    const c = fallbackCases.find((x) => x.id === caseId);
+    if (!c) return;
+    setCases([c]);
+    setSelectedCaseId(c.id);
+    setSelectedRequestId(null);
+    try {
+      localStorage.setItem(FALLBACK_CASE_KEY, c.id);
+    } catch (_) {}
+  };
 
   // -------------------------------------------------------------------------
   // Render
@@ -335,8 +433,43 @@ export function AttorneyCommunicationCenter() {
   if (cases.length === 0) {
     return (
       <Card className="bg-amber-50 border-amber-200">
-        <CardContent className="p-4">
-          <p className="text-amber-800">No cases assigned to you yet. (COMM-NO-CASES)</p>
+        <CardContent className="p-6 space-y-4">
+          <div>
+            <p className="text-amber-800 font-medium">No cases assigned to you yet. (COMM-NO-CASES)</p>
+            <p className="text-amber-700/90 text-sm mt-1">You don&apos;t have any cases assigned yet.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+              <Link to="/attorney/pending-intakes">
+                <Inbox className="w-4 h-4 mr-2" />
+                View Pending Intakes
+              </Link>
+            </Button>
+          </div>
+          {allowUnassignedCaseSelect && (
+            <div className="pt-4 border-t border-amber-200/80">
+            <Label className="text-amber-800/90 text-sm">Select a case (for testing)</Label>
+              {fallbackLoading ? (
+                <p className="text-amber-700/80 text-sm mt-1">Loading cases…</p>
+              ) : (
+                <Select onValueChange={handleFallbackCaseSelect} value="">
+                  <SelectTrigger className="mt-1 max-w-xs bg-white border-amber-300">
+                    <SelectValue placeholder="Choose a case to load communications…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fallbackCases.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
+                      </SelectItem>
+                    ))}
+                    {fallbackCases.length === 0 && !fallbackLoading && (
+                      <div className="py-2 px-2 text-sm text-slate-500">No cases available</div>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
