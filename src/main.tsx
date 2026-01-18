@@ -43,6 +43,7 @@ import Access from "./pages/Access";
 import RNPortalLanding from "./pages/RNPortalLanding";
 import RNDashboard from "./pages/RNDashboard";
 import RNSupervisor from "./pages/RNSupervisor";
+import RNWorkQueuePage from "./pages/RNWorkQueuePage";
 import TenVsBuilder from "./components/rn/TenVsBuilder";
 import CarePlanWorkflow from "./components/rn/CarePlanWorkflow";
 import CheckIntakeStatus from "./pages/CheckIntakeStatus";
@@ -352,6 +353,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <AppProvider>
                 <CarePlanWorkflow />
+              </AppProvider>
+            </AuthProvider>
+          } />
+          
+          {/* RN Work Queue - /rn/queue */}
+          <Route path="/rn/queue" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <RNWorkQueuePage />
+                </RequireAuth>
               </AppProvider>
             </AuthProvider>
           } />

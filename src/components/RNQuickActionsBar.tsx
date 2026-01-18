@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileText, MessageSquare, Calendar, Users, AlertCircle, Activity, BookOpen, Video, ExternalLink, Clock, Play, Square, ClipboardList, Bell, Search, GitBranch, UserCheck, HeartPulse, FolderKanban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
 
 interface Resource {
   id: string;
@@ -15,7 +14,6 @@ interface Resource {
 
 export function RNQuickActionsBar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
 
@@ -27,33 +25,8 @@ export function RNQuickActionsBar() {
     };
   }, []);
 
-  // Handle "My Work Queue" click - scroll to pending cases section
-  const handleWorkQueueClick = () => {
-    // If we're on the RN dashboard, scroll to pending cases section
-    if (location.pathname === '/rn-console' || location.pathname === '/rn-portal-landing') {
-      setTimeout(() => {
-        const pendingCasesElement = document.querySelector('#pending-cases');
-        if (pendingCasesElement) {
-          pendingCasesElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Add a subtle highlight effect
-          pendingCasesElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
-          setTimeout(() => {
-            pendingCasesElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
-          }, 2000);
-        }
-      }, 100);
-    } else {
-      // If not on dashboard, navigate to it
-      navigate('/rn-console');
-      // After navigation, scroll to pending cases
-      setTimeout(() => {
-        const pendingCasesElement = document.querySelector('#pending-cases');
-        if (pendingCasesElement) {
-          pendingCasesElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 500);
-    }
-  };
+  // Work Queue: navigate to dedicated /rn/queue page
+  const handleWorkQueueClick = () => navigate('/rn/queue');
 
   const resources: Resource[] = [
     {
@@ -99,7 +72,7 @@ export function RNQuickActionsBar() {
 
   // First row: Core clinical work
   const firstRowActions = [
-    { icon: ClipboardList, label: "My Work Queue", onClick: handleWorkQueueClick, variant: "default" },
+    { icon: ClipboardList, label: "Work Queue", onClick: handleWorkQueueClick, variant: "default" },
     { icon: FileText, label: "New Note", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: MessageSquare, label: "Message Client", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: Calendar, label: "Schedule", onClick: () => navigate("/rn-diary") },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -42,6 +42,11 @@ export default function CaseDetail() {
   const { cases, role, log, revokeConsent, providers } = useApp();
   const caseData = cases.find((c) => c.id === caseId);
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
+
+  // Context lock: when switching cases, close any open side panels (doc/note/report)
+  useEffect(() => {
+    setNotesDrawerOpen(false);
+  }, [caseId]);
 
   if (!caseData) {
     return (
