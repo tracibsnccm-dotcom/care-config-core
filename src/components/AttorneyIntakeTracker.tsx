@@ -48,7 +48,7 @@ interface PendingIntake {
   };
 }
 
-export const AttorneyIntakeTracker = () => {
+export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: boolean } = {}) => {
   const { user } = useAuth();
   const [rows, setRows] = useState<IntakeRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -508,44 +508,45 @@ export const AttorneyIntakeTracker = () => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-accent rounded-lg">
-        <Clock className="w-5 h-5 text-primary" />
-        <strong className="text-foreground">Pending Intakes:</strong>
-        <span className="font-bold text-primary">{pendingCount}</span>
-        <span className="text-sm text-muted-foreground">
-          Clients who haven't finished intake yet.
-        </span>
-        <button
-          className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold hover:bg-primary/80"
-          onMouseEnter={() => setShowHelp(true)}
-          onMouseLeave={() => setShowHelp(false)}
-          onFocus={() => setShowHelp(true)}
-          onBlur={() => setShowHelp(false)}
-        >
-          <HelpCircle className="w-3 h-3" />
-        </button>
-        {showHelp && (
-          <div className="absolute right-0 top-full mt-2 bg-popover border rounded-lg shadow-lg p-3 max-w-sm z-10">
-            <p className="text-sm mb-2">
-              <strong>Confidentiality Notice:</strong>
-              <br />
-              All communications, case notes, and uploaded files within Reconcile C.A.R.E. are
-              encrypted and stored under HIPAA and attorney–client privilege standards.
-            </p>
-            <Link
-              to="/compliance-and-privacy"
-              className="text-xs text-primary hover:underline font-bold"
-            >
-              View full Compliance Policy
-            </Link>
-          </div>
-        )}
-      </div>
+      {showHeader && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-accent rounded-lg">
+          <Clock className="w-5 h-5 text-primary" />
+          <strong className="text-foreground">Pending Intakes:</strong>
+          <span className="font-bold text-primary">{pendingCount}</span>
+          <span className="text-sm text-muted-foreground">
+            Clients who haven't finished intake yet.
+          </span>
+          <button
+            className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold hover:bg-primary/80"
+            onMouseEnter={() => setShowHelp(true)}
+            onMouseLeave={() => setShowHelp(false)}
+            onFocus={() => setShowHelp(true)}
+            onBlur={() => setShowHelp(false)}
+          >
+            <HelpCircle className="w-3 h-3" />
+          </button>
+          {showHelp && (
+            <div className="absolute right-0 top-full mt-2 bg-popover border rounded-lg shadow-lg p-3 max-w-sm z-10">
+              <p className="text-sm mb-2">
+                <strong>Confidentiality Notice:</strong>
+                <br />
+                All communications, case notes, and uploaded files within Reconcile C.A.R.E. are
+                encrypted and stored under HIPAA and attorney–client privilege standards.
+              </p>
+              <Link
+                to="/compliance-and-privacy"
+                className="text-xs text-primary hover:underline font-bold"
+              >
+                View full Compliance Policy
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Panel */}
       <Card className="p-0 overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 p-4 border-b bg-muted/30">
-          <h2 className="text-xl font-bold text-foreground">Pending Client Intakes</h2>
+        <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-3 p-4 border-b bg-muted/30">
           <div className="flex flex-wrap gap-2">
             <Input
               placeholder="Search by client/case…"

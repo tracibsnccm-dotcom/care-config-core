@@ -89,7 +89,7 @@ export default function AttorneyPendingIntakesPage() {
 
         {/* Intake Tracker */}
         <div className="mb-6">
-          <AttorneyIntakeTracker />
+          <AttorneyIntakeTracker showHeader={false} />
         </div>
       </div>
     </AppLayout>
