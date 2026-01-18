@@ -2,6 +2,7 @@
 // Step 6 of RN Care Plan Workflow - Final attestation with skipped sections acknowledgment
 
 import React, { useEffect, useState } from "react";
+import { createAutoNote, generateCarePlanCompletionNote } from "@/lib/autoNotes";
 
 // Supabase credentials for raw fetch
 const SUPABASE_URL = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
@@ -263,8 +264,33 @@ const FinalizeCarePlanScreen: React.FC = () => {
         }),
       });
 
+      // Get case and care plan info for auto-note
+      const caseInfoResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=id,client_id`);
+      const caseInfo = caseInfoResult && caseInfoResult.length > 0 ? caseInfoResult[0] : null;
+      const clientId = caseInfo?.client_id || null;
+
+      // Check if this is initial or updated care plan
+      // Count existing submitted plans BEFORE update to determine type
+      const existingPlansResult = await supabaseFetch(`rc_care_plans?case_id=eq.${caseId}&status=eq.submitted&order=created_at.asc`);
+      const existingSubmittedPlans = existingPlansResult || [];
+      const isInitial = existingSubmittedPlans.length === 0;
+
+      // Check for existing auto-note for THIS specific care plan (idempotency - use care_plan_id reference if available)
+      // Use note content to match care plan ID as fallback
+      const existingNotesResult = await supabaseFetch(
+        `rc_case_notes?case_id=eq.${caseId}&note_type=eq.care_plan_${isInitial ? 'initial' : 'updated'}_completed&order=created_at.desc&limit=5`
+      );
+      // Check if any existing note references this care plan ID
+      const noteTypePrefix = isInitial ? 'care_plan_initial_completed' : 'care_plan_updated_completed';
+      const existingNotes = existingNotesResult || [];
+      const hasExistingNote = existingNotes.some((note: any) => 
+        note.note_type === noteTypePrefix && 
+        note.content && 
+        note.content.includes(carePlanId.slice(0, 8))
+      );
+
       // Update care plan status to submitted
-      await supabaseFetch(`rc_care_plans?id=eq.${carePlanId}`, {
+      const updateResult = await supabaseFetch(`rc_care_plans?id=eq.${carePlanId}`, {
         method: 'PATCH',
         body: JSON.stringify({
           status: 'submitted',
@@ -272,6 +298,32 @@ const FinalizeCarePlanScreen: React.FC = () => {
           updated_at: new Date().toISOString(),
         }),
       });
+
+      // Get updated care plan to check for PDF URL
+      const updatedPlanResult = await supabaseFetch(`rc_care_plans?id=eq.${carePlanId}&select=pdf_url`);
+      const updatedPlan = updatedPlanResult && updatedPlanResult.length > 0 ? updatedPlanResult[0] : null;
+      const pdfUrl = updatedPlan?.pdf_url || null;
+
+      // Create auto-note for care plan completion (if not already exists - idempotency)
+      if (!hasExistingNote && caseId) {
+        try {
+          const noteContent = generateCarePlanCompletionNote(isInitial, pdfUrl, carePlanId);
+          await createAutoNote({
+            caseId: caseId,
+            noteType: isInitial ? 'care_plan_initial_completed' : 'care_plan_updated_completed',
+            title: isInitial ? 'Initial care plan completed — document attached.' : 'Updated care plan completed — document attached.',
+            content: noteContent,
+            triggerEvent: isInitial ? 'care_plan_initial_completed' : 'care_plan_updated_completed',
+            visibleToRN: true,
+            visibleToAttorney: true,
+            documentUrl: pdfUrl,
+            clientId: clientId,
+          });
+        } catch (noteError) {
+          // Log error but don't block submission
+          console.error('Failed to create care plan completion auto-note:', noteError);
+        }
+      }
 
       setAlreadyFinalized(true);
       setStatus("✓ Care plan finalized and submitted successfully!");

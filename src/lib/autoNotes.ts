@@ -10,7 +10,10 @@ export async function createAutoNote({
   triggerEvent,
   visibleToClient = false,
   visibleToRN = false,
-  visibleToAttorney = false
+  visibleToAttorney = false,
+  documentId = null,
+  documentUrl = null,
+  clientId = null,
 }: {
   caseId: string;
   noteType: string;
@@ -20,6 +23,9 @@ export async function createAutoNote({
   visibleToClient?: boolean;
   visibleToRN?: boolean;
   visibleToAttorney?: boolean;
+  documentId?: string | null;
+  documentUrl?: string | null;
+  clientId?: string | null;
 }) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -40,10 +46,23 @@ export async function createAutoNote({
   }
   // If none are set, visibility remains 'private' (attorney still sees it)
   
-  const noteData = {
+  // Include document reference in content if provided (safe approach - no schema changes needed)
+  let noteContent = content;
+  if (documentId || documentUrl) {
+    const docRef = documentId 
+      ? `\n\nDocument ID: ${documentId}`
+      : documentUrl 
+      ? `\n\nDocument: ${documentUrl}`
+      : '';
+    noteContent = `${content}${docRef}`;
+  }
+
+  // Note: client_id is not included in noteData since rc_case_notes doesn't have that column
+  // Client linkage is available via rc_cases.client_id JOIN, which is sufficient for queries
+  const noteData: any = {
     case_id: caseId,
     title: title,
-    content: content,
+    content: noteContent,
     note_type: triggerEvent,
     created_by: null,
     created_by_role: null,
@@ -140,4 +159,22 @@ Attorney ID: ${attorneyId}
 Attorney has indicated this is not their client.
 Intake has been marked as declined and access is disabled.`;
   }
+}
+
+export function generateCarePlanCompletionNote(isInitial: boolean, documentUrl?: string | null, carePlanId?: string | null): string {
+  const now = new Date().toLocaleString();
+  const planType = isInitial ? 'Initial' : 'Updated';
+  let note = `${planType} care plan completed — document attached.
+
+Date/Time: ${now}`;
+  
+  if (carePlanId) {
+    note += `\nCare Plan ID: ${carePlanId.slice(0, 8)}...`;
+  }
+  
+  if (documentUrl) {
+    note += `\nDocument: ${documentUrl}`;
+  }
+  
+  return note;
 }
