@@ -576,7 +576,7 @@ export default function AttorneyLanding() {
           <AttorneyQuickActions />
         </div>
 
-        {/* Overview Content - Case Tracking */}
+        {/* Overview Content - Case Tracking (Tab ribbon removed) */}
         <div className="space-y-4">
             <div className="flex justify-end mb-4">
               <AdvancedFilters 
