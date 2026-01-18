@@ -12,7 +12,7 @@
  * - "/rn/dashboard" routes to MVP RN dashboard (RNPortalLanding); /rn-console and /rn-portal-landing redirect to /rn/dashboard
  *   - Uses Lovable RN components directly (no ChatGPT demo shell)
  *   - Full dashboard with stats, to-do lists, case health, and all features
- * - "/attorney-portal" routes to MVP attorney portal (AttorneyLanding component)
+ * - Attorney: /attorney/dashboard, /attorney/communications, /attorney/pending-intakes (explicit); /attorney and /attorney/* redirect to /attorney/dashboard; /attorney-console→/attorney/dashboard; /attorney-portal unchanged
  * - "/client-portal" routes to MVP client portal (ClientPortal component)
  *   - ClientPortal uses Supabase-backed APIs (no demo/mock data)
  *   - ClientCheckins writes directly to rc_client_checkins and case_alerts tables
@@ -161,64 +161,12 @@ function Root() {
       return <ClientLogin />;
     }
 
-    // MVP Attorney Dashboard: "/attorney/dashboard" routes to AttorneyLanding component (canonical route)
-    // Production attorney landing page (NOT demo)
-    // REQUIRES AUTHENTICATION - gate at route level
-    // Redirects to /attorney-login if not authenticated (NOT /auth)
-    if (pathname === "/attorney/dashboard" || pathname.startsWith("/attorney/dashboard")) {
-      return (
-        <RequireAuth>
-          <AttorneyLanding />
-        </RequireAuth>
-      );
-    }
-
-    // MVP Attorney Console: "/attorney-console" redirects to /attorney/dashboard (legacy route)
-    // Production attorney landing page (NOT demo)
-    // REQUIRES AUTHENTICATION - gate at route level
-    // Redirects to /attorney-login if not authenticated (NOT /auth)
-    if (pathname === "/attorney-console" || pathname.startsWith("/attorney-console")) {
-      // Redirect to canonical route
-      if (typeof window !== "undefined") {
-        window.location.replace("/attorney/dashboard");
-        return null;
-      }
-      return null;
-    }
-
-    // MVP Attorney Communications: "/attorney/communications" routes to AttorneyCommunications component
-    // Check more specific routes first (before /attorney-portal)
-    if (pathname === "/attorney/communications" || pathname.startsWith("/attorney/communications")) {
-      return (
-        <RequireAuth>
-          <AttorneyCommunications />
-        </RequireAuth>
-      );
-    }
-
-    // MVP Attorney Pending Intakes: "/attorney/pending-intakes" routes to AttorneyPendingIntakesPage component
-    // Check more specific route first (before /attorney-portal)
-    if (pathname === "/attorney/pending-intakes" || pathname.startsWith("/attorney/pending-intakes")) {
-      return (
-        <RequireAuth>
-          <AttorneyPendingIntakesPage />
-        </RequireAuth>
-      );
-    }
+    // MVP Attorney: /attorney/dashboard, /attorney/communications, /attorney/pending-intakes, /attorney-console
+    // are handled by explicit Routes. /attorney-portal remains here (UNCHANGED).
 
     // MVP Attorney Portal: "/attorney-portal" routes to AttorneyLanding component
     // Check more specific route first
     if (pathname === "/attorney-portal" || pathname.startsWith("/attorney-portal")) {
-      return (
-        <RequireAuth>
-          <AttorneyLanding />
-        </RequireAuth>
-      );
-    }
-
-    // MVP Attorney Portal: "/attorney" routes to AttorneyLanding component
-    // Explicit route for attorney portal (must come after /attorney-portal to avoid matching it)
-    if (pathname === "/attorney") {
       return (
         <RequireAuth>
           <AttorneyLanding />
@@ -291,6 +239,39 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/client-portal" element={<ClientPortalSimple />} />
           <Route path="/check-status" element={<CheckIntakeStatus />} />
           <Route path="/attorney-login" element={<AttorneyLogin />} />
+          {/* Attorney: known /attorney/* pages (must be before /attorney and /attorney/*) */}
+          <Route path="/attorney/dashboard" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <AttorneyLanding />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/attorney/communications" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <AttorneyCommunications />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/attorney/pending-intakes" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <AttorneyPendingIntakesPage />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          {/* Attorney: /attorney and unknown /attorney/* → /attorney/dashboard (replace to prevent back loops) */}
+          <Route path="/attorney" element={<Navigate to="/attorney/dashboard" replace />} />
+          <Route path="/attorney/*" element={<Navigate to="/attorney/dashboard" replace />} />
+          {/* Legacy: /attorney-console → /attorney/dashboard (replace) */}
+          <Route path="/attorney-console" element={<Navigate to="/attorney/dashboard" replace />} />
           <Route path="/rn-login" element={<RNPortalLogin />} />
           <Route path="/auth" element={<Access />} />
           <Route path="/access" element={<Access />} />

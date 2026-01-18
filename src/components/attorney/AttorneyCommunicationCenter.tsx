@@ -60,6 +60,7 @@ export function AttorneyCommunicationCenter() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reasonCode, setReasonCode] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState({
     start: "",
@@ -67,9 +68,11 @@ export function AttorneyCommunicationCenter() {
   });
 
   useEffect(() => {
-    if (user?.id) {
-      fetchCases();
+    if (!user?.id) {
+      setLoading(false);
+      return;
     }
+    fetchCases();
   }, [user?.id]);
 
   useEffect(() => {
@@ -86,12 +89,10 @@ export function AttorneyCommunicationCenter() {
 
   async function fetchCases() {
     if (!user?.id) return;
-    
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // First, get case IDs assigned to this attorney
       const assignmentsResponse = await fetch(
         `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
         {
@@ -103,125 +104,134 @@ export function AttorneyCommunicationCenter() {
       );
 
       if (!assignmentsResponse.ok) {
-        console.error("Failed to fetch case assignments");
+        console.error("AttorneyCommunicationCenter: case_assignments fetch not ok");
+        setReasonCode("COMM-FETCH-ERROR");
         return;
       }
 
       const assignments = await assignmentsResponse.json();
-      const caseIds = assignments.map((a: any) => a.case_id);
+      const caseIds = (assignments || []).map((a: any) => a.case_id).filter(Boolean);
 
       if (caseIds.length === 0) {
         setCases([]);
+        setReasonCode("COMM-NO-CASES");
         return;
       }
 
-      // Fetch cases assigned to attorney with client info
       const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
-        `id=in.(${caseIds.join(',')})` +
+        `id=in.(${caseIds.join(",")})` +
         `&select=id,case_number,client_id,rc_clients(first_name,last_name)` +
         `&order=case_number.asc`;
 
       const response = await fetch(casesUrl, {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const processedCases = data.map((c: any) => ({
-          id: c.id,
-          case_number: c.case_number,
-          client_id: c.client_id,
-          client_name: c.rc_clients
-            ? `${c.rc_clients.first_name || ''} ${c.rc_clients.last_name || ''}`.trim()
-            : undefined,
-        }));
-        setCases(processedCases);
+      if (!response.ok) {
+        console.error("AttorneyCommunicationCenter: rc_cases fetch not ok");
+        setReasonCode("COMM-FETCH-ERROR");
+        return;
       }
+
+      const data = await response.json();
+      const processedCases = (data || []).map((c: any) => ({
+        id: c.id,
+        case_number: c.case_number,
+        client_id: c.client_id,
+        client_name: c.rc_clients
+          ? `${c.rc_clients.first_name || ""} ${c.rc_clients.last_name || ""}`.trim()
+          : undefined,
+      }));
+      setCases(processedCases);
+      setReasonCode(null);
     } catch (err) {
-      console.error("Error fetching cases:", err);
+      console.error("AttorneyCommunicationCenter: fetchCases error", err);
+      setReasonCode("COMM-FETCH-ERROR");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function fetchClientMessages() {
-    if (!user?.id || cases.length === 0) {
-      if (cases.length === 0 && user?.id) {
-        // Cases haven't loaded yet, wait for them
-        await fetchCases();
-        return;
-      }
-      return;
-    }
-
     try {
       setLoading(true);
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const caseIds = cases.map(c => c.id);
-      if (caseIds.length === 0) {
+      if (!user?.id || cases.length === 0) {
         setCaseMessages([]);
         setMessageList([]);
         return;
       }
 
-      // Fetch messages only for cases assigned to this attorney
+      const caseIds = cases.map((c) => c.id);
+      if (caseIds.length === 0) {
+        setCaseMessages([]);
+        setMessageList([]);
+        setReasonCode("COMM-NO-THREADS");
+        return;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?` +
-        `case_id=in.(${caseIds.join(',')})` +
+        `case_id=in.(${caseIds.join(",")})` +
         `&sender_type=in.(client,attorney)` +
         `&order=created_at.desc`;
 
       const response = await fetch(messagesUrl, {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
         },
       });
 
-      if (response.ok) {
-        const messages: Message[] = await response.json();
-        
-        // Group messages by case
-        const messagesByCase = new Map<string, CaseMessages>();
-        
-        messages.forEach((msg) => {
-          if (!messagesByCase.has(msg.case_id)) {
-            const caseInfo = cases.find((c) => c.id === msg.case_id);
-            if (caseInfo) {
-              messagesByCase.set(msg.case_id, {
-                case: caseInfo,
-                messages: [],
-                unreadCount: 0,
-              });
-            }
-          }
-          
-          const caseMsg = messagesByCase.get(msg.case_id);
-          if (caseMsg) {
-            caseMsg.messages.push(msg);
-            if (msg.sender_type === 'client' && !msg.is_read) {
-              caseMsg.unreadCount++;
-            }
-          }
-        });
+      if (!response.ok) {
+        console.error("AttorneyCommunicationCenter: rc_messages fetch not ok");
+        setReasonCode("COMM-FETCH-ERROR");
+        return;
+      }
 
-        // Sort by unread count, then by most recent message
-        const sortedCases = Array.from(messagesByCase.values()).sort((a, b) => {
-          if (b.unreadCount !== a.unreadCount) {
-            return b.unreadCount - a.unreadCount;
-          }
-          const aLastMsg = a.messages[0]?.created_at || '';
-          const bLastMsg = b.messages[0]?.created_at || '';
-          return bLastMsg.localeCompare(aLastMsg);
-        });
+      const messages: Message[] = await response.json();
+      const messagesByCase = new Map<string, CaseMessages>();
 
-        setCaseMessages(sortedCases);
-        setMessageList(sortedCases);
+      (messages || []).forEach((msg) => {
+        if (!messagesByCase.has(msg.case_id)) {
+          const caseInfo = cases.find((c) => c.id === msg.case_id);
+          if (caseInfo) {
+            messagesByCase.set(msg.case_id, {
+              case: caseInfo,
+              messages: [],
+              unreadCount: 0,
+            });
+          }
+        }
+        const caseMsg = messagesByCase.get(msg.case_id);
+        if (caseMsg) {
+          caseMsg.messages.push(msg);
+          if (msg.sender_type === "client" && !msg.is_read) {
+            caseMsg.unreadCount++;
+          }
+        }
+      });
+
+      const sortedCases = Array.from(messagesByCase.values()).sort((a, b) => {
+        if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
+        const aLast = a.messages[0]?.created_at || "";
+        const bLast = b.messages[0]?.created_at || "";
+        return bLast.localeCompare(aLast);
+      });
+
+      setCaseMessages(sortedCases);
+      setMessageList(sortedCases);
+      if (sortedCases.length === 0) {
+        setReasonCode("COMM-NO-THREADS");
+      } else {
+        setReasonCode(null);
       }
     } catch (err) {
-      console.error("Error fetching client messages:", err);
+      console.error("AttorneyCommunicationCenter: fetchClientMessages error", err);
+      setReasonCode("COMM-FETCH-ERROR");
     } finally {
       setLoading(false);
     }
@@ -258,7 +268,8 @@ export function AttorneyCommunicationCenter() {
         setRNNotes(notes);
       }
     } catch (err) {
-      console.error("Error fetching RN notes:", err);
+      console.error("AttorneyCommunicationCenter: fetchRNNotes error", err);
+      setReasonCode("COMM-FETCH-ERROR");
     } finally {
       setLoading(false);
     }
@@ -269,7 +280,8 @@ export function AttorneyCommunicationCenter() {
       setLoading(true);
       await Promise.all([fetchClientMessages(), fetchRNNotes()]);
     } catch (err) {
-      console.error("Error fetching all activity:", err);
+      console.error("AttorneyCommunicationCenter: fetchAllActivity error", err);
+      setReasonCode("COMM-FETCH-ERROR");
     } finally {
       setLoading(false);
     }
@@ -427,7 +439,7 @@ export function AttorneyCommunicationCenter() {
 
   const totalUnread = caseMessages.reduce((sum, cm) => sum + cm.unreadCount, 0);
 
-  if (loading && activeTab === "client-messages" && caseMessages.length === 0) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
         <p className="text-slate-600">Loading communications...</p>
@@ -458,6 +470,22 @@ export function AttorneyCommunicationCenter() {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Diagnostic: COMM-NO-CASES, COMM-FETCH-ERROR (no stack traces) */}
+      {reasonCode === "COMM-NO-CASES" && (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="p-4">
+            <p className="text-amber-800">No cases assigned to you yet. (COMM-NO-CASES)</p>
+          </CardContent>
+        </Card>
+      )}
+      {reasonCode === "COMM-FETCH-ERROR" && (
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-4">
+            <p className="text-red-800">Could not load communications. Please try again. (COMM-FETCH-ERROR)</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -557,7 +585,10 @@ export function AttorneyCommunicationCenter() {
                   }).length === 0 && (
                     <div className="p-8 text-center">
                       <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500">No messages found.</p>
+                      <p className="text-slate-500">
+                        No messages found.
+                        {reasonCode === "COMM-NO-THREADS" && " (COMM-NO-THREADS)"}
+                      </p>
                     </div>
                   )}
                 </ScrollArea>
