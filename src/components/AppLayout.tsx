@@ -128,15 +128,19 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const filteredNav = navigation.filter((item) => canAccessRoute(item.roles));
 
+  // Hide sidebar for attorneys - they use Quick Actions instead
+  const shouldShowSidebar = role !== ROLES.ATTORNEY;
+
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
-          isCollapsed ? "w-16" : "w-64"
-        )}
-      >
+      {/* Sidebar - Hidden for attorneys */}
+      {shouldShowSidebar && (
+        <aside
+          className={cn(
+            "bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
+            isCollapsed ? "w-16" : "w-64"
+          )}
+        >
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           {!isCollapsed && (
             <div>
@@ -229,6 +233,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </TooltipProvider>
         </div>
       </aside>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
