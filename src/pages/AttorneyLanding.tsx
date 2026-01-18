@@ -16,7 +16,7 @@ import { useApp } from "@/context/AppContext";
 import { fmtDate } from "@/lib/store";
 import { RCMS_CONFIG } from "@/config/rcms";
 import { Case, CaseStatus } from "@/config/rcms";
-import { Users, Stethoscope, FolderOpen, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
+import { Users, Stethoscope, FileDown, AlertTriangle, Clock, BarChart3, Shield } from "lucide-react";
 import { differenceInHours, differenceInDays } from "date-fns";
 import { PendingIntakesWidget, sendImmediateNudge } from "@/modules/rcms-intake-extras";
 import { ExportButton } from "@/components/AttorneyActions";
@@ -39,7 +39,6 @@ import ExportCenter from "@/components/attorney/ExportCenter";
 import IntegrationSettings from "@/components/attorney/IntegrationSettings";
 import AttorneyGlobalSearch from "@/components/attorney/AttorneyGlobalSearch";
 import AttorneyQuickStatsWidget from "@/components/attorney/AttorneyQuickStatsWidget";
-import RecentActivityFeed from "@/components/attorney/RecentActivityFeed";
 import PinnedCasesWidget from "@/components/attorney/PinnedCasesWidget";
 import { TimeTrackingBilling } from "@/components/attorney/TimeTrackingBilling";
 import { CaseNotesHub } from "@/components/attorney/CaseNotesHub";
@@ -400,12 +399,6 @@ export default function AttorneyLanding() {
     return hoursOld >= 72 && c.status === "NEW";
   });
 
-  // Recently opened (last 7 days)
-  const recentCases = cases.filter((c) => {
-    const daysOld = differenceInDays(now, new Date(c.createdAt));
-    return daysOld <= 7;
-  });
-
   // Cases needing attention (30+ days since last checkin)
   const needsAttentionCases = cases.filter((c) => {
     if (!c.checkins || c.checkins.length === 0) {
@@ -551,38 +544,6 @@ export default function AttorneyLanding() {
               </Card>
             )}
 
-            {/* Recently Opened Cases */}
-            <Card className="p-4 border-border">
-              <div className="flex items-center gap-3 mb-3">
-                <FolderOpen className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">
-                  Recently Opened Cases (Last 7 Days)
-                </h3>
-                <span className="ml-auto text-sm text-muted-foreground">
-                  {recentCases.length} case{recentCases.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              {recentCases.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No cases opened in the last 7 days</p>
-              ) : (
-                <div className="space-y-2">
-                  {recentCases.slice(0, 5).map((c) => (
-                    <CaseListItem key={c.id} case={c} navigate={navigate} />
-                  ))}
-                  {recentCases.length > 5 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate("/cases")}
-                      className="w-full mt-2"
-                    >
-                      View all {recentCases.length} cases
-                    </Button>
-                  )}
-                </div>
-              )}
-            </Card>
-
             {/* Cases Needing Attention */}
             <Card className="p-4 border-border">
               <div className="flex items-center gap-3 mb-3">
@@ -615,9 +576,8 @@ export default function AttorneyLanding() {
               )}
             </Card>
 
-            {/* Recent Activity and Pinned Cases */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <RecentActivityFeed />
+            {/* Pinned Cases */}
+            <div>
               <PinnedCasesWidget />
             </div>
         </div>
