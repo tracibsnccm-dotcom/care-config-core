@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,32 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Send, ChevronDown, ChevronUp, Calendar, User, FileText, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FileText, Calendar, MessageSquare, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 
-interface Message {
-  id: string;
-  case_id: string;
-  sender_type: 'client' | 'rn' | 'attorney';
-  sender_id: string | null;
-  sender_name?: string;
-  message_text: string;
-  is_read: boolean;
-  read_at: string | null;
-  created_at: string;
-}
-
-interface RNNote {
-  id: string;
-  case_id: string;
-  rn_id: string | null;
-  rn_name?: string;
-  note_type: string | null;
-  note_body: string | null;
-  created_at: string;
-}
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface Case {
   id: string;
@@ -41,829 +37,596 @@ interface Case {
   client_name?: string;
 }
 
-interface CaseMessages {
-  case: Case;
-  messages: Message[];
-  unreadCount: number;
+interface CaseRequest {
+  id: string;
+  case_id: string;
+  created_by_user_id: string | null;
+  created_by_role: string;
+  request_type: string;
+  priority: string;
+  due_at: string | null;
+  status: string;
+  subject: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  responded_at: string | null;
+  closed_at: string | null;
 }
+
+interface CaseRequestUpdate {
+  id: string;
+  request_id: string;
+  case_id: string;
+  author_user_id: string | null;
+  author_role: string;
+  body: string;
+  created_at: string;
+}
+
+const REQUEST_TYPES = ["Clarification", "Record Gap", "Timeline", "Clinical Summary", "Other"] as const;
+const PRIORITIES = ["Low", "Normal", "High", "Urgent"] as const;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function AttorneyCommunicationCenter() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("client-messages");
+  const [activeTab, setActiveTab] = useState<"requests" | "all-activity">("requests");
   const [cases, setCases] = useState<Case[]>([]);
-  const [caseMessages, setCaseMessages] = useState<CaseMessages[]>([]);
-  const [messageList, setMessageList] = useState<CaseMessages[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [rnNotes, setRNNotes] = useState<RNNote[]>([]);
-  const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
-  const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
+  const [requests, setRequests] = useState<CaseRequest[]>([]);
+  const [updatesByRequestId, setUpdatesByRequestId] = useState<Record<string, CaseRequestUpdate[]>>({});
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [newRequestOpen, setNewRequestOpen] = useState(false);
+  const [addUpdateBody, setAddUpdateBody] = useState("");
   const [loading, setLoading] = useState(true);
-  const [reasonCode, setReasonCode] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState({
-    start: "",
-    end: "",
-  });
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
-  useEffect(() => {
+  // New request form
+  const [formType, setFormType] = useState<string>(REQUEST_TYPES[0]);
+  const [formPriority, setFormPriority] = useState<string>("Normal");
+  const [formSubject, setFormSubject] = useState("");
+  const [formBody, setFormBody] = useState("");
+  const [formDueAt, setFormDueAt] = useState("");
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const headers = () => ({ apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` });
+
+  // -------------------------------------------------------------------------
+  // Fetch cases (attorney's assigned)
+  // -------------------------------------------------------------------------
+  const fetchCases = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
-    fetchCases();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (cases.length > 0) {
-      if (activeTab === "client-messages") {
-        fetchClientMessages();
-      } else if (activeTab === "rn-communications") {
-        fetchRNNotes();
-      } else if (activeTab === "all-activity") {
-        fetchAllActivity();
-      }
-    }
-  }, [activeTab, cases]);
-
-  async function fetchCases() {
-    if (!user?.id) return;
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const assignmentsResponse = await fetch(
+      const r = await fetch(
         `${supabaseUrl}/rest/v1/case_assignments?user_id=eq.${user.id}&role=eq.ATTORNEY&select=case_id`,
-        {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
+        { headers: headers() }
       );
-
-      if (!assignmentsResponse.ok) {
-        console.error("AttorneyCommunicationCenter: case_assignments fetch not ok");
-        setReasonCode("COMM-FETCH-ERROR");
+      if (!r.ok) {
+        setErrorCode("COMM-FETCH-ERROR");
+        setCases([]);
         return;
       }
-
-      const assignments = await assignmentsResponse.json();
-      const caseIds = (assignments || []).map((a: any) => a.case_id).filter(Boolean);
-
+      const assignments = (await r.json()) || [];
+      const caseIds = assignments.map((a: { case_id: string }) => a.case_id).filter(Boolean);
       if (caseIds.length === 0) {
         setCases([]);
-        setReasonCode("COMM-NO-CASES");
+        setErrorCode(null);
         return;
       }
-
-      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
-        `id=in.(${caseIds.join(",")})` +
-        `&select=id,case_number,client_id,rc_clients(first_name,last_name)` +
-        `&order=case_number.asc`;
-
-      const response = await fetch(casesUrl, {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error("AttorneyCommunicationCenter: rc_cases fetch not ok");
-        setReasonCode("COMM-FETCH-ERROR");
+      const casesRes = await fetch(
+        `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
+        { headers: headers() }
+      );
+      if (!casesRes.ok) {
+        setErrorCode("COMM-FETCH-ERROR");
+        setCases([]);
         return;
       }
-
-      const data = await response.json();
-      const processedCases = (data || []).map((c: any) => ({
-        id: c.id,
-        case_number: c.case_number,
-        client_id: c.client_id,
-        client_name: c.rc_clients
-          ? `${c.rc_clients.first_name || ""} ${c.rc_clients.last_name || ""}`.trim()
-          : undefined,
-      }));
-      setCases(processedCases);
-      setReasonCode(null);
-    } catch (err) {
-      console.error("AttorneyCommunicationCenter: fetchCases error", err);
-      setReasonCode("COMM-FETCH-ERROR");
+      const data = (await casesRes.json()) || [];
+      setCases(
+        data.map((c: any) => ({
+          id: c.id,
+          case_number: c.case_number,
+          client_id: c.client_id,
+          client_name: c.rc_clients
+            ? `${c.rc_clients.first_name || ""} ${c.rc_clients.last_name || ""}`.trim()
+            : undefined,
+        }))
+      );
+      setErrorCode(null);
+    } catch (e) {
+      console.error("AttorneyCommunicationCenter: fetchCases", e);
+      setErrorCode("COMM-FETCH-ERROR");
+      setCases([]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [user?.id, supabaseUrl]);
 
-  async function fetchClientMessages() {
-    try {
-      setLoading(true);
-      if (!user?.id || cases.length === 0) {
-        setCaseMessages([]);
-        setMessageList([]);
-        return;
-      }
+  useEffect(() => {
+    fetchCases();
+  }, [fetchCases]);
 
-      const caseIds = cases.map((c) => c.id);
-      if (caseIds.length === 0) {
-        setCaseMessages([]);
-        setMessageList([]);
-        setReasonCode("COMM-NO-THREADS");
-        return;
-      }
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const messagesUrl = `${supabaseUrl}/rest/v1/rc_messages?` +
-        `case_id=in.(${caseIds.join(",")})` +
-        `&sender_type=in.(client,attorney)` +
-        `&order=created_at.desc`;
-
-      const response = await fetch(messagesUrl, {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error("AttorneyCommunicationCenter: rc_messages fetch not ok");
-        setReasonCode("COMM-FETCH-ERROR");
-        return;
-      }
-
-      const messages: Message[] = await response.json();
-      const messagesByCase = new Map<string, CaseMessages>();
-
-      (messages || []).forEach((msg) => {
-        if (!messagesByCase.has(msg.case_id)) {
-          const caseInfo = cases.find((c) => c.id === msg.case_id);
-          if (caseInfo) {
-            messagesByCase.set(msg.case_id, {
-              case: caseInfo,
-              messages: [],
-              unreadCount: 0,
-            });
-          }
-        }
-        const caseMsg = messagesByCase.get(msg.case_id);
-        if (caseMsg) {
-          caseMsg.messages.push(msg);
-          if (msg.sender_type === "client" && !msg.is_read) {
-            caseMsg.unreadCount++;
-          }
-        }
-      });
-
-      const sortedCases = Array.from(messagesByCase.values()).sort((a, b) => {
-        if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
-        const aLast = a.messages[0]?.created_at || "";
-        const bLast = b.messages[0]?.created_at || "";
-        return bLast.localeCompare(aLast);
-      });
-
-      setCaseMessages(sortedCases);
-      setMessageList(sortedCases);
-      if (sortedCases.length === 0) {
-        setReasonCode("COMM-NO-THREADS");
-      } else {
-        setReasonCode(null);
-      }
-    } catch (err) {
-      console.error("AttorneyCommunicationCenter: fetchClientMessages error", err);
-      setReasonCode("COMM-FETCH-ERROR");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchRNNotes() {
-    try {
-      setLoading(true);
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      let url = `${supabaseUrl}/rest/v1/rc_rn_notes?select=*,rc_users(full_name)&order=created_at.desc`;
-      
-      if (dateRange.start) {
-        url += `&created_at=gte.${dateRange.start}`;
-      }
-      if (dateRange.end) {
-        url += `&created_at=lte.${dateRange.end}`;
-      }
-
-      const response = await fetch(url, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const notes: RNNote[] = data.map((note: any) => ({
-          ...note,
-          rn_name: note.rc_users?.full_name || 'RN',
-        }));
-        setRNNotes(notes);
-      }
-    } catch (err) {
-      console.error("AttorneyCommunicationCenter: fetchRNNotes error", err);
-      setReasonCode("COMM-FETCH-ERROR");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchAllActivity() {
-    try {
-      setLoading(true);
-      await Promise.all([fetchClientMessages(), fetchRNNotes()]);
-    } catch (err) {
-      console.error("AttorneyCommunicationCenter: fetchAllActivity error", err);
-      setReasonCode("COMM-FETCH-ERROR");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSendReply() {
-    const selectedCase = caseMessages.find(cm => cm.case.id === selectedCaseId);
-    const caseId = selectedCase?.case.id;
-
-    console.log("Send Reply clicked");
-    console.log("Reply text:", replyText);
-    console.log("Selected case:", selectedCase);
-
-    if (!replyText.trim() || !user?.id) {
-      console.log("Validation failed - message empty or no user");
+  // -------------------------------------------------------------------------
+  // Fetch requests for selected case
+  // -------------------------------------------------------------------------
+  const fetchRequests = useCallback(async () => {
+    if (!selectedCaseId) {
+      setRequests([]);
+      setUpdatesByRequestId({});
       return;
     }
+    setRequestsLoading(true);
+    try {
+      const r = await fetch(
+        `${supabaseUrl}/rest/v1/rc_case_requests?case_id=eq.${selectedCaseId}&order=created_at.desc`,
+        { headers: headers() }
+      );
+      if (!r.ok) {
+        setRequests([]);
+        return;
+      }
+      const list: CaseRequest[] = await r.json();
+      setRequests(list || []);
+      // Fetch updates for each request
+      const map: Record<string, CaseRequestUpdate[]> = {};
+      for (const req of list || []) {
+        const u = await fetch(
+          `${supabaseUrl}/rest/v1/rc_case_request_updates?request_id=eq.${req.id}&order=created_at.asc`,
+          { headers: headers() }
+        );
+        if (u.ok) {
+          map[req.id] = (await u.json()) || [];
+        } else {
+          map[req.id] = [];
+        }
+      }
+      setUpdatesByRequestId(map);
+    } catch (e) {
+      console.error("AttorneyCommunicationCenter: fetchRequests", e);
+      setRequests([]);
+      setUpdatesByRequestId({});
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [selectedCaseId, supabaseUrl]);
 
-    if (!caseId) {
-      console.error("No case ID provided");
-      toast({
-        title: "Error",
-        description: "No case selected. Please select a case to send a message.",
-        variant: "destructive",
-      });
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  // -------------------------------------------------------------------------
+  // Create request
+  // -------------------------------------------------------------------------
+  const createRequest = async () => {
+    if (!selectedCaseId || !formBody.trim() || !user?.id) {
+      toast({ title: "Error", description: "Case, message, and sign-in are required.", variant: "destructive" });
       return;
     }
-
     setSending(true);
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      // Get attorney name if available
-      const attorneyName = user.user_metadata?.full_name || user.email || 'Attorney';
-
-      const messageData = {
-        case_id: caseId,
-        sender_type: 'attorney',
-        sender_id: user.id,
-        sender_name: attorneyName,
-        message_text: replyText.trim(),
-        is_read: false,
-        created_at: new Date().toISOString(),
-      };
-
-      console.log("Sending message data:", messageData);
-
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rc_messages`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-          },
-          body: JSON.stringify(messageData),
-        }
-      );
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(errorText || 'Failed to send message');
+      const r = await fetch(`${supabaseUrl}/rest/v1/rc_case_requests`, {
+        method: "POST",
+        headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({
+          case_id: selectedCaseId,
+          created_by_user_id: user.id,
+          created_by_role: "attorney",
+          request_type: formType,
+          priority: formPriority,
+          due_at: formDueAt || null,
+          subject: formSubject.trim() || null,
+          body: formBody.trim(),
+        }),
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(t || "Failed to create request");
       }
-
-      const result = await response.json();
-      console.log("Message sent successfully:", result);
-
-      // Clear the textarea
-      setReplyText("");
-      
-      // Refresh the message thread
-      await fetchClientMessages();
-      
-      // Show success toast
-      toast({
-        title: "Message sent",
-        description: "Your reply has been sent successfully.",
-      });
-    } catch (err: any) {
-      console.error("Error sending message:", err);
-      toast({
-        title: "Error",
-        description: "Failed to send message: " + (err.message || "Unknown error"),
-        variant: "destructive",
-      });
+      setNewRequestOpen(false);
+      setFormSubject("");
+      setFormBody("");
+      setFormDueAt("");
+      setFormType(REQUEST_TYPES[0]);
+      setFormPriority("Normal");
+      toast({ title: "Request created", description: "Your clinical request has been submitted." });
+      fetchRequests();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Failed to create request", variant: "destructive" });
     } finally {
       setSending(false);
     }
-  }
+  };
 
-  async function markAsRead(messageId: string) {
+  // -------------------------------------------------------------------------
+  // Add update (attorney)
+  // -------------------------------------------------------------------------
+  const addUpdate = async () => {
+    if (!selectedRequestId || !addUpdateBody.trim() || !selectedCaseId || !user?.id) {
+      toast({ title: "Error", description: "Request, message, and sign-in are required.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const r = await fetch(`${supabaseUrl}/rest/v1/rc_case_request_updates`, {
+        method: "POST",
+        headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({
+          request_id: selectedRequestId,
+          case_id: selectedCaseId,
+          author_user_id: user.id,
+          author_role: "attorney",
+          body: addUpdateBody.trim(),
+        }),
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(t || "Failed to add update");
+      }
+      setAddUpdateBody("");
+      toast({ title: "Update added", description: "Your update has been posted." });
+      fetchRequests();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Failed to add update", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
 
-      await fetch(
-        `${supabaseUrl}/rest/v1/rc_messages?id=eq.${messageId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            is_read: true,
-            read_at: new Date().toISOString(),
-          }),
-        }
-      );
-
-      await fetchClientMessages();
-    } catch (err) {
-      console.error("Error marking message as read:", err);
+  // -------------------------------------------------------------------------
+  // All Activity: requests + updates, newest first
+  // -------------------------------------------------------------------------
+  const allActivityItems: { kind: "request" | "update"; createdAt: string; req: CaseRequest; update?: CaseRequestUpdate }[] = [];
+  for (const req of requests) {
+    allActivityItems.push({ kind: "request", createdAt: req.created_at, req });
+    for (const u of updatesByRequestId[req.id] || []) {
+      allActivityItems.push({ kind: "update", createdAt: u.created_at, req, update: u });
     }
   }
+  allActivityItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // Mark messages as read when viewing detail
-  useEffect(() => {
-    if (selectedCaseId && caseMessages.length > 0) {
-      const caseMsg = caseMessages.find((cm) => cm.case.id === selectedCaseId);
-      if (caseMsg) {
-        caseMsg.messages
-          .filter((m) => m.sender_type === 'client' && !m.is_read)
-          .forEach((m) => {
-            markAsRead(m.id);
-          });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCaseId, caseMessages.length]);
+  const selectedRequest = selectedRequestId ? requests.find((r) => r.id === selectedRequestId) : null;
+  const selectedUpdates = selectedRequestId ? (updatesByRequestId[selectedRequestId] || []) : [];
 
-  const allActivityItems = [
-    ...caseMessages.flatMap((cm) =>
-      cm.messages.map((msg) => ({
-        type: 'message' as const,
-        case: cm.case,
-        data: msg,
-        created_at: msg.created_at,
-      }))
-    ),
-    ...rnNotes.map((note) => ({
-      type: 'rn_note' as const,
-      case: cases.find((c) => c.id === note.case_id),
-      data: note,
-      created_at: note.created_at,
-    })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  const totalUnread = caseMessages.reduce((sum, cm) => sum + cm.unreadCount, 0);
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <p className="text-slate-600">Loading communications...</p>
+        <p className="text-slate-600">Loading…</p>
       </div>
+    );
+  }
+
+  if (errorCode === "COMM-FETCH-ERROR") {
+    return (
+      <Card className="bg-red-50 border-red-200">
+        <CardContent className="p-4">
+          <p className="text-red-800">Could not load communications. Please try again. (COMM-FETCH-ERROR)</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (cases.length === 0) {
+    return (
+      <Card className="bg-amber-50 border-amber-200">
+        <CardContent className="p-4">
+          <p className="text-amber-800">No cases assigned to you yet. (COMM-NO-CASES)</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card className="bg-white border-slate-200 shadow-sm">
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-slate-800 text-2xl flex items-center gap-2">
-                <MessageSquare className="w-6 h-6 text-blue-600" />
-                Communication Center
-              </CardTitle>
-              <p className="text-slate-600 text-sm mt-1">
-                View and manage all case communications
-              </p>
-            </div>
-            {totalUnread > 0 && (
-              <Badge className="bg-blue-600 text-white text-lg px-3 py-1">
-                {totalUnread} Unread
-              </Badge>
-            )}
-          </div>
+          <CardTitle className="text-slate-800 text-2xl flex items-center gap-2">
+            <MessageSquare className="w-6 h-6 text-blue-600" />
+            Clinical Requests & Updates
+          </CardTitle>
+          <p className="text-slate-600 text-sm mt-1">Request clinical information from RN and view responses.</p>
         </CardHeader>
       </Card>
 
-      {/* Diagnostic: COMM-NO-CASES, COMM-FETCH-ERROR (no stack traces) */}
-      {reasonCode === "COMM-NO-CASES" && (
-        <Card className="bg-amber-50 border-amber-200">
-          <CardContent className="p-4">
-            <p className="text-amber-800">No cases assigned to you yet. (COMM-NO-CASES)</p>
-          </CardContent>
-        </Card>
-      )}
-      {reasonCode === "COMM-FETCH-ERROR" && (
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-4">
-            <p className="text-red-800">Could not load communications. Please try again. (COMM-FETCH-ERROR)</p>
+      {/* Case selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-slate-700">Case</Label>
+        <Select
+          value={selectedCaseId ?? ""}
+          onValueChange={(v) => {
+            setSelectedCaseId(v || null);
+            setSelectedRequestId(null);
+          }}
+        >
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Select a case to view Requests & Updates." />
+          </SelectTrigger>
+          <SelectContent>
+            {cases.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!selectedCaseId && (
+        <Card className="bg-slate-50 border-slate-200">
+          <CardContent className="p-6 text-center">
+            <FileText className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+            <p className="text-slate-700">Select a case to view Requests & Updates.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white border-b border-slate-200">
-          <TabsTrigger value="client-messages" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-            Client Messages
-            {totalUnread > 0 && (
-              <Badge className="ml-2 bg-blue-600 text-white">{totalUnread}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="rn-communications" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-            RN Communications
-          </TabsTrigger>
-          <TabsTrigger value="all-activity" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-            All Activity
-          </TabsTrigger>
-        </TabsList>
+      {selectedCaseId && (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "requests" | "all-activity")} className="w-full">
+          <TabsList className="bg-white border-b border-slate-200">
+            <TabsTrigger value="requests" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              Requests
+            </TabsTrigger>
+            <TabsTrigger value="all-activity" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              All Activity
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tab 1: Client Messages */}
-        <TabsContent value="client-messages" className="space-y-4">
-          {/* Message List View */}
-          {!selectedCaseId && (
-            <Card className="bg-white border-slate-200">
-              <CardHeader>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search messages by client name or case number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[600px] pr-4">
-                  {messageList
-                    .filter((cm) => {
-                      if (!searchTerm) return true;
-                      const search = searchTerm.toLowerCase();
-                      return (
-                        cm.case.client_name?.toLowerCase().includes(search) ||
-                        cm.case.case_number?.toLowerCase().includes(search) ||
-                        cm.messages.some(m => m.message_text.toLowerCase().includes(search))
-                      );
-                    })
-                    .map((caseMsg) => {
-                      const latestMsg = caseMsg.messages[0];
-                      const preview = latestMsg?.message_text.slice(0, 50) || '';
-                      return (
-                        <div
-                          key={caseMsg.case.id}
-                          onClick={() => {
-                            setSelectedCaseId(caseMsg.case.id);
-                            setExpandedCases(new Set([caseMsg.case.id]));
-                          }}
-                          className={`p-4 rounded-lg cursor-pointer transition-colors border mb-2 ${
-                            selectedCaseId === caseMsg.case.id
-                              ? 'bg-blue-50 border-blue-300'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-800">
-                                {caseMsg.case.client_name || 'Client'}
-                              </p>
-                              <p className="text-sm text-slate-600">
-                                {caseMsg.case.case_number || 'Case ' + caseMsg.case.id.slice(0, 8)}
-                              </p>
+          {/* Tab: Requests */}
+          <TabsContent value="requests" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setNewRequestOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" /> New Request
+              </Button>
+            </div>
+
+            {requestsLoading ? (
+              <div className="py-8 text-center text-slate-600">Loading requests…</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left: list */}
+                <Card className="border-slate-200">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">Requests</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[400px]">
+                      {requests.length === 0 ? (
+                        <div className="py-6 text-center text-slate-500 text-sm">No requests yet. Create one to get started.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {requests.map((r) => (
+                            <div
+                              key={r.id}
+                              onClick={() => setSelectedRequestId(r.id)}
+                              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                selectedRequestId === r.id ? "bg-blue-50 border-blue-300" : "bg-white border-slate-200 hover:bg-slate-50"
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-center gap-1 mb-1">
+                                <Badge
+                                  variant={r.status === "OPEN" ? "default" : r.status === "RESPONDED" ? "secondary" : "outline"}
+                                  className={
+                                    r.status === "OPEN"
+                                      ? "bg-amber-500"
+                                      : r.status === "RESPONDED"
+                                      ? "bg-green-600"
+                                      : "bg-slate-400"
+                                  }
+                                >
+                                  {r.status}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">{r.priority}</Badge>
+                                {r.due_at && (
+                                  <span className="text-xs text-slate-500">{format(new Date(r.due_at), "MMM d")}</span>
+                                )}
+                              </div>
+                              <p className="font-medium text-slate-800 truncate">{r.subject || r.request_type}</p>
+                              <p className="text-xs text-slate-500 truncate">{r.body.slice(0, 60)}{r.body.length > 60 ? "…" : ""}</p>
                             </div>
-                            {caseMsg.unreadCount > 0 && (
-                              <Badge variant="destructive">{caseMsg.unreadCount}</Badge>
-                            )}
-                          </div>
-                          {latestMsg && (
-                            <>
-                              <p className="text-sm text-slate-700 mb-1 line-clamp-2">
-                                {preview}{preview.length < latestMsg.message_text.length ? '...' : ''}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {format(new Date(latestMsg.created_at), "MMM d, yyyy 'at' h:mm a")}
-                              </p>
-                            </>
-                          )}
+                          ))}
                         </div>
-                      );
-                    })}
-                  {messageList.filter((cm) => {
-                    if (!searchTerm) return true;
-                    const search = searchTerm.toLowerCase();
-                    return (
-                      cm.case.client_name?.toLowerCase().includes(search) ||
-                      cm.case.case_number?.toLowerCase().includes(search) ||
-                      cm.messages.some(m => m.message_text.toLowerCase().includes(search))
-                    );
-                  }).length === 0 && (
-                    <div className="p-8 text-center">
-                      <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500">
-                        No messages found.
-                        {reasonCode === "COMM-NO-THREADS" && " (COMM-NO-THREADS)"}
-                      </p>
-                    </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          )}
+                      )}
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
 
-          {/* Message Detail View */}
-          {selectedCaseId && (
-            <Card className="bg-white border-slate-200">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedCaseId(null)}
-                      className="mb-2"
-                    >
-                      ← Back to Messages
-                    </Button>
-                    {(() => {
-                      const caseMsg = caseMessages.find(cm => cm.case.id === selectedCaseId);
-                      return caseMsg ? (
+                {/* Right: detail + timeline + Add Update */}
+                <Card className="border-slate-200">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">Detail & Updates</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {!selectedRequest ? (
+                      <div className="py-8 text-center text-slate-500 text-sm">Select a request to view details and updates.</div>
+                    ) : (
+                      <div className="space-y-4">
                         <div>
-                          <h3 className="font-semibold text-slate-800 text-lg">
-                            {caseMsg.case.client_name || 'Client'}
-                          </h3>
-                          <p className="text-sm text-slate-600">
-                            {caseMsg.case.case_number || 'Case ' + caseMsg.case.id.slice(0, 8)}
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            <Badge
+                              className={
+                                selectedRequest.status === "OPEN"
+                                  ? "bg-amber-500"
+                                  : selectedRequest.status === "RESPONDED"
+                                  ? "bg-green-600"
+                                  : "bg-slate-400"
+                              }
+                            >
+                              {selectedRequest.status}
+                            </Badge>
+                            <Badge variant="outline">{selectedRequest.priority}</Badge>
+                            <Badge variant="outline">{selectedRequest.request_type}</Badge>
+                          </div>
+                          {selectedRequest.subject && <p className="font-medium text-slate-800">{selectedRequest.subject}</p>}
+                          <p className="text-slate-700 whitespace-pre-wrap text-sm">{selectedRequest.body}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Created {format(new Date(selectedRequest.created_at), "MMM d, yyyy 'at' h:mm a")}
+                            {selectedRequest.responded_at &&
+                              ` · Responded ${format(new Date(selectedRequest.responded_at), "MMM d, yyyy")}`}
+                            {selectedRequest.closed_at &&
+                              ` · Closed ${format(new Date(selectedRequest.closed_at), "MMM d, yyyy")}`}
                           </p>
                         </div>
-                      ) : null;
-                    })()}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const caseMsg = caseMessages.find(cm => cm.case.id === selectedCaseId);
-                  if (!caseMsg) return null;
 
-                  const messages = caseMsg.messages.sort(
-                    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                  );
-
-                  return (
-                    <div className="space-y-4">
-                      {/* Message Thread */}
-                      <ScrollArea className="h-[500px] bg-slate-50 rounded-lg p-4">
-                        <div className="space-y-3">
-                          {messages.map((message) => {
-                            const isClient = message.sender_type === 'client';
-                            return (
-                              <div
-                                key={message.id}
-                                className={`flex ${isClient ? 'justify-start' : 'justify-end'}`}
-                              >
+                        <div className="border-t border-slate-200 pt-3">
+                          <p className="text-sm font-medium text-slate-700 mb-2">Updates</p>
+                          {selectedUpdates.length === 0 ? (
+                            <p className="text-slate-500 text-sm">No updates yet.</p>
+                          ) : (
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                              {selectedUpdates.map((u) => (
                                 <div
-                                  className={`max-w-[75%] rounded-lg p-3 ${
-                                    isClient
-                                      ? 'bg-amber-100 text-slate-800 border border-amber-200'
-                                      : 'bg-blue-600 text-white'
+                                  key={u.id}
+                                  className={`p-2 rounded text-sm ${
+                                    u.author_role === "rn" ? "bg-green-50 border border-green-200" : "bg-slate-50 border border-slate-200"
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-sm">
-                                      {message.sender_name || (isClient ? 'Client' : 'You')}
-                                    </span>
-                                    {message.is_read && !isClient && (
-                                      <span className="text-xs text-white/70">✓ Read</span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
-                                  <p className={`text-xs mt-1 ${isClient ? 'text-slate-500' : 'text-white/70'}`}>
-                                    {format(new Date(message.created_at), "MMM d, yyyy 'at' h:mm a")}
-                                  </p>
+                                  <span className="font-medium text-slate-700">
+                                    {u.author_role === "rn" ? "RN Response" : "Attorney"}
+                                  </span>
+                                  <span className="text-slate-500 text-xs ml-2">
+                                    {format(new Date(u.created_at), "MMM d, h:mm a")}
+                                  </span>
+                                  <p className="text-slate-700 whitespace-pre-wrap mt-1">{u.body}</p>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
+                              ))}
+                            </div>
+                          )}
 
-                      {/* Compose Message */}
-                      <div className="space-y-2">
-                        <Textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Type your message..."
-                          rows={3}
-                          className="bg-white border-slate-200"
-                        />
-                        <div className="flex justify-end flex-col items-end gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => alert("Button works!")}
-                            className="bg-green-500 text-white px-2 py-1 rounded mb-2"
-                          >
-                            Test Click
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log("=== SEND BUTTON CLICKED ===");
-                              console.log("replyText:", replyText);
-                              console.log("selectedCase:", caseMsg);
-                              handleSendReply();
-                            }}
-                            disabled={!replyText.trim() || sending}
-                          >
-                            SEND TEST
-                          </button>
+                          <div className="mt-3">
+                            <Label className="text-slate-600">Add Update (optional)</Label>
+                            <Textarea
+                              value={addUpdateBody}
+                              onChange={(e) => setAddUpdateBody(e.target.value)}
+                              placeholder="Add a follow-up or note…"
+                              rows={2}
+                              className="mt-1 border-slate-200"
+                            />
+                            <Button
+                              size="sm"
+                              className="mt-2"
+                              onClick={addUpdate}
+                              disabled={!addUpdateBody.trim() || sending}
+                            >
+                              Post Update
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          )}
-
-        </TabsContent>
-
-        {/* Tab 2: RN Communications */}
-        <TabsContent value="rn-communications" className="space-y-4">
-          {/* Date Range Filter */}
-          <Card className="bg-white border-slate-200">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                  />
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-              <Button
-                onClick={fetchRNNotes}
-                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Apply Filter
-              </Button>
-            </CardContent>
-          </Card>
+            )}
+          </TabsContent>
 
-          {rnNotes.length === 0 ? (
-            <Card className="bg-white border-slate-200">
-              <CardContent className="p-8 text-center">
-                <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-500">No RN notes found.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            rnNotes.map((note) => {
-              const caseInfo = cases.find((c) => c.id === note.case_id);
-              return (
-                <Card key={note.id} className="bg-white border-slate-200">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-slate-800">
-                          {caseInfo?.case_number || 'Case ' + note.case_id.slice(0, 8)}
-                        </h3>
-                        {caseInfo?.client_name && (
-                          <p className="text-sm text-slate-600">{caseInfo.client_name}</p>
-                        )}
-                      </div>
-                      <Badge className="bg-green-600 text-white">RN Note</Badge>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm text-slate-600">{note.rn_name || 'RN'}</span>
-                        {note.note_type && (
-                          <Badge variant="outline" className="ml-2">
-                            {note.note_type}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-slate-700 whitespace-pre-wrap">{note.note_body}</p>
-                      <p className="text-xs text-slate-500 mt-2">
-                        {format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </TabsContent>
-
-        {/* Tab 3: All Activity */}
-        <TabsContent value="all-activity" className="space-y-4">
-          {allActivityItems.length === 0 ? (
-            <Card className="bg-white border-slate-200">
-              <CardContent className="p-8 text-center">
-                <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-500">No activity found.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            allActivityItems.map((item, idx) => {
-              const caseInfo = item.case || cases.find((c) => c.id === (item.data as any).case_id);
-              const bgColor =
-                item.type === 'message'
-                  ? (item.data as Message).sender_type === 'client'
-                    ? 'bg-amber-50 border-amber-200'
-                    : (item.data as Message).sender_type === 'attorney'
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-slate-50 border-slate-200'
-                  : 'bg-green-50 border-green-200';
-
-              return (
-                <Card key={item.type + '-' + (item.data as any).id || idx} className={bgColor}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-slate-800">
-                          {caseInfo?.case_number || 'Case'}
-                        </h3>
-                        {caseInfo?.client_name && (
-                          <p className="text-sm text-slate-600">{caseInfo.client_name}</p>
-                        )}
-                      </div>
-                      <Badge
-                        className={
-                          item.type === 'message'
-                            ? (item.data as Message).sender_type === 'client'
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-blue-600 text-white'
-                            : 'bg-green-600 text-white'
-                        }
-                      >
-                        {item.type === 'message'
-                          ? (item.data as Message).sender_type === 'client'
-                            ? 'Client'
-                            : 'Attorney'
-                          : 'RN Note'}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      {item.type === 'message' ? (
-                        <p className="text-slate-700 whitespace-pre-wrap">
-                          {(item.data as Message).message_text}
+          {/* Tab: All Activity */}
+          <TabsContent value="all-activity" className="space-y-4">
+            {allActivityItems.length === 0 ? (
+              <Card className="bg-slate-50 border-slate-200">
+                <CardContent className="p-8 text-center">
+                  <Calendar className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <p className="font-medium text-slate-800">No activity yet</p>
+                  <p className="text-slate-600 text-sm">Requests and RN updates will appear here in chronological order.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-2 pr-4">
+                  {allActivityItems.map((item, idx) => (
+                    <Card
+                      key={item.kind + "-" + (item.update?.id ?? item.req.id) + "-" + idx}
+                      className={item.kind === "request" ? "bg-slate-50 border-slate-200" : "bg-green-50 border-green-200"}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <Badge className={item.kind === "request" ? "bg-blue-600" : "bg-green-600"}>
+                              {item.kind === "request" ? "Request" : "RN Update"}
+                            </Badge>
+                            <span className="text-slate-600 text-xs ml-2">
+                              {item.req.request_type}
+                              {item.update && ` on request`}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500">
+                            {format(new Date(item.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                          </span>
+                        </div>
+                        <p className="text-slate-800 text-sm mt-2 whitespace-pre-wrap">
+                          {item.kind === "request" ? item.req.body : item.update!.body}
                         </p>
-                      ) : (
-                        <p className="text-slate-700 whitespace-pre-wrap">
-                          {(item.data as RNNote).note_body}
-                        </p>
-                      )}
-                      <p className="text-xs text-slate-500 mt-2">
-                        {format(new Date(item.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </TabsContent>
-      </Tabs>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* New Request Dialog */}
+      <Dialog open={newRequestOpen} onOpenChange={setNewRequestOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Clinical Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Type</Label>
+              <Select value={formType} onValueChange={setFormType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {REQUEST_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Message (required)</Label>
+              <Textarea value={formBody} onChange={(e) => setFormBody(e.target.value)} placeholder="Describe what you need…" rows={4} required />
+            </div>
+            <div>
+              <Label>Priority</Label>
+              <Select value={formPriority} onValueChange={setFormPriority}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Due date (optional)</Label>
+              <Input type="date" value={formDueAt} onChange={(e) => setFormDueAt(e.target.value)} />
+            </div>
+            <div>
+              <Label>Subject (optional)</Label>
+              <Input value={formSubject} onChange={(e) => setFormSubject(e.target.value)} placeholder="Brief subject" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewRequestOpen(false)}>Cancel</Button>
+            <Button onClick={createRequest} disabled={!formBody.trim() || sending}>Create Request</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
