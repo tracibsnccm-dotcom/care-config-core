@@ -420,10 +420,10 @@ export default function AttorneyLanding() {
       <div className="p-8 pb-24 lg:pb-8">
         <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {attorneyName && attorneyName.trim() ? `Welcome, ${attorneyName}` : 'Attorney Landing'}
-            </h1>
-            <p className="text-muted-foreground mt-1">Manage your practice and client cases</p>
+            <h1 className="text-3xl font-bold text-foreground">Attorney Dashboard</h1>
+            <p className="text-muted-foreground mt-1">
+              {attorneyName && attorneyName.trim() ? `Welcome, ${attorneyName}` : 'Manage your practice and client cases'}
+            </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <AttorneyGlobalSearch />

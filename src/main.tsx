@@ -23,7 +23,7 @@
 // src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DemoHub from "./pages/DemoHub.tsx";
 import Index from "./pages/Index";
@@ -158,16 +158,29 @@ function Root() {
       return <ClientLogin />;
     }
 
-    // MVP Attorney Console: "/attorney-console" routes to AttorneyLanding component
+    // MVP Attorney Dashboard: "/attorney/dashboard" routes to AttorneyLanding component (canonical route)
     // Production attorney landing page (NOT demo)
     // REQUIRES AUTHENTICATION - gate at route level
     // Redirects to /attorney-login if not authenticated (NOT /auth)
-    if (pathname === "/attorney-console" || pathname.startsWith("/attorney-console")) {
+    if (pathname === "/attorney/dashboard" || pathname.startsWith("/attorney/dashboard")) {
       return (
         <RequireAuth>
           <AttorneyLanding />
         </RequireAuth>
       );
+    }
+
+    // MVP Attorney Console: "/attorney-console" redirects to /attorney/dashboard (legacy route)
+    // Production attorney landing page (NOT demo)
+    // REQUIRES AUTHENTICATION - gate at route level
+    // Redirects to /attorney-login if not authenticated (NOT /auth)
+    if (pathname === "/attorney-console" || pathname.startsWith("/attorney-console")) {
+      // Redirect to canonical route
+      if (typeof window !== "undefined") {
+        window.location.replace("/attorney/dashboard");
+        return null;
+      }
+      return null;
     }
 
     // MVP Attorney Communications: "/attorney/communications" routes to AttorneyCommunications component
