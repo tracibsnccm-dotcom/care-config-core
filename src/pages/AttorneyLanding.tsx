@@ -24,7 +24,6 @@ import { PreSettlementDossier, DossierReadiness } from "@/components/PreSettleme
 import { useAuth } from "@/auth/supabaseAuth";
 import { PolicyAcknowledgmentBanner } from "@/components/PolicyAcknowledgmentBanner";
 import { EWalletSummary } from "@/components/EWalletSummary";
-import { AttorneyIntakeTracker } from "@/components/AttorneyIntakeTracker";
 import { AttorneyQuickActions } from "@/components/AttorneyQuickActions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,7 +180,6 @@ export default function AttorneyLanding() {
   const [tierData, setTierData] = useState<any>(null);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [attorneyName, setAttorneyName] = useState<string>("");
-  const [expiredIntakesCount, setExpiredIntakesCount] = useState<number>(0);
 
   // Define loadAttorneyName with useCallback to avoid stale closures
   const loadAttorneyName = useCallback(async () => {
@@ -389,60 +387,6 @@ export default function AttorneyLanding() {
   useEffect(() => {
     console.log("AttorneyLanding: attorneyName state changed to:", attorneyName);
   }, [attorneyName]);
-
-  // Load expired intakes count for current month
-  useEffect(() => {
-    async function loadExpiredIntakesCount() {
-      if (!user?.id) return;
-
-      try {
-        // Get current month start and end
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-        let count = 0;
-
-        // Check rc_client_intake_sessions for expired/deleted status with deleted_at in current month
-        const { data: expiredSessions, error: sessionsError } = await supabase
-          .from("rc_client_intake_sessions")
-          .select("id, case_id")
-          .in("intake_status", ["expired", "expired_deleted"])
-          .gte("expires_at", monthStart.toISOString())
-          .lte("expires_at", monthEnd.toISOString());
-
-        if (sessionsError) {
-          console.error("Error loading expired intakes from sessions:", sessionsError);
-        } else {
-          count += expiredSessions?.length || 0;
-        }
-
-        // Also check intakes table for deleted_at in current month
-        const { data: deletedIntakes, error: intakesError } = await supabase
-          .from("intakes")
-          .select("id")
-          .not("deleted_at", "is", null)
-          .gte("deleted_at", monthStart.toISOString())
-          .lte("deleted_at", monthEnd.toISOString());
-
-        if (intakesError) {
-          console.error("Error loading expired intakes from intakes table:", intakesError);
-        } else {
-          // Add count from intakes table (avoid double counting if case_id matches)
-          const deletedIntakesCount = deletedIntakes?.length || 0;
-          // Simple sum - if there's overlap, it's acceptable per requirements
-          count += deletedIntakesCount;
-        }
-
-        setExpiredIntakesCount(count);
-      } catch (error) {
-        console.error("Error loading expired intakes count:", error);
-        setExpiredIntakesCount(0);
-      }
-    }
-
-    loadExpiredIntakesCount();
-  }, [user]);
 
   const usedProviders = providers.filter((p) => p.active).length;
   const providerRemain = Math.max(0, providerSlots - usedProviders);
@@ -675,27 +619,6 @@ export default function AttorneyLanding() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <RecentActivityFeed />
               <PinnedCasesWidget />
-            </div>
-
-            {/* Expired Intakes Monthly Stat */}
-            <div className="mb-4">
-              <Card className="p-4 border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-muted-foreground mb-1">
-                      Expired Intakes (Data Deleted)
-                    </p>
-                    <p className="text-2xl font-bold text-amber-600">
-                      {expiredIntakesCount}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Pending Intakes Queue */}
-            <div className="mb-6">
-              <AttorneyIntakeTracker />
             </div>
         </div>
 

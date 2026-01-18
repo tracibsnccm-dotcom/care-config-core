@@ -31,6 +31,7 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
+import AttorneyPendingIntakesPage from "./pages/AttorneyPendingIntakesPage";
 import AttorneyLogin from "./pages/AttorneyLogin";
 import RNLogin from "./pages/RNLogin";
 import RNPortalLogin from "./pages/RNPortalLogin";
@@ -175,6 +176,16 @@ function Root() {
       return (
         <RequireAuth>
           <AttorneyCommunications />
+        </RequireAuth>
+      );
+    }
+
+    // MVP Attorney Pending Intakes: "/attorney/pending-intakes" routes to AttorneyPendingIntakesPage component
+    // Check more specific route first (before /attorney-portal)
+    if (pathname === "/attorney/pending-intakes" || pathname.startsWith("/attorney/pending-intakes")) {
+      return (
+        <RequireAuth>
+          <AttorneyPendingIntakesPage />
         </RequireAuth>
       );
     }

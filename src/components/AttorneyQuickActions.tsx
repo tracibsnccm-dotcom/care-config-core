@@ -35,18 +35,18 @@ export function AttorneyQuickActions() {
       color: "bg-amber-500/10 text-amber-600",
     },
     {
+      icon: FileText,
+      label: "Pending Intakes",
+      description: "Track pending client intakes",
+      onClick: () => navigate("/attorney/pending-intakes"),
+      color: "bg-orange-500/10 text-orange-600",
+    },
+    {
       icon: Stethoscope,
       label: "RN CM / Clinical Liaison",
       description: "Clinical coordination",
       onClick: () => navigate("/rn-clinical-liaison"),
       color: "bg-teal-500/10 text-teal-600",
-    },
-    {
-      icon: FileText,
-      label: "Documents",
-      description: "Access document hub",
-      onClick: () => navigate("/document-hub"),
-      color: "bg-green-500/10 text-green-600",
     },
   ];
 
@@ -72,6 +72,13 @@ export function AttorneyQuickActions() {
       description: "View case notes",
       onClick: () => navigate("/attorney-console"),
       color: "bg-indigo-500/10 text-indigo-600",
+    },
+    {
+      icon: FileText,
+      label: "Documents",
+      description: "Access document hub",
+      onClick: () => navigate("/document-hub"),
+      color: "bg-green-500/10 text-green-600",
     },
     {
       icon: Users,
