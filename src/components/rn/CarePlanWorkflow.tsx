@@ -158,7 +158,7 @@ const CarePlanWorkflow: React.FC<CarePlanWorkflowProps> = ({ initialStep = "4ps"
   };
 
   const goBack = () => {
-    navigate("/rn-console");
+    navigate("/rn/dashboard");
   };
 
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);

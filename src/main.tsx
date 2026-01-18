@@ -3,13 +3,13 @@
  * 
  * MVP Entry Route: "/" → Index (Lovable landing page)
  * MVP Attorney Route: "/attorney-portal" → AttorneyLanding component
- * MVP RN Route: "/rn-console" → RNPortalLanding (full Lovable RN dashboard)
+ * MVP RN Dashboard: "/rn/dashboard" → RNPortalLanding (canonical); /rn-console redirects to /rn/dashboard
  * MVP Client Route: "/client-portal" → ClientPortal component (direct mount)
  * /demo Guard: VITE_ENABLE_DEMO env var (default: disabled)
  * 
  * Summary:
  * - "/" routes to MVP landing page (Index component)
- * - "/rn-console" routes to MVP RN portal (RNPortalLanding full dashboard)
+ * - "/rn/dashboard" routes to MVP RN dashboard (RNPortalLanding); /rn-console and /rn-portal-landing redirect to /rn/dashboard
  *   - Uses Lovable RN components directly (no ChatGPT demo shell)
  *   - Full dashboard with stats, to-do lists, case health, and all features
  * - "/attorney-portal" routes to MVP attorney portal (AttorneyLanding component)
@@ -226,15 +226,7 @@ function Root() {
       );
     }
 
-    // MVP RN Portal: "/rn-console" routes to RNPortalLanding (full dashboard)
-    // This is the MVP RN portal entry point - uses full Lovable RN dashboard
-    if (pathname === "/rn-console" || pathname === "/rn-portal-landing") {
-      return (
-        <RequireAuth>
-          <RNPortalLanding />
-        </RequireAuth>
-      );
-    }
+    // Legacy /rn-console and /rn-portal-landing are handled by explicit Routes that redirect to /rn/dashboard
 
     // Sign-in/Access route: "/auth" routes to Access component (sign-in page)
     // Also support "/access" for backward compatibility
@@ -312,8 +304,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </AuthProvider>
           } />
           
-          {/* RN Console - explicit protected route */}
-          <Route path="/rn-console" element={
+          {/* RN Dashboard - canonical route (same component as legacy /rn-console) */}
+          <Route path="/rn/dashboard" element={
             <AuthProvider>
               <AppProvider>
                 <RequireAuth>
@@ -322,6 +314,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               </AppProvider>
             </AuthProvider>
           } />
+          {/* Legacy: /rn-console redirects to /rn/dashboard */}
+          <Route path="/rn-console" element={<Navigate to="/rn/dashboard" replace />} />
+          <Route path="/rn-portal-landing" element={<Navigate to="/rn/dashboard" replace />} />
           
           {/* RN Supervisor route */}
           <Route path="/rn-supervisor" element={

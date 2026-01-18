@@ -86,7 +86,7 @@ const RnDashboardPage: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              window.location.href = "/rn-portal-landing";
+              window.location.href = "/rn/dashboard";
             }}
             className="flex-1 px-6 py-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
           >

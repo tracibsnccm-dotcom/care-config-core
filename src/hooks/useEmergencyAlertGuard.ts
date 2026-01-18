@@ -99,7 +99,7 @@ export function useEmergencyAlertGuard() {
         notification_title: "⚠️ Emergency Alert Compliance Issue",
         notification_message: `${profile?.display_name || 'An RN'} attempted to navigate away from emergency alerts 3 times without completion. Immediate follow-up required.`,
         notification_type: "error",
-        notification_link: "/rn-portal-landing",
+        notification_link: "/rn/dashboard",
         notification_metadata: {
           rn_id: user.id,
           rn_name: profile?.display_name,

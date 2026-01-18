@@ -70,7 +70,7 @@ const RNCaseRouteShell: React.FC = () => {
               Go to Caseload
             </Link>
             <Link
-              to="/rn-portal-landing"
+              to="/rn/dashboard"
               className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
             >
               RN Portal

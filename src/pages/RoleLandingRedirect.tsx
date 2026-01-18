@@ -18,7 +18,7 @@ export default function RoleLandingRedirect() {
   
   // Priority 2: RN and Clinical Management roles (including legacy RN_CCM alias)
   if (r.has("RN_CM") || r.has("RN_CCM") || r.has("RCMS_CLINICAL_MGMT") || r.has("COMPLIANCE")) {
-    return <Navigate to="/rn-portal-landing" replace />;
+    return <Navigate to="/rn/dashboard" replace />;
   }
   
   // Priority 3: Provider role
@@ -33,7 +33,7 @@ export default function RoleLandingRedirect() {
   
   // Priority 5: External clinical staff get same portal as RN CM
   if (r.has("CLINICAL_STAFF_EXTERNAL")) {
-    return <Navigate to="/rn-portal-landing" replace />;
+    return <Navigate to="/rn/dashboard" replace />;
   }
   
   // Default: Client portal

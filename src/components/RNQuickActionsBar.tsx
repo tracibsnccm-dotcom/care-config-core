@@ -86,7 +86,7 @@ export function RNQuickActionsBar() {
   const secondRowActions = [
     { icon: HeartPulse, label: "Contact RN Sup/Mgr", onClick: () => navigate("/rn-clinical-liaison") },
     { icon: FolderKanban, label: "Documents & Files", onClick: () => navigate("/documents") },
-    { icon: ClipboardList, label: "My To Do List", onClick: () => navigate("/rn-console") },
+    { icon: ClipboardList, label: "My To Do List", onClick: () => navigate("/rn/dashboard") },
     { icon: GitBranch, label: "Care Workflows", onClick: () => navigate("/rn/care-workflows") },
     { icon: UserCheck, label: "Case Hand-Offs", onClick: () => navigate("/rn/case-handoffs") },
     { icon: AlertCircle, label: "Report Alert", onClick: () => navigate("/rn-clinical-liaison") },

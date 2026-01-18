@@ -103,7 +103,7 @@ export default function RNLogin() {
         }
 
         // Route based on role
-        let redirectPath = '/rn-console'; // Default for 'rn' role
+        let redirectPath = '/rn/dashboard'; // Default for 'rn' role
         if (userRole === "rn_supervisor") {
           redirectPath = '/rn-supervisor';
         }

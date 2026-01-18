@@ -386,7 +386,7 @@ Thank you for your prompt attention to this request.`;
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button
-              onClick={() => window.location.href = '/rn-console'}
+              onClick={() => window.location.href = '/rn/dashboard'}
               style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '8px',
@@ -672,7 +672,7 @@ Thank you for your prompt attention to this request.`;
       {/* Submit */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
-          onClick={() => window.location.href = '/rn-console'}
+          onClick={() => window.location.href = '/rn/dashboard'}
           style={{
             padding: '0.5rem 1rem',
             borderRadius: '8px',

@@ -40,7 +40,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
     // Determine redirect based on pathname
     // Attorney routes go to /attorney-login, RN routes go to /rn-login, others go to /auth
     const isAttorneyRoute = location.pathname.includes('attorney');
-    const isRNRoute = location.pathname.includes('rn-console') || location.pathname.includes('rn-portal') || location.pathname.includes('rn-supervisor');
+    const isRNRoute = location.pathname.includes('rn-console') || location.pathname.includes('rn-portal') || location.pathname.includes('rn/dashboard') || location.pathname.includes('rn-supervisor');
     const loginUrl = isAttorneyRoute 
       ? '/attorney-login' 
       : isRNRoute
