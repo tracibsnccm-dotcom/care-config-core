@@ -23,7 +23,7 @@
 // src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import DemoHub from "./pages/DemoHub.tsx";
 import Index from "./pages/Index";
@@ -97,10 +97,12 @@ const DemoRouteGuard: React.FC = () => {
 };
 
 function Root() {
+  // Use React Router's useLocation hook to get reactive pathname updates
+  const location = useLocation();
+  const pathname = location.pathname || "/";
+  const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
+  
   try {
-    // Handle both normal routing and hash routing just in case
-    const pathname = typeof window !== "undefined" ? window.location.pathname || "/" : "/";
-    const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
 
     // Check if this is a /demo route
     const isDemoRoute =
