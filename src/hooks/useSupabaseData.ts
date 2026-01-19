@@ -133,6 +133,7 @@ export function useCases() {
             rc_case_assignments!inner(user_id)
           `)
           .eq("rc_case_assignments.user_id", user.id)
+          .eq("is_superseded", false)
           .order("created_at", { ascending: false });
 
         if (fetchError) throw fetchError;

@@ -32,6 +32,7 @@ serve(async (req) => {
       .from('rc_cases')
       .select('id, client_pin, case_number, case_status, pin_failed_attempts, pin_locked_until')
       .eq('case_number', caseNumber.toUpperCase().trim())
+      .eq('is_superseded', false)
       .single()
 
     if (caseError || !caseData) {

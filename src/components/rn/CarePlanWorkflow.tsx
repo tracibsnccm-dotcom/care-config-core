@@ -110,7 +110,7 @@ const CarePlanWorkflow: React.FC<CarePlanWorkflowProps> = ({ initialStep = "4ps"
         const SUPABASE_URL = 'https://zmjxyspizdqhrtdcgkwk.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inptanh5c3BpemRxaHJ0ZGNna3drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjgxODMsImV4cCI6MjA3OTcwNDE4M30.i5rqJXZPSHYFeaA8E26Vh69UPzgCmhrU9zL2kdE8jrM';
         
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/rc_cases?id=eq.${caseId}&select=case_number,client_id`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=case_number,client_id`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`,

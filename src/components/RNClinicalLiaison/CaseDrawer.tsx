@@ -127,7 +127,7 @@ export function CaseDrawer({ caseId, open, onOpenChange }: CaseDrawerProps) {
       // Fetch case data from rc_cases
       const { data: caseInfoData, error: caseError } = await supabaseGet(
         'rc_cases',
-        `select=*&id=eq.${caseId}&limit=1`
+        `select=*&id=eq.${caseId}&is_superseded=eq.false&limit=1`
       );
 
       if (caseError) throw caseError;

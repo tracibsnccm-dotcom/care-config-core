@@ -70,6 +70,7 @@ export async function getAttorneyCases() {
     .from('rc_cases')
     .select('*')
     .eq('attorney_id', attorneyRcUserId)
+    .eq('is_superseded', false)
     .in('case_status', statusFilter)
     .order('updated_at', { ascending: false });
 

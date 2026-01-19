@@ -193,7 +193,7 @@ const SDOHScreen: React.FC = () => {
 
       try {
         // Load client intake data (SDOH flags from their intake)
-        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=client_id,created_at`);
+        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=client_id,created_at`);
         
         let clientSdohData: any = null;
         

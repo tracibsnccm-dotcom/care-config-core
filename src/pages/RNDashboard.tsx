@@ -107,7 +107,8 @@ export default function RNDashboard() {
       const { data: casesData, error: casesError } = await supabase
         .from('rc_cases')
         .select('id, case_number, date_of_injury, case_type, client_id')
-        .in('id', caseIds);
+        .in('id', caseIds)
+        .eq('is_superseded', false);
 
       if (casesError) throw casesError;
 

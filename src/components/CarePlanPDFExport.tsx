@@ -101,6 +101,7 @@ const CarePlanPDFExport: React.FC<CarePlanPDFExportProps> = ({
         .from('rc_cases')
         .select('*,rc_clients(*)')
         .eq('id', plan.case_id)
+        .eq('is_superseded', false)
         .single();
 
       const caseInfo = caseResult || {};

@@ -82,7 +82,7 @@ export function RNWorkQueue() {
         // Fetch case data from rc_cases
         const { data: casesData, error: casesError } = await supabaseGet(
           'rc_cases',
-          `select=id,case_status,case_type,created_at&${caseIdsQuery}`
+          `select=id,case_status,case_type,created_at&${caseIdsQuery}&is_superseded=eq.false`
         );
 
         if (casesError) {

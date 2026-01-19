@@ -34,6 +34,7 @@ export function ClientIntakeReview({ caseId }: { caseId: string }) {
         .from("rc_cases")
         .select("*")
         .eq("id", caseId)
+        .eq("is_superseded", false)
         .maybeSingle();
 
       if (caseError && caseError.code !== 'PGRST116') {

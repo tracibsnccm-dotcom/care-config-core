@@ -386,7 +386,7 @@ const OverlaySelectionScreen: React.FC = () => {
         }
 
         // Get client demographic data
-        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=client_id`);
+        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=client_id`);
         if (caseResult && caseResult.length > 0 && caseResult[0].client_id) {
           const clientResult = await supabaseFetch(
             `rc_clients?id=eq.${caseResult[0].client_id}&select=date_of_birth,gender_identity,sex_at_birth,has_dependents,is_student`

@@ -156,12 +156,12 @@ export function AttorneyCommunicationCenter() {
         return;
       }
       let casesRes = await fetch(
-        `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
+        `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&is_superseded=eq.false&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=case_number.asc`,
         { headers: headers() }
       );
       if (!casesRes.ok) {
         casesRes = await fetch(
-          `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&select=id,case_number,client_id&order=case_number.asc`,
+          `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(",")})&is_superseded=eq.false&select=id,case_number,client_id&order=case_number.asc`,
           { headers: headers() }
         );
       }
@@ -202,12 +202,12 @@ export function AttorneyCommunicationCenter() {
     (async () => {
       try {
         let res = await fetch(
-          `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&select=id,case_number,client_id,rc_clients(first_name,last_name)`,
+          `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&is_superseded=eq.false&select=id,case_number,client_id,rc_clients(first_name,last_name)`,
           { headers: headers() }
         );
         if (!res.ok) {
           res = await fetch(
-            `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&select=id,case_number,client_id`,
+            `${supabaseUrl}/rest/v1/rc_cases?id=eq.${stored}&is_superseded=eq.false&select=id,case_number,client_id`,
             { headers: headers() }
           );
         }
@@ -240,12 +240,12 @@ export function AttorneyCommunicationCenter() {
     (async () => {
       try {
         let res = await fetch(
-          `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id,rc_clients(first_name,last_name)&order=created_at.desc&limit=50`,
+          `${supabaseUrl}/rest/v1/rc_cases?is_superseded=eq.false&select=id,case_number,client_id,rc_clients(first_name,last_name)&order=created_at.desc&limit=50`,
           { headers: headers() }
         );
         if (!res.ok) {
           res = await fetch(
-            `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id&order=created_at.desc&limit=50`,
+            `${supabaseUrl}/rest/v1/rc_cases?is_superseded=eq.false&select=id,case_number,client_id&order=created_at.desc&limit=50`,
             { headers: headers() }
           );
         }

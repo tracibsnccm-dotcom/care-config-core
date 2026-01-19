@@ -98,6 +98,7 @@ serve(async (req: Request) => {
         )
       `)
       .eq("intake_status", "submitted_pending_attorney")
+      .eq("rc_cases.is_superseded", false)
       .is("attorney_attested_at", null)
       .not("intake_submitted_at", "is", null)
       .not("attorney_confirm_deadline_at", "is", null);

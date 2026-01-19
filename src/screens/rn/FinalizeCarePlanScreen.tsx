@@ -101,7 +101,7 @@ const FinalizeCarePlanScreen: React.FC = () => {
 
       try {
         // Get case info
-        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=case_number,client_id,date_of_injury`);
+        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=case_number,client_id,date_of_injury`);
         if (caseResult && caseResult.length > 0) {
           const caseData = caseResult[0];
           let clientName = "Unknown Client";
@@ -265,7 +265,7 @@ const FinalizeCarePlanScreen: React.FC = () => {
       });
 
       // Get case and care plan info for auto-note
-      const caseInfoResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=id,client_id`);
+      const caseInfoResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=id,client_id`);
       const caseInfo = caseInfoResult && caseInfoResult.length > 0 ? caseInfoResult[0] : null;
       const clientId = caseInfo?.client_id || null;
 

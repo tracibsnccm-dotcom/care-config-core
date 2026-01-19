@@ -134,7 +134,7 @@ const InitiateFollowUpScreen: React.FC = () => {
 
       try {
         // Get case info
-        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=*,rc_clients(*)`);
+        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=*,rc_clients(*)`);
         
         if (caseResult && caseResult.length > 0) {
           const caseData = caseResult[0];

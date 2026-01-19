@@ -49,6 +49,7 @@ const RNConsole: React.FC<RNConsoleProps> = ({ onOpenCase }) => {
         const { data, error } = await supabase
           .from("rc_cases")
           .select("id, case_status, created_at")
+          .eq("is_superseded", false)
           .order("created_at", { ascending: false })
           .limit(25);
 
@@ -84,6 +85,7 @@ const RNConsole: React.FC<RNConsoleProps> = ({ onOpenCase }) => {
           .from("rc_cases")
           .select("id, case_status")
           .eq("id", normalized)
+          .eq("is_superseded", false)
           .single();
 
         if (error) throw error;

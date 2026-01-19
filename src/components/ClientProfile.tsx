@@ -74,7 +74,7 @@ export function ClientProfile({ caseId }: ClientProfileProps) {
 
       // a) First fetch the case to get client_id
       const caseResponse = await fetch(
-        `${supabaseUrl}/rest/v1/rc_cases?id=eq.${caseId}&select=id,case_number,client_id,date_of_injury`,
+        `${supabaseUrl}/rest/v1/rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=id,case_number,client_id,date_of_injury`,
         {
           headers: {
             'apikey': supabaseKey,

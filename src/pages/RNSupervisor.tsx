@@ -160,7 +160,7 @@ export default function RNSupervisor() {
       // 2. Load pending cases (attorney_confirmed) - no FK joins
       const { data: casesData, error: casesError } = await supabaseGet<PendingCase[]>(
         'rc_cases',
-        'case_status=eq.attorney_confirmed&select=*'
+        'case_status=eq.attorney_confirmed&is_superseded=eq.false&select=*'
       );
 
       if (casesError) {

@@ -185,7 +185,7 @@ export default function TenVsBuilder() {
       console.log('TenVsBuilder: Fetching case data for', caseId);
       
       // Fetch case
-      const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=id,case_number,client_id,date_of_injury`);
+      const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=id,case_number,client_id,date_of_injury`);
       
       if (!caseResult || caseResult.length === 0) {
         setError('Case not found');

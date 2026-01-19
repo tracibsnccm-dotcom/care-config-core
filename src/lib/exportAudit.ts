@@ -52,6 +52,7 @@ async function resolveReleasedCaseUuid(input: string): Promise<string | null> {
       .from('rc_cases')
       .select('id, revision_of_case_id, created_at, case_status')
       .eq('case_number', input)
+      .eq('is_superseded', false)
       .in('case_status', ['released', 'closed'])
       .order('created_at', { ascending: false })
       .limit(1)

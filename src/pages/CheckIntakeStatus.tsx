@@ -76,7 +76,7 @@ export default function CheckIntakeStatus() {
         // Get case number and PIN
         const { data: caseData } = await supabaseGet(
           'rc_cases',
-          `select=case_number,client_pin&id=eq.${intake.case_id}&limit=1`
+          `select=case_number,client_pin&id=eq.${intake.case_id}&is_superseded=eq.false&limit=1`
         );
 
         const caseInfo = Array.isArray(caseData) ? caseData[0] : caseData;

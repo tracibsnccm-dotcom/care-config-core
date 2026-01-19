@@ -113,7 +113,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
       }
       
       // Build query string for Supabase REST API - JOIN with rc_cases and rc_clients
-      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number,case_status,date_of_injury,rc_clients(first_name,last_name))&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number,case_status,date_of_injury,rc_clients(first_name,last_name))&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)&rc_cases.is_superseded=eq.false';
       
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
@@ -269,7 +269,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
       const queryFilter = intakeId 
         ? `id=eq.${intakeId}` 
         : `case_id=eq.${caseId}&order=created_at.desc&limit=1`;
-      const queryString = `select=*,rc_cases(id,attorney_id,case_type,client_id)&${queryFilter}`;
+      const queryString = `select=*,rc_cases(id,attorney_id,case_type,client_id)&${queryFilter}&rc_cases.is_superseded=eq.false`;
       const { data: intakeData, error: intakeError } = await supabaseGet('rc_client_intakes', queryString);
       
       if (intakeError) {

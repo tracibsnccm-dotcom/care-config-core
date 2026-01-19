@@ -75,7 +75,7 @@ export function CommunicationWidget() {
           
           // Get case info
           const caseResponse = await fetch(
-            `${supabaseUrl}/rest/v1/rc_cases?id=eq.${latest.case_id}&select=id,case_number,rc_clients(first_name,last_name)&limit=1`,
+            `${supabaseUrl}/rest/v1/rc_cases?id=eq.${latest.case_id}&is_superseded=eq.false&select=id,case_number,rc_clients(first_name,last_name)&limit=1`,
             {
               headers: {
                 'apikey': supabaseKey,

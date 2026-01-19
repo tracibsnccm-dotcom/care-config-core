@@ -171,7 +171,7 @@ export function AttorneyAttestationCard({
       // Get existing case: case_number, client_pin, case_status (source of truth for PIN and case number)
       let { data: caseData, error: caseDataError } = await supabaseGet(
         'rc_cases',
-        `select=id,case_number,client_pin,case_status,superseded_by_case_id&id=eq.${intake.case_id}&limit=1`
+        `select=id,case_number,client_pin,case_status,superseded_by_case_id&id=eq.${intake.case_id}&is_superseded=eq.false&limit=1`
       );
       if (caseDataError) throw new Error(`Failed to get case: ${caseDataError.message}`);
       let existingCase = Array.isArray(caseData) ? caseData[0] : caseData;

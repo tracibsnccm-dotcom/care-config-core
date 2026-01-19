@@ -71,7 +71,7 @@ export default function PendingCasesSection({ rnUserId }: PendingCasesSectionPro
       const caseIdsStr = caseIds.join(',');
       const { data: casesData, error: casesError } = await supabaseGet(
         'rc_cases',
-        `id=in.(${caseIdsStr})&select=id,case_number,case_type,date_of_injury,client_id`
+        `id=in.(${caseIdsStr})&is_superseded=eq.false&select=id,case_number,case_type,date_of_injury,client_id`
       );
 
       if (casesError) {

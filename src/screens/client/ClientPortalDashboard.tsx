@@ -80,7 +80,7 @@ const ClientPortalDashboard: React.FC = () => {
 
       try {
         // Get client name
-        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&select=*,rc_clients(*)`);
+        const caseResult = await supabaseFetch(`rc_cases?id=eq.${caseId}&is_superseded=eq.false&select=*,rc_clients(*)`);
         if (caseResult && caseResult.length > 0 && caseResult[0].rc_clients) {
           const client = caseResult[0].rc_clients;
           setClientName(`${client.first_name || ''} ${client.last_name || ''}`.trim());

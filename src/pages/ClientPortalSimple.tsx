@@ -108,7 +108,7 @@ export default function ClientPortalSimple() {
       setLoading(true);
       const { data, error: fetchError } = await publicSupabaseGet(
         'rc_cases',
-        `select=id,case_number,case_status,case_type,date_of_injury,created_at&id=eq.${caseId}&limit=1`
+        `select=id,case_number,case_status,case_type,date_of_injury,created_at&id=eq.${caseId}&is_superseded=eq.false&limit=1`
       );
 
       if (fetchError) throw new Error(fetchError.message);

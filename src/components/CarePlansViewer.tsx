@@ -74,6 +74,7 @@ export function CarePlansViewer({ caseId }: CarePlansViewerProps) {
           intakes!inner(intake_data)
         `)
         .eq("id", caseId)
+        .eq("is_superseded", false)
         .single();
 
       if (!caseError && caseData?.fourps && caseData?.sdoh) {

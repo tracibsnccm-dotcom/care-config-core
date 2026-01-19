@@ -181,7 +181,7 @@ const AttorneyCarePlanView: React.FC = () => {
 
         // Get case info
         const caseResult = await supabaseFetch(
-          `rc_cases?id=eq.${plan.case_id}&select=*,rc_clients(*)`
+          `rc_cases?id=eq.${plan.case_id}&is_superseded=eq.false&select=*,rc_clients(*)`
         );
         
         if (caseResult && caseResult.length > 0) {

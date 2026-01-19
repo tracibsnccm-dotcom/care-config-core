@@ -98,7 +98,8 @@ export default function RNWorkQueuePage() {
       const { data: directCases, error: casesErr } = await supabase
         .from("rc_cases")
         .select("id, case_number, date_of_injury, case_type, client_id")
-        .eq("rn_cm_id", rcUserId);
+        .eq("rn_cm_id", rcUserId)
+        .eq("is_superseded", false);
       if (casesErr) throw casesErr;
       const caseIds = directCases?.map((c) => c.id) || [];
       if (caseIds.length === 0) {

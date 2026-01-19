@@ -97,7 +97,7 @@ export default function AttorneyCaseNotes() {
         return;
       }
 
-      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(',')})&select=id,case_number,rc_clients(first_name,last_name)`;
+      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(',')})&is_superseded=eq.false&select=id,case_number,rc_clients(first_name,last_name)`;
       const casesResponse = await fetch(casesUrl, {
         headers: {
           'apikey': supabaseKey,
@@ -160,7 +160,7 @@ export default function AttorneyCaseNotes() {
         const notesData = await notesResponse.json();
         
         // Fetch case info
-        const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(',')})&select=id,case_number,rc_clients(first_name,last_name)`;
+        const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?id=in.(${caseIds.join(',')})&is_superseded=eq.false&select=id,case_number,rc_clients(first_name,last_name)`;
         const casesResponse = await fetch(casesUrl, {
           headers: {
             'apikey': supabaseKey,

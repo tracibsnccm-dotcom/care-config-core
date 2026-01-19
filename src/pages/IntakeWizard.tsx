@@ -627,7 +627,7 @@ export default function IntakeWizard() {
       try {
         const { data: ex } = await supabaseGet(
           'rc_cases',
-          `original_int_number=eq.${encodeURIComponent(caseNumber)}&superseded_by_case_id=is.null&select=id&limit=1`
+          `original_int_number=eq.${encodeURIComponent(caseNumber)}&superseded_by_case_id=is.null&is_superseded=eq.false&select=id&limit=1`
         );
         existingCase = (Array.isArray(ex) ? ex[0] : ex) as { id: string } | null;
       } catch (_) {
@@ -981,7 +981,7 @@ export default function IntakeWizard() {
           try {
             const { data: caseData } = await supabaseGet<any>(
               'rc_cases',
-              `select=attorney_id&id=eq.${newCase.id}`
+              `select=attorney_id&id=eq.${newCase.id}&is_superseded=eq.false`
             );
             
             if (caseData && Array.isArray(caseData) && caseData.length > 0 && caseData[0]?.attorney_id) {

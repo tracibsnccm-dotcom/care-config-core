@@ -28,7 +28,7 @@ export default function ActiveCasesSection() {
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inptanh5c3BpemRxaHJ0ZGNna3drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjgxODMsImV4cCI6MjA3OTcwNDE4M30.i5rqJXZPSHYFeaA8E26Vh69UPzgCmhrU9zL2kdE8jrM';
       
       // Get cases for this RN with client_id, date_of_injury, case_type
-      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?select=id,case_number,client_id,date_of_injury,case_type&rn_cm_id=eq.${rnUserId}`;
+      const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?is_superseded=eq.false&select=id,case_number,client_id,date_of_injury,case_type&rn_cm_id=eq.${rnUserId}`;
       
       const casesResponse = await fetch(casesUrl, {
         headers: {

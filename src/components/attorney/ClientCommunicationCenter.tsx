@@ -123,6 +123,7 @@ export default function ClientCommunicationCenter() {
         // Fetch case info to get client names
         const casesUrl = `${supabaseUrl}/rest/v1/rc_cases?` +
           `id=in.(${caseIds.join(',')})` +
+          `&is_superseded=eq.false` +
           `&select=id,case_number,rc_clients(first_name,last_name)`;
         
         const casesResponse = await fetch(casesUrl, {

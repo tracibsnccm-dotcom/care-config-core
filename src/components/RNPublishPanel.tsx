@@ -157,6 +157,7 @@ const RNPublishPanel: React.FC<RNPublishPanelProps> = ({ onCaseChange }) => {
         .from("rc_cases")
         .select("*")
         .eq("id", caseId)
+        .eq("is_superseded", false)
         .single();
 
       if (error) throw error;

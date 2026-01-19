@@ -91,7 +91,8 @@ export function WorkQueue() {
       const { data: directCases, error: directCasesError } = await supabase
         .from('rc_cases')
         .select('id')
-        .eq('rn_cm_id', rcUserId);
+        .eq('rn_cm_id', rcUserId)
+        .eq('is_superseded', false);
       
       console.log('WorkQueue: Direct cases query (rn_cm_id):', directCases, directCasesError);
       
@@ -115,7 +116,8 @@ export function WorkQueue() {
       const { data: casesData, error: casesError } = await supabase
         .from('rc_cases')
         .select('id, case_number, date_of_injury, case_type, client_id')
-        .in('id', caseIds);
+        .in('id', caseIds)
+        .eq('is_superseded', false);
 
       console.log('WorkQueue: Cases data:', casesData, casesError);
 
