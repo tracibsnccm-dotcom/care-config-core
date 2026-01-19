@@ -5,7 +5,7 @@
 --   rc_case_activity (unified "All Activity" feed)
 --
 -- RLS reuses existing case access: rc_users.auth_user_id = auth.uid(),
--- attorney via rc_cases.attorney_id = rc_users.id, RN via role in ('rn_cm','supervisor').
+-- attorney via rc_cases.attorney_id = rc_users.id; RN access is restricted to roles rn and rn_supervisor only.
 -- Idempotent where feasible: DROP IF EXISTS before create.
 
 -- -----------------------------
@@ -192,7 +192,7 @@ CREATE TRIGGER tr_rc_case_requests_after_update_status_activity
 -- -----------------------------
 -- 10) RLS: rc_case_requests
 -- Attorney: select/insert/update for cases where rc_cases.attorney_id = rc_users.id (u.auth_user_id = auth.uid()).
--- RN: select/insert for cases they can access (rn_cm/supervisor see all in Phase 1). RN cannot update (no close/reopen).
+-- RN access is restricted to roles rn and rn_supervisor only. RN cannot update (no close/reopen).
 -- -----------------------------
 ALTER TABLE rc_case_requests ENABLE ROW LEVEL SECURITY;
 
@@ -205,7 +205,7 @@ CREATE POLICY "rc_case_requests_select"
       WHERE u.auth_user_id = auth.uid()
         AND (
           (u.role = 'attorney' AND EXISTS (SELECT 1 FROM rc_cases c WHERE c.id = rc_case_requests.case_id AND c.attorney_id = u.id))
-          OR u.role IN ('rn_cm', 'supervisor')
+          OR u.role IN ('rn', 'rn_supervisor')
         )
     )
   );
@@ -246,6 +246,7 @@ CREATE POLICY "rc_case_requests_update_attorney"
 -- -----------------------------
 -- 11) RLS: rc_case_request_messages
 -- Attorney and RN: select/insert for cases they can access.
+-- RN access is restricted to roles rn and rn_supervisor only.
 -- -----------------------------
 ALTER TABLE rc_case_request_messages ENABLE ROW LEVEL SECURITY;
 
@@ -258,7 +259,7 @@ CREATE POLICY "rc_case_request_messages_select"
       WHERE u.auth_user_id = auth.uid()
         AND (
           (u.role = 'attorney' AND EXISTS (SELECT 1 FROM rc_cases c WHERE c.id = rc_case_request_messages.case_id AND c.attorney_id = u.id))
-          OR u.role IN ('rn_cm', 'supervisor')
+          OR u.role IN ('rn', 'rn_supervisor')
         )
     )
   );
@@ -274,7 +275,7 @@ CREATE POLICY "rc_case_request_messages_insert"
       WHERE u.auth_user_id = auth.uid()
         AND (
           (u.role = 'attorney' AND sender_role = 'attorney' AND EXISTS (SELECT 1 FROM rc_cases c WHERE c.id = rc_case_request_messages.case_id AND c.attorney_id = u.id))
-          OR (u.role IN ('rn_cm', 'supervisor') AND sender_role = 'rn')
+          OR (u.role IN ('rn', 'rn_supervisor') AND sender_role = 'rn')
         )
     )
   );
@@ -282,6 +283,7 @@ CREATE POLICY "rc_case_request_messages_insert"
 -- -----------------------------
 -- 12) RLS: rc_case_activity
 -- Select only (inserts done by triggers). Same case-access as above.
+-- RN access is restricted to roles rn and rn_supervisor only.
 -- -----------------------------
 ALTER TABLE rc_case_activity ENABLE ROW LEVEL SECURITY;
 
@@ -294,7 +296,7 @@ CREATE POLICY "rc_case_activity_select"
       WHERE u.auth_user_id = auth.uid()
         AND (
           (u.role = 'attorney' AND EXISTS (SELECT 1 FROM rc_cases c WHERE c.id = rc_case_activity.case_id AND c.attorney_id = u.id))
-          OR u.role IN ('rn_cm', 'supervisor')
+          OR u.role IN ('rn', 'rn_supervisor')
         )
     )
   );
