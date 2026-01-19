@@ -566,7 +566,7 @@ export default function AttorneyLanding() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("/cases")}
+                      onClick={() => navigate("/attorney/cases")}
                       className="w-full mt-2"
                     >
                       View all {needsAttentionCases.length} cases
@@ -626,7 +626,7 @@ function CaseListItem({
           : `${statusColors.border} ${statusColors.bg}`
       }`}
     >
-      <div className="flex-1 cursor-pointer" onClick={() => navigate(`/case/${c.id}`)}>
+      <div className="flex-1 cursor-pointer" onClick={() => navigate(`/attorney/cases/${c.id}`)}>
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{c.client.rcmsId}</span>
           <span

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function CaseDetail() {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAttorneyRoute = location.pathname.startsWith("/attorney");
   const { cases, role, log, revokeConsent, providers } = useApp();
   const caseData = cases.find((c) => c.id === caseId);
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
@@ -129,7 +131,7 @@ export default function CaseDetail() {
   return (
     <AppLayout>
       <div className="p-8">
-        <Button variant="ghost" onClick={() => navigate("/cases")} className="mb-6">
+        <Button variant="ghost" onClick={() => navigate(isAttorneyRoute ? "/attorney/cases" : "/cases")} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Cases
         </Button>

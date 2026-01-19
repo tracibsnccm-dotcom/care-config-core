@@ -32,6 +32,8 @@ import ClientIntakeForm from "./pages/ClientIntakeForm";
 import IntakeWizard from "./pages/IntakeWizard";
 import AttorneyLanding from "./pages/AttorneyLanding";
 import AttorneyPendingIntakesPage from "./pages/AttorneyPendingIntakesPage";
+import AttorneyCasesPage from "./pages/AttorneyCasesPage";
+import AttorneyBilling from "./pages/AttorneyBilling";
 import AttorneyLogin from "./pages/AttorneyLogin";
 import RNLogin from "./pages/RNLogin";
 import RNPortalLogin from "./pages/RNPortalLogin";
@@ -264,6 +266,33 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <AppProvider>
                 <RequireAuth>
                   <AttorneyPendingIntakesPage />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/attorney/cases/:caseId" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <CaseDetail />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/attorney/cases" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <AttorneyCasesPage />
+                </RequireAuth>
+              </AppProvider>
+            </AuthProvider>
+          } />
+          <Route path="/attorney/billing" element={
+            <AuthProvider>
+              <AppProvider>
+                <RequireAuth>
+                  <AttorneyBilling />
                 </RequireAuth>
               </AppProvider>
             </AuthProvider>

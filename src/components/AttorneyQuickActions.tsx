@@ -18,20 +18,20 @@ import {
 export function AttorneyQuickActions() {
   const navigate = useNavigate();
 
-  // Tier 1: Primary actions (largest)
+  // Tier 1: Primary actions (largest) — all routes stay inside attorney portal
   const tier1Actions = [
     {
       icon: FolderOpen,
       label: "View Cases",
       description: "Browse all your cases",
-      onClick: () => navigate("/cases"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-primary/10 text-primary",
     },
     {
       icon: Clock,
       label: "Pending Assignments",
       description: "Review new client offers",
-      onClick: () => navigate("/attorney-console"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-amber-500/10 text-amber-600",
     },
     {
@@ -45,58 +45,58 @@ export function AttorneyQuickActions() {
       icon: Stethoscope,
       label: "RN CM / Clinical Liaison",
       description: "Clinical coordination",
-      onClick: () => navigate("/rn-clinical-liaison"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-teal-500/10 text-teal-600",
     },
   ];
 
-  // Tier 2: Supporting actions (medium)
+  // Tier 2: Supporting actions (medium) — all routes stay inside attorney portal
   const tier2Actions = [
     {
       icon: MessageSquare,
       label: "Communication",
       description: "Client messages",
-      onClick: () => navigate("/attorney-console"),
+      onClick: () => navigate("/attorney/communications"),
       color: "bg-blue-500/10 text-blue-600",
     },
     {
       icon: Calendar,
       label: "Calendar",
       description: "Schedule & events",
-      onClick: () => navigate("/attorney-console"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-purple-500/10 text-purple-600",
     },
     {
       icon: BookOpen,
       label: "Case Notes",
       description: "View case notes",
-      onClick: () => navigate("/attorney-console"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-indigo-500/10 text-indigo-600",
     },
     {
       icon: FileText,
       label: "Documents",
       description: "Access document hub",
-      onClick: () => navigate("/document-hub"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-green-500/10 text-green-600",
     },
     {
       icon: Users,
       label: "Providers",
       description: "Manage provider network",
-      onClick: () => navigate("/providers"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-cyan-500/10 text-cyan-600",
     },
     {
       icon: BarChart3,
       label: "Reports",
       description: "View analytics & reports",
-      onClick: () => navigate("/reports"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-orange-500/10 text-orange-600",
     },
   ];
 
-  // Tier 3: Admin actions (small)
+  // Tier 3: Admin actions (small) — all routes stay inside attorney portal
   const tier3Actions = [
     {
       icon: Wallet,
@@ -109,7 +109,7 @@ export function AttorneyQuickActions() {
       icon: Settings,
       label: "Settings",
       description: "Account preferences",
-      onClick: () => navigate("/attorney/settings"),
+      onClick: () => navigate("/attorney/cases"),
       color: "bg-gray-500/10 text-gray-600",
     },
   ];
