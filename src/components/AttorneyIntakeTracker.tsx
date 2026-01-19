@@ -209,6 +209,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
           ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || 'Client'
           : 'Client';
         
+        // Confirmed condition: case_status === 'attorney_confirmed' (rc_cases) or attorney_attested_at (rc_client_intakes) as proxy.
         const isConfirmed = !!intake.attorney_attested_at || caseData?.case_status === 'attorney_confirmed';
         const isDeclined = intake.intake_status === 'attorney_declined_not_client';
         const isExpired = !isConfirmed && !isDeclined &&
@@ -217,7 +218,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
         
         let stage = 'Pending Attorney Confirmation';
         if (isConfirmed) {
-          stage = 'Confirmed';
+          stage = 'Awaiting RN Initial Care Plan';
         } else if (isDeclined) {
           stage = 'Declined';
         } else if (isExpired) {
@@ -696,7 +697,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                       </Button>
                     </td>
                     <td className="p-2">
-                      {(row.attorney_attested_at || row.stage === 'Confirmed') ? (
+                      {(row.stage === 'Awaiting RN Initial Care Plan' || !!row.attorney_attested_at) ? (
                         <span className="font-mono text-sm">{row.case_number || '—'}</span>
                       ) : (
                         <Badge variant="secondary">Pending</Badge>
