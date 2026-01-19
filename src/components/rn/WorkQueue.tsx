@@ -342,11 +342,11 @@ export function WorkQueue() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 pt-2 border-t">
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 text-xs"
+                    className="text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/cases/${caseItem.id}`);
@@ -357,7 +357,7 @@ export function WorkQueue() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 text-xs"
+                    className="text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/rn/case/${caseItem.id}/ten-vs`);
@@ -365,6 +365,17 @@ export function WorkQueue() {
                   >
                     <FileText className="h-3 w-3 mr-1" />
                     {isPending ? 'Start Care Plan' : 'View/Edit Care Plan'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/rn/case/${caseItem.id}/requests`);
+                    }}
+                  >
+                    Requests
                   </Button>
                 </div>
               </div>

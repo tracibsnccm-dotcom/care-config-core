@@ -118,6 +118,22 @@ const RnCaseRoutes: React.FC = () => {
           </button>
           <button
             type="button"
+            onClick={() => caseId && navigate(`/rn/case/${caseId}/requests`)}
+            style={{
+              padding: "0.4rem 0.8rem",
+              borderRadius: "6px",
+              border: currentScreen === "requests" ? "2px solid #0f2a6a" : "1px solid #cbd5e1",
+              background: currentScreen === "requests" ? "#0f2a6a" : "#ffffff",
+              color: currentScreen === "requests" ? "#ffffff" : "#0f172a",
+              fontSize: "0.75rem",
+              fontWeight: currentScreen === "requests" ? 600 : 500,
+              cursor: "pointer",
+            }}
+          >
+            Requests
+          </button>
+          <button
+            type="button"
             onClick={navigateToHub}
             style={{
               padding: "0.4rem 0.8rem",

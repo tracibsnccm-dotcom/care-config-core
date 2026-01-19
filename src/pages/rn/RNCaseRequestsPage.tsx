@@ -11,7 +11,7 @@ export default function RNCaseRequestsPage() {
     return (
       <AppLayout>
         <div className="p-6">
-          <p className="text-muted-foreground">Case ID is required. Go to a case to view Clinical Requests.</p>
+          <p className="text-muted-foreground">Case ID is required. Go to a case to view Requests.</p>
           <Button variant="outline" className="mt-2" asChild>
             <Link to="/rn/dashboard">RN Dashboard</Link>
           </Button>
@@ -24,7 +24,7 @@ export default function RNCaseRequestsPage() {
     <AppLayout>
       <div className="p-6">
         <Button variant="ghost" size="sm" className="mb-4" asChild>
-          <Link to={`/cases/${caseId}`}>
+          <Link to={`/rn/case/${caseId}/ten-vs`}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Case
           </Link>

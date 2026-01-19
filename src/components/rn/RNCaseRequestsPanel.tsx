@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,130 +8,157 @@ import { FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/supabaseAuth";
 import { useToast } from "@/hooks/use-toast";
+import { listCaseRequests, getRequestThread, postRequestMessage, type CaseRequest } from "@/lib/caseRequestsApi";
 
-interface CaseRequest {
-  id: string;
-  case_id: string;
-  request_type: string;
-  priority: string;
-  due_at: string | null;
-  status: string;
-  subject: string | null;
-  body: string;
-  created_at: string;
-  updated_at: string;
-  responded_at: string | null;
-}
-
-interface CaseRequestUpdate {
-  id: string;
-  request_id: string;
-  author_role: string;
-  body: string;
-  created_at: string;
-}
+const LOADING_SLOW_MS = 10000;
 
 interface RNCaseRequestsPanelProps {
   caseId: string;
+}
+
+function statusLabel(s: string): string {
+  return s === "open" ? "Open" : s === "responded" ? "Responded" : "Closed";
 }
 
 export function RNCaseRequestsPanel({ caseId }: RNCaseRequestsPanelProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<CaseRequest[]>([]);
-  const [updatesByRequestId, setUpdatesByRequestId] = useState<Record<string, CaseRequestUpdate[]>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [threadByRequestId, setThreadByRequestId] = useState<Record<string, { request: CaseRequest; messages: { id: string; sender_role: string; message: string; created_at: string }[] }>>({});
   const [replyByRequestId, setReplyByRequestId] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [loadingSlow, setLoadingSlow] = useState(false);
+  const [threadLoadingId, setThreadLoadingId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const slowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const headers = () => ({ apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` });
-
-  const fetchData = useCallback(async () => {
+  const fetchRequests = useCallback(async () => {
     if (!caseId) {
       setLoading(false);
       return;
     }
     setLoading(true);
+    setLoadingError(null);
+    setLoadingSlow(false);
+    if (slowRef.current) clearTimeout(slowRef.current);
+    slowRef.current = setTimeout(() => setLoadingSlow(true), LOADING_SLOW_MS);
     try {
-      const r = await fetch(
-        `${supabaseUrl}/rest/v1/rc_case_requests?case_id=eq.${caseId}&order=created_at.desc`,
-        { headers: headers() }
-      );
-      if (!r.ok) {
+      const res = await listCaseRequests(caseId);
+      if (res.error) {
+        setLoadingError(res.error);
         setRequests([]);
-        return;
+      } else {
+        setRequests(res.data ?? []);
+        setLoadingError(null);
       }
-      const list: CaseRequest[] = await r.json();
-      setRequests(list || []);
-      const map: Record<string, CaseRequestUpdate[]> = {};
-      for (const req of list || []) {
-        const u = await fetch(
-          `${supabaseUrl}/rest/v1/rc_case_request_updates?request_id=eq.${req.id}&order=created_at.asc`,
-          { headers: headers() }
-        );
-        map[req.id] = u.ok ? (await u.json()) || [] : [];
-      }
-      setUpdatesByRequestId(map);
-    } catch (e) {
-      console.error("RNCaseRequestsPanel: fetch", e);
+    } catch (e: any) {
+      setLoadingError(e?.message ?? "Failed to load requests");
       setRequests([]);
-      setUpdatesByRequestId({});
     } finally {
       setLoading(false);
+      if (slowRef.current) {
+        clearTimeout(slowRef.current);
+        slowRef.current = null;
+      }
     }
-  }, [caseId, supabaseUrl]);
+  }, [caseId]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchRequests();
+  }, [fetchRequests]);
 
-  const postUpdate = async (requestId: string) => {
-    const body = (replyByRequestId[requestId] || "").trim();
-    if (!body || !user?.id) {
+  const loadThread = useCallback(async (requestId: string) => {
+    setThreadLoadingId(requestId);
+    try {
+      const res = await getRequestThread(requestId);
+      if (res.error) {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+        return;
+      }
+      if (res.data) {
+        setThreadByRequestId((prev) => ({
+          ...prev,
+          [requestId]: { request: res.data.request, messages: res.data.messages },
+        }));
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to load thread", variant: "destructive" });
+    } finally {
+      setThreadLoadingId(null);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (expandedId && !threadByRequestId[expandedId]) {
+      loadThread(expandedId);
+    }
+  }, [expandedId, threadByRequestId, loadThread]);
+
+  const postReply = async (requestId: string) => {
+    const message = (replyByRequestId[requestId] || "").trim();
+    if (!message || !user?.id) {
       toast({ title: "Error", description: "Message and sign-in are required.", variant: "destructive" });
       return;
     }
     setSending(true);
     try {
-      const req = await fetch(`${supabaseUrl}/rest/v1/rc_case_request_updates`, {
-        method: "POST",
-        headers: { ...headers(), "Content-Type": "application/json", Prefer: "return=representation" },
-        body: JSON.stringify({
-          request_id: requestId,
-          case_id: caseId,
-          author_user_id: user.id,
-          author_role: "rn",
-          body,
-        }),
+      const res = await postRequestMessage({
+        requestId,
+        caseId,
+        message,
+        senderUserId: user.id,
+        senderRole: "rn",
       });
-      if (!req.ok) {
-        const t = await req.text();
-        throw new Error(t || "Failed to post update");
-      }
-      const reqRow = requests.find((r) => r.id === requestId);
-      if (reqRow && reqRow.status === "OPEN") {
-        await fetch(`${supabaseUrl}/rest/v1/rc_case_requests?id=eq.${requestId}`, {
-          method: "PATCH",
-          headers: { ...headers(), "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "RESPONDED", responded_at: new Date().toISOString() }),
-        });
+      if (res.error) {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+        return;
       }
       setReplyByRequestId((prev) => ({ ...prev, [requestId]: "" }));
-      toast({ title: "Update posted", description: "Your response has been added." });
-      fetchData();
+      toast({ title: "Response sent", description: "Your response has been added." });
+      loadThread(requestId);
+      fetchRequests();
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message || "Failed to post update", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Failed to post response", variant: "destructive" });
     } finally {
       setSending(false);
     }
   };
 
+  const toggle = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
+
   if (loading) {
     return (
-      <div className="py-4 text-center text-slate-600">Loading requests…</div>
+      <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-600" />
+            Requests
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="py-4 text-center text-slate-600">Loading requests…</div>
+          {loadingSlow && <p className="text-center text-sm text-amber-700">Still loading… try refresh.</p>}
+          <Button variant="outline" size="sm" className="mt-2 w-full" onClick={fetchRequests}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <Card className="border-slate-200 bg-red-50 border-red-200">
+        <CardHeader>
+          <CardTitle className="text-lg">Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-800 text-sm">{loadingError}</p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={fetchRequests}>Retry</Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -140,80 +167,86 @@ export function RNCaseRequestsPanel({ caseId }: RNCaseRequestsPanelProps) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <FileText className="w-5 h-5 text-slate-600" />
-          Clinical Requests & Updates
+          Requests
         </CardTitle>
         <p className="text-slate-600 text-sm">View attorney requests and add your responses.</p>
       </CardHeader>
       <CardContent>
         {requests.length === 0 ? (
-          <div className="py-6 text-center text-slate-500 text-sm">No requests for this case yet.</div>
+          <div className="py-6 text-center text-slate-500 text-sm">
+            <p className="font-medium text-slate-700">No attorney requests for this case yet.</p>
+            <p className="mt-1">When an attorney submits a request, it will appear here.</p>
+          </div>
         ) : (
           <ScrollArea className="h-[360px]">
             <div className="space-y-3 pr-2">
               {requests.map((r) => {
-                const updates = updatesByRequestId[r.id] || [];
                 const isExpanded = expandedId === r.id;
+                const thread = threadByRequestId[r.id];
+                const loadingThread = threadLoadingId === r.id;
                 const reply = replyByRequestId[r.id] ?? "";
+                const isClosed = r.status === "closed";
                 return (
                   <div key={r.id} className="border border-slate-200 rounded-lg overflow-hidden">
                     <button
                       type="button"
                       className="w-full text-left p-3 hover:bg-slate-50 flex justify-between items-start"
-                      onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                      onClick={() => toggle(r.id)}
                     >
                       <div>
                         <div className="flex flex-wrap gap-1 mb-1">
-                          <Badge
-                            className={
-                              r.status === "OPEN" ? "bg-amber-500" : r.status === "RESPONDED" ? "bg-green-600" : "bg-slate-400"
-                            }
-                          >
-                            {r.status}
+                          <Badge className={r.status === "open" ? "bg-amber-500" : r.status === "responded" ? "bg-green-600" : "bg-slate-400"}>
+                            {statusLabel(r.status)}
                           </Badge>
-                          <Badge variant="outline">{r.priority}</Badge>
-                          <span className="text-slate-600 text-xs">{r.request_type}</span>
                         </div>
-                        <p className="font-medium text-slate-800">{r.subject || r.request_type}</p>
-                        <p className="text-slate-600 text-sm truncate">{r.body.slice(0, 80)}{r.body.length > 80 ? "…" : ""}</p>
+                        <p className="font-medium text-slate-800">{r.title}</p>
+                        <p className="text-slate-600 text-xs">{format(new Date(r.last_activity_at), "MMM d, h:mm a")}</p>
                       </div>
                       <span className="text-slate-400 text-sm">{isExpanded ? "▼" : "▶"}</span>
                     </button>
                     {isExpanded && (
                       <div className="border-t border-slate-200 p-3 bg-slate-50/50">
-                        <p className="text-slate-700 text-sm whitespace-pre-wrap mb-3">{r.body}</p>
-                        <p className="text-xs text-slate-500 mb-2">
-                          Created {format(new Date(r.created_at), "MMM d, yyyy 'at' h:mm a")}
-                          {r.responded_at && ` · Responded ${format(new Date(r.responded_at), "MMM d")}`}
-                        </p>
-                        {updates.length > 0 && (
-                          <div className="space-y-2 mb-3">
-                            <p className="text-xs font-medium text-slate-600">Updates</p>
-                            {updates.map((u) => (
-                              <div
-                                key={u.id}
-                                className={`p-2 rounded text-sm ${
-                                  u.author_role === "rn" ? "bg-green-50 border border-green-200" : "bg-slate-100 border border-slate-200"
-                                }`}
-                              >
-                                <span className="font-medium text-slate-700">{u.author_role === "rn" ? "You" : "Attorney"}</span>
-                                <span className="text-slate-500 text-xs ml-2">{format(new Date(u.created_at), "MMM d, h:mm a")}</span>
-                                <p className="text-slate-700 whitespace-pre-wrap mt-1">{u.body}</p>
+                        {loadingThread && !thread ? (
+                          <p className="text-slate-500 text-sm">Loading…</p>
+                        ) : thread ? (
+                          <>
+                            <p className="text-slate-700 text-sm whitespace-pre-wrap mb-3">{thread.request.body}</p>
+                            <p className="text-xs text-slate-500 mb-2">Created {format(new Date(thread.request.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                            {thread.messages.length > 0 && (
+                              <div className="space-y-2 mb-3">
+                                <p className="text-xs font-medium text-slate-600">Messages</p>
+                                {thread.messages.map((m) => (
+                                  <div
+                                    key={m.id}
+                                    className={`p-2 rounded text-sm ${m.sender_role === "rn" ? "bg-green-50 border border-green-200" : "bg-slate-100 border border-slate-200"}`}
+                                  >
+                                    <span className="font-medium text-slate-700">{m.sender_role === "rn" ? "You" : "Attorney"}</span>
+                                    <span className="text-slate-500 text-xs ml-2">{format(new Date(m.created_at), "MMM d, h:mm a")}</span>
+                                    <p className="text-slate-700 whitespace-pre-wrap mt-1">{m.message}</p>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            )}
+                            {isClosed ? (
+                              <p className="text-slate-500 text-sm">This request is closed.</p>
+                            ) : (
+                              <div>
+                                <Textarea
+                                  value={reply}
+                                  onChange={(e) => setReplyByRequestId((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                                  placeholder="Add your response…"
+                                  rows={2}
+                                  className="border-slate-200 mb-2"
+                                />
+                                <Button size="sm" onClick={() => postReply(r.id)} disabled={!reply.trim() || sending}>
+                                  Post Response
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-slate-500 text-sm">Could not load thread.</p>
                         )}
-                        <div>
-                          <Textarea
-                            value={reply}
-                            onChange={(e) => setReplyByRequestId((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                            placeholder="Add your response…"
-                            rows={2}
-                            className="border-slate-200 mb-2"
-                          />
-                          <Button size="sm" onClick={() => postUpdate(r.id)} disabled={!reply.trim() || sending}>
-                            Post Update
-                          </Button>
-                        </div>
                       </div>
                     )}
                   </div>
