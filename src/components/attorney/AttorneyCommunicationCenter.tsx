@@ -65,7 +65,12 @@ function statusLabel(s: string): string {
   return s === "open" ? "Open" : s === "responded" ? "Responded" : "Closed";
 }
 
-export function AttorneyCommunicationCenter() {
+interface AttorneyCommunicationCenterProps {
+  /** When set, run in case-scoped mode: lock to this case, hide case selector, no case fetching. */
+  caseId?: string;
+}
+
+export function AttorneyCommunicationCenter({ caseId }: AttorneyCommunicationCenterProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -74,8 +79,10 @@ export function AttorneyCommunicationCenter() {
 
   const [activeTab, setActiveTab] = useState<"requests" | "all-activity">("requests");
   const [view, setView] = useState<"list" | "thread">("list");
-  const [cases, setCases] = useState<Case[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [cases, setCases] = useState<Case[]>(() =>
+    caseId ? [{ id: caseId, case_number: null, client_id: "", client_name: undefined }] : []
+  );
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(caseId ?? null);
   const [requests, setRequests] = useState<CaseRequest[]>([]);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [thread, setThread] = useState<RequestThread | null>(null);
@@ -86,7 +93,7 @@ export function AttorneyCommunicationCenter() {
   const [formBody, setFormBody] = useState("");
   const [composeMessage, setComposeMessage] = useState("");
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!caseId);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [requestsSlow, setRequestsSlow] = useState(false);
@@ -106,7 +113,16 @@ export function AttorneyCommunicationCenter() {
   const threadSlowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activitySlowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ---- Fetch cases (unchanged pattern) ----
+  // When caseId is provided: keep selectedCaseId and cases in sync (e.g. nav from /cases/A to /cases/B)
+  useEffect(() => {
+    if (caseId) {
+      setSelectedCaseId(caseId);
+      setCases([{ id: caseId, case_number: null, client_id: "", client_name: undefined }]);
+      setLoading(false);
+    }
+  }, [caseId]);
+
+  // ---- Fetch cases (unchanged pattern); skip when case-scoped via caseId ----
   const fetchCases = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
@@ -169,8 +185,9 @@ export function AttorneyCommunicationCenter() {
   }, [user?.id, supabaseUrl]);
 
   useEffect(() => {
+    if (caseId) return;
     fetchCases();
-  }, [fetchCases]);
+  }, [caseId, fetchCases]);
 
   useEffect(() => {
     if (loading || cases.length > 0 || !allowUnassignedCaseSelect || hasTriedRestore.current) return;
@@ -558,28 +575,30 @@ export function AttorneyCommunicationCenter() {
         <Button variant="ghost" size="sm" onClick={() => { setView("list"); setSelectedRequestId(null); setThread(null); }}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to list
         </Button>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Label className="text-slate-700">Case</Label>
-          <Select
-            value={selectedCaseId}
-            onValueChange={(v) => {
-              setSelectedCaseId(v || null);
-              setSelectedRequestId(null);
-              setView("list");
-            }}
-          >
-            <SelectTrigger className="w-[280px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {cases.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!caseId && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Label className="text-slate-700">Case</Label>
+            <Select
+              value={selectedCaseId}
+              onValueChange={(v) => {
+                setSelectedCaseId(v || null);
+                setSelectedRequestId(null);
+                setView("list");
+              }}
+            >
+              <SelectTrigger className="w-[280px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cases.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {threadLoading && !thread ? (
           <Card className="border-slate-200">
@@ -670,37 +689,41 @@ export function AttorneyCommunicationCenter() {
   // Main: list + All Activity
   return (
     <div className="space-y-6">
-      <Card className="bg-white border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-slate-800 text-2xl flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-blue-600" />
-            Requests
-          </CardTitle>
-          <p className="text-slate-600 text-sm mt-1">Create case-linked requests to RN and view responses.</p>
-        </CardHeader>
-      </Card>
+      {!caseId && (
+        <Card className="bg-white border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-slate-800 text-2xl flex items-center gap-2">
+              <MessageSquare className="w-6 h-6 text-blue-600" />
+              Requests
+            </CardTitle>
+            <p className="text-slate-600 text-sm mt-1">Create case-linked requests to RN and view responses.</p>
+          </CardHeader>
+        </Card>
+      )}
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Label className="text-slate-700">Case</Label>
-        <Select
-          value={selectedCaseId ?? ""}
-          onValueChange={(v) => {
-            setSelectedCaseId(v || null);
-            setSelectedRequestId(null);
-          }}
-        >
-          <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Select a case." />
-          </SelectTrigger>
-          <SelectContent>
-            {cases.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!caseId && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label className="text-slate-700">Case</Label>
+          <Select
+            value={selectedCaseId ?? ""}
+            onValueChange={(v) => {
+              setSelectedCaseId(v || null);
+              setSelectedRequestId(null);
+            }}
+          >
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Select a case." />
+            </SelectTrigger>
+            <SelectContent>
+              {cases.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.case_number || c.id.slice(0, 8)} — {c.client_name || "Client"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {!selectedCaseId && (
         <Card className="bg-slate-50 border-slate-200">
@@ -749,7 +772,7 @@ export function AttorneyCommunicationCenter() {
                   <ScrollArea className="h-[400px]">
                     {requests.length === 0 ? (
                       <div className="py-6 text-center">
-                        <p className="text-slate-500 text-sm mb-3">No requests yet for this case.</p>
+                        <p className="text-slate-500 text-sm mb-3">No requests yet for this case. Create a request to communicate with the RN.</p>
                         <Button onClick={() => setNewRequestOpen(true)} variant="outline" size="sm">Create Request</Button>
                       </div>
                     ) : (

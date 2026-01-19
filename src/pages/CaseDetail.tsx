@@ -32,8 +32,10 @@ import {
   ShieldAlert,
   XCircle,
   Stethoscope,
-  StickyNote
+  StickyNote,
+  MessageSquare
 } from "lucide-react";
+import { AttorneyCommunicationCenter } from "@/components/attorney/AttorneyCommunicationCenter";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -474,6 +476,17 @@ export default function CaseDetail() {
         {canView && caseId && (role === "RN_CM" || role === "RCMS_CLINICAL_MGMT" || role === "STAFF" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
           <div className="mt-6">
             <RNCaseRequestsPanel caseId={caseId} />
+          </div>
+        )}
+
+        {/* Attorney: Requests (create and view case-linked requests to RN) */}
+        {canView && caseId && (role === "ATTORNEY" || role === "SUPER_USER" || role === "SUPER_ADMIN") && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Requests
+            </h2>
+            <AttorneyCommunicationCenter caseId={caseId} />
           </div>
         )}
 
