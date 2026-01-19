@@ -420,13 +420,13 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
           <AttorneyAttestationCard
             key={`attestation-${attestationKey}`}
             intakeId={selectedIntake.id}
-            caseId={selectedIntake.case_id}
+            caseId={selectedCaseId}
             intakeSubmittedAt={selectedIntake.intake_submitted_at}
             attorneyConfirmDeadlineAt={selectedIntake.attorney_confirm_deadline_at}
             attorneyAttestedAt={selectedIntake.attorney_attested_at}
             intakeJson={selectedIntake.intake_json}
             resolved={resolution || (isConfirmed ? "CONFIRMED" : null)}
-            onResolved={(res, timestamp, updatedJson) => {
+            onResolved={async (res, timestamp, updatedJson) => {
               setResolution(res);
               setAttestationKey(prev => prev + 1);
               if (res === "CONFIRMED") {
@@ -435,14 +435,13 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                   attorney_attested_at: timestamp,
                   intake_json: updatedJson
                 } : null);
-                // Refetch pending-intakes so the list reflects confirmed state (case number, status) from same source of truth
-                loadData();
+                await loadData();
               } else if (res === "DECLINED") {
                 setSelectedIntake(prev => prev ? {
                   ...prev,
                   intake_json: updatedJson
                 } : null);
-                loadData();
+                await loadData();
               }
             }}
             onAttested={(attestedAt, updatedJson) => {

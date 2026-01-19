@@ -167,20 +167,14 @@ export function AttorneyAttestationCard({
       const intake = Array.isArray(intakes) ? intakes[0] : intakes;
       if (!intake?.case_id) throw new Error('Intake not found');
       
-      // ATTESTATION NEVER INSERTS INTO rc_cases. Only SELECT and UPDATE. Key: intake.case_id (canonical after cleanup).
-      // Get existing case: case_number, client_pin, case_status (source of truth for PIN and case number)
-      let { data: caseData, error: caseDataError } = await supabaseGet(
+      // Confirm is idempotent: we UPDATE rc_cases by id (caseId = selected row) and reuse existing client_pin if present. No INSERT.
+      // SELECT the selected rc_cases row by caseId (the table row's case id from View/Attest)
+      const { data: caseData, error: caseDataError } = await supabaseGet(
         'rc_cases',
-        `select=id,case_number,client_pin,case_status,superseded_by_case_id&id=eq.${intake.case_id}&is_superseded=eq.false&limit=1`
+        `select=id,case_number,client_pin,case_status&id=eq.${caseId}&is_superseded=eq.false&limit=1`
       );
       if (caseDataError) throw new Error(`Failed to get case: ${caseDataError.message}`);
-      let existingCase = Array.isArray(caseData) ? caseData[0] : caseData;
-      // If this row is superseded, use the canonical case for all reads and the UPDATE
-      if (existingCase?.superseded_by_case_id) {
-        const { data: can } = await supabaseGet('rc_cases', `select=id,case_number,client_pin,case_status&id=eq.${existingCase.superseded_by_case_id}&limit=1`);
-        existingCase = (Array.isArray(can) ? can[0] : can) || existingCase;
-      }
-      const targetCaseId = existingCase?.id ?? intake.case_id;
+      const existingCase = Array.isArray(caseData) ? caseData[0] : caseData;
       const existingCaseNumber = existingCase?.case_number;
       
       // Idempotency: if already confirmed, return existing case_number and PIN without generating new values
@@ -223,7 +217,7 @@ export function AttorneyAttestationCard({
       
       const { error: caseError } = await supabaseUpdate(
         'rc_cases',
-        `id=eq.${targetCaseId}`,
+        `id=eq.${caseId}`,
         {
           case_number: caseNumber,
           client_pin: clientPin,
@@ -287,12 +281,12 @@ export function AttorneyAttestationCard({
               action: 'attorney_confirmed',
               actorRole: 'attorney',
               actorId: user?.id || '',
-              caseId: targetCaseId,
+              caseId: caseId,
               meta: { intake_id: intakeId, case_number: caseNumber }
             }).catch(() => {});
             
             createAutoNote({
-              caseId: targetCaseId,
+              caseId: caseId,
               noteType: 'attestation',
               title: 'Attorney Confirmed Representation',
               content: 'Attorney confirmed client representation',
@@ -307,7 +301,7 @@ export function AttorneyAttestationCard({
               // Get client email from rc_cases -> rc_clients
               const { data: caseData } = await supabaseGet(
                 'rc_cases',
-                `select=id,client_id&id=eq.${targetCaseId}&limit=1`
+                `select=id,client_id&id=eq.${caseId}&limit=1`
               );
               
               const caseRecord = Array.isArray(caseData) ? caseData[0] : caseData;

@@ -17,7 +17,7 @@
 ## Idempotent behavior
 
 - **IntakeWizard**: Before inserting `rc_cases`, SELECT by `original_int_number`. If found, reuse that row and skip INSERT. If an `rc_client_intakes` for that case is already `submitted_pending_attorney` or `attorney_confirmed`, treat as “Already submitted” and return.
-- **AttorneyAttestationCard**: Only SELECT and UPDATE on `rc_cases`; no INSERT. If the row has `superseded_by_case_id`, follow to the canonical row and UPDATE that. Re‑attesting returns the existing `case_number` and `client_pin` when `case_status = 'attorney_confirmed'`.
+- **AttorneyAttestationCard (Pending Intakes View/Attest)**: Only SELECT and UPDATE on `rc_cases`; no INSERT. Confirm is idempotent because it updates `rc_cases` by `id = caseId` (the selected table row) and reuses existing `client_pin` and `case_number` when `client_pin` is not null or `case_status = 'attorney_confirmed'`. Re‑attesting returns the same `client_pin` and `case_number`.
 
 ## DB guardrail
 
