@@ -113,7 +113,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
       }
       
       // Build query string for Supabase REST API - JOIN with rc_cases and rc_clients
-      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number,date_of_injury,rc_clients(first_name,last_name))&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
+      let queryString = 'select=*,rc_cases(id,attorney_id,case_type,case_number,case_status,date_of_injury,rc_clients(first_name,last_name))&intake_status=in.(submitted_pending_attorney,attorney_confirmed,attorney_declined_not_client)';
       
       if (scope === 'mine' && attorneyRcUserId) {
         queryString += `&rc_cases.attorney_id=eq.${attorneyRcUserId}`;
@@ -209,7 +209,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
           ? `${clientData.first_name || ''} ${clientData.last_name || ''}`.trim() || 'Client'
           : 'Client';
         
-        const isConfirmed = !!intake.attorney_attested_at;
+        const isConfirmed = !!intake.attorney_attested_at || caseData?.case_status === 'attorney_confirmed';
         const isDeclined = intake.intake_status === 'attorney_declined_not_client';
         const isExpired = !isConfirmed && !isDeclined &&
           intake.attorney_confirm_deadline_at &&
@@ -697,7 +697,7 @@ export const AttorneyIntakeTracker = ({ showHeader = true }: { showHeader?: bool
                       </Button>
                     </td>
                     <td className="p-2">
-                      {row.attorney_attested_at ? (
+                      {(row.attorney_attested_at || row.stage === 'Confirmed') ? (
                         <span className="font-mono text-sm">{row.case_number || '—'}</span>
                       ) : (
                         <Badge variant="secondary">Pending</Badge>

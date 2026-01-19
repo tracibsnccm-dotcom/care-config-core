@@ -621,7 +621,37 @@ export default function IntakeWizard() {
       }
     }
 
-    // First, create the case in rc_cases table
+    // --- Idempotency: one intake = one rc_cases. Reuse existing by original_int_number (INT-...). Never duplicate. ---
+    let existingCase: { id: string } | null = null;
+    if (caseNumber && String(caseNumber).startsWith('INT-')) {
+      try {
+        const { data: ex } = await supabaseGet(
+          'rc_cases',
+          `original_int_number=eq.${encodeURIComponent(caseNumber)}&superseded_by_case_id=is.null&select=id&limit=1`
+        );
+        existingCase = (Array.isArray(ex) ? ex[0] : ex) as { id: string } | null;
+      } catch (_) {
+        existingCase = null;
+      }
+    }
+    if (existingCase?.id) {
+      try {
+        const { data: existingIntake } = await supabaseGet(
+          'rc_client_intakes',
+          `case_id=eq.${existingCase.id}&intake_status=in.(submitted_pending_attorney,attorney_confirmed)&select=id&limit=1`
+        );
+        if (existingIntake && (Array.isArray(existingIntake) ? existingIntake.length : existingIntake)) {
+          toast({ title: 'Already submitted', description: 'This intake was already submitted. It is pending attorney confirmation.' });
+          if (intakeSessionId) {
+            try { await updateIntakeSession(intakeSessionId, { intakeStatus: 'submitted', caseId: existingCase.id }); } catch (_) {}
+          }
+          return;
+        }
+      } catch (_) {}
+      (newCase as any).id = existingCase.id;
+    }
+
+    // First, create the case in rc_cases table (only if no existing row for this intake)
     console.log('IntakeWizard: About to insert rc_cases');
     
     // Prepare 4Ps data as JSON
@@ -645,30 +675,33 @@ export default function IntakeWizard() {
       healthcare_access: sdoh.healthcare_access || 3,
       income_range: sdoh.income_range || null,
     };
-    
-    const { error: caseError } = await supabaseInsert("rc_cases", {
-      id: newCase.id,
-      client_id: clientId, // Link to client record
-      attorney_id: attorneyId, // Assign attorney if found
-      case_type: intake.incidentType || 'MVA',
-      case_status: 'intake_pending',
-      case_number: caseNumber, // Use intake_id from session (INT number), NOT a newly generated one
-      date_of_injury: dateOfInjury, // Save date of injury
-      fourps: fourpsData, // Save 4Ps assessment as JSON
-      sdoh: sdohData, // Save SDOH assessment as JSON
-      created_at: new Date().toISOString(),
-    });
 
-    console.log('IntakeWizard: rc_cases result', { error: caseError, case_number: caseNumber, client_id: clientId, date_of_injury: dateOfInjury });
-
-    if (caseError) {
-      console.error("Error creating case:", caseError);
-      toast({
-        title: "Error",
-        description: "Failed to create case. Please try again.",
-        variant: "destructive",
+    if (!existingCase?.id) {
+      const { error: caseError } = await supabaseInsert("rc_cases", {
+        id: newCase.id,
+        client_id: clientId, // Link to client record
+        attorney_id: attorneyId, // Assign attorney if found
+        case_type: intake.incidentType || 'MVA',
+        case_status: 'intake_pending',
+        case_number: caseNumber, // Use intake_id from session (INT number), NOT a newly generated one
+        date_of_injury: dateOfInjury, // Save date of injury
+        fourps: fourpsData, // Save 4Ps assessment as JSON
+        sdoh: sdohData, // Save SDOH assessment as JSON
+        created_at: new Date().toISOString(),
+        original_int_number: (caseNumber && String(caseNumber).startsWith('INT-')) ? caseNumber : null,
       });
-      return;
+
+      console.log('IntakeWizard: rc_cases result', { error: caseError, case_number: caseNumber, client_id: clientId, date_of_injury: dateOfInjury });
+
+      if (caseError) {
+        console.error("Error creating case:", caseError);
+        toast({
+          title: "Error",
+          description: "Failed to create case. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     // Store case ID for sensitive disclosures
